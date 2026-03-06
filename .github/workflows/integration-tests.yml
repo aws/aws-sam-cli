@@ -53,30 +53,30 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test_suite:
-          # # Build jobs (no-container mode — requires language toolchains)
-          # - build-x86-1
-          # - build-x86-2
-          # - build-arm64
-          # # Build jobs (docker container mode)
-          # - build-x86-container-1
-          # - build-x86-container-2
-          # - build-arm64-container-1
-          # - build-arm64-container-2
-          # # Docker-only test suites
-          # - terraform-build
-          # - terraform-start-api
-          # - terraform-invoke-start-lambda
-          # - package
-          # - deploy
-          # - sync-code
-          # - sync-watch
-          # - local-invoke
-          # - local-start-api
-          # - local-start-lambda
-          # - other-and-e2e
-          # # Runs only credential-requiring tests from build and local
-          # - cloud-based-tests
-          # # Tier 1: Cross-platform smoke tests with Finch runtime
+          # Build jobs (no-container mode — requires language toolchains)
+          - build-x86-1
+          - build-x86-2
+          - build-arm64
+          # Build jobs (docker container mode)
+          - build-x86-container-1
+          - build-x86-container-2
+          - build-arm64-container-1
+          - build-arm64-container-2
+          # Docker-only test suites
+          - terraform-build
+          - terraform-start-api
+          - terraform-invoke-start-lambda
+          - package
+          - deploy
+          - sync-code
+          - sync-watch
+          - local-invoke
+          - local-start-api
+          - local-start-lambda
+          - other-and-e2e
+          # Runs only credential-requiring tests from build and local
+          - cloud-based-tests
+          # Tier 1: Cross-platform smoke tests with Finch runtime
           - tier1-finch
         include:
           # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
@@ -114,31 +114,28 @@ jobs:
         with:
           ref: ${{ (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
-      - name: Fix CRLF line endings in shell scripts (Windows)
-        if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: bash
-        run: |
-          # Windows git checkout may add \r to shell scripts, breaking /bin/sh execution inside Linux containers
-          find tests/integration/testdata -name "*.sh" -exec sed -i 's/\r$//' {} +
-          find tests/integration/testdata -name "*.py" -exec sed -i 's/\r$//' {} +
-
       - name: Free up disk space
         shell: bash
         run: |
           bash tests/free_disk_space.sh
 
       # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
-      - name: Stop Windows Docker Engine
+      - name: Stop Windows Docker Engine and fix CRLF
         if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: pwsh
+        shell: bash
         run: |
-          # Run all Docker shutdown steps in background to avoid blocking (~20s)
-          Start-Job {
-            Stop-Service docker -Force -ErrorAction SilentlyContinue
-            Get-Process "Docker Desktop" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Get-Process "com.docker.backend" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            Get-Process "com.docker.service" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          } | Out-Null
+          # Windows git checkout may add \r to shell scripts, breaking /bin/sh execution inside Linux containers
+          find tests/integration/testdata -name "*.sh" -exec sed -i 's/\r$//' {} +
+          find tests/integration/testdata -name "*.py" -exec sed -i 's/\r$//' {} +
+          # Stop Docker in background to avoid blocking
+          powershell.exe -Command "
+            Start-Job {
+              Stop-Service docker -Force -ErrorAction SilentlyContinue
+              Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+              Get-Process 'com.docker.backend' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+              Get-Process 'com.docker.service' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            } | Out-Null
+          "
 
       - name: Install and Configure WSL 2
         if: startsWith(matrix.test_suite, 'tier1-windows')
