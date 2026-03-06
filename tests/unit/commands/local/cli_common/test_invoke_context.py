@@ -1322,7 +1322,7 @@ class TestInvokeContext_get_env_vars_value(TestCase):
     def test_must_parse_dotenv_with_quoted_values(self):
         """Test parsing .env file with quoted values"""
 
-        file_data = 'KEY1="value with spaces"\nKEY2=\'single quoted\''
+        file_data = "KEY1=\"value with spaces\"\nKEY2='single quoted'"
         expected = {"Parameters": {"KEY1": "value with spaces", "KEY2": "single quoted"}}
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
