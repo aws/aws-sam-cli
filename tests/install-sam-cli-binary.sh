@@ -55,13 +55,21 @@ case "$ASSET" in
     sudo installer -pkg "$TMPDIR/$ASSET" -target /
     ;;
   *.msi)
-    msiexec.exe /i "$(cygpath -w "$TMPDIR/$ASSET")" /qn /norestart
-    # Add SAM CLI to PATH for current session
+    MSI_WIN="$(cygpath -w "$TMPDIR/$ASSET")"
+    # Use PowerShell Start-Process for reliable non-interactive MSI install
+    powershell.exe -Command "
+      \$proc = Start-Process msiexec.exe -ArgumentList '/i', '$MSI_WIN', '/qn', '/norestart', '/l*v', 'D:\\msi-install.log' -Wait -PassThru
+      if (\$proc.ExitCode -ne 0 -and \$proc.ExitCode -ne 3010) {
+        Get-Content 'D:\\msi-install.log' -Tail 30 -ErrorAction SilentlyContinue
+        exit \$proc.ExitCode
+      }
+    "
+    # Add SAM CLI to PATH for subsequent steps
     SAM_DIR="C:/Program Files/Amazon/AWSSAMCLI/bin"
     if [ -n "${GITHUB_PATH:-}" ]; then
       echo "$SAM_DIR" >> "$GITHUB_PATH"
     fi
-    # Nightly MSI installs as sam-nightly.exe
+    # Nightly MSI installs as sam-nightly.exe; copy to sam.exe
     if [ -f "$SAM_DIR/sam-nightly.exe" ]; then
       cp "$SAM_DIR/sam-nightly.exe" "$SAM_DIR/sam.exe"
     fi
