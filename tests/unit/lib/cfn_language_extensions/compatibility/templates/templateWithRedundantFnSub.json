@@ -1,0 +1,20 @@
+{
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters" : {
+    "BucketName" : {
+      "Type" : "String"
+    }
+  },
+  "Resources" : {
+    "S3Bucket" : {
+      "DeletionPolicy": "Delete",
+      "Type" : "AWS::S3::Bucket",
+      "Properties" : {
+        "BucketName" : {"Fn::Sub": "bucketname"},
+        "VersioningConfiguration" : {
+          "Status" : "Enabled"
+        }
+      }
+    }
+  }
+}

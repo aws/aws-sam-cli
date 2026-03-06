@@ -1,0 +1,29 @@
+{
+  "Parameters": {
+    "cdl": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,2,3"
+    }
+  },
+  "Mappings": {
+    "MapName": {
+      "TopKey": {
+        "SecondKey": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Ref": "cdl"},
+            "SecondKey"
+          ]
+        }
+      }
+    }
+  }
+}

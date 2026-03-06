@@ -1,0 +1,43 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "QueueName": {
+      "Type": "String",
+      "Default": "q3"
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-west-1"
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "Key": "q5"
+      },
+      "us-west-1" : {
+        "Key": "q5"
+      }
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": "alias/aws/sqs",
+        "DelaySeconds": { "Fn::Length" : [
+            {
+              "Fn::FindInMap" : [
+                "RegionMap",
+                { "Ref" :  "Region" },
+                "Key"
+              ]
+            },
+            "q1"
+        ]
+          }
+        }
+      }
+    }
+}

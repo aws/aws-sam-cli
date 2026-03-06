@@ -1,0 +1,29 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "NoEchoList": {
+      "Type": "CommaDelimitedList",
+      "NoEcho": true
+    }
+  },
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  },
+  "Outputs": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      {"Ref": "NoEchoList"},
+      {
+        "Output${VariableName}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${VariableName}"}
+        }
+      }
+    ]
+  }
+}

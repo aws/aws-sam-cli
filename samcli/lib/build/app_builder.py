@@ -370,7 +370,7 @@ class ApplicationBuilder:
 
             if has_build_artifact:
                 ApplicationBuilder._update_built_resource(
-                    built_artifacts[full_path], properties, resource_type, store_path
+                    built_artifacts[full_path], properties, resource_type or "", store_path
                 )
 
             if is_stack:

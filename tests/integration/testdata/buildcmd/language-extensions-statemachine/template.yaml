@@ -1,0 +1,48 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-022: ForEach with dynamic Step Functions DefinitionUri.
+  Generates 3 state machines with separate ASL definitions and 3 worker functions.
+  Tests that SAMDefinitionUriWorkflows and SAMCodeUriWorkflows Mappings are generated.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Workflows:
+    - WorkflowName
+    - - OrderProcessing
+      - PaymentProcessing
+      - ShipmentTracking
+    - ${WorkflowName}StateMachine:
+        Type: AWS::Serverless::StateMachine
+        Properties:
+          DefinitionUri: statemachines/${WorkflowName}/definition.asl.json
+          DefinitionSubstitutions:
+            WorkerFunctionArn: !GetAtt
+              - !Sub "${WorkflowName}Worker"
+              - Arn
+          Policies:
+            - LambdaInvokePolicy:
+                FunctionName: !Ref
+                  Fn::Sub: "${WorkflowName}Worker"
+
+      ${WorkflowName}Worker:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: workers/${WorkflowName}/
+          Environment:
+            Variables:
+              WORKFLOW_NAME: !Sub ${WorkflowName}

@@ -14,6 +14,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -21,6 +22,7 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
+from samcli.lib.cfn_language_extensions.utils import iter_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -50,6 +52,8 @@ from samcli.lib.utils.resources import (
 from samcli.lib.utils.s3 import parse_s3_url
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
+LOG = logging.getLogger(__name__)
+
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
 
@@ -66,8 +70,20 @@ class CloudFormationStackResource(ResourceZip):
         """
         If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
-        and set property to URL of the uploaded S3 template
+        and set property to URL of the uploaded S3 template.
+
+        When the child template uses CloudFormation Language Extensions
+        (e.g. Fn::ForEach), the template is first expanded so that
+        Template.export() can discover and upload all generated artifacts.
+        The S3 URIs are then merged back into the original template
+        (preserving the Fn::ForEach structure) before uploading.
         """
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        from samcli.lib.package.language_extensions_packaging import (
+            generate_and_apply_artifact_mappings,
+            merge_language_extensions_s3_uris,
+        )
 
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
@@ -81,15 +97,68 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(
-            template_path,
-            parent_dir,
-            self.uploaders,
-            self.code_signer,
-            normalize_template=True,
-            normalize_parameters=True,
-            parent_stack_id=resource_id,
-        ).export()
+        # Read and attempt language extensions expansion on the child template
+        with open(abs_template_path, "r") as f:
+            child_template_dict = yaml_parse(f.read())
+
+        child_template_dir = os.path.dirname(abs_template_path)
+
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+        try:
+            result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
+        except Exception:
+            LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
+            result = None
+
+        if result and result.had_language_extensions:
+            LOG.debug("Child template %s uses language extensions, expanding before export", abs_template_path)
+
+            # Create Template from the expanded template string
+            template = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+                template_str=yaml_dump(result.expanded_template),
+            )
+            template.template_dir = child_template_dir
+            template.code_signer = self.code_signer
+
+            exported_template = template.export()
+
+            # Merge S3 URIs back into the original template (preserving Fn::ForEach)
+            exported_template_dict = merge_language_extensions_s3_uris(
+                result.original_template, exported_template, result.dynamic_artifact_properties
+            )
+
+            # Generate and apply Mappings for dynamic artifact properties
+            if result.dynamic_artifact_properties:
+                LOG.debug(
+                    "Generating Mappings for %d dynamic artifact properties in child template",
+                    len(result.dynamic_artifact_properties),
+                )
+                exported_resources = exported_template.get("Resources", {})
+                exported_template_dict = generate_and_apply_artifact_mappings(
+                    exported_template_dict,
+                    result.dynamic_artifact_properties,
+                    exported_resources,
+                    child_template_dir,
+                )
+        else:
+            # No language extensions — use existing flow
+            exported_template_dict = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+            ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -250,7 +319,7 @@ class Template:
 
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
@@ -280,7 +349,7 @@ class Template:
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
 
-        for resource_logical_id, resource in self.template_dict["Resources"].items():
+        for resource_logical_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
@@ -306,7 +375,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -331,7 +400,7 @@ class Template:
             return ecr_repos
 
         self._apply_global_values()
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -357,7 +426,7 @@ class Template:
 
         self._apply_global_values()
 
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
 

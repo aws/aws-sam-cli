@@ -1,0 +1,48 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "ValueList": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,0"
+    },
+    "IdentifierString": {
+      "Type": "String",
+      "Default": "LogicalId"
+    }
+  },
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    },
+    "Topic1": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic1"
+      }
+    },
+    "Topic2": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic2"
+      }
+    }
+  },
+  "Outputs": {
+    "Output1": {
+      "Description": "MyDescription",
+      "Value": "Topic0"
+    },
+    "Output2": {
+      "Description": "MyDescription",
+      "Value": "Topic1"
+    },
+    "Output3": {
+      "Description": "MyDescription",
+      "Value": "Topic2"
+    }
+  }
+}

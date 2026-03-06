@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-004: ForEach with API Gateway events.
+  Generates 3 functions with API endpoints for local start-api testing.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Endpoints:
+    - Endpoint
+    - - users
+      - products
+      - orders
+    - ${Endpoint}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: endpoints/${Endpoint}/
+          Environment:
+            Variables:
+              ENDPOINT_NAME: !Sub ${Endpoint}
+          Events:
+            Api:
+              Type: Api
+              Properties:
+                Path: !Sub /${Endpoint}
+                Method: get

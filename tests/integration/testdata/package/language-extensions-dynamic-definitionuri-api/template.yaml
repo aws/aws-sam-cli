@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for sam package with Fn::ForEach and dynamic DefinitionUri for APIs.
+  This template generates multiple API Gateway APIs using Fn::ForEach
+  with dynamic DefinitionUri (DefinitionUri: ./api/${ApiName}.yaml), which should result
+  in a generated Mappings section and Fn::FindInMap references.
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: python3.13
+
+Resources:
+  # Test Fn::ForEach generating multiple APIs with dynamic DefinitionUri
+  # This generates UsersApi and OrdersApi, each with their own OpenAPI spec
+  # UsersApi -> DefinitionUri: ./api/Users.yaml
+  # OrdersApi -> DefinitionUri: ./api/Orders.yaml
+  Fn::ForEach::APIs:
+    - ApiName
+    - - Users
+      - Orders
+    - ${ApiName}Api:
+        Type: AWS::Serverless::Api
+        Properties:
+          Name: !Sub ${ApiName}Api
+          StageName: prod
+          DefinitionUri: ./api/${ApiName}.yaml
+
+  # Backend functions for the APIs
+  Fn::ForEach::Functions:
+    - FuncName
+    - - Users
+      - Orders
+    - ${FuncName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: index.handler
+          CodeUri: ./functions/
+
+Outputs:
+  UsersApiEndpoint:
+    Description: API Gateway endpoint URL for Users API
+    Value: !Sub "https://${UsersApi}.execute-api.${AWS::Region}.amazonaws.com/prod/orders"
+  OrdersApiEndpoint:
+    Description: API Gateway endpoint URL for Orders API
+    Value: !Sub "https://${OrdersApi}.execute-api.${AWS::Region}.amazonaws.com/prod/users"
