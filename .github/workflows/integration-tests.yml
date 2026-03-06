@@ -280,11 +280,12 @@ jobs:
           make setup-pytest
           make init-nightly
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          # Detect venv python path (bin on Linux/macOS, Scripts on Windows)
+          # Detect venv python/pytest path (bin on Linux/macOS, Scripts on Windows)
           if [ -f "$HOME/pytest/bin/python3" ]; then
             echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
           else
             echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
           fi
 
       - name: Initialize latest release test
@@ -300,6 +301,7 @@ jobs:
             echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
           else
             echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
           fi
 
       - name: Configure AWS credentials via OIDC
