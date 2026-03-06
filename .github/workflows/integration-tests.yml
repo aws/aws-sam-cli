@@ -482,11 +482,12 @@ jobs:
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-2")
-              # Tier1 build tests - third 2: java, rust, provided
+              # Tier1 build tests - third 2: java, rust, provided, arm64
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_java.py \
                 tests/integration/buildcmd/test_build_cmd_rust.py \
                 tests/integration/buildcmd/test_build_cmd_provided.py \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-3")
@@ -500,6 +501,7 @@ jobs:
                 --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_provided.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-other")
