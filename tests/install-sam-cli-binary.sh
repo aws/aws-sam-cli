@@ -94,6 +94,10 @@ case "$OS" in
   msys*|mingw*|cygwin*)
     if [ -f "$SAM_DIR/sam-nightly.cmd" ]; then
       WIN_SAM_PATH="$(cygpath -w "$SAM_DIR/sam-nightly.cmd")"
+    elif [ -f "$SAM_DIR/sam.cmd" ]; then
+      WIN_SAM_PATH="$(cygpath -w "$SAM_DIR/sam.cmd")"
+    fi
+    if [ -n "${WIN_SAM_PATH:-}" ] && [ -n "${GITHUB_ENV:-}" ]; then
       echo "SAM_WINDOWS_BINARY_PATH=$WIN_SAM_PATH" >> "$GITHUB_ENV"
     fi
     "$SAM_DIR/sam.cmd" --version || "$SAM_DIR/sam-nightly.cmd" --version
