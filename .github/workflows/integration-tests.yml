@@ -112,7 +112,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
+          ref: ${{ (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
       - name: Fix CRLF line endings in shell scripts (Windows)
         if: startsWith(matrix.test_suite, 'tier1-windows')
