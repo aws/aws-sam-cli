@@ -584,6 +584,7 @@ class GuidedContext:
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
+                include_nested_stacks=True,
                 capabilities=self._capabilities,
                 signing_profiles=self.signing_profiles,
                 disable_rollback=self.disable_rollback,

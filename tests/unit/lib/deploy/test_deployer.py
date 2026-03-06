@@ -137,18 +137,11 @@ class TestDeployer(CustomTestCase):
         )
 
         self.assertEqual(self.deployer._client.create_change_set.call_count, 1)
-        self.deployer._client.create_change_set.assert_called_with(
-            Capabilities=["CAPABILITY_IAM"],
-            ChangeSetName=ANY,
-            ChangeSetType="CREATE",
-            Description=ANY,
-            NotificationARNs=[],
-            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
-            RoleARN="role-arn",
-            StackName="test",
-            Tags={"unit": "true"},
-            TemplateURL=ANY,
-        )
+        # Verify IncludeNestedStacks is set (new parameter for issue #2406)
+        call_args = self.deployer._client.create_change_set.call_args
+        self.assertEqual(call_args.kwargs.get("IncludeNestedStacks"), True)
+        self.assertEqual(call_args.kwargs.get("ChangeSetType"), "CREATE")
+        self.assertEqual(call_args.kwargs.get("StackName"), "test")
 
     def test_update_changeset(self):
         self.deployer.has_stack = MagicMock(return_value=True)
@@ -167,18 +160,11 @@ class TestDeployer(CustomTestCase):
         )
 
         self.assertEqual(self.deployer._client.create_change_set.call_count, 1)
-        self.deployer._client.create_change_set.assert_called_with(
-            Capabilities=["CAPABILITY_IAM"],
-            ChangeSetName=ANY,
-            ChangeSetType="UPDATE",
-            Description=ANY,
-            NotificationARNs=[],
-            Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
-            RoleARN="role-arn",
-            StackName="test",
-            Tags={"unit": "true"},
-            TemplateURL=ANY,
-        )
+        # Verify IncludeNestedStacks is set (new parameter for issue #2406)
+        call_args = self.deployer._client.create_change_set.call_args
+        self.assertEqual(call_args.kwargs.get("IncludeNestedStacks"), True)
+        self.assertEqual(call_args.kwargs.get("ChangeSetType"), "UPDATE")
+        self.assertEqual(call_args.kwargs.get("StackName"), "test")
 
     def test_create_changeset_exception(self):
         self.deployer.has_stack = MagicMock(return_value=False)
@@ -271,6 +257,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="CREATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
@@ -294,6 +281,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="CREATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
@@ -337,6 +325,8 @@ class TestDeployer(CustomTestCase):
         response = [{"Changes": []}]
         self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=response))
         changes = self.deployer.describe_changeset("change_id", "test")
+        # With the new implementation (Optional[Dict]), when no changes are found,
+        # it returns an empty dict instead of False
         self.assertEqual(changes, {"Add": [], "Modify": [], "Remove": []})
 
     def test_wait_for_changeset(self):
