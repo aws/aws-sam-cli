@@ -317,7 +317,7 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
 
     @parameterized.expand(
         [
-            ("ruby3.4", "Ruby34", False), # TODO: Try to make this work in AppVeyor (windows-al2023)
+            ("ruby3.4", "Ruby34", False),  # TODO: Try to make this work in AppVeyor (windows-al2023)
             ("ruby3.4", "Ruby34", "use_container"),
         ],
         name_func=show_container_in_test_name,

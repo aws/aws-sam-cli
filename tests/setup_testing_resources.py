@@ -23,10 +23,16 @@ GITHUB_ENV_FILE = os.environ.get("GITHUB_ENV")
 
 # Test suites that do NOT require AWS credentials
 NO_CREDENTIAL_SUITES = {
-    "build-x86-1", "build-x86-2", "build-arm64",
-    "build-x86-container-1", "build-x86-container-2",
-    "build-arm64-container-1", "build-arm64-container-2",
-    "local-invoke", "local-start-api", "local-start-lambda",
+    "build-x86-1",
+    "build-x86-2",
+    "build-arm64",
+    "build-x86-container-1",
+    "build-x86-container-2",
+    "build-arm64-container-1",
+    "build-arm64-container-2",
+    "local-invoke",
+    "local-start-api",
+    "local-start-lambda",
 }
 
 SENSITIVE_CREDENTIAL_KEYS = {
@@ -64,7 +70,9 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
         try:
             token_result = subprocess.run(
                 ["aws", "ecr-public", "get-login-password", "--region", "us-east-1"],
-                capture_output=True, text=True, check=True
+                capture_output=True,
+                text=True,
+                check=True,
             )
             token = token_result.stdout.strip()
 
@@ -136,6 +144,7 @@ def clear_credentials():
 
 def main():
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--test-suite", default=os.environ.get("TEST_SUITE", ""))
     parser.add_argument("--container-runtime", default=os.environ.get("CONTAINER_RUNTIME", "docker"))
@@ -152,7 +161,7 @@ def main():
 
     # All suites need ECR login, if needs_credentials -> login with test account, else login with oidc account
     ecr_login(args.container_runtime)
-    
+
     if not needs_credentials:
         # clear all the credentail from oidc, we don't want any request routed to oidc account
         clear_credentials()
