@@ -11,10 +11,18 @@ The processor handles:
 - Resolution of collections containing intrinsic functions
 """
 
-from typing import Any, Dict, List, Optional
+import logging
+import re
+from typing import Any, Dict, List, Optional, Tuple
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
+from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, is_foreach_key
+
+LOG = logging.getLogger(__name__)
+
+# Pre-compiled pattern for SSM/Secrets Manager dynamic references: {{resolve:service:reference}}
+_DYNAMIC_REF_PATTERN = re.compile(r"\{\{resolve:(ssm|ssm-secure|secretsmanager):[^}]+\}\}", re.IGNORECASE)
 
 
 class ForEachProcessor:
@@ -39,37 +47,10 @@ class ForEachProcessor:
     3. Validates nesting depth does not exceed the maximum allowed (5 levels)
     4. Resolves collections that contain intrinsic functions
 
-    Note: The actual loop expansion logic is implemented in task 12.2.
-    This task (12.1) focuses on detection, validation, and collection resolution.
-
-    Requirements:
-        - 6.7: WHEN Fn::ForEach has invalid layout (wrong number of arguments,
-               invalid types), THEN THE Resolver SHALL raise an Invalid_Template_Exception
-        - 6.8: WHEN Fn::ForEach collection contains a Ref to a parameter,
-               THEN THE Resolver SHALL resolve the parameter value before iteration
-        - 18.2: WHEN a template contains 5 or fewer levels of nested Fn::ForEach loops,
-                THE SAM_CLI SHALL process the template successfully
-        - 18.3: WHEN a template contains more than 5 levels of nested Fn::ForEach loops,
-                THE SAM_CLI SHALL raise an error before processing
-
-    Example:
-        >>> processor = ForEachProcessor()
-        >>> context = TemplateProcessingContext(
-        ...     fragment={
-        ...         "Resources": {
-        ...             "Fn::ForEach::Topics": [
-        ...                 "TopicName",
-        ...                 ["Alerts", "Notifications"],
-        ...                 {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}}
-        ...             ]
-        ...         }
-        ...     }
-        ... )
-        >>> processor.process_template(context)
     """
 
-    FOREACH_PREFIX = "Fn::ForEach::"
     MAX_FOREACH_NESTING_DEPTH = 5
+    _LAYOUT_ERROR_FMT = "{} layout is incorrect"
 
     def __init__(self, intrinsic_resolver: Optional[Any] = None) -> None:
         """
@@ -83,8 +64,8 @@ class ForEachProcessor:
         """
         self._intrinsic_resolver = intrinsic_resolver
 
-    @staticmethod
     def _merge_expanded(
+        self,
         result: Dict[str, Any],
         expanded: Dict[str, Any],
         foreach_key: str,
@@ -131,12 +112,13 @@ class ForEachProcessor:
             InvalidTemplateException: If any ForEach construct has invalid structure,
                                       or if nesting depth exceeds the maximum allowed.
         """
-        # Validate nesting depth before processing (Requirement 18.2, 18.3)
+        # Validate nesting depth before processing
         self._validate_foreach_nesting_depth(context.fragment)
+        LOG.debug("Processing Fn::ForEach constructs in template")
 
         # Process conditions first (they may be referenced by resources)
         if "Conditions" in context.fragment:
-            processed = self._process_section(context.fragment.get("Conditions", {}), context, "Conditions")
+            processed = self._process_section(context.fragment.get("Conditions", {}), context)
             if processed:
                 context.fragment["Conditions"] = processed
             else:
@@ -151,7 +133,7 @@ class ForEachProcessor:
 
         # Process outputs
         if "Outputs" in context.fragment:
-            processed = self._process_section(context.fragment.get("Outputs", {}), context, "Outputs")
+            processed = self._process_section(context.fragment.get("Outputs", {}), context)
             if processed:
                 context.fragment["Outputs"] = processed
             else:
@@ -179,16 +161,16 @@ class ForEachProcessor:
         result: Dict[str, Any] = {}
 
         for key, value in section.items():
-            if self._is_foreach_key(key):
+            if is_foreach_key(key):
                 # Top-level ForEach - generates multiple resources
-                self._validate_foreach(key, value, context)
-                expanded = self._expand_foreach(key, value, context)
+                identifiers, resolved_collection = self._validate_and_resolve_foreach(key, value, context)
+                expanded = self._expand_foreach(key, value, context, None, identifiers, resolved_collection)
                 # Process each expanded resource for nested ForEach in Properties
                 processed_expanded = {}
                 for res_key, res_value in expanded.items():
                     if isinstance(res_value, dict) and "Properties" in res_value:
                         processed_resource = dict(res_value)
-                        processed_resource["Properties"] = self._process_properties(res_value["Properties"], context)
+                        processed_resource["Properties"] = self._process_section(res_value["Properties"], context)
                         processed_expanded[res_key] = processed_resource
                     else:
                         processed_expanded[res_key] = res_value
@@ -196,66 +178,37 @@ class ForEachProcessor:
             # Regular resource - check for ForEach in Properties
             elif isinstance(value, dict) and "Properties" in value:
                 processed_resource = dict(value)
-                processed_resource["Properties"] = self._process_properties(value["Properties"], context)
+                processed_resource["Properties"] = self._process_section(value["Properties"], context)
                 result[key] = processed_resource
             else:
                 result[key] = value
 
         return result
 
-    def _process_properties(self, properties: Any, context: TemplateProcessingContext) -> Any:
+    def _process_section(
+        self,
+        section: Any,
+        context: TemplateProcessingContext,
+        parent_identifiers: Optional[List[str]] = None,
+    ) -> Any:
         """
-        Process resource Properties for Fn::ForEach constructs.
-
-        This handles Fn::ForEach within Properties that generates multiple
-        property key-value pairs.
-
-        Args:
-            properties: The Properties dictionary to process.
-            context: The template processing context.
-
-        Returns:
-            The processed Properties with ForEach constructs expanded.
-        """
-        if not isinstance(properties, dict):
-            return properties
-
-        result: Dict[str, Any] = {}
-
-        for key, value in properties.items():
-            if self._is_foreach_key(key):
-                # ForEach in Properties - generates multiple properties
-                self._validate_foreach(key, value, context)
-                expanded = self._expand_foreach(key, value, context)
-                self._merge_expanded(result, expanded, key)
-            else:
-                result[key] = value
-
-        return result
-
-    def _process_section(self, section: Any, context: TemplateProcessingContext, section_name: str) -> Any:
-        """
-        Process a template section for Fn::ForEach constructs.
+        Process a template section (or nested dict) for Fn::ForEach constructs.
 
         This method iterates through the section, validates any
-        Fn::ForEach:: prefixed keys found, and expands them into
-        multiple outputs.
+        Fn::ForEach:: prefixed keys found, and expands them.
+        Used for top-level sections (Resources, Conditions, Outputs),
+        resource Properties, and nested ForEach bodies.
 
         Args:
-            section: The template section dictionary to process.
+            section: The dictionary to process.
             context: The template processing context.
-            section_name: Name of the section being processed (for error messages).
+            parent_identifiers: List of identifiers from parent ForEach loops (for conflict detection).
 
         Returns:
-            The processed section dictionary with ForEach constructs expanded.
+            The processed dictionary with ForEach constructs expanded.
 
         Raises:
             InvalidTemplateException: If any ForEach construct is invalid.
-
-        Requirements:
-            - 6.1: Fn::ForEach in Resources SHALL expand to multiple resources
-            - 6.2: Fn::ForEach in Outputs SHALL expand to multiple outputs
-            - 6.3: Fn::ForEach in Conditions SHALL expand to multiple conditions
         """
         if not isinstance(section, dict):
             return section
@@ -263,31 +216,18 @@ class ForEachProcessor:
         result: Dict[str, Any] = {}
 
         for key, value in section.items():
-            if self._is_foreach_key(key):
-                # Validate the ForEach structure
-                self._validate_foreach(key, value, context)
-                # Expand the ForEach and merge results
-                expanded = self._expand_foreach(key, value, context)
+            if is_foreach_key(key):
+                identifiers, resolved_collection = self._validate_and_resolve_foreach(
+                    key, value, context, parent_identifiers
+                )
+                expanded = self._expand_foreach(
+                    key, value, context, parent_identifiers, identifiers, resolved_collection
+                )
                 self._merge_expanded(result, expanded, key)
             else:
                 result[key] = value
 
         return result
-
-    def _is_foreach_key(self, key: str) -> bool:
-        """
-        Check if a key represents a Fn::ForEach construct.
-
-        Fn::ForEach keys have the format "Fn::ForEach::UniqueLoopName"
-        where UniqueLoopName is a user-defined identifier for the loop.
-
-        Args:
-            key: The key to check.
-
-        Returns:
-            True if the key starts with "Fn::ForEach::", False otherwise.
-        """
-        return isinstance(key, str) and key.startswith(self.FOREACH_PREFIX)
 
     def _validate_foreach_nesting_depth(self, template: Dict[str, Any]) -> None:
         """
@@ -301,16 +241,6 @@ class ForEachProcessor:
 
         Raises:
             InvalidTemplateException: If the nesting depth exceeds the maximum allowed.
-
-        Requirements:
-            - 18.2: WHEN a template contains 5 or fewer levels of nested Fn::ForEach loops,
-                    THE SAM_CLI SHALL process the template successfully
-            - 18.3: WHEN a template contains more than 5 levels of nested Fn::ForEach loops,
-                    THE SAM_CLI SHALL raise an error before processing
-            - 18.4: WHEN the nested loop limit is exceeded, THE error message SHALL clearly
-                    indicate that the maximum nesting depth of 5 has been exceeded
-            - 18.5: WHEN the nested loop limit is exceeded, THE error message SHALL indicate
-                    the actual nesting depth found in the template
         """
         # Check all sections that can contain Fn::ForEach
         max_depth = 0
@@ -340,16 +270,11 @@ class ForEachProcessor:
 
         Returns:
             The maximum nesting depth found in this subtree.
-
-        Requirements:
-            - 18.1: WHEN a template contains Fn::ForEach loops nested within each other,
-                    THE SAM_CLI SHALL count the nesting depth starting from 1 for the
-                    outermost loop
         """
         if isinstance(node, dict):
             max_child_depth = current_depth
             for key, value in node.items():
-                if self._is_foreach_key(key):
+                if is_foreach_key(key):
                     # Found a ForEach - increment depth and check its body
                     # The body is the third element of the ForEach array
                     if isinstance(value, list) and len(value) >= 3:
@@ -372,9 +297,9 @@ class ForEachProcessor:
             # Primitive value - return current depth
             return current_depth
 
-    def _validate_foreach(
+    def _validate_and_resolve_foreach(
         self, key: str, value: Any, context: TemplateProcessingContext, parent_identifiers: Optional[List[str]] = None
-    ) -> None:
+    ) -> Tuple[List[str], List[Any]]:
         """
         Validate a Fn::ForEach construct.
 
@@ -396,23 +321,22 @@ class ForEachProcessor:
             context: The template processing context.
             parent_identifiers: List of identifiers from parent ForEach loops (for conflict detection).
 
+        Returns:
+            A tuple of (identifiers, resolved_collection).
+
         Raises:
             InvalidTemplateException: If the ForEach structure is invalid.
-
-        Requirements:
-            - 6.6: Raise Invalid_Template_Exception for identifier conflicts
-            - 6.7: Raise Invalid_Template_Exception for invalid layout
         """
         if parent_identifiers is None:
             parent_identifiers = []
 
         # Value must be a list
         if not isinstance(value, list):
-            raise InvalidTemplateException(f"{key} layout is incorrect")
+            raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         # Must have exactly 3 elements
         if len(value) != 3:
-            raise InvalidTemplateException(f"{key} layout is incorrect")
+            raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         identifier = value[0]
         collection = value[1]
@@ -421,9 +345,9 @@ class ForEachProcessor:
         # Resolve and validate identifier
         identifiers = self._resolve_identifiers(identifier, context)
         if not identifiers:
-            raise InvalidTemplateException(f"{key} layout is incorrect")
+            raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
-        # Check for identifier conflicts with parameter names (Requirement 6.6)
+        # Check for identifier conflicts with parameter names
         for ident in identifiers:
             self._check_identifier_conflicts(ident, key, context, parent_identifiers)
 
@@ -435,14 +359,14 @@ class ForEachProcessor:
 
         # Validate template_body: must be a dictionary
         if not isinstance(template_body, dict):
-            raise InvalidTemplateException(f"{key} layout is incorrect")
+            raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         # Resolve collection if it contains intrinsics
         resolved_collection = self._resolve_collection(collection, context)
 
         # Validate resolved collection: must be a list
         if not isinstance(resolved_collection, list):
-            raise InvalidTemplateException(f"{key} layout is incorrect")
+            raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         # For list-of-lists format, resolve each item and validate
         if len(identifiers) > 1:
@@ -450,13 +374,11 @@ class ForEachProcessor:
             for item in resolved_collection:
                 resolved_item = self._resolve_collection_item(item, context)
                 if not isinstance(resolved_item, list) or len(resolved_item) != len(identifiers):
-                    raise InvalidTemplateException(f"{key} layout is incorrect")
+                    raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
                 resolved_items.append(resolved_item)
             resolved_collection = resolved_items
 
-        # Update the value with resolved identifier and collection for later expansion
-        value[0] = identifiers if len(identifiers) > 1 else identifiers[0]
-        value[1] = resolved_collection
+        return identifiers, resolved_collection
 
     def _resolve_identifiers(self, identifier: Any, context: TemplateProcessingContext) -> List[str]:
         """
@@ -506,27 +428,10 @@ class ForEachProcessor:
             context: The template processing context.
 
         Returns:
-            The resolved value.
+            The resolved value, or the original value if no resolver is available.
         """
         if self._intrinsic_resolver is not None:
             return self._intrinsic_resolver.resolve_value(value)
-
-        # Fallback: try to resolve Ref manually
-        if isinstance(value, dict) and len(value) == 1:
-            key = next(iter(value.keys()))
-            if key == "Ref":
-                ref_target = value["Ref"]
-                if isinstance(ref_target, str):
-                    # Check parameter_values
-                    if ref_target in context.parameter_values:
-                        return context.parameter_values[ref_target]
-
-                    # Check parsed_template parameters
-                    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
-                        param_def = context.parsed_template.parameters[ref_target]
-                        if isinstance(param_def, dict) and "Default" in param_def:
-                            return param_def["Default"]
-
         return value
 
     def _resolve_collection_item(self, item: Any, context: TemplateProcessingContext) -> Any:
@@ -547,48 +452,12 @@ class ForEachProcessor:
         if isinstance(item, list):
             return item
 
-        # Try to resolve intrinsic using the intrinsic resolver
         if self._intrinsic_resolver is not None:
             resolved = self._intrinsic_resolver.resolve_value(item)
             # Handle CommaDelimitedList that was resolved to a string
             if isinstance(resolved, str) and "," in resolved:
                 return [v.strip() for v in resolved.split(",")]
             return resolved
-
-        # Fallback: try to resolve Ref manually
-        if isinstance(item, dict) and len(item) == 1:
-            key = next(iter(item.keys()))
-            if key == "Ref":
-                ref_target = item["Ref"]
-                if isinstance(ref_target, str):
-                    # Check parameter_values
-                    if ref_target in context.parameter_values:
-                        param_value = context.parameter_values[ref_target]
-                        if isinstance(param_value, str):
-                            return [v.strip() for v in param_value.split(",")]
-                        return param_value
-
-                    # Check parsed_template parameters
-                    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
-                        param_def = context.parsed_template.parameters[ref_target]
-                        if isinstance(param_def, dict) and "Default" in param_def:
-                            default_value = param_def["Default"]
-                            param_type = param_def.get("Type", "String")
-                            if param_type == "CommaDelimitedList" and isinstance(default_value, str):
-                                return [v.strip() for v in default_value.split(",")]
-                            return default_value
-
-                    # Check fragment Parameters
-                    if "Parameters" in context.fragment:
-                        params = context.fragment.get("Parameters", {})
-                        if isinstance(params, dict) and ref_target in params:
-                            param_def = params[ref_target]
-                            if isinstance(param_def, dict) and "Default" in param_def:
-                                default_value = param_def["Default"]
-                                param_type = param_def.get("Type", "String")
-                                if param_type == "CommaDelimitedList" and isinstance(default_value, str):
-                                    return [v.strip() for v in default_value.split(",")]
-                                return default_value
 
         return item
 
@@ -607,10 +476,6 @@ class ForEachProcessor:
         Raises:
             InvalidTemplateException: If the identifier conflicts with a parameter name
                                       or another loop identifier.
-
-        Requirements:
-            - 6.6: WHEN Fn::ForEach identifier conflicts with an existing parameter name,
-                   THEN THE Resolver SHALL raise an Invalid_Template_Exception
         """
         # Check for conflict with parameter names
         parameter_names = self._get_parameter_names(context)
@@ -651,71 +516,41 @@ class ForEachProcessor:
         value: List[Any],
         context: TemplateProcessingContext,
         parent_identifiers: Optional[List[str]] = None,
+        identifiers: Optional[List[str]] = None,
+        resolved_collection: Optional[List[Any]] = None,
     ) -> Dict[str, Any]:
         """
         Expand a single Fn::ForEach construct into multiple outputs.
-
-        This method iterates over the collection and for each item:
-        1. Substitutes ${identifier} with the current item value in both keys and values
-        2. Recursively expands any nested Fn::ForEach constructs
-        3. Merges the expanded entries into the result
-
-        Supports two formats:
-        1. Simple format: identifier is a string, collection is a list of values
-        2. List-of-lists format: identifier is a list of strings, collection is a list of lists
 
         Args:
             key: The ForEach key (e.g., "Fn::ForEach::Topics").
             value: The ForEach value (a 3-element list: [identifier, collection, body]).
             context: The template processing context.
-            parent_identifiers: List of identifiers from parent ForEach loops (for conflict detection).
+            parent_identifiers: List of identifiers from parent ForEach loops.
+            identifiers: Pre-resolved identifiers from _validate_and_resolve_foreach.
+            resolved_collection: Pre-resolved collection from _validate_and_resolve_foreach.
 
         Returns:
             A dictionary containing all expanded entries.
-
-        Requirements:
-            - 6.1: Fn::ForEach in Resources SHALL expand to multiple resources
-            - 6.2: Fn::ForEach in Outputs SHALL expand to multiple outputs
-            - 6.3: Fn::ForEach in Conditions SHALL expand to multiple conditions
-            - 6.4: Nested Fn::ForEach SHALL expand recursively
-            - 6.5: Collection items SHALL be iterated in order
-            - 6.9: Identifier SHALL be substituted in both keys and values
-
-        Example:
-            >>> # Input:
-            >>> # "Fn::ForEach::Topics": [
-            >>> #     "TopicName",
-            >>> #     ["Alerts", "Notifications"],
-            >>> #     {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}}
-            >>> # ]
-            >>> # Output:
-            >>> # {
-            >>> #     "TopicAlerts": {"Type": "AWS::SNS::Topic"},
-            >>> #     "TopicNotifications": {"Type": "AWS::SNS::Topic"}
-            >>> # }
         """
         if parent_identifiers is None:
             parent_identifiers = []
+        if identifiers is None:
+            identifiers = value[0] if isinstance(value[0], list) else [value[0]]
+        if resolved_collection is None:
+            resolved_collection = value[1]
 
-        identifier = value[0]
-        collection = value[1]  # Already resolved in _validate_foreach
         template_body = value[2]
 
-        # Determine if this is list-of-lists format
-        if isinstance(identifier, list):
-            identifiers = identifier
-            is_list_of_lists = True
-        else:
-            identifiers = [identifier]
-            is_list_of_lists = False
+        is_list_of_lists = len(identifiers) > 1
+        LOG.debug("Expanding %s with %d collection items", key, len(resolved_collection))
 
         # Track current identifiers for nested loops
         current_identifiers = parent_identifiers + identifiers
 
         result: Dict[str, Any] = {}
 
-        # Iterate over collection items in order (Requirement 6.5)
-        for item in collection:
+        for item in resolved_collection:
             # Get values for each identifier
             if is_list_of_lists:
                 # item is a list of values, one for each identifier
@@ -724,14 +559,14 @@ class ForEachProcessor:
                 # item is a single value
                 item_values = [self._to_string(item)]
 
-            # Substitute all identifiers in the template body (Requirement 6.9)
+            # Substitute all identifiers in the template body
             expanded = template_body
             for ident, item_str in zip(identifiers, item_values):
                 expanded = self._substitute_identifier(expanded, ident, item_str)
 
-            # Recursively expand any nested ForEach constructs (Requirement 6.4)
+            # Recursively expand any nested ForEach constructs
             if isinstance(expanded, dict):
-                expanded = self._expand_nested_foreach(expanded, context, current_identifiers)
+                expanded = self._process_section(expanded, context, current_identifiers)
 
             # Merge expanded entries into result
             self._merge_expanded(result, expanded, key)
@@ -757,46 +592,6 @@ class ForEachProcessor:
             return "true" if value else "false"
         return str(value)
 
-    def _expand_nested_foreach(
-        self,
-        template: Dict[str, Any],
-        context: TemplateProcessingContext,
-        parent_identifiers: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Recursively expand nested Fn::ForEach constructs in a template.
-
-        This method processes a dictionary that may contain nested ForEach
-        constructs and expands them recursively.
-
-        Args:
-            template: A dictionary that may contain nested ForEach constructs.
-            context: The template processing context.
-            parent_identifiers: List of identifiers from parent ForEach loops (for conflict detection).
-
-        Returns:
-            The template with all nested ForEach constructs expanded.
-
-        Requirements:
-            - 6.4: Nested Fn::ForEach SHALL expand recursively
-            - 6.6: Raise Invalid_Template_Exception for identifier conflicts
-        """
-        if parent_identifiers is None:
-            parent_identifiers = []
-
-        result: Dict[str, Any] = {}
-
-        for key, value in template.items():
-            if self._is_foreach_key(key):
-                # Validate and expand the nested ForEach with parent identifiers
-                self._validate_foreach(key, value, context, parent_identifiers)
-                expanded = self._expand_foreach(key, value, context, parent_identifiers)
-                self._merge_expanded(result, expanded, key)
-            else:
-                result[key] = value
-
-        return result
-
     def _substitute_identifier(self, template: Any, identifier: str, value: str) -> Any:
         """
         Substitute ${identifier} and {"Ref": "identifier"} with value throughout the template.
@@ -817,24 +612,6 @@ class ForEachProcessor:
 
         Returns:
             The template with all ${identifier} and {"Ref": "identifier"} occurrences replaced.
-
-        Requirements:
-            - 6.9: Identifier SHALL be substituted in both keys and values
-
-        Example:
-            >>> _substitute_identifier(
-            ...     {"Topic${Name}": {"TopicName": "${Name}Topic"}},
-            ...     "Name",
-            ...     "Alerts"
-            ... )
-            {"TopicAlerts": {"TopicName": "AlertsTopic"}}
-
-            >>> _substitute_identifier(
-            ...     {"Fn::Equals": ["1", {"Ref": "Name"}]},
-            ...     "Name",
-            ...     "1"
-            ... )
-            {"Fn::Equals": ["1", "1"]}
         """
         if isinstance(template, str):
             # Replace ${identifier} with value in strings
@@ -881,14 +658,6 @@ class ForEachProcessor:
         Raises:
             InvalidTemplateException: If the collection contains cloud-dependent
                                       intrinsics that cannot be resolved locally.
-
-        Requirements:
-            - 5.1: Raise error for Fn::GetAtt in collection
-            - 5.2: Raise error for Fn::ImportValue in collection
-            - 5.3: Raise error for SSM/Secrets Manager dynamic references
-            - 5.6: Static list collections work correctly
-            - 5.7: Parameter references work correctly
-            - 6.8: Resolve parameter references in collections before iteration
         """
         # If collection is already a list, check for cloud-dependent values in items
         if isinstance(collection, list):
@@ -905,46 +674,6 @@ class ForEachProcessor:
             if isinstance(resolved, str) and "," in resolved:
                 return [item.strip() for item in resolved.split(",")]
             return resolved
-
-        # If collection is a dict (potential intrinsic), try to resolve via context
-        if isinstance(collection, dict) and len(collection) == 1:
-            key = next(iter(collection.keys()))
-
-            # Handle Ref to parameters
-            if key == "Ref":
-                ref_target = collection["Ref"]
-                if isinstance(ref_target, str):
-                    # Check parameter_values
-                    if ref_target in context.parameter_values:
-                        param_value = context.parameter_values[ref_target]
-                        # Handle CommaDelimitedList
-                        if isinstance(param_value, str):
-                            return [item.strip() for item in param_value.split(",")]
-                        return param_value
-
-                    # Check parsed_template parameters
-                    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
-                        param_def = context.parsed_template.parameters[ref_target]
-                        if isinstance(param_def, dict) and "Default" in param_def:
-                            default_value = param_def["Default"]
-                            param_type = param_def.get("Type", "String")
-                            # Handle CommaDelimitedList default values
-                            if param_type == "CommaDelimitedList" and isinstance(default_value, str):
-                                return [item.strip() for item in default_value.split(",")]
-                            return default_value
-
-                    # Check fragment Parameters
-                    if "Parameters" in context.fragment:
-                        params = context.fragment.get("Parameters", {})
-                        if isinstance(params, dict) and ref_target in params:
-                            param_def = params[ref_target]
-                            if isinstance(param_def, dict) and "Default" in param_def:
-                                default_value = param_def["Default"]
-                                param_type = param_def.get("Type", "String")
-                                # Handle CommaDelimitedList default values
-                                if param_type == "CommaDelimitedList" and isinstance(default_value, str):
-                                    return [item.strip() for item in default_value.split(",")]
-                                return default_value
 
         # Return collection as-is if we can't resolve it
         return collection
@@ -963,28 +692,22 @@ class ForEachProcessor:
         Raises:
             InvalidTemplateException: If the collection contains cloud-dependent
                                       intrinsics that cannot be resolved locally.
-
-        Requirements:
-            - 5.1: Raise error for Fn::GetAtt in collection
-            - 5.2: Raise error for Fn::ImportValue in collection
-            - 5.3: Raise error for SSM/Secrets Manager dynamic references
-            - 5.4: Error message explains collection cannot be resolved locally
-            - 5.5: Error message suggests parameter workaround
         """
         if isinstance(collection, dict) and len(collection) == 1:
             key = next(iter(collection.keys()))
 
-            # Check for Fn::GetAtt (Requirement 5.1)
-            if key in ("Fn::GetAtt", "!GetAtt"):
-                raise InvalidTemplateException(self._build_cloud_dependent_error_message("Fn::GetAtt", collection[key]))
-
-            # Check for Fn::ImportValue (Requirement 5.2)
-            if key in ("Fn::ImportValue", "!ImportValue"):
+            # Check for cloud-dependent intrinsics
+            _CLOUD_DEPENDENT = ("Fn::GetAtt", "!GetAtt", "Fn::ImportValue", "!ImportValue")
+            if key in _CLOUD_DEPENDENT:
+                target_str = str(collection[key])
+                reason = (
+                    f"The collection uses '{key}' which requires" " deployed resources and cannot be resolved locally."
+                )
                 raise InvalidTemplateException(
-                    self._build_cloud_dependent_error_message("Fn::ImportValue", collection[key])
+                    self._build_unresolvable_collection_error(reason, f"Target: {target_str}")
                 )
 
-        # Check for SSM/Secrets Manager dynamic references (Requirement 5.3)
+        # Check for SSM/Secrets Manager dynamic references
         if isinstance(collection, str):
             self._check_dynamic_reference(collection)
 
@@ -1018,87 +741,52 @@ class ForEachProcessor:
 
         Raises:
             InvalidTemplateException: If the value contains a dynamic reference.
-
-        Requirements:
-            - 5.3: Raise error for SSM/Secrets Manager dynamic references
         """
-        import re
-
-        # Pattern for dynamic references: {{resolve:service:reference}}
-        dynamic_ref_pattern = r"\{\{resolve:(ssm|ssm-secure|secretsmanager):[^}]+\}\}"
-        match = re.search(dynamic_ref_pattern, value, re.IGNORECASE)
+        match = _DYNAMIC_REF_PATTERN.search(value)
 
         if match:
             service = match.group(1)
-            raise InvalidTemplateException(self._build_dynamic_reference_error_message(service, value))
+            service_name = {
+                "ssm": "AWS Systems Manager Parameter Store",
+                "ssm-secure": "AWS Systems Manager Parameter Store (SecureString)",
+                "secretsmanager": "AWS Secrets Manager",
+            }.get(service.lower(), service)
+            raise InvalidTemplateException(
+                self._build_unresolvable_collection_error(
+                    f"The collection uses a dynamic reference to {service_name} which requires AWS API calls "
+                    f"and cannot be resolved locally.",
+                    f"Value: {value}",
+                )
+            )
 
-    def _build_cloud_dependent_error_message(self, intrinsic_name: str, target: Any) -> str:
+    _COLLECTION_WORKAROUND = (
+        "Workaround: Use a parameter instead:\n"
+        "  Parameters:\n"
+        "    CollectionValues:\n"
+        "      Type: CommaDelimitedList\n\n"
+        "  Fn::ForEach::MyLoop:\n"
+        "    - Item\n"
+        "    - !Ref CollectionValues\n"
+        "    - ...\n\n"
+        'Then provide the value: sam build --parameter-overrides CollectionValues="Value1,Value2,Value3"'
+    )
+
+    def _build_unresolvable_collection_error(self, reason: str, detail: str) -> str:
         """
-        Build an error message for cloud-dependent intrinsics in collections.
+        Build an error message for unresolvable Fn::ForEach collections.
 
         Args:
-            intrinsic_name: The name of the intrinsic function (e.g., "Fn::GetAtt").
-            target: The target of the intrinsic function.
+            reason: Why the collection cannot be resolved locally.
+            detail: The specific value or target that caused the error.
 
         Returns:
             A formatted error message with workaround suggestion.
-
-        Requirements:
-            - 5.4: Error message explains collection cannot be resolved locally
-            - 5.5: Error message suggests parameter workaround
         """
-        target_str = str(target) if not isinstance(target, str) else target
         return (
             f"Unable to resolve Fn::ForEach collection locally. "
-            f"The collection uses '{intrinsic_name}' which requires deployed resources "
-            f"and cannot be resolved locally.\n\n"
-            f"Target: {target_str}\n\n"
-            f"Workaround: Use a parameter instead:\n"
-            f"  Parameters:\n"
-            f"    CollectionValues:\n"
-            f"      Type: CommaDelimitedList\n\n"
-            f"  Fn::ForEach::MyLoop:\n"
-            f"    - Item\n"
-            f"    - !Ref CollectionValues\n"
-            f"    - ...\n\n"
-            f'Then provide the value: sam build --parameter-overrides CollectionValues="Value1,Value2,Value3"'
-        )
-
-    def _build_dynamic_reference_error_message(self, service: str, value: str) -> str:
-        """
-        Build an error message for dynamic references in collections.
-
-        Args:
-            service: The dynamic reference service (ssm, ssm-secure, secretsmanager).
-            value: The full dynamic reference string.
-
-        Returns:
-            A formatted error message with workaround suggestion.
-
-        Requirements:
-            - 5.4: Error message explains collection cannot be resolved locally
-            - 5.5: Error message suggests parameter workaround
-        """
-        service_name = {
-            "ssm": "AWS Systems Manager Parameter Store",
-            "ssm-secure": "AWS Systems Manager Parameter Store (SecureString)",
-            "secretsmanager": "AWS Secrets Manager",
-        }.get(service.lower(), service)
-
-        return (
-            f"Unable to resolve Fn::ForEach collection locally. "
-            f"The collection uses a dynamic reference to {service_name} which requires AWS API calls "
-            f"and cannot be resolved locally.\n\n"
-            f"Value: {value}\n\n"
-            f"Workaround: Use a parameter instead:\n"
-            f"  Parameters:\n"
-            f"    CollectionValues:\n"
-            f"      Type: CommaDelimitedList\n\n"
-            f"  Fn::ForEach::MyLoop:\n"
-            f"    - Item\n"
-            f"    - !Ref CollectionValues\n"
-            f"    - ...\n\n"
-            f'Then provide the value: sam build --parameter-overrides CollectionValues="Value1,Value2,Value3"'
+            f"{reason}\n\n"
+            f"{detail}\n\n"
+            f"{self._COLLECTION_WORKAROUND}"
         )
 
     def get_foreach_loop_name(self, key: str) -> str:
@@ -1113,6 +801,6 @@ class ForEachProcessor:
         Returns:
             The loop name portion of the key.
         """
-        if not self._is_foreach_key(key):
+        if not is_foreach_key(key):
             raise ValueError(f"Key '{key}' is not a valid Fn::ForEach key")
-        return key[len(self.FOREACH_PREFIX) :]
+        return key[len(FOREACH_PREFIX) :]

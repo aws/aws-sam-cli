@@ -10,7 +10,7 @@ rich public interface.
 import copy
 import functools
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from samtranslator.model import ResourceTypeResolver, sam_resources
 from samtranslator.model.exceptions import (
@@ -140,28 +140,6 @@ class SamTranslatorWrapper:
             List of dynamic artifact property locations
         """
         return self._dynamic_artifact_properties
-
-    @staticmethod
-    def _check_using_language_extension(template: Optional[Dict]) -> bool:
-        """
-        Check if language extensions are set in the template's Transform.
-
-        This is a backward-compatible alias. The canonical implementation
-        is in samcli.lib.cfn_language_extensions.sam_integration.check_using_language_extension.
-
-        Parameters
-        ----------
-        template : dict
-            The template to check
-
-        Returns
-        -------
-        bool
-            True if language extensions are set in the template, False otherwise
-        """
-        from samcli.lib.cfn_language_extensions.sam_integration import check_using_language_extension
-
-        return check_using_language_extension(template)
 
 
 class _SamParserReimplemented:

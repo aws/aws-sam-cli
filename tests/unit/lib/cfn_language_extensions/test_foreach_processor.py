@@ -35,24 +35,30 @@ class TestForEachProcessorDetection:
         return ForEachProcessor()
 
     def test_detects_foreach_key(self, processor: ForEachProcessor):
-        """Test that _is_foreach_key returns True for valid ForEach keys."""
-        assert processor._is_foreach_key("Fn::ForEach::Topics") is True
-        assert processor._is_foreach_key("Fn::ForEach::MyLoop") is True
-        assert processor._is_foreach_key("Fn::ForEach::A") is True
+        """Test that is_foreach_key returns True for valid ForEach keys."""
+        from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+
+        assert is_foreach_key("Fn::ForEach::Topics") is True
+        assert is_foreach_key("Fn::ForEach::MyLoop") is True
+        assert is_foreach_key("Fn::ForEach::A") is True
 
     def test_does_not_detect_non_foreach_keys(self, processor: ForEachProcessor):
-        """Test that _is_foreach_key returns False for non-ForEach keys."""
-        assert processor._is_foreach_key("Fn::Sub") is False
-        assert processor._is_foreach_key("Fn::Length") is False
-        assert processor._is_foreach_key("Ref") is False
-        assert processor._is_foreach_key("MyResource") is False
-        assert processor._is_foreach_key("Fn::ForEach") is False  # Missing ::
+        """Test that is_foreach_key returns False for non-ForEach keys."""
+        from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+
+        assert is_foreach_key("Fn::Sub") is False
+        assert is_foreach_key("Fn::Length") is False
+        assert is_foreach_key("Ref") is False
+        assert is_foreach_key("MyResource") is False
+        assert is_foreach_key("Fn::ForEach") is False  # Missing ::
 
     def test_does_not_detect_non_string_keys(self, processor: ForEachProcessor):
-        """Test that _is_foreach_key returns False for non-string values."""
-        assert processor._is_foreach_key(123) is False  # type: ignore[arg-type]  # Intentionally testing with invalid type
-        assert processor._is_foreach_key(None) is False  # type: ignore[arg-type]  # Intentionally testing with invalid type
-        assert processor._is_foreach_key(["Fn::ForEach::Test"]) is False  # type: ignore[arg-type]  # Intentionally testing with invalid type
+        """Test that is_foreach_key returns False for non-string values."""
+        from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+
+        assert is_foreach_key(123) is False  # type: ignore[arg-type]
+        assert is_foreach_key(None) is False  # type: ignore[arg-type]
+        assert is_foreach_key(["Fn::ForEach::Test"]) is False  # type: ignore[arg-type]
 
     def test_get_foreach_loop_name(self, processor: ForEachProcessor):
         """Test extracting loop name from ForEach key."""
@@ -464,22 +470,22 @@ class TestForEachProcessorSections:
 
 
 class TestForEachProcessorCollectionResolution:
-    """Tests for ForEachProcessor collection resolution.
+    """Tests for ForEachProcessor collection resolution."""
 
-    Requirement 6.8: WHEN Fn::ForEach collection contains a Ref to a parameter,
-    THEN THE Resolver SHALL resolve the parameter value before iteration
-    """
+    def _create_processor_with_resolver(self, context):
+        """Create a ForEachProcessor with an intrinsic resolver."""
+        from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+
+        resolver = create_default_intrinsic_resolver(context)
+        return ForEachProcessor(intrinsic_resolver=resolver)
 
     @pytest.fixture
     def processor(self) -> ForEachProcessor:
-        """Create a ForEachProcessor for testing."""
+        """Create a ForEachProcessor for testing (no resolver - for literal list tests)."""
         return ForEachProcessor()
 
-    def test_resolves_ref_to_parameter_value(self, processor: ForEachProcessor):
-        """Test that Ref to parameter in collection is resolved and expanded.
-
-        Requirement 6.8: Resolve parameter references in collections
-        """
+    def test_resolves_ref_to_parameter_value(self):
+        """Test that Ref to parameter in collection is resolved and expanded."""
         context = TemplateProcessingContext(
             fragment={
                 "Resources": {
@@ -492,6 +498,7 @@ class TestForEachProcessorCollectionResolution:
             },
             parameter_values={"TopicNames": ["Alerts", "Notifications", "Errors"]},
         )
+        processor = self._create_processor_with_resolver(context)
 
         processor.process_template(context)
 
@@ -501,12 +508,8 @@ class TestForEachProcessorCollectionResolution:
         assert "TopicErrors" in context.fragment["Resources"]
         assert "Fn::ForEach::Topics" not in context.fragment["Resources"]
 
-    def test_resolves_ref_to_empty_list_parameter(self, processor: ForEachProcessor):
-        """Test that Ref to parameter with empty list produces no outputs.
-
-        Requirement 6.8: Resolve parameter references in collections
-        Requirement 6.5: Empty collection produces no outputs
-        """
+    def test_resolves_ref_to_empty_list_parameter(self):
+        """Test that Ref to parameter with empty list produces no outputs."""
         context = TemplateProcessingContext(
             fragment={
                 "Resources": {
@@ -519,6 +522,7 @@ class TestForEachProcessorCollectionResolution:
             },
             parameter_values={"TopicNames": []},
         )
+        processor = self._create_processor_with_resolver(context)
 
         processor.process_template(context)
 
@@ -527,7 +531,7 @@ class TestForEachProcessorCollectionResolution:
         # No expanded resources should exist
         assert len(context.fragment["Resources"]) == 0
 
-    def test_ref_to_nonexistent_parameter_raises(self, processor: ForEachProcessor):
+    def test_ref_to_nonexistent_parameter_raises(self):
         """Test that Ref to non-existent parameter raises exception.
 
         When a Ref cannot be resolved and doesn't result in a list,
@@ -545,6 +549,7 @@ class TestForEachProcessorCollectionResolution:
             },
             parameter_values={},
         )
+        processor = self._create_processor_with_resolver(context)
 
         with pytest.raises(InvalidTemplateException) as exc_info:
             processor.process_template(context)
@@ -573,7 +578,7 @@ class TestForEachProcessorCollectionResolution:
         assert "TopicNotifications" in context.fragment["Resources"]
         assert "Fn::ForEach::Topics" not in context.fragment["Resources"]
 
-    def test_resolves_parameter_default_value(self, processor: ForEachProcessor):
+    def test_resolves_parameter_default_value(self):
         """Test that parameter default values are used and expanded."""
         context = TemplateProcessingContext(
             fragment={
@@ -594,6 +599,7 @@ class TestForEachProcessorCollectionResolution:
             parameters={"TopicNames": {"Type": "CommaDelimitedList", "Default": "Alerts,Notifications,Errors"}},
             resources={},
         )
+        processor = self._create_processor_with_resolver(context)
 
         processor.process_template(context)
 
@@ -2256,22 +2262,19 @@ class TestForEachIdentifierSubstitutionProperty:
 
 
 class TestForEachProcessorCloudDependentCollectionValidation:
-    """Tests for ForEachProcessor validation of cloud-dependent collections.
-
-    Requirements:
-        - 5.1: Raise error for Fn::GetAtt in collection
-        - 5.2: Raise error for Fn::ImportValue in collection
-        - 5.3: Raise error for SSM/Secrets Manager dynamic references
-        - 5.4: Error message explains collection cannot be resolved locally
-        - 5.5: Error message suggests parameter workaround
-        - 5.6: Static list collections work correctly
-        - 5.7: Parameter references work correctly
-    """
+    """Tests for ForEachProcessor validation of cloud-dependent collections."""
 
     @pytest.fixture
     def processor(self) -> ForEachProcessor:
         """Create a ForEachProcessor for testing."""
         return ForEachProcessor()
+
+    def _create_processor_with_resolver(self, context):
+        """Create a ForEachProcessor with an intrinsic resolver."""
+        from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+
+        resolver = create_default_intrinsic_resolver(context)
+        return ForEachProcessor(intrinsic_resolver=resolver)
 
     @pytest.fixture
     def context(self) -> TemplateProcessingContext:
@@ -2480,13 +2483,8 @@ class TestForEachProcessorCloudDependentCollectionValidation:
         assert "BetaFunction" in context.fragment["Resources"]
         assert "GammaFunction" in context.fragment["Resources"]
 
-    def test_parameter_reference_collection_succeeds(
-        self, processor: ForEachProcessor, context: TemplateProcessingContext
-    ):
-        """Test that parameter reference collections work correctly.
-
-        Requirement 5.7: Parameter references work correctly
-        """
+    def test_parameter_reference_collection_succeeds(self, context: TemplateProcessingContext):
+        """Test that parameter reference collections work correctly."""
         context.fragment = {
             "Parameters": {"FunctionNames": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta,Gamma"}},
             "Resources": {
@@ -2498,6 +2496,7 @@ class TestForEachProcessorCloudDependentCollectionValidation:
             },
         }
         context.parameter_values = {"FunctionNames": ["Alpha", "Beta", "Gamma"]}
+        processor = self._create_processor_with_resolver(context)
 
         # Should not raise
         processor.process_template(context)
@@ -2507,13 +2506,8 @@ class TestForEachProcessorCloudDependentCollectionValidation:
         assert "BetaFunction" in context.fragment["Resources"]
         assert "GammaFunction" in context.fragment["Resources"]
 
-    def test_parameter_reference_with_default_value_succeeds(
-        self, processor: ForEachProcessor, context: TemplateProcessingContext
-    ):
-        """Test that parameter reference with default value works correctly.
-
-        Requirement 5.7: Parameter references work correctly
-        """
+    def test_parameter_reference_with_default_value_succeeds(self, context: TemplateProcessingContext):
+        """Test that parameter reference with default value works correctly."""
         context.fragment = {
             "Parameters": {"FunctionNames": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},
             "Resources": {
@@ -2524,7 +2518,12 @@ class TestForEachProcessorCloudDependentCollectionValidation:
                 ]
             },
         }
+        context.parsed_template = ParsedTemplate(
+            parameters={"FunctionNames": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},
+            resources={},
+        )
         # No parameter_values provided, should use default
+        processor = self._create_processor_with_resolver(context)
 
         # Should not raise
         processor.process_template(context)

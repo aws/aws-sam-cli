@@ -7,12 +7,6 @@ UpdateReplacePolicy) on CloudFormation resources.
 
 Both DeletionPolicyProcessor and UpdateReplacePolicyProcessor inherit from
 this base class, eliminating code duplication.
-
-Requirements:
-    - 7.1-7.2: Resolve parameter references in policy values
-    - 7.3: Substitute parameter values for Ref in policies
-    - 7.4: Raise exception for AWS::NoValue references
-    - 7.5: Raise exception for non-string resolved values
 """
 
 from typing import Any, Dict, Optional

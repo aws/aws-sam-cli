@@ -3,17 +3,6 @@ Fn::Length intrinsic function resolver.
 
 This module provides the resolver for the CloudFormation Fn::Length intrinsic
 function, which returns the number of elements in a list.
-
-Requirements:
-    - 3.1: WHEN Fn::Length is applied to a list, THEN THE Resolver SHALL return
-           the number of elements in the list
-    - 3.2: WHEN Fn::Length is applied to a nested intrinsic function that resolves
-           to a list, THEN THE Resolver SHALL first resolve the inner function
-           and then return the length
-    - 3.3: WHEN Fn::Length is applied to a non-list value, THEN THE Resolver SHALL
-           raise an Invalid_Template_Exception indicating incorrect layout
-    - 3.4: WHEN Fn::Length references a parameter that resolves to a CommaDelimitedList,
-           THEN THE Resolver SHALL return the count of items in the list
 """
 
 from typing import Any, Dict, Union
@@ -37,21 +26,8 @@ class FnLengthResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::Length"
 
-    Example:
-        >>> resolver = FnLengthResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::Length": [1, 2, 3]})
-        3
-        >>> resolver.resolve({"Fn::Length": {"Ref": "MyListParam"}})
-        # Returns length of the resolved parameter value
-
     Raises:
         InvalidTemplateException: If the resolved value is not a list.
-
-    Requirements:
-        - 3.1: Return the number of elements in a list
-        - 3.2: Resolve nested intrinsics first, then return length
-        - 3.3: Raise InvalidTemplateException for non-list input
-        - 3.4: Handle CommaDelimitedList parameters
     """
 
     FUNCTION_NAMES = ["Fn::Length"]
@@ -75,14 +51,6 @@ class FnLengthResolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the resolved value is not a list.
                                       Error message: "Fn::Length layout is incorrect"
-
-        Example:
-            >>> resolver.resolve({"Fn::Length": [1, 2, 3]})
-            3
-            >>> resolver.resolve({"Fn::Length": []})
-            0
-            >>> resolver.resolve({"Fn::Length": "not-a-list"})
-            InvalidTemplateException: Fn::Length layout is incorrect
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)

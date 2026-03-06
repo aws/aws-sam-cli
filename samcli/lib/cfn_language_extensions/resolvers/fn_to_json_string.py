@@ -3,20 +3,6 @@ Fn::ToJsonString intrinsic function resolver.
 
 This module provides the resolver for the CloudFormation Fn::ToJsonString intrinsic
 function, which converts a dictionary or list to a JSON string representation.
-
-Requirements:
-    - 4.1: WHEN Fn::ToJsonString is applied to a dictionary, THEN THE Resolver SHALL
-           return a JSON string representation of that dictionary
-    - 4.2: WHEN Fn::ToJsonString is applied to a list, THEN THE Resolver SHALL
-           return a JSON string representation of that list
-    - 4.3: WHEN Fn::ToJsonString contains nested intrinsic functions that can be
-           resolved, THEN THE Resolver SHALL resolve those intrinsics before
-           converting to JSON
-    - 4.4: WHEN Fn::ToJsonString contains intrinsic functions that cannot be resolved
-           (e.g., Fn::GetAtt), THEN THE Resolver SHALL preserve those intrinsics
-           in the JSON output
-    - 4.5: WHEN Fn::ToJsonString is applied to an invalid layout, THEN THE Resolver
-           SHALL raise an Invalid_Template_Exception
 """
 
 import json
@@ -45,25 +31,8 @@ class FnToJsonStringResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::ToJsonString"
 
-    Example:
-        >>> resolver = FnToJsonStringResolver(context, parent_resolver)
-        >>> resolver.resolve({"Fn::ToJsonString": {"key": "value"}})
-        '{"key":"value"}'
-        >>> resolver.resolve({"Fn::ToJsonString": [1, 2, 3]})
-        '[1,2,3]'
-        >>> # With unresolvable intrinsic preserved
-        >>> resolver.resolve({"Fn::ToJsonString": {"arn": {"Fn::GetAtt": ["Bucket", "Arn"]}}})
-        '{"arn":{"Fn::GetAtt":["Bucket","Arn"]}}'
-
     Raises:
         InvalidTemplateException: If the input is not a dictionary or list.
-
-    Requirements:
-        - 4.1: Return JSON string representation of dictionaries
-        - 4.2: Return JSON string representation of lists
-        - 4.3: Resolve nested intrinsics before converting to JSON
-        - 4.4: Preserve unresolvable intrinsics in JSON output
-        - 4.5: Raise InvalidTemplateException for invalid layout
     """
 
     FUNCTION_NAMES = ["Fn::ToJsonString"]
@@ -89,14 +58,6 @@ class FnToJsonStringResolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the resolved value is not a dictionary or list.
                                       Error message: "Fn::ToJsonString layout is incorrect"
-
-        Example:
-            >>> resolver.resolve({"Fn::ToJsonString": {"key": "value"}})
-            '{"key":"value"}'
-            >>> resolver.resolve({"Fn::ToJsonString": [1, 2, 3]})
-            '[1,2,3]'
-            >>> resolver.resolve({"Fn::ToJsonString": "not-valid"})
-            InvalidTemplateException: Fn::ToJsonString layout is incorrect
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)

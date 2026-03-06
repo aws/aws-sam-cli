@@ -5,14 +5,6 @@ This module provides the resolver for the CloudFormation Fn::If intrinsic
 function, which returns one of two values based on a condition.
 
 Fn::If format: {"Fn::If": [condition_name, value_if_true, value_if_false]}
-
-Requirements:
-    - 8.2: WHEN Fn::If references a condition, THEN THE Resolver SHALL evaluate
-           the condition and return the appropriate branch
-    - 8.3: WHEN Fn::If references a non-existent condition, THEN THE Resolver
-           SHALL raise an Invalid_Template_Exception
-    - 8.5: WHEN a resource has a Condition attribute, THEN THE Resolver SHALL
-           only process the resource if the condition evaluates to true
 """
 
 from typing import Any, Dict
@@ -41,23 +33,9 @@ class FnIfResolver(IntrinsicFunctionResolver):
     Attributes:
         FUNCTION_NAMES: List containing "Fn::If"
 
-    Example:
-        >>> resolver = FnIfResolver(context, parent_resolver)
-        >>> # With condition "IsProduction" = True
-        >>> resolver.resolve({"Fn::If": ["IsProduction", "prod-value", "dev-value"]})
-        "prod-value"
-        >>> # With condition "IsProduction" = False
-        >>> resolver.resolve({"Fn::If": ["IsProduction", "prod-value", "dev-value"]})
-        "dev-value"
-
     Raises:
         InvalidTemplateException: If the layout is incorrect or the condition
                                   doesn't exist.
-
-    Requirements:
-        - 8.2: Evaluate condition and return appropriate branch
-        - 8.3: Raise exception for non-existent condition
-        - 8.5: Support conditional resource processing
     """
 
     FUNCTION_NAMES = ["Fn::If"]
@@ -84,14 +62,6 @@ class FnIfResolver(IntrinsicFunctionResolver):
                                       condition doesn't exist.
                                       Error message: "Fn::If layout is incorrect"
                                       or "Condition '{name}' not found"
-
-        Example:
-            >>> # With IsProduction = True
-            >>> resolver.resolve({"Fn::If": ["IsProduction", "prod", "dev"]})
-            "prod"
-            >>> # With IsProduction = False
-            >>> resolver.resolve({"Fn::If": ["IsProduction", "prod", "dev"]})
-            "dev"
         """
         # Extract the arguments from the intrinsic function
         args = self.get_function_args(value)
@@ -151,8 +121,6 @@ class FnIfResolver(IntrinsicFunctionResolver):
         Raises:
             InvalidTemplateException: If the condition doesn't exist or
                                       circular references are detected.
-
-        Requirement 8.3: Raise exception for non-existent condition
         """
         # Check for circular reference using context's tracking set
         if condition_name in self.context._evaluating_conditions:
