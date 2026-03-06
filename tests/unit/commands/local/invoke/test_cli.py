@@ -29,7 +29,9 @@ class TestCli(TestCase):
         self.template = "template"
         self.eventfile = "eventfile"
         self.env_vars = "env-vars"
+        self.dotenv = None
         self.container_env_vars = "debug-env-vars"
+        self.container_dotenv = None
         self.debug_ports = [123]
         self.debug_args = "args"
         self.debugger_path = "/test/path"
@@ -68,10 +70,12 @@ class TestCli(TestCase):
             no_event=self.no_event,
             durable_execution_name=self.durable_execution_name,
             env_vars=self.env_vars,
+            dotenv=self.dotenv,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars=self.container_env_vars,
+            container_dotenv=self.container_dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -107,6 +111,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -115,6 +120,7 @@ class TestCli(TestCase):
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars_file=self.container_env_vars,
+            container_dotenv_file=self.container_dotenv,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -155,6 +161,7 @@ class TestCli(TestCase):
             template_file=self.template,
             function_identifier=self.function_id,
             env_vars_file=self.env_vars,
+            dotenv_file=self.dotenv,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
             log_file=self.log_file,
@@ -163,6 +170,7 @@ class TestCli(TestCase):
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
             container_env_vars_file=self.container_env_vars,
+            container_dotenv_file=self.container_dotenv,
             parameter_overrides=self.parameter_overrides,
             layer_cache_basedir=self.layer_cache_basedir,
             force_image_build=self.force_image_build,
@@ -337,10 +345,12 @@ class TestCli(TestCase):
             template=self.template,
             event=self.eventfile,
             no_event=self.no_event,
+            dotenv=self.dotenv,
             env_vars=self.env_vars,
             debug_port=self.debug_ports,
             debug_args=self.debug_args,
             debugger_path=self.debugger_path,
+            container_dotenv=self.container_dotenv,
             container_env_vars=self.container_env_vars,
             docker_volume_basedir=self.docker_volume_basedir,
             docker_network=self.docker_network,
