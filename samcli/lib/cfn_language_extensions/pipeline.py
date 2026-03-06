@@ -29,11 +29,6 @@ class TemplateProcessor(Protocol):
     - Raise InvalidTemplateException for validation errors
     - Not catch exceptions from other processors
 
-    Example:
-        >>> class MyProcessor:
-        ...     def process_template(self, context: TemplateProcessingContext) -> None:
-        ...         # Modify context.fragment in place
-        ...         context.fragment["Processed"] = True
     """
 
     def process_template(self, context: TemplateProcessingContext) -> None:
@@ -66,26 +61,6 @@ class ProcessingPipeline:
 
     Attributes:
         _processors: The ordered list of processors to execute.
-
-    Example:
-        >>> from samcli.lib.cfn_language_extensions.pipeline import ProcessingPipeline
-        >>> from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
-        >>>
-        >>> # Create processors
-        >>> processors = [ParserProcessor(), ResolverProcessor()]
-        >>> pipeline = ProcessingPipeline(processors)
-        >>>
-        >>> # Process a template
-        >>> context = TemplateProcessingContext(
-        ...     fragment={"Resources": {"MyBucket": {"Type": "AWS::S3::Bucket"}}}
-        ... )
-        >>> result = pipeline.process_template(context)
-
-    Requirements:
-        - 1.1: Accept a list of Template_Processors and execute them in order
-        - 1.2: Pass a Template_Processing_Context through each processor
-        - 1.3: Return the processed template fragment after all processors complete
-        - 1.4: Propagate exceptions without continuing to subsequent processors
     """
 
     def __init__(self, processors: List[TemplateProcessor]) -> None:
@@ -95,13 +70,6 @@ class ProcessingPipeline:
         Args:
             processors: An ordered list of TemplateProcessor instances.
                         Processors will be executed in the order provided.
-
-        Example:
-            >>> pipeline = ProcessingPipeline([
-            ...     ParserProcessor(),
-            ...     ForEachProcessor(),
-            ...     IntrinsicResolver(),
-            ... ])
         """
         self._processors = processors
 
@@ -123,14 +91,6 @@ class ProcessingPipeline:
             InvalidTemplateException: If any processor raises this exception.
                                       The exception is propagated without
                                       executing subsequent processors.
-
-        Example:
-            >>> context = TemplateProcessingContext(
-            ...     fragment={"Resources": {"MyBucket": {"Type": "AWS::S3::Bucket"}}}
-            ... )
-            >>> result = pipeline.process_template(context)
-            >>> print(result)
-            {'Resources': {'MyBucket': {'Type': 'AWS::S3::Bucket'}}}
         """
         for processor in self._processors:
             processor.process_template(context)

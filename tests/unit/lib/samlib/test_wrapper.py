@@ -6,11 +6,12 @@ from unittest.mock import patch, MagicMock
 from parameterized import parameterized
 
 from samcli.lib.samlib.wrapper import SamTranslatorWrapper
+from samcli.lib.cfn_language_extensions.sam_integration import check_using_language_extension
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
 
 class TestLanguageExtensionsCheck(TestCase):
-    """Tests for _check_using_language_extension static method."""
+    """Tests for check_using_language_extension."""
 
     @parameterized.expand(
         [
@@ -24,7 +25,7 @@ class TestLanguageExtensionsCheck(TestCase):
         ]
     )
     def test_check_using_language_extension(self, template, expected):
-        self.assertEqual(SamTranslatorWrapper._check_using_language_extension(template), expected)
+        self.assertEqual(check_using_language_extension(template), expected)
 
 
 class TestBuildPseudoParameters(TestCase):

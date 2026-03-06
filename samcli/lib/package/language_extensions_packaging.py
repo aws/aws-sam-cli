@@ -15,7 +15,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
-from samcli.commands._utils.template import FOREACH_REQUIRED_ELEMENTS
 from samcli.lib.cfn_language_extensions.models import (
     PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES,
     DynamicArtifactProperty,
@@ -25,8 +24,12 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
+from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 
 LOG = logging.getLogger(__name__)
+
+# Pre-compiled pattern for validating CloudFormation Mapping keys
+_VALID_MAPPING_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +134,7 @@ def _update_resources_with_s3_uris(
     Handles both regular resources and Fn::ForEach constructs.
     """
     for resource_key, resource_value in original_resources.items():
-        if resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             _update_foreach_with_s3_uris(resource_key, resource_value, exported_resources, dynamic_prop_keys)
         elif isinstance(resource_value, dict) and resource_key in exported_resources:
             exported_resource = exported_resources.get(resource_key, {})
@@ -170,7 +173,7 @@ def _update_foreach_with_s3_uris(
     current_outer_context = outer_context + [(loop_variable, collection_values)]
 
     for resource_template_key, resource_template in body.items():
-        if isinstance(resource_template_key, str) and resource_template_key.startswith("Fn::ForEach::"):
+        if isinstance(resource_template_key, str) and is_foreach_key(resource_template_key):
             _update_foreach_with_s3_uris(
                 resource_template_key,
                 resource_template,
@@ -422,11 +425,9 @@ def _validate_mapping_key_compatibility(prop: DynamicArtifactProperty) -> None:
     """
     from samcli.commands.package.exceptions import InvalidMappingKeyError
 
-    valid_key_pattern = re.compile(r"^[a-zA-Z0-9_-]+$")
-
     invalid_values = []
     for value in prop.collection:
-        if not valid_key_pattern.match(value):
+        if not _VALID_MAPPING_KEY_PATTERN.match(value):
             invalid_values.append(value)
 
     if invalid_values:

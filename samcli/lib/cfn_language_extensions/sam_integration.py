@@ -8,9 +8,6 @@ This module provides integration points for the AWS SAM ecosystem:
 The integration enables processing of language extensions (Fn::ForEach,
 Fn::Length, Fn::ToJsonString, Fn::FindInMap with DefaultValue) before
 SAM transforms are applied.
-
-Requirements:
-    - 15.1-15.6: SAM CLI integration
 """
 
 import copy
@@ -22,11 +19,15 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.api import create_default_pipeline
+from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException as LangExtInvalidTemplateException
 from samcli.lib.cfn_language_extensions.models import (
     PseudoParameterValues,
     ResolutionMode,
     TemplateProcessingContext,
 )
+from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 
 LOG = logging.getLogger(__name__)
 
@@ -244,7 +245,7 @@ def sanitize_resource_key_for_mapping(resource_key: str) -> str:
             "Multiple resources in the same Fn::ForEach body share the same packageable "
             "property name, and each resource logical ID template must contain a static "
             "alphanumeric component (beyond loop variable placeholders) to generate unique "
-            "Mapping names."
+            "mapping names."
         )
     return cleaned
 
@@ -366,13 +367,12 @@ def detect_foreach_dynamic_properties(
         DynamicArtifactProperty,
     )
 
-    foreach_required_elements = 3
     dynamic_properties: List = []
 
     if outer_loops is None:
         outer_loops = []
 
-    if not isinstance(foreach_value, list) or len(foreach_value) != foreach_required_elements:
+    if not isinstance(foreach_value, list) or len(foreach_value) != FOREACH_REQUIRED_ELEMENTS:
         return dynamic_properties
 
     loop_variable = foreach_value[0]
@@ -385,7 +385,7 @@ def detect_foreach_dynamic_properties(
     if not isinstance(output_template, dict):
         return dynamic_properties
 
-    loop_name = foreach_key.replace("Fn::ForEach::", "")
+    loop_name = foreach_key.replace(FOREACH_PREFIX, "")
 
     # Check if collection is a parameter reference
     collection_is_parameter_ref = False
@@ -406,7 +406,7 @@ def detect_foreach_dynamic_properties(
 
     for resource_key, resource_def in output_template.items():
         # Recurse into nested Fn::ForEach blocks
-        if isinstance(resource_key, str) and resource_key.startswith("Fn::ForEach::"):
+        if is_foreach_key(resource_key):
             nested_props = detect_foreach_dynamic_properties(
                 resource_key, resource_def, template, parameter_values, outer_loops=current_outer_loops
             )
@@ -480,7 +480,7 @@ def detect_dynamic_artifact_properties(
         return dynamic_properties
 
     for key, value in resources.items():
-        if key.startswith("Fn::ForEach::"):
+        if is_foreach_key(key):
             props = detect_foreach_dynamic_properties(key, value, template, parameter_values)
             dynamic_properties.extend(props)
 
@@ -532,8 +532,6 @@ def expand_language_extensions(
     InvalidSamDocumentException
         If the template contains invalid language extension syntax
     """
-    from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-
     # --- cache lookup ---
     cache_key: Optional[Tuple[str, float, str]] = None
     if template_path and os.path.isfile(template_path):
@@ -608,10 +606,6 @@ def expand_language_extensions(
         return result
 
     except Exception as e:
-        from samcli.lib.cfn_language_extensions.exceptions import (
-            InvalidTemplateException as LangExtInvalidTemplateException,
-        )
-
         if isinstance(e, LangExtInvalidTemplateException):
             LOG.error("Failed to expand CloudFormation Language Extensions: %s", str(e))
             raise InvalidSamDocumentException(str(e)) from e
@@ -648,21 +642,6 @@ def process_template_for_sam_cli(
     Returns:
         Processed template with language extensions resolved.
 
-    Example:
-        >>> template = load_template("template.yaml")
-        >>> params = {"Environment": "prod"}
-        >>> pseudo = PseudoParameterValues(
-        ...     region="us-east-1",
-        ...     account_id="123456789012"
-        ... )
-        >>> processed = process_template_for_sam_cli(template, params, pseudo)
-
-    Requirements:
-        - 15.1: Accept template, parameters, and pseudo-parameters
-        - 15.2: Process in partial resolution mode
-        - 15.3: Return processed template
-        - 15.4: Preserve unresolvable references
-        - 15.5: Compatible with SAM CLI template processing
     """
     context = TemplateProcessingContext(
         fragment=copy.deepcopy(template),
@@ -670,8 +649,6 @@ def process_template_for_sam_cli(
         pseudo_parameters=pseudo_parameters,
         resolution_mode=ResolutionMode.PARTIAL,
     )
-
-    from samcli.lib.cfn_language_extensions.api import create_default_pipeline
 
     pipeline = create_default_pipeline(context)
     return pipeline.process_template(context)
