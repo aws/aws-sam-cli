@@ -96,7 +96,9 @@ case "$OS" in
       WIN_SAM_PATH="$(cygpath -w "$SAM_DIR/sam-nightly.cmd")"
       echo "SAM_WINDOWS_BINARY_PATH=$WIN_SAM_PATH" >> "$GITHUB_ENV"
     fi
+    "$SAM_DIR/sam.cmd" --version || "$SAM_DIR/sam-nightly.cmd" --version
+    ;;
+  *)
+    sam --version
     ;;
 esac
-
-sam --version || sam-nightly --version
