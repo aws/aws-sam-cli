@@ -156,6 +156,7 @@ jobs:
             curl
             net-tools
           wsl-version: 2
+          wsl-install-path: 'D:\wsl'
           wsl-conf: |
             [automount]
             root = /
