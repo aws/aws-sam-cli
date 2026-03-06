@@ -149,11 +149,13 @@ def main():
 
     if needs_credentials:
         setup_credentials()
-    else:
-        clear_credentials()
 
-    # All suites need ECR login
+    # All suites need ECR login, if needs_credentials -> login with test account, else login with oidc account
     ecr_login(args.container_runtime)
+    
+    if not needs_credentials:
+        # clear all the credentail from oidc, we don't want any request routed to oidc account
+        clear_credentials()
 
 
 if __name__ == "__main__":
