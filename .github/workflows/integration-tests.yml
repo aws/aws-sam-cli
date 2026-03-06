@@ -282,23 +282,34 @@ jobs:
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           make setup-pytest
           make init-nightly
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          # Detect venv python path (bin on Linux/macOS, Scripts on Windows)
+          if [ -f "$HOME/pytest/bin/python3" ]; then
+            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          else
+            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+          fi
 
       - name: Initialize latest release test
         if: env.TEST_TYPE == 'latest-release'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           make setup-pytest
           make init-latest-release
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          if [ -f "$HOME/pytest/bin/python3" ]; then
+            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          else
+            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+          fi
 
       - name: Get testing resources and credentials
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"

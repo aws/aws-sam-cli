@@ -25,6 +25,9 @@ case "$OS" in
       *)      echo "Unsupported macOS architecture: $ARCH"; exit 1 ;;
     esac
     ;;
+  msys*|mingw*|cygwin*)
+    ASSET="AWS_SAM_CLI_64_PY3.msi"
+    ;;
   *)
     echo "Unsupported OS: $OS"; exit 1
     ;;
@@ -51,9 +54,21 @@ case "$ASSET" in
   *.pkg)
     sudo installer -pkg "$TMPDIR/$ASSET" -target /
     ;;
+  *.msi)
+    msiexec.exe /i "$(cygpath -w "$TMPDIR/$ASSET")" /qn /norestart
+    # Add SAM CLI to PATH for current session
+    SAM_DIR="C:/Program Files/Amazon/AWSSAMCLI/bin"
+    if [ -n "${GITHUB_PATH:-}" ]; then
+      echo "$SAM_DIR" >> "$GITHUB_PATH"
+    fi
+    # Nightly MSI installs as sam-nightly.exe
+    if [ -f "$SAM_DIR/sam-nightly.exe" ]; then
+      cp "$SAM_DIR/sam-nightly.exe" "$SAM_DIR/sam.exe"
+    fi
+    ;;
 esac
 
-# Nightly installs as sam-nightly; rename to sam
+# Nightly installs as sam-nightly on Linux/macOS; rename to sam
 if [ -f /usr/local/bin/sam-nightly ]; then
   sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
 fi
