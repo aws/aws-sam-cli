@@ -64,12 +64,20 @@ case "$ASSET" in
         exit \$proc.ExitCode
       }
     "
-    # Add SAM CLI to PATH for subsequent steps
-    SAM_DIR="C:/Program Files/Amazon/AWSSAMCLI/bin"
+    # Nightly installs to AWSSAMCLI_NIGHTLY, release to AWSSAMCLI
+    if [ -d "C:/Program Files/Amazon/AWSSAMCLI_NIGHTLY/bin" ]; then
+      SAM_DIR="C:/Program Files/Amazon/AWSSAMCLI_NIGHTLY/bin"
+    else
+      SAM_DIR="C:/Program Files/Amazon/AWSSAMCLI/bin"
+    fi
     if [ -n "${GITHUB_PATH:-}" ]; then
       echo "$SAM_DIR" >> "$GITHUB_PATH"
     fi
-    # Nightly MSI installs as sam-nightly.exe; copy to sam.exe
+    export PATH="$SAM_DIR:$PATH"
+    # Nightly binary is sam-nightly.cmd; create sam.cmd wrapper
+    if [ -f "$SAM_DIR/sam-nightly.cmd" ]; then
+      cp "$SAM_DIR/sam-nightly.cmd" "$SAM_DIR/sam.cmd"
+    fi
     if [ -f "$SAM_DIR/sam-nightly.exe" ]; then
       cp "$SAM_DIR/sam-nightly.exe" "$SAM_DIR/sam.exe"
     fi
@@ -81,4 +89,14 @@ if [ -f /usr/local/bin/sam-nightly ]; then
   sudo mv /usr/local/bin/sam-nightly /usr/local/bin/sam
 fi
 
-sam --version
+# On Windows, set SAM_WINDOWS_BINARY_PATH for tests
+case "$OS" in
+  msys*|mingw*|cygwin*)
+    if [ -f "$SAM_DIR/sam-nightly.cmd" ]; then
+      WIN_SAM_PATH="$(cygpath -w "$SAM_DIR/sam-nightly.cmd")"
+      echo "SAM_WINDOWS_BINARY_PATH=$WIN_SAM_PATH" >> "$GITHUB_ENV"
+    fi
+    ;;
+esac
+
+sam --version || sam-nightly --version
