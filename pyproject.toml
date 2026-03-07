@@ -97,9 +97,6 @@ dev = [
     "chardet<6",
 ]
 
-[project.scripts]
-sam = "samcli.cli.main:cli"
-
 [project.urls]
 Homepage = "https://github.com/aws/aws-sam-cli"
 
