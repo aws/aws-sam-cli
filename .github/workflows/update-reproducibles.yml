@@ -4,7 +4,7 @@ on:
     branches: [develop]
     paths:
       # run this GHA if the following files have changed
-      - requirements/base.txt
+      - pyproject.toml
       - requirements/reproducible-linux.txt
       - requirements/reproducible-mac.txt
       - requirements/reproducible-win.txt
@@ -53,7 +53,7 @@ jobs:
       - name: Fail if requirements are out of date
         run: |
           if ! git diff --quiet requirements/reproducible-*.txt; then
-            echo "::error::Reproducible requirements are out of date. Please run 'make update-reproducible-reqs-uv' locally and commit the changes before raising a PR."
+            echo "::error::Reproducible requirements are out of date. Please run 'make update-reproducible-reqs' locally and commit the changes before raising a PR."
             exit 1
           fi
           echo "Reproducible requirements are up to date."
