@@ -10,8 +10,12 @@ select = [
     "F",  # Pyflakes
     "PL", # pylint
     "I",  # isort
+    "TID", # flake8-tidy-imports
 ]
 ignore = ["PLR0913", "PLC0415", "PLW1641"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
 
 [tool.ruff.lint.pylint]
 max-branches = 25
