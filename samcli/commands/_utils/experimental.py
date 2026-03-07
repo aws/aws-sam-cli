@@ -54,7 +54,6 @@ class ExperimentalFlag:
             "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
         )
     }
-    RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
     UvPackageManager = ExperimentalEntry(
         "experimentalUvPackageManager", EXPERIMENTAL_ENV_VAR_PREFIX + "UV_PACKAGE_MANAGER"
     )

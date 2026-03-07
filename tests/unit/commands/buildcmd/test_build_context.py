@@ -1261,7 +1261,7 @@ class TestBuildContext_run(TestCase):
         self,
         mock_track_event,
         mock_builder,
-        mock_rust,
+        mock_experimental,
         mock_warning,
         mock_get_resources,
         mock_is_sam_template,
