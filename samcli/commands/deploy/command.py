@@ -109,6 +109,13 @@ LOG = logging.getLogger(__name__)
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
 @click.option(
+    "--import-existing-resources/--no-import-existing-resources",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Requests CloudFormation to import any existing referenced by the template when creating the changeset.",
+)
+@click.option(
     "--disable-rollback/--no-disable-rollback",
     default=False,
     required=False,
@@ -198,6 +205,7 @@ def cli(
     config_file,
     config_env,
     disable_rollback,
+    import_existing_resources,
     on_failure,
     max_wait_duration,
 ):
@@ -234,6 +242,7 @@ def cli(
         config_env,
         resolve_image_repos,
         disable_rollback,
+        import_existing_resources,
         on_failure,
         max_wait_duration,
     )  # pragma: no cover
@@ -268,6 +277,7 @@ def do_cli(
     config_env,
     resolve_image_repos,
     disable_rollback,
+    import_existing_resources,
     on_failure,
     max_wait_duration,
 ):
@@ -373,6 +383,7 @@ def do_cli(
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+            import_existing_resources=import_existing_resources,
             poll_delay=poll_delay,
             on_failure=on_failure,
             max_wait_duration=max_wait_duration,
