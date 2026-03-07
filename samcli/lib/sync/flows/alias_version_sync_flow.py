@@ -23,12 +23,14 @@ class AliasVersionSyncFlow(SyncFlow):
 
     _function_identifier: str
     _alias_name: str
+    _delete_old_alias_version: bool
     _lambda_client: Any
 
     def __init__(
         self,
         function_identifier: str,
         alias_name: str,
+        delete_old_alias_version: bool,
         build_context: "BuildContext",
         deploy_context: "DeployContext",
         sync_context: "SyncContext",
@@ -64,6 +66,7 @@ class AliasVersionSyncFlow(SyncFlow):
         self._function_identifier = function_identifier
         self._alias_name = alias_name
         self._lambda_client = None
+        self._delete_old_alias_version = delete_old_alias_version
 
     @property
     def sync_state_identifier(self) -> str:
@@ -90,6 +93,7 @@ class AliasVersionSyncFlow(SyncFlow):
 
     def sync(self) -> None:
         function_physical_id = self.get_physical_id(self._function_identifier)
+        current_alias_version = self._get_version_alias_if_exists()
         version = self._lambda_client.publish_version(FunctionName=function_physical_id).get("Version")
         self._local_sha = str_checksum(str(version), hashlib.sha256())
         LOG.debug("%sCreated new function version: %s", self.log_prefix, version)
@@ -97,6 +101,10 @@ class AliasVersionSyncFlow(SyncFlow):
             self._lambda_client.update_alias(
                 FunctionName=function_physical_id, Name=self._alias_name, FunctionVersion=version
             )
+            if self._delete_old_alias_version and current_alias_version:
+                formatted_function_name_version = "{}:{}".format(function_physical_id, current_alias_version)
+                LOG.debug("%Deleting Old Version Alias: %s", self.log_prefix, current_alias_version)
+                self._lambda_client.delete_function(FunctionName=formatted_function_name_version)
 
     def gather_dependencies(self) -> List[SyncFlow]:
         return []
@@ -107,3 +115,12 @@ class AliasVersionSyncFlow(SyncFlow):
     def _equality_keys(self) -> Any:
         """Combination of function identifier and alias name can used to identify each unique SyncFlow"""
         return self._function_identifier, self._alias_name
+
+    def _get_version_alias_if_exists(self) -> Optional[str]:
+        try:
+            result = self._lambda_client.get_alias(
+                FunctionName=self.get_physical_id(self._function_identifier), Name=self._alias_name
+            ).get("FunctionVersion")
+            return str(result) if result is not None else result
+        except self._lambda_client.exceptions.ResourceNotFoundException:
+            return None
