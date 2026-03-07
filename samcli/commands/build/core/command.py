@@ -45,6 +45,10 @@ class BuildCommand(CoreCommand):
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
                     RowDefinition(
+                        name=style(f"$ {ctx.command_path} --watch"),
+                        extra_row_modifiers=[ShowcaseRowModifier()],
+                    ),
+                    RowDefinition(
                         name=style(f"$ {ctx.command_path} && {ctx.parent.command_path} deploy"),  # type: ignore
                         extra_row_modifiers=[ShowcaseRowModifier()],
                     ),
