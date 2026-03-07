@@ -7,7 +7,6 @@ import os
 import time
 from http import HTTPStatus
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from typing import Optional
 
 import docker
@@ -16,8 +15,7 @@ from click import ClickException
 
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
-from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_tar_filter_for_windows, get_validated_container_client, is_image_current
+from samcli.local.docker.utils import get_validated_container_client, is_image_current
 
 LOG = logging.getLogger(__name__)
 
@@ -28,8 +26,7 @@ class DurableFunctionsEmulatorContainer:
     """
 
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
-    _EMULATOR_IMAGE = "public.ecr.aws/ubuntu/ubuntu:24.04"
-    _EMULATOR_IMAGE_PREFIX = "samcli/durable-execution-emulator"
+    _EMULATOR_IMAGE_PREFIX = "public.ecr.aws/o4w4w0v6/aws-durable-execution-emulator"
     _CONTAINER_NAME = "sam-durable-execution-emulator"
     _EMULATOR_DATA_DIR_NAME = ".durable-executions-local"
     _EMULATOR_DEFAULT_STORE_TYPE = "sqlite"
@@ -73,6 +70,11 @@ class DurableFunctionsEmulatorContainer:
     on different ports simultaneously.
     """
     ENV_EMULATOR_PORT = "DURABLE_EXECUTIONS_EMULATOR_PORT"
+
+    """
+    Allow pinning to a specific emulator image tag/version
+    """
+    ENV_EMULATOR_IMAGE_TAG = "DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG"
 
     def __init__(self, container_client=None, existing_container=None):
         self._docker_client_param = container_client
@@ -132,6 +134,14 @@ class DurableFunctionsEmulatorContainer:
         """
         return self._get_port(self.ENV_EXTERNAL_EMULATOR_PORT, self.ENV_EMULATOR_PORT, self.EMULATOR_PORT)
 
+    def _get_emulator_image_tag(self):
+        """Get the emulator image tag from environment variable or use default."""
+        return os.environ.get(self.ENV_EMULATOR_IMAGE_TAG, "latest")
+
+    def _get_emulator_image(self):
+        """Get the full emulator image name with tag."""
+        return f"{self._EMULATOR_IMAGE_PREFIX}:{self._get_emulator_image_tag()}"
+
     def _get_emulator_store_type(self):
         """Get the store type from environment variable or use default."""
         store_type = os.environ.get(self.ENV_STORE_TYPE, self._EMULATOR_DEFAULT_STORE_TYPE)
@@ -167,15 +177,11 @@ class DurableFunctionsEmulatorContainer:
         Get the environment variables for the emulator container.
         """
         return {
-            "HOST": "0.0.0.0",
-            "PORT": str(self.port),
-            "LOG_LEVEL": "DEBUG",
             # The emulator needs to have credential variables set, or else it will fail to create boto clients.
             "AWS_ACCESS_KEY_ID": "foo",
             "AWS_SECRET_ACCESS_KEY": "bar",
             "AWS_DEFAULT_REGION": "us-east-1",
-            "EXECUTION_STORE_TYPE": self._get_emulator_store_type(),
-            "EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
+            "DURABLE_EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
         }
 
     @property
@@ -193,81 +199,25 @@ class DurableFunctionsEmulatorContainer:
         arch = _get_host_architecture()
         return f"aws-durable-execution-emulator-{arch}"
 
-    def _generate_emulator_dockerfile(self, emulator_binary_name: str) -> str:
-        """Generate Dockerfile content for emulator image."""
-        return (
-            f"FROM {self._EMULATOR_IMAGE}\n"
-            f"COPY {emulator_binary_name} /usr/local/bin/{emulator_binary_name}\n"
-            f"RUN chmod +x /usr/local/bin/{emulator_binary_name}\n"
-        )
-
-    def _get_emulator_image_tag(self, emulator_binary_name: str) -> str:
-        """Get the Docker image tag for the emulator."""
-        return f"{self._EMULATOR_IMAGE_PREFIX}:{emulator_binary_name}"
-
-    def _build_emulator_image(self):
-        """Build Docker image with emulator binary."""
-        emulator_binary_name = self._get_emulator_binary_name()
-        binary_path = self._RAPID_SOURCE_PATH / emulator_binary_name
-
-        if not binary_path.exists():
-            raise RuntimeError(f"Durable Functions Emulator binary not found at {binary_path}")
-
-        image_tag = self._get_emulator_image_tag(emulator_binary_name)
-
-        # Check if image already exists
-        try:
-            self._docker_client.images.get(image_tag)
-            LOG.debug(f"Emulator image {image_tag} already exists")
-            return image_tag
-        except docker.errors.ImageNotFound:
-            LOG.debug(f"Building emulator image {image_tag}")
-
-        # Generate Dockerfile content
-        dockerfile_content = self._generate_emulator_dockerfile(emulator_binary_name)
-
-        # Write Dockerfile to temp location and build image
-        with NamedTemporaryFile(mode="w", suffix="_Dockerfile") as dockerfile:
-            dockerfile.write(dockerfile_content)
-            dockerfile.flush()
-
-            # Prepare tar paths for build context
-            tar_paths = {
-                dockerfile.name: "Dockerfile",
-                str(binary_path): emulator_binary_name,
-            }
-
-            # Use shared tar filter for Windows compatibility
-            tar_filter = get_tar_filter_for_windows()
-
-            # Build image using create_tarball utility
-            with create_tarball(tar_paths, tar_filter=tar_filter, dereference=True) as tarballfile:
-                try:
-                    self._docker_client.images.build(fileobj=tarballfile, custom_context=True, tag=image_tag, rm=True)
-                    LOG.info(f"Built emulator image {image_tag}")
-                    return image_tag
-                except Exception as e:
-                    raise ClickException(f"Failed to build emulator image: {e}")
-
     def _pull_image_if_needed(self):
         """Pull the emulator image if it doesn't exist locally or is out of date."""
         try:
-            self._docker_client.images.get(self._EMULATOR_IMAGE)
-            LOG.debug(f"Emulator image {self._EMULATOR_IMAGE} exists locally")
+            self._docker_client.images.get(self._get_emulator_image())
+            LOG.debug(f"Emulator image {self._get_emulator_image()} exists locally")
 
-            if is_image_current(self._docker_client, self._EMULATOR_IMAGE):
+            if is_image_current(self._docker_client, self._get_emulator_image()):
                 LOG.debug("Local emulator image is up-to-date")
                 return
 
             LOG.debug("Local image is out of date and will be updated to the latest version")
         except docker.errors.ImageNotFound:
-            LOG.debug(f"Pulling emulator image {self._EMULATOR_IMAGE}...")
+            LOG.debug(f"Pulling emulator image {self._get_emulator_image()}...")
 
         try:
-            self._docker_client.images.pull(self._EMULATOR_IMAGE)
-            LOG.info(f"Successfully pulled image {self._EMULATOR_IMAGE}")
+            self._docker_client.images.pull(self._get_emulator_image())
+            LOG.info(f"Successfully pulled image {self._get_emulator_image()}")
         except Exception as e:
-            raise ClickException(f"Failed to pull emulator image {self._EMULATOR_IMAGE}: {e}")
+            raise ClickException(f"Failed to pull emulator image {self._get_emulator_image()}: {e}")
 
     def start(self):
         """Start the emulator container."""
@@ -275,8 +225,6 @@ class DurableFunctionsEmulatorContainer:
         if self._is_external_emulator():
             LOG.info("Using external durable functions emulator, skipping container start")
             return
-
-        emulator_binary_name = self._get_emulator_binary_name()
 
         """
         Create persistent volume for execution data to be stored in.
@@ -290,13 +238,27 @@ class DurableFunctionsEmulatorContainer:
             emulator_data_dir: {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
         }
 
-        # Build image with emulator binary
-        image_tag = self._build_emulator_image()
+        self._pull_image_if_needed()
 
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
         self.container = self._docker_client.containers.create(
-            image=image_tag,
-            command=[f"/usr/local/bin/{emulator_binary_name}", "--host", "0.0.0.0", "--port", str(self.port)],
+            image=self._get_emulator_image(),
+            command=[
+                "dex-local-runner",
+                "start-server",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(self.port),
+                "--log-level",
+                "DEBUG",
+                "--lambda-endpoint",
+                "http://host.docker.internal:3001",
+                "--store-type",
+                self._get_emulator_store_type(),
+                "--store-path",
+                "/tmp/.durable-executions-local/durable-executions.db",
+            ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
             volumes=volumes,
@@ -447,4 +409,12 @@ class DurableFunctionsEmulatorContainer:
         except Exception:
             pass
 
-        raise RuntimeError(f"Durable Functions Emulator container failed to become ready within {timeout} seconds")
+        raise RuntimeError(
+            f"Durable Functions Emulator container failed to become ready within {timeout} seconds. "
+            "You may set the DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG env variable to a specific image "
+            "to ensure that you are using a compatible version. "
+            f"Check https://${self._get_emulator_image().replace('public.ecr', 'gallery.ecr')}. "
+            "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
+            "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
+            " in case of incompatibility."
+        )
