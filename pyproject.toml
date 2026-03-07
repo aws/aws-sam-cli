@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]  # PEP 508 specifications.
 
 [project]
 name = "aws-sam-cli"
-dynamic = ["version"]
+dynamic = ["version", "scripts"]
 description = "AWS SAM CLI is a CLI tool for local development and testing of Serverless applications"
 readme = "README.md"
 license = "Apache-2.0"
