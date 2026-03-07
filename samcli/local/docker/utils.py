@@ -227,3 +227,36 @@ def get_remote_image_digest(docker_client: docker.DockerClient, image_name: str)
         return digest
     except Exception:
         return None
+
+
+def safe_decode_docker_message(message):
+    """
+    Safely decode a Docker API message that might be bytes or str.
+
+    Handles compatibility between different docker-py versions where
+    APIError.explanation changed from bytes to str.
+
+    In older versions of docker-py (< 7.0), the explanation property
+    of APIError was a bytes object that needed to be decoded. In newer
+    versions (>= 7.0), it's already a string.
+
+    Parameters
+    ----------
+    message : Union[bytes, str]
+        Message from Docker API (typically from APIError.explanation)
+
+    Returns
+    -------
+    str
+        Decoded message as string
+
+    Examples
+    --------
+    >>> safe_decode_docker_message(b"Port already in use")
+    'Port already in use'
+    >>> safe_decode_docker_message("Port already in use")
+    'Port already in use'
+    """
+    if isinstance(message, bytes):
+        return message.decode("utf-8")
+    return message

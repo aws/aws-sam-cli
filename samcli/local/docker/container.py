@@ -447,8 +447,11 @@ class Container:
             # Start the container
             real_container.start()
         except docker.errors.APIError as ex:
-            if "Ports are not available" in str(ex):
-                raise PortAlreadyInUse(ex.explanation.decode()) from ex
+            # Use case-insensitive check to catch both "Ports" and "ports"
+            # Docker may return different capitalizations depending on the version/platform
+            if "ports are not available" in str(ex).lower():
+                # Handle both bytes (docker-py < 7.0) and str (docker-py >= 7.0)
+                raise PortAlreadyInUse(utils.safe_decode_docker_message(ex.explanation)) from ex
             raise ex
 
     def _initialize_concurrency_control(self):
