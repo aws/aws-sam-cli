@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Resources:
+  'Fn::ForEach::Topics':
+    - TopicName
+    - [Success, Failure, Timeout, Unknown]
+    - 'SnsTopic${TopicName}':
+        Type: AWS::SNS::Topic
+        Properties:
+          TopicName: !Ref TopicName
+          FifoTopic: true

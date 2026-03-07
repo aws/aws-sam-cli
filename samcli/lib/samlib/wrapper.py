@@ -26,6 +26,7 @@ from samtranslator.translator.translator import prepare_plugins
 from samtranslator.validator.validator import SamTemplateValidator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.utils.foreach_handler import filter_foreach_constructs
 
 from .local_uri_plugin import SupportLocalUriPlugin
 
@@ -69,8 +70,19 @@ class SamTranslatorWrapper:
         # Temporarily disabling validation for DeletionPolicy and UpdateReplacePolicy when language extensions are set
         self._patch_language_extensions()
 
+        # Filter out Fn::ForEach constructs before parsing
+        # CloudFormation will handle these server-side
+        template_copy, foreach_constructs = filter_foreach_constructs(template_copy)
+
         try:
             parser.parse(template_copy, all_plugins)  # parse() will run all configured plugins
+
+            # Add back Fn::ForEach constructs after parsing
+            if foreach_constructs:
+                if "Resources" not in template_copy:
+                    template_copy["Resources"] = {}
+                template_copy["Resources"].update(foreach_constructs)
+
         except InvalidDocumentException as e:
             raise InvalidSamDocumentException(
                 functools.reduce(lambda message, error: message + " " + str(error), e.causes, str(e))
@@ -99,6 +111,8 @@ class SamTranslatorWrapper:
                 return SamResourceType.has_value(self.type)
 
             SamResource.valid = patched_func
+
+    # Removed: _filter_foreach_constructs() now uses shared utility from samcli.lib.utils.foreach_handler
 
     @staticmethod
     def _check_using_language_extension(template: Dict) -> bool:

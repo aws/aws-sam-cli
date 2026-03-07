@@ -62,6 +62,10 @@ class ResourceMetadataNormalizer:
         resources = template_dict.get(RESOURCES_KEY, {})
 
         for logical_id, resource in resources.items():
+            # Skip Fn::ForEach constructs which are lists, not dicts
+            if logical_id.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+                continue
+
             # copy metadata to another variable, change its values and assign it back in the end
             resource_metadata = deepcopy(resource.get(METADATA_KEY)) or {}
 
@@ -228,6 +232,10 @@ class ResourceMetadataNormalizer:
         str
             The unique function id
         """
+        # Skip Fn::ForEach constructs which are lists, not dicts
+        if not isinstance(resource_properties, dict):
+            return logical_id
+
         resource_metadata = resource_properties.get("Metadata", {})
         customer_defined_id = resource_metadata.get(SAM_RESOURCE_ID_KEY)
 
