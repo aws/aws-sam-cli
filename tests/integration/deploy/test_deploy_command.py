@@ -5,6 +5,7 @@ from pathlib import Path
 from unittest import skipIf
 
 import botocore
+import pytest
 from botocore.exceptions import ClientError
 from parameterized import parameterized
 
@@ -690,6 +691,7 @@ to create a managed default bucket, or run sam deploy --guided",
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
+    @pytest.mark.tier1
     def test_deploy_guided_zip(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 

@@ -34,7 +34,6 @@ from tests.testing_utils import (
 )
 from samcli.commands.build.utils import MountMode
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -747,7 +746,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
     }
 
     FUNCTION_LOGICAL_ID = "Function"
