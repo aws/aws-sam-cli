@@ -1,9 +1,9 @@
 #!/bin/bash
-# Install Maven 3.9.12 and Gradle 9.3.1 for SAM CLI integration tests.
+# Install Maven 3.9.13 and Gradle 9.3.1 for SAM CLI integration tests.
 # Supports both Linux and Windows (Git Bash on GitHub Actions).
 set -euo pipefail
 
-MAVEN_VERSION="3.9.12"
+MAVEN_VERSION="3.9.13"
 GRADLE_VERSION="9.3.1"
 
 # Check if correct versions are already installed
