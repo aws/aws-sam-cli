@@ -1,8 +1,5 @@
 include LICENSE
 include THIRD-PARTY-LICENSES
-include requirements/base.txt
-include requirements/pre-dev.txt
-include requirements/dev.txt
 recursive-include samcli *
 prune tests
 prune installer
