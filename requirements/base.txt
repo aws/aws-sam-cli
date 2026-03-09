@@ -36,3 +36,6 @@ cfn-lint~=1.45.0
 
 # Type checking boto3 objects
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0
+
+# Support for .env file format in --env-vars option
+python-dotenv~=1.0.0
