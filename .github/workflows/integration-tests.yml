@@ -179,15 +179,16 @@ jobs:
           python-version: "3.11"
           cache-python: false
 
-      - name: Install Python versions
+      - name: Install Python versions (tier1)
+        if: contains(fromJSON('["tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
-        run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" || "${{ matrix.test_suite }}" == "tier1-windows-build-1" || "${{ matrix.test_suite }}" == "tier1-windows-build-2" || "${{ matrix.test_suite }}" == "tier1-windows-other" ]]; then
-            # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
-            bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
-          else
-            bash tests/setup-python-uv.sh 3.9 3.10 3.12 3.13 3.14 3.11
-          fi
+        # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
+        run: bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
+
+      - name: Install Python versions (full)
+        if: "!contains(fromJSON('[\"tier1-finch\", \"tier1-windows-build-1\", \"tier1-windows-build-2\", \"tier1-windows-build-3\", \"tier1-windows-other\"]'), matrix.test_suite)"
+        shell: bash
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.12 3.13 3.14 3.11
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
@@ -252,7 +253,7 @@ jobs:
         run: bash tests/setup_finch.sh
 
       - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\", \"tier1-windows-build-1\", \"tier1-windows-build-2\", \"tier1-windows-build-3\", \"tier1-windows-other\"]'), matrix.test_suite)"
+        if: contains(fromJSON('["build-arm64", "build-arm64-container-1", "build-arm64-container-2", "terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "package", "deploy", "sync-code", "sync-watch", "local-invoke", "local-start-api", "local-start-lambda", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
         shell: bash
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
@@ -491,7 +492,7 @@ jobs:
               pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
                 tests/integration \
                 tests/regression \
-                --ignore=tests/integration/buildcmd
+                --ignore=tests/integration/buildcmd \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
           esac
