@@ -1,11 +1,11 @@
 chevron~=0.12
 click==8.1.8
 Flask<3.2
-boto3[crt]==1.42.59
+boto3[crt]==1.42.60
 jmespath~=1.1.0
 ruamel_yaml~=0.19.1
 PyYAML~=6.0
-cookiecutter~=2.6.0
+cookiecutter~=2.7.1
 aws-sam-translator==1.107.0
 #docker minor version updates can include breaking changes. Auto update micro version only.
 docker~=7.1.0
@@ -32,7 +32,7 @@ regex!=2021.10.8
 tzlocal==5.3.1
 
 #Adding cfn-lint dependency for SAM validate
-cfn-lint~=1.45.0
+cfn-lint~=1.46.0
 
 # Type checking boto3 objects
 boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0
