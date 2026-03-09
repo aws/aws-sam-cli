@@ -112,7 +112,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' ||  (github.event_name == 'schedule' && 'develop' || github.ref) }}
+          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
       - name: Free up disk space
         shell: bash
