@@ -19,45 +19,28 @@ fi
 
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Windows via choco ==="
-  [[ -z "$MAVEN_INSTALLED" ]] && choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade || true
-  [[ -z "$GRADLE_INSTALLED" ]] && choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade || true
+  [[ -z "$MAVEN_INSTALLED" ]] && choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade
+  [[ -z "$GRADLE_INSTALLED" ]] && choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade
 else
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Linux ==="
   sudo apt-get remove -y maven || true
 
-  wget -q "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.zip" -P /tmp || true
-  sudo unzip -o -q /tmp/apache-maven-*.zip -d /opt/mvn || true
+  wget -q "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.zip" -P /tmp
+  sudo unzip -o -q /tmp/apache-maven-*.zip -d /opt/mvn
 
-  wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -P /tmp || true
-  sudo unzip -o -q /tmp/gradle-*.zip -d /opt/gradle || true
+  wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -P /tmp
+  sudo unzip -o -q /tmp/gradle-*.zip -d /opt/gradle
 
-  sudo ln -sf "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn || true
-  sudo ln -sf "/opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle || true
+  sudo ln -sf "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn
+  sudo ln -sf "/opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle
 
-  echo "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH" || true
-  echo "/opt/gradle/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH" || true
-  echo "MAVEN_HOME=/opt/mvn/apache-maven-${MAVEN_VERSION}" >> "$GITHUB_ENV" || true
+  echo "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH"
+  echo "/opt/gradle/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+  echo "MAVEN_HOME=/opt/mvn/apache-maven-${MAVEN_VERSION}" >> "$GITHUB_ENV"
 
   export PATH="/opt/mvn/apache-maven-${MAVEN_VERSION}/bin:/opt/gradle/gradle-${GRADLE_VERSION}/bin:$PATH"
 fi
 
-# Verify installations — warn on version mismatch, fail only if binary is missing
-if ! command -v mvn &>/dev/null; then
-  echo "ERROR: mvn not found after installation attempt."
-  exit 1
-fi
-if ! mvn --version 2>/dev/null | head -1 | grep -q "${MAVEN_VERSION}"; then
-  echo "WARNING: Expected Maven ${MAVEN_VERSION} but found:"
-  mvn --version || true
-fi
-
-if ! command -v gradle &>/dev/null; then
-  echo "ERROR: gradle not found after installation attempt."
-  exit 1
-fi
-if ! gradle --version 2>/dev/null | grep -q "Gradle ${GRADLE_VERSION}"; then
-  echo "WARNING: Expected Gradle ${GRADLE_VERSION} but found:"
-  gradle --version || true
-fi
-
+mvn --version || echo "WARNING: mvn --version failed"
+gradle --version || echo "WARNING: gradle --version failed"
 echo "=== Maven and Gradle installation complete ==="
