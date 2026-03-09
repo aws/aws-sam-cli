@@ -160,10 +160,8 @@ class IntrinsicResolverProcessor:
         if "Outputs" in fragment:
             fragment["Outputs"] = self._resolve_section_with_conditions(fragment["Outputs"], context)
 
-        # Process other sections normally
-        for key in list(fragment.keys()):
-            if key not in ("Conditions", "Resources", "Outputs"):
-                fragment[key] = self._resolver.resolve_value(fragment[key])
+        # Language extension functions are only supported in Resources,
+        # Conditions, and Outputs. Other sections are left untouched.
 
         # Remove AWS::NoValue references from Resources (but preserve policy attrs)
         if "Resources" in fragment:
