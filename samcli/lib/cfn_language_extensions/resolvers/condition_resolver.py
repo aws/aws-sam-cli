@@ -121,7 +121,14 @@ class ConditionResolver(IntrinsicFunctionResolver):
         if self._is_invalid_equals_value(value1) or self._is_invalid_equals_value(value2):
             raise InvalidTemplateException("Intrinsic function input type is invalid")
 
-        return bool(value1 == value2)
+        # CloudFormation Fn::Equals performs string comparison.
+        # Convert both values to strings to handle cases where YAML parsing
+        # produces booleans (e.g., bare `true`/`false`) but parameter overrides
+        # are always strings (e.g., "true"/"false").
+        str1 = str(value1).lower() if isinstance(value1, bool) else str(value1)
+        str2 = str(value2).lower() if isinstance(value2, bool) else str(value2)
+
+        return str1 == str2
 
     def _is_invalid_equals_value(self, value: Any) -> bool:
         """

@@ -148,9 +148,9 @@ class TestFnEqualsResolver:
         assert resolver.resolve(value) is False
 
     def test_equals_type_mismatch(self, resolver: ConditionResolver):
-        """Test Fn::Equals with different types returns False."""
+        """Test Fn::Equals with string and number compares as strings (CloudFormation behavior)."""
         value = {"Fn::Equals": ["42", 42]}
-        assert resolver.resolve(value) is False
+        assert resolver.resolve(value) is True
 
     def test_equals_invalid_layout_not_list(self, resolver: ConditionResolver):
         """Test Fn::Equals with non-list raises InvalidTemplateException."""
