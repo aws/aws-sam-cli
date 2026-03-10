@@ -26,7 +26,7 @@ class DurableFunctionsEmulatorContainer:
     """
 
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
-    _EMULATOR_IMAGE_PREFIX = "public.ecr.aws/o4w4w0v6/aws-durable-execution-emulator"
+    _EMULATOR_IMAGE_PREFIX = "public.ecr.aws/durable-functions/aws-durable-execution-emulator"
     _CONTAINER_NAME = "sam-durable-execution-emulator"
     _EMULATOR_DATA_DIR_NAME = ".durable-executions-local"
     _EMULATOR_DEFAULT_STORE_TYPE = "sqlite"
