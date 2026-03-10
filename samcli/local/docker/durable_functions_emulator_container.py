@@ -253,7 +253,7 @@ class DurableFunctionsEmulatorContainer:
                 "--store-type",
                 self._get_emulator_store_type(),
                 "--store-path",
-                "/tmp/.durable-executions-local/durable-executions.db",
+                "/tmp/.durable-executions-local/durable-executions.db", # this is the path within the container
             ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
@@ -412,5 +412,7 @@ class DurableFunctionsEmulatorContainer:
             f"Check https://${self._get_emulator_image().replace('public.ecr', 'gallery.ecr')}. "
             "and https://github.com/aws/aws-durable-execution-sdk-python-testing/releases "
             "for valid image tags. If the problems persist, you can try updating the SAM CLI version "
-            " in case of incompatibility."
+            " in case of incompatibility. "
+            "You may check the emulator_data_dir for the durable-execution-emulator-{timestamp}.log file which "
+            "contains the emulator logs. This may be useful for debugging."
         )
