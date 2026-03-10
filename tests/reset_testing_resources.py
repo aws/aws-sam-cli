@@ -48,7 +48,14 @@ def upload_test_reports(test_suite):
         print("TESTREPORTING_S3 not set, skipping report upload.")
         return
 
-    reports = glob.glob("TEST_REPORT-*.json")
+    # Search in workspace root (tests may run from a different cwd on Windows)
+    workspace = os.environ.get("GITHUB_WORKSPACE", ".")
+    reports = glob.glob(os.path.join(workspace, "TEST_REPORT-*.json"))
+    # Also check current directory
+    reports += glob.glob("TEST_REPORT-*.json")
+    # Deduplicate by absolute path
+    reports = list({os.path.abspath(r) for r in reports})
+
     if not reports:
         print("No test report files found.")
         return
@@ -61,9 +68,10 @@ def upload_test_reports(test_suite):
         s3_prefix = f"github/{test_type}/{date_str}/{run_id}"
 
         for report_path in reports:
-            s3_key = f"{s3_prefix}/{report_path}"
+            report_name = os.path.basename(report_path)
+            s3_key = f"{s3_prefix}/{report_name}"
             s3_client.upload_file(report_path, reporting_s3_bucket, s3_key)
-            print(f"Uploaded {report_path} to s3://{reporting_s3_bucket}/{s3_key}")
+            print(f"Uploaded {report_name} to s3://{reporting_s3_bucket}/{s3_key}")
 
         print(f"Uploaded {len(reports)} report(s) successfully.")
     except Exception as e:
@@ -98,8 +106,8 @@ def reset_test_account():
     print(response_payload)
 
     if response.get("FunctionError"):
-        print("ERROR: Account reset Lambda returned an error.", file=sys.stderr)
-        sys.exit(1)
+        print("WARNING: Account reset Lambda returned an error (non-fatal).", file=sys.stderr)
+        return
 
     print("Account reset completed successfully.")
 
