@@ -271,17 +271,17 @@ def do_cli(
     metadata,
     guided,
     confirm_changeset,
-    include_nested_stacks=True,
-    region=None,
-    profile=None,
-    signing_profiles=None,
-    resolve_s3=False,
-    config_file=None,
-    config_env=None,
-    resolve_image_repos=False,
-    disable_rollback=False,
-    on_failure=None,
-    max_wait_duration=60,
+    include_nested_stacks,
+    region,
+    profile,
+    signing_profiles,
+    resolve_s3,
+    config_file,
+    config_env,
+    resolve_image_repos,
+    disable_rollback,
+    on_failure,
+    max_wait_duration,
 ):
     """
     Implementation of the ``cli`` method
@@ -312,6 +312,7 @@ def do_cli(
             config_env=config_env,
             config_file=config_file,
             disable_rollback=disable_rollback,
+            include_nested_stacks=include_nested_stacks,
         )
         guided_context.run()
     else:

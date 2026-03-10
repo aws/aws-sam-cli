@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import botocore
+import click
 
 from samcli.commands._utils.table_print import MIN_OFFSET, newline_per_item, pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -336,95 +337,25 @@ class Deployer:
                     color=row_color,
                 )
 
-        # Recursively display nested stack changes with pagination
+        # Recursively display nested stack changes
         # Only process nested stacks when is_parent=True to avoid duplicates
         if is_parent:
             for nested in nested_changesets:
                 try:
                     # Display nested stack header
-                    sys.stdout.write(f"\n[Nested Stack: {nested['logical_id']}]\n")
-                    sys.stdout.flush()
+                    click.echo(f"\n[Nested Stack: {nested['logical_id']}]")
 
-                    # Use paginator for nested changesets to handle large changesets
-                    nested_paginator = self._client.get_paginator("describe_change_set")
-                    nested_iterator = nested_paginator.paginate(ChangeSetName=nested["changeset_id"])
-
-                    nested_has_changes = False
-                    # Track nested-nested stacks for recursive processing
-                    deeply_nested_changesets = []
-
-                    for nested_item in nested_iterator:
-                        nested_cf_changes = nested_item.get("Changes", [])
-                        for change in nested_cf_changes:
-                            nested_has_changes = True
-                            resource_props = change.get("ResourceChange", {})
-                            action = resource_props.get("Action")
-                            resource_type = resource_props.get("ResourceType")
-                            logical_id = resource_props.get("LogicalResourceId")
-                            replacement = resource_props.get("Replacement")
-
-                            # Check for deeply nested stacks (3+ levels)
-                            deeply_nested_changeset_id = resource_props.get("ChangeSetId")
-                            if resource_type == "AWS::CloudFormation::Stack" and deeply_nested_changeset_id:
-                                deeply_nested_changesets.append(
-                                    {"changeset_id": deeply_nested_changeset_id, "logical_id": logical_id}
-                                )
-
-                            row_color = self.deploy_color.get_changeset_action_color(action=action)
-                            pprint_columns(
-                                columns=[
-                                    changes_showcase.get(action, action),
-                                    logical_id,
-                                    resource_type,
-                                    "N/A" if replacement is None else replacement,
-                                ],
-                                width=kwargs["width"],
-                                margin=kwargs["margin"],
-                                format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
-                                format_args=kwargs["format_args"],
-                                columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
-                                color=row_color,
-                            )
-
-                    if not nested_has_changes:
-                        pprint_columns(
-                            columns=["-", "-", "-", "-"],
-                            width=kwargs["width"],
-                            margin=kwargs["margin"],
-                            format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
-                            format_args=kwargs["format_args"],
-                            columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
+                    # Get the stack name from the changeset to support recursive call
+                    nested_response = self._client.describe_change_set(ChangeSetName=nested["changeset_id"])
+                    nested_stack_name = nested_response.get("StackName")
+                    if nested_stack_name:
+                        # Recursively call to display nested changes (supports arbitrary nesting depth)
+                        self._display_changeset_changes(
+                            nested["changeset_id"], nested_stack_name, is_parent=True, **kwargs
                         )
-
-                    # Recursively process deeply nested stacks (3+ levels)
-                    for deeply_nested in deeply_nested_changesets:
-                        # Get the stack name from the changeset to support recursive call
-                        try:
-                            deeply_nested_response = self._client.describe_change_set(
-                                ChangeSetName=deeply_nested["changeset_id"]
-                            )
-                            deeply_nested_stack_name = deeply_nested_response.get("StackName")
-                            if deeply_nested_stack_name:
-                                # Print header for deeply nested stack
-                                sys.stdout.write(f"\n[Nested Stack: {deeply_nested['logical_id']}]\n")
-                                sys.stdout.flush()
-                                # Recursively call to display deeply nested changes
-                                self._display_changeset_changes(
-                                    deeply_nested["changeset_id"], deeply_nested_stack_name, is_parent=False, **kwargs
-                                )
-                        except Exception as e:
-                            LOG.debug(
-                                "Failed to describe deeply nested changeset %s: %s", deeply_nested["changeset_id"], e
-                            )
-                            sys.stdout.write(
-                                f"\n[Nested Stack: {deeply_nested['logical_id']}] - Unable to fetch changes: {str(e)}\n"
-                            )
-                            sys.stdout.flush()
-
                 except Exception as e:
                     LOG.debug("Failed to describe nested changeset %s: %s", nested["changeset_id"], e)
-                    sys.stdout.write(f"Unable to fetch changes: {str(e)}\n")
-                    sys.stdout.flush()
+                    click.echo(f"Unable to fetch changes: {str(e)}")
 
         return changes if changeset_found else None
 

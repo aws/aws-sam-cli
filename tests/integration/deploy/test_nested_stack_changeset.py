@@ -7,7 +7,7 @@ import os
 from unittest import skipIf
 
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import RUN_BY_CANARY, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI
 
 
 @skipIf(
@@ -58,9 +58,10 @@ class TestNestedStackChangesetDisplay(DeployIntegBase):
         # Should contain parent stack changes
         self.assertIn("CloudFormation stack changeset", stdout)
 
-        # For a stack with nested resources, verify the changes are shown
-        # The actual nested stack display depends on the template structure
-        # At minimum, verify no errors occurred and changeset was created
+        # Verify nested stack header is displayed (validates nested stack feature)
+        self.assertIn("[Nested Stack:", stdout)
+
+        # Verify no errors occurred
         self.assertNotIn("Error", stdout)
         self.assertNotIn("Failed", stdout)
 
@@ -92,6 +93,9 @@ class TestNestedStackChangesetDisplay(DeployIntegBase):
 
         # Verify changeset was created
         self.assertIn("CloudFormation stack changeset", stdout)
+
+        # Verify nested stack header is displayed (validates nested stack feature)
+        self.assertIn("[Nested Stack:", stdout)
 
         # Verify no errors
         self.assertNotIn("Error", stdout)
