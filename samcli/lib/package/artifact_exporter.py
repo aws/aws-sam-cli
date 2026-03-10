@@ -22,7 +22,7 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
-from samcli.lib.cfn_language_extensions.utils import iter_resources
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -319,7 +319,7 @@ class Template:
 
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
-        for resource_key, resource in iter_resources(self.template_dict):
+        for resource_key, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
@@ -349,7 +349,7 @@ class Template:
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
 
-        for resource_logical_id, resource in iter_resources(self.template_dict):
+        for resource_logical_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
@@ -375,7 +375,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_id, resource in iter_resources(self.template_dict):
+        for resource_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -400,7 +400,7 @@ class Template:
             return ecr_repos
 
         self._apply_global_values()
-        for resource_id, resource in iter_resources(self.template_dict):
+        for resource_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -426,7 +426,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_key, resource in iter_resources(self.template_dict):
+        for resource_key, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
 
