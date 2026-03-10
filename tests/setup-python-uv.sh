@@ -13,6 +13,12 @@ fi
 
 uv python install "$@"
 
+# On Windows, uv installs Python executables to ~/.local/bin which may not be on PATH
+if [[ "${RUNNER_OS:-}" == "Windows" && -d "$HOME/.local/bin" ]]; then
+  echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+  export PATH="$HOME/.local/bin:$PATH"
+fi
+
 for ver in "$@"; do
   PYTHON_DIR=$(dirname "$(uv python find "$ver")")
   echo "$PYTHON_DIR" >> "$GITHUB_PATH"
