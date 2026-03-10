@@ -163,31 +163,7 @@ class FnIfResolver(IntrinsicFunctionResolver):
             self.context._evaluating_conditions.discard(condition_name)
 
     def _to_boolean(self, value: Any) -> bool:
-        """
-        Convert a value to a boolean.
-
-        CloudFormation conditions can be:
-        - Boolean values (True/False)
-        - String "true"/"false" (case-insensitive)
-
-        Args:
-            value: The value to convert.
-
-        Returns:
-            The boolean representation of the value.
-        """
-        if isinstance(value, bool):
-            return value
-
-        if isinstance(value, str):
-            lower_value = value.lower()
-            if lower_value == "true":
-                return True
-            elif lower_value == "false":
-                return False
-
-        # For other types, use Python's truthiness
-        return bool(value)
+        return self.to_boolean(value)
 
     def _is_no_value_ref(self, value: Any) -> bool:
         """
