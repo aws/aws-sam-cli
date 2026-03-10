@@ -534,8 +534,13 @@ def expand_language_extensions(
     """
     # --- cache lookup ---
     cache_key: Optional[Tuple[str, float, str]] = None
-    if template_path and os.path.isfile(template_path):
-        cache_key = (template_path, os.path.getmtime(template_path), _hash_params(parameter_values))
+    if template_path:
+        try:
+            mtime = os.path.getmtime(template_path)
+            cache_key = (template_path, mtime, _hash_params(parameter_values))
+        except OSError:
+            pass
+    if cache_key is not None:
         cached = _expansion_cache.get(cache_key)
         if cached is not None:
             LOG.debug("Cache hit for template expansion: %s", template_path)
