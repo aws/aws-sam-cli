@@ -6,9 +6,9 @@ on:
     # This translates to Tuesday-Saturday 3am UTC
     - cron: '0 3 * * 2-6'
   release:
-    types: [published, edited]
-    # published → latest-release binary test (full releases only)
-    # edited + prerelease → nightly binary test (nightly pre-release gets edited with new artifacts)
+    types: [published]
+    # prerelease published → nightly binary test
+    # full release published → latest-release binary test
   workflow_dispatch:  # Allow manual triggering
     # NOTE: This workflow can only be manually triggered from develop or main branches
     # The other branch will not pass the OIDC permission check
@@ -79,10 +79,27 @@ jobs:
           - tier1-finch
 
     steps:
+      - name: Determine test type
+        run: |
+          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
+             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
+               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
+            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> $GITHUB_ENV
+          else
+            echo "TEST_TYPE=other" >> $GITHUB_ENV
+          fi
+
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
+          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
       - name: Free up disk space
         run: bash tests/free_disk_space.sh
@@ -195,23 +212,6 @@ jobs:
       - name: Setup QEMU for ARM64 emulation
         if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
-      - name: Determine test type
-        run: |
-          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
-          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
-             [[ "${{ github.event.action }}" == "edited" && "${{ github.event.release.prerelease }}" == "true" ]]; then
-            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
-               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
-            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo "TEST_TYPE=master" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "TEST_TYPE=develop" >> $GITHUB_ENV
-          else
-            echo "TEST_TYPE=other" >> $GITHUB_ENV
-          fi
 
       - name: Initialize integration test
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'

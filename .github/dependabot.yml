@@ -13,7 +13,7 @@ updates:
     open-pull-requests-limit: 10
 
   - package-ecosystem: "pip"
-    directory: "/requirements"
+    directory: "/"
     schedule:
       interval: "daily"
     target-branch: "develop"
@@ -26,11 +26,12 @@ updates:
     groups:
       boto:
         patterns:
-        - "boto3"
+        - "boto3[crt]"
         - "boto3-stubs*"
-        - "botocore"
+        - "botocore[crt]"
         - "botocore-stubs"
         - "mypy-boto3-*"
+        - "types-awscrt"
       types:
         patterns:
         - "types-*"
