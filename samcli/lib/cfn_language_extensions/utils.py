@@ -66,7 +66,3 @@ def iter_regular_resources(template_dict: Dict) -> Iterator[Tuple[str, Dict]]:
     for key, value in template_dict.get("Resources", {}).items():
         if not is_foreach_key(key) and isinstance(value, dict):
             yield key, value
-
-
-# Backward-compatible alias
-iter_resources = iter_regular_resources
