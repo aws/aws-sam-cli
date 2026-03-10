@@ -9,7 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict
 
-from samcli.lib.cfn_language_extensions.utils import iter_resources
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
@@ -62,7 +62,7 @@ class ResourceMetadataNormalizer:
         """
         resources = template_dict.get(RESOURCES_KEY, {})
 
-        for logical_id, resource in iter_resources(template_dict):
+        for logical_id, resource in iter_regular_resources(template_dict):
 
             # copy metadata to another variable, change its values and assign it back in the end
             resource_metadata = deepcopy(resource.get(METADATA_KEY)) or {}
