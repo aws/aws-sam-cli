@@ -139,29 +139,18 @@ jobs:
 
       - name: Install and Configure WSL 2
         if: startsWith(matrix.test_suite, 'tier1-windows')
-        uses: Vampire/setup-wsl@v6
-        with:
-          distribution: Ubuntu-24.04
-          set-as-default: 'true'
-          update: 'true'
-          additional-packages:
-            ca-certificates
-            curl
-            net-tools
-          wsl-version: 2
-          wsl-install-path: 'D:\wsl'
-          wsl-conf: |
-            [automount]
-            root = /
-            options = "metadata"
+        shell: bash
+        run: bash tests/setup-wsl.sh
 
       - name: WSL - Install Docker and expose on TCP
         if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: wsl-bash {0}
+        shell: bash
         run: |
-          # Convert CRLF to LF (Windows checkout adds \r which breaks bash in WSL)
-          sed -i 's/\r$//' tests/setup_wsl2_docker.sh
-          bash tests/setup_wsl2_docker.sh
+          # Run inside WSL; fix CRLF first then execute the Docker setup script
+          wsl -d Ubuntu-24.04 -- bash -c "
+            sed -i 's/\r$//' tests/setup_wsl2_docker.sh
+            bash tests/setup_wsl2_docker.sh
+          "
 
       - name: Configure DOCKER_HOST to WSL2 - Set TEMP to D:/Temp
         if: startsWith(matrix.test_suite, 'tier1-windows')
