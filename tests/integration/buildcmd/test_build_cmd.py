@@ -281,7 +281,6 @@ class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
-    @pytest.mark.tier1
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -308,14 +307,25 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
         [
             ("ruby3.3", "Ruby33", False),
             ("ruby3.3", "Ruby33", "use_container"),
-            # ("ruby3.4", "Ruby34", False), # TODO: Try to make this work in AppVeyor (windows-al2023)
+        ],
+        name_func=show_container_in_test_name,
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.al2023
+    def test_building_ruby_3_3_al2023(self, runtime, codeuri, use_container):
+        self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
+
+    @parameterized.expand(
+        [
+            ("ruby3.4", "Ruby34", False),  # TODO: Try to make this work in AppVeyor (windows-al2023)
             ("ruby3.4", "Ruby34", "use_container"),
         ],
         name_func=show_container_in_test_name,
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_al2023(self, runtime, codeuri, use_container):
+    @pytest.mark.tier1
+    def test_building_ruby_3_4_al2023(self, runtime, codeuri, use_container):
         self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
 
 
@@ -398,7 +408,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 
@@ -1763,7 +1773,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 
@@ -1937,7 +1947,7 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 

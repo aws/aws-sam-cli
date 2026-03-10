@@ -47,10 +47,11 @@ jobs:
     # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
     if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
     name: ${{ matrix.test_suite }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest]
         test_suite:
           # Build jobs (no-container mode — requires language toolchains)
           - build-x86-1
@@ -77,126 +78,21 @@ jobs:
           - cloud-based-tests
           # Tier 1: Cross-platform smoke tests with Finch runtime
           - tier1-finch
+        include:
+          # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
+          # Split into 3 to balance load and avoid out-of-storage
+          - test_suite: tier1-windows-build-1
+            os: windows-latest
+          - test_suite: tier1-windows-build-2
+            os: windows-latest
+          - test_suite: tier1-windows-build-3
+            os: windows-latest
+          - test_suite: tier1-windows-other
+            os: windows-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event_name == 'schedule' && 'develop' || github.ref }}
-
-      - name: Free up disk space
-        run: bash tests/free_disk_space.sh
-
-      - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
-          aws-region: us-east-1
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: |
-            3.11
-            3.9
-            3.10
-            3.12
-            3.13
-            3.14
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-
-      - name: Set up Node.js
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Set up Java 25
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'corretto'
-          java-version: '25'
-
-      - name: Set up Go
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: actions/setup-go@v6
-        with:
-          go-version: '1.25'
-
-      - name: Install Maven and Gradle
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          sudo apt-get remove -y maven || true
-          wget https://dlcdn.apache.org/maven/maven-3/3.9.12/binaries/apache-maven-3.9.12-bin.zip -P /tmp
-          sudo unzip -d /opt/mvn /tmp/apache-maven-*.zip
-          wget https://services.gradle.org/distributions/gradle-9.2.0-bin.zip -P /tmp
-          sudo unzip -d /opt/gradle /tmp/gradle-*.zip
-          sudo ln -sf /opt/mvn/apache-maven-3.9.12/bin/mvn /usr/local/bin/mvn
-          sudo ln -sf /opt/gradle/gradle-9.2.0/bin/gradle /usr/local/bin/gradle
-          echo "/opt/mvn/apache-maven-3.9.12/bin" >> $GITHUB_PATH
-          echo "/opt/gradle/gradle-9.2.0/bin" >> $GITHUB_PATH
-          echo "MAVEN_HOME=/opt/mvn/apache-maven-3.9.12" >> $GITHUB_ENV
-          export PATH="/opt/mvn/apache-maven-3.9.12/bin:/opt/gradle/gradle-9.2.0/bin:$PATH"
-          mvn --version
-          gradle --version
-
-      - name: Install .NET 10 SDK
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: '10.0.x'
-
-      - name: Set up Ruby 3.3.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.3.7'
-
-      - name: Set up Ruby 3.2.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2.7'
-
-      - name: Set up Ruby 3.4.7
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4.7'
-
-      - name: Install Rust toolchain and cargo-lambda
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: bash tests/install-rust.sh
-
-      - name: Install Terraform
-        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch"]'), matrix.test_suite)
-        run: |
-          for i in {1..3}; do
-            TER_VER=$(curl -s https://api.github.com/repos/hashicorp/terraform/releases/latest | grep tag_name | cut -d: -f2 | tr -d \"\,\v | awk '{$1=$1};1')
-            if [ -n "$TER_VER" ]; then
-              if wget https://releases.hashicorp.com/terraform/${TER_VER}/terraform_${TER_VER}_linux_amd64.zip -P /tmp; then
-                sudo unzip -d /opt/terraform /tmp/terraform_${TER_VER}_linux_amd64.zip
-                sudo mv /opt/terraform/terraform /usr/local/bin/
-                terraform -version
-                break
-              fi
-            fi
-            echo "Terraform installation attempt $i failed, retrying..."
-            sleep 5
-          done
-
-      - name: Setup Finch runtime
-        if: matrix.test_suite == 'tier1-finch'
-        run: bash tests/setup_finch.sh
-
-      - name: Setup QEMU for ARM64 emulation
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-x86-container-1\", \"build-x86-container-2\", \"tier1-finch\"]'), matrix.test_suite)"
-        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
-
       - name: Determine test type
+        shell: bash
         run: |
           echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
           if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
@@ -213,53 +109,158 @@ jobs:
             echo "TEST_TYPE=other" >> $GITHUB_ENV
           fi
 
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
+
+      - name: Free up disk space
+        shell: bash
+        run: |
+          bash tests/free_disk_space.sh
+
+      # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
+      - name: Setup WSL2 and Docker for Windows
+        if: startsWith(matrix.test_suite, 'tier1-windows')
+        shell: bash
+        run: bash tests/setup-wsl.sh
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+          cache-python: false
+
+      - name: Install Python versions (tier1)
+        if: contains(fromJSON('["tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
+        run: bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
+
+      - name: Install Python versions (full)
+        if: "!contains(fromJSON('[\"tier1-finch\", \"tier1-windows-build-1\", \"tier1-windows-build-2\", \"tier1-windows-build-3\", \"tier1-windows-other\"]'), matrix.test_suite)"
+        shell: bash
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.12 3.13 3.14 3.11
+
+      - name: Set up Node.js
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Java 25
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'corretto'
+          java-version: '25'
+
+      - name: Set up Go
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Maven and Gradle
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-maven-gradle.sh
+
+      - name: Install .NET 10 SDK
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Ruby 3.3.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.7'
+
+      - name: Set up Ruby 3.2.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.7'
+
+      - name: Set up Ruby 3.4.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4.7'
+
+      - name: Install Rust toolchain and cargo-lambda
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-rust.sh --uv
+
+      - name: Install Terraform
+        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-terraform.sh
+
+      - name: Setup Finch runtime
+        if: matrix.test_suite == 'tier1-finch'
+        run: bash tests/setup_finch.sh
+
+      - name: Setup QEMU for ARM64 emulation
+        if: contains(fromJSON('["build-arm64", "build-arm64-container-1", "build-arm64-container-2", "terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "package", "deploy", "sync-code", "sync-watch", "local-invoke", "local-start-api", "local-start-lambda", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        shell: bash
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
       - name: Initialize integration test
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
+        shell: bash
         run: |
           make init
           echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
 
       - name: Initialize nightly release test
         if: env.TEST_TYPE == 'nightly-release'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           make setup-pytest
           make init-nightly
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          # Detect venv python/pytest path (bin on Linux/macOS, Scripts on Windows)
+          if [ -f "$HOME/pytest/bin/python3" ]; then
+            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
+          else
+            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
+          fi
 
       - name: Initialize latest release test
         if: env.TEST_TYPE == 'latest-release'
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           make setup-pytest
           make init-latest-release
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
-
-      - name: Get testing resources and credentials
-        if: "!contains(fromJSON('[\"build-x86-1\", \"build-x86-2\", \"build-arm64\", \"build-x86-container-1\", \"build-x86-container-2\", \"build-arm64-container-1\", \"build-arm64-container-2\", \"local-invoke\", \"local-start-api\", \"local-start-lambda\"]'), matrix.test_suite)"
-        run: $SCRIPT_PY tests/setup_testing_resources.py
-
-      - name: Login to Public ECR
-        run: |
-          if [[ "${{ matrix.test_suite }}" == "tier1-finch" ]]; then
-            aws ecr-public get-login-password --region us-east-1 | sudo finch login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Finch Public ECR login failed"; exit 1; }
+          if [ -f "$HOME/pytest/bin/python3" ]; then
+            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
           else
-            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws || { echo "FATAL: Docker Public ECR login failed"; exit 1; }
+            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
+            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
           fi
 
-      - name: Clear credentials and skip account reset for non-credential jobs
-        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "build-x86-container-1", "build-x86-container-2", "build-arm64-container-1", "build-arm64-container-2", "local-invoke", "local-start-api", "local-start-lambda"]'), matrix.test_suite)
-        run: |
-          echo "SKIP_ACCOUNT_RESET=true" >> $GITHUB_ENV
-          echo "AWS_ACCESS_KEY_ID=" >> $GITHUB_ENV
-          echo "AWS_SECRET_ACCESS_KEY=" >> $GITHUB_ENV
-          echo "AWS_SESSION_TOKEN=" >> $GITHUB_ENV
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Setup testing resources, ECR login, and credential management
+        shell: bash
+        run: $SCRIPT_PY tests/setup_testing_resources.py --test-suite "${{ matrix.test_suite }}" --container-runtime "$CONTAINER_RUNTIME"
 
       - name: Run tests
+        shell: bash
         run: |
           case "${{ matrix.test_suite }}" in
             "build-x86-1")
@@ -407,6 +408,45 @@ jobs:
                 tests/regression \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
+            "tier1-windows-build-1")
+              # Tier1 build tests - half 1: python, dotnet, node, main build cmd, java
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_python.py \
+                tests/integration/buildcmd/test_build_cmd_java.py \
+                tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                tests/integration/buildcmd/test_build_cmd_node.py \
+                tests/integration/buildcmd/test_build_cmd.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-2")
+              # Tier1 build tests - third 2: rust, provided, arm64
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
+                tests/integration/buildcmd/test_build_cmd_rust.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-3")
+              # Tier1 build tests - third 3: go, ruby, terraform, and remaining
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-other")
+              # Tier1 non-build tests (local, deploy, etc.)
+              # Exclude durable/execution tests — they require Linux-specific Docker behavior
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+                tests/integration \
+                tests/regression \
+                --ignore=tests/integration/buildcmd \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
           esac
 
       - name: Upload test results
@@ -433,6 +473,7 @@ jobs:
 
       - name: Reset test account and upload reports
         if: always()
+        shell: bash
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
         run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}

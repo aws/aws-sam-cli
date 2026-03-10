@@ -249,6 +249,8 @@ Testing application behaviour against authorizers deployed on AWS can be done us
             if config:
                 methods += config.methods
             sorted_methods = sorted(methods)
+            # Prefer route-specific CORS over None
+            cors = route.cors if route.cors is not None else (config.cors if config else None)
             grouped_routes[key] = Route(
                 function_name=route.function_name,
                 path=route.path,
@@ -259,6 +261,7 @@ Testing application behaviour against authorizers deployed on AWS can be done us
                 stack_path=route.stack_path,
                 authorizer_name=route.authorizer_name,
                 authorizer_object=route.authorizer_object,
+                cors=cors,
             )
         return list(grouped_routes.values())
 
