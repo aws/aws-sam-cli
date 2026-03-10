@@ -184,9 +184,9 @@ cffi==2.0.0 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
     # via cryptography
-cfn-lint==1.45.0 \
-    --hash=sha256:0a05b34eff63f45d7b9b0465e01dca6c2035b730bd88910dca8c4bcf00913939 \
-    --hash=sha256:39aed0cdb3be4d09fad4ca4e410790313c1b6a4e4a9f0362dac1b1980dd48978
+cfn-lint==1.46.0 \
+    --hash=sha256:1dfca1993af3159411e4a4f79466617ccdca48eddaf424e216297167c500aa3b \
+    --hash=sha256:fa7cb76db683109133241baf1e1734b1d61b46d3900ba2a309db8f3d0e5d3994
     # via aws-sam-cli (pyproject.toml)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -530,9 +530,9 @@ mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
     --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
     # via markdown-it-py
-mpmath==1.3.0 \
-    --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
-    --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
+mpmath==1.4.0 \
+    --hash=sha256:1910f299a1346afcc47d17586c6b3b2a39fd5e0c0829fcecd87c57acd5007c95 \
+    --hash=sha256:d272b40c031ba0ee385e7e5fc735b48560d9838a0d7fbca109919efd23580a22
     # via sympy
 mypy-boto3-apigateway==1.42.3 \
     --hash=sha256:25518ac7e542a04e04bd4af1b2616c757c2eea06a9aef6beab5c6bb129791030 \
