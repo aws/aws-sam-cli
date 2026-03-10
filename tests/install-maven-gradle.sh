@@ -21,6 +21,15 @@ if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Windows via choco ==="
   [[ -z "$MAVEN_INSTALLED" ]] && choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade
   [[ -z "$GRADLE_INSTALLED" ]] && choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade
+
+  # Chocolatey updates the system PATH in the registry but the current bash session
+  # doesn't see it. Explicitly add the known install paths so mvn/gradle are available
+  # in this session and in subsequent workflow steps.
+  CHOCO_MAVEN_BIN="C:/ProgramData/chocolatey/lib/maven/apache-maven-${MAVEN_VERSION}/bin"
+  CHOCO_GRADLE_BIN="C:/ProgramData/chocolatey/lib/gradle/gradle-${GRADLE_VERSION}/bin"
+  export PATH="${CHOCO_MAVEN_BIN}:${CHOCO_GRADLE_BIN}:${PATH}"
+  echo "${CHOCO_MAVEN_BIN}" >> "$GITHUB_PATH"
+  echo "${CHOCO_GRADLE_BIN}" >> "$GITHUB_PATH"
 else
   echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Linux ==="
   sudo apt-get remove -y maven || true

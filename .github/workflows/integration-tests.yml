@@ -53,30 +53,30 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test_suite:
-          # # Build jobs (no-container mode — requires language toolchains)
-          # - build-x86-1
-          # - build-x86-2
-          # - build-arm64
-          # # Build jobs (docker container mode)
-          # - build-x86-container-1
-          # - build-x86-container-2
-          # - build-arm64-container-1
-          # - build-arm64-container-2
-          # # Docker-only test suites
-          # - terraform-build
-          # - terraform-start-api
-          # - terraform-invoke-start-lambda
-          # - package
-          # - deploy
-          # - sync-code
-          # - sync-watch
-          # - local-invoke
-          # - local-start-api
-          # - local-start-lambda
-          # - other-and-e2e
-          # # Runs only credential-requiring tests from build and local
-          # - cloud-based-tests
-          # # Tier 1: Cross-platform smoke tests with Finch runtime
+          # Build jobs (no-container mode — requires language toolchains)
+          - build-x86-1
+          - build-x86-2
+          - build-arm64
+          # Build jobs (docker container mode)
+          - build-x86-container-1
+          - build-x86-container-2
+          - build-arm64-container-1
+          - build-arm64-container-2
+          # Docker-only test suites
+          - terraform-build
+          - terraform-start-api
+          - terraform-invoke-start-lambda
+          - package
+          - deploy
+          - sync-code
+          - sync-watch
+          - local-invoke
+          - local-start-api
+          - local-start-lambda
+          - other-and-e2e
+          # Runs only credential-requiring tests from build and local
+          - cloud-based-tests
+          # Tier 1: Cross-platform smoke tests with Finch runtime
           - tier1-finch
         include:
           # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
@@ -120,47 +120,10 @@ jobs:
           bash tests/free_disk_space.sh
 
       # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
-      - name: Stop Windows Docker Engine and fix CRLF
-        if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: bash
-        run: |
-          # Windows git checkout may add \r to shell scripts, breaking /bin/sh execution inside Linux containers
-          find tests/integration/testdata -name "*.sh" -exec sed -i 's/\r$//' {} +
-          find tests/integration/testdata -name "*.py" -exec sed -i 's/\r$//' {} +
-          # Stop Docker in background to avoid blocking
-          powershell.exe -Command "
-            Start-Job {
-              Stop-Service docker -Force -ErrorAction SilentlyContinue
-              Get-Process 'Docker Desktop' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-              Get-Process 'com.docker.backend' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-              Get-Process 'com.docker.service' -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            } | Out-Null
-          "
-
-      - name: Install and Configure WSL 2
+      - name: Setup WSL2 and Docker for Windows
         if: startsWith(matrix.test_suite, 'tier1-windows')
         shell: bash
         run: bash tests/setup-wsl.sh
-
-      - name: WSL - Install Docker and expose on TCP
-        if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: bash
-        run: |
-          # Run inside WSL; fix CRLF first then execute the Docker setup script
-          wsl -d Ubuntu-24.04 -- bash -c "
-            sed -i 's/\r$//' tests/setup_wsl2_docker.sh
-            bash tests/setup_wsl2_docker.sh
-          "
-
-      - name: Configure DOCKER_HOST to WSL2 - Set TEMP to D:/Temp
-        if: startsWith(matrix.test_suite, 'tier1-windows')
-        shell: pwsh
-        run: |
-          $wslIp = (wsl hostname -I).Trim().Split(' ')[0]
-          Write-Host "WSL2 IP: $wslIp"
-          echo "DOCKER_HOST=tcp://${wslIp}:2375" >> $env:GITHUB_ENV
-          mkdir "D:\Temp" -Force
-          echo "TEMP=D:\Temp" >> $env:GITHUB_ENV
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

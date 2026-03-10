@@ -8,7 +8,7 @@
 # to point to the WSL2 IP address (tcp://<wsl2-ip>:2375).
 #
 # Prerequisites:
-#   - WSL2 with Ubuntu installed (via Vampire/setup-wsl@v6)
+#   - WSL2 with Ubuntu installed
 #   - wsl.conf configured with [automount] root = / (for Docker volume mount path compatibility)
 set -e
 
