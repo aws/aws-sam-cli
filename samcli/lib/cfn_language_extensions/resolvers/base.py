@@ -183,6 +183,26 @@ class IntrinsicFunctionResolver(ABC):
         """
         return next(iter(value.values()))
 
+    @staticmethod
+    def to_boolean(value: Any) -> bool:
+        """
+        Convert a value to a boolean using CloudFormation semantics.
+
+        CloudFormation conditions can be:
+        - Boolean values (True/False)
+        - String "true"/"false" (case-insensitive)
+        - Other types use Python's truthiness
+        """
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            lower_value = value.lower()
+            if lower_value == "true":
+                return True
+            elif lower_value == "false":
+                return False
+        return bool(value)
+
 
 class IntrinsicResolver:
     """

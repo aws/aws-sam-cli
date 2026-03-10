@@ -356,32 +356,4 @@ class ConditionResolver(IntrinsicFunctionResolver):
         return value
 
     def _to_boolean(self, value: Any) -> bool:
-        """
-        Convert a value to a boolean.
-
-        CloudFormation conditions can be:
-        - Boolean values (True/False)
-        - String "true"/"false" (case-insensitive)
-
-        Args:
-            value: The value to convert.
-
-        Returns:
-            The boolean representation of the value.
-
-        Raises:
-            InvalidTemplateException: If the value cannot be converted to boolean.
-        """
-        if isinstance(value, bool):
-            return value
-
-        if isinstance(value, str):
-            lower_value = value.lower()
-            if lower_value == "true":
-                return True
-            elif lower_value == "false":
-                return False
-
-        # For other types, use Python's truthiness
-        # This handles cases where nested intrinsics return non-boolean values
-        return bool(value)
+        return self.to_boolean(value)
