@@ -177,10 +177,6 @@ class DurableFunctionsEmulatorContainer:
         Get the environment variables for the emulator container.
         """
         return {
-            # The emulator needs to have credential variables set, or else it will fail to create boto clients.
-            "AWS_ACCESS_KEY_ID": "foo",
-            "AWS_SECRET_ACCESS_KEY": "bar",
-            "AWS_DEFAULT_REGION": "us-east-1",
             "DURABLE_EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
         }
 
