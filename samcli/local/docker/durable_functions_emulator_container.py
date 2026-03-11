@@ -253,7 +253,7 @@ class DurableFunctionsEmulatorContainer:
                 "--store-type",
                 self._get_emulator_store_type(),
                 "--store-path",
-                "/tmp/.durable-executions-local/durable-executions.db", # this is the path within the container
+                "/tmp/.durable-executions-local/durable-executions.db",  # this is the path within the container
             ],
             name=self._container_name,
             ports={f"{self.port}/tcp": self.port},
