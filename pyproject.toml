@@ -35,7 +35,7 @@ dependencies = [
     "chevron~=0.12",
     "click==8.1.8",
     "Flask<3.2",
-    "boto3[crt]==1.42.59",
+    "boto3[crt]==1.42.64",
     "jmespath~=1.1.0",
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
@@ -47,7 +47,7 @@ dependencies = [
     "requests~=2.32.5",
     "aws_lambda_builders==1.63.0",
     "tomlkit==0.14.0",
-    "watchdog==4.0.2",
+    "watchdog==6.0.0",
     "rich~=14.3.3",
     "pyopenssl~=25.3.0",
     # Pin to <4.27 until SAM-T no longer uses RefResolver
