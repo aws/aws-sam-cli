@@ -8,32 +8,15 @@ SAM_CLI_TELEMETRY ?= 0
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find)" -e '.[dev]'; \
+		echo "=== UV_PYTHON resolved to: $$(uv python find $$UV_PYTHON) ==="; \
+		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON)" -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
 # Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
-	@if [ "$${RUNNER_OS:-}" = "Windows" ]; then \
-	  python3.11 -m venv $(HOME)/pytest; \
-	  VENV_PY="$(HOME)/pytest/Scripts/python.exe"; \
-	  SAM_CLI_DEV=1 uv pip install --python "$$VENV_PY" -e '.[dev]'; \
-	  "$(HOME)/pytest/Scripts/pytest" --version; \
-	  if [ -n "$$GITHUB_ENV" ]; then \
-	    echo "SCRIPT_PY=$$VENV_PY" >> "$$GITHUB_ENV"; \
-	    echo "$(HOME)/pytest/Scripts" >> "$$GITHUB_PATH"; \
-	  fi; \
-	else \
-	  python3.11 -m venv $(HOME)/pytest; \
-	  VENV_PY="$(HOME)/pytest/bin/python3"; \
-	  SAM_CLI_DEV=1 uv pip install --python "$$VENV_PY" -e '.[dev]'; \
-	  sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest 2>/dev/null || true; \
-	  $(HOME)/pytest/bin/pytest --version; \
-	  if [ -n "$$GITHUB_ENV" ]; then \
-	    echo "SCRIPT_PY=$$VENV_PY" >> "$$GITHUB_ENV"; \
-	  fi; \
-	fi
+	bash tests/setup-pytest.sh
 # Install SAM CLI nightly binary
 init-nightly:
 	bash tests/install-sam-cli-binary.sh sam-cli-nightly
