@@ -167,9 +167,7 @@ class HandlerObserver(Observer):  # type: ignore
             ObservedWatch corresponding to the PathHandler.
             If static_folder is True, the parent folder watch will be returned instead.
         """
-        watch: ObservedWatch = self.schedule(
-            path_handler.event_handler, str(path_handler.path), recursive=path_handler.recursive
-        )
+        watch: ObservedWatch = self.schedule(path_handler.event_handler, str(path_handler.path), path_handler.recursive)
         if path_handler.static_folder:
             static_wrapper = StaticFolderWrapper(self, watch, path_handler)
             parent_path_handler = static_wrapper.get_dir_parent_path_handler()

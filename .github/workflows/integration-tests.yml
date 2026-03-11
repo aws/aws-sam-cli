@@ -441,21 +441,21 @@ jobs:
           esac
 
       - name: Upload test results
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.test_suite }}
           path: TEST_REPORT-*.json
 
       - name: Re-authenticate with OIDC for cleanup
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Assume test reporting role
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
@@ -463,7 +463,7 @@ jobs:
           role-chaining: true
 
       - name: Reset test account and upload reports
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         shell: bash
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}

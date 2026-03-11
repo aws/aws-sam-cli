@@ -16,13 +16,14 @@ init:
 # Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
 	@if [ "$${RUNNER_OS:-$$(uname)}" = "Windows" ]; then \
-	  python -m venv $(HOME)/pytest; \
-	  VENV_PY="$(HOME)/pytest/Scripts/python.exe"; \
+	  VENV_DIR="$$USERPROFILE/pytest"; \
+	  python -m venv "$$VENV_DIR"; \
+	  VENV_PY="$$VENV_DIR/Scripts/python.exe"; \
 	  SAM_CLI_DEV=1 uv pip install --python "$$VENV_PY" -e '.[dev]'; \
-	  $(HOME)/pytest/Scripts/pytest --version; \
+	  "$$VENV_DIR/Scripts/pytest" --version; \
 	  if [ -n "$$GITHUB_ENV" ]; then \
 	    echo "SCRIPT_PY=$$VENV_PY" >> "$$GITHUB_ENV"; \
-	    echo "$(HOME)/pytest/Scripts" >> "$$GITHUB_PATH"; \
+	    echo "$$VENV_DIR/Scripts" >> "$$GITHUB_PATH"; \
 	  fi; \
 	else \
 	  python3.11 -m venv $(HOME)/pytest; \
