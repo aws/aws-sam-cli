@@ -8,7 +8,7 @@ SAM_CLI_TELEMETRY ?= 0
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python $$UV_PYTHON -e '.[dev]'; \
+		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find)" -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
