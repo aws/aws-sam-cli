@@ -41,6 +41,10 @@ env:
   UV_PYTHON: python3.11
   CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
   ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
+  # Prevent MSYS2 bash (from Ruby) from mangling env vars that look like paths.
+  # AWS credentials often contain / and + which MSYS2 would otherwise path-translate.
+  MSYS2_ARG_CONV_EXCL: "*"
+  MSYS_NO_PATHCONV: 1
 
 jobs:
   integration-tests:
