@@ -8,14 +8,14 @@ SAM_CLI_TELEMETRY ?= 0
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON)" -e '.[dev]'; \
+		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON --managed-python)" -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
 # Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
-	@if [ "$${RUNNER_OS:-$$(uname)}" = "Windows" ]; then \
+	@if [ "$${RUNNER_OS:-}" = "Windows" ]; then \
 	  VENV_DIR="$$USERPROFILE/pytest"; \
 	  python -m venv "$$VENV_DIR"; \
 	  VENV_PY="$$VENV_DIR/Scripts/python.exe"; \
