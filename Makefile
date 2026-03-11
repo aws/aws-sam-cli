@@ -6,7 +6,7 @@ SAM_CLI_TELEMETRY ?= 0
 
 # Initialize environment specifically for Github action tests using uv
 init:
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+	if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
 		echo "=== UV_PYTHON resolved to: $$(uv python find $$UV_PYTHON) ==="; \
 		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON)" -e '.[dev]'; \

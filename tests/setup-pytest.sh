@@ -1,11 +1,11 @@
 #!/bin/bash
 # Set up a pytest venv with test dependencies (cross-platform).
 # Also exports SCRIPT_PY to GITHUB_ENV and adds Scripts dir to GITHUB_PATH on Windows.
-set -euo pipefail
+set -eo pipefail
 
-echo "=== UV_PYTHON resolved to: $(uv python find $UV_PYTHON) ==="
+echo "=== UV_PYTHON resolved to: $(uv python find ${UV_PYTHON:-3.11}) ==="
 
-if [ "${RUNNER_OS:-}" = "Windows" ]; then
+if [ "${RUNNER_OS:-}" == "Windows" ] || [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
   python3 -m venv "$HOME/pytest"
   VENV_PY="$HOME/pytest/Scripts/python.exe"
   SAM_CLI_DEV=1 uv pip install --python "$VENV_PY" -e '.[dev]'
