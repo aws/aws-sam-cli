@@ -171,7 +171,6 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
-          cache: true
 
       - name: Set up Ruby 3.3.7
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
