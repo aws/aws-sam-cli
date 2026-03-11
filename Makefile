@@ -8,7 +8,7 @@ SAM_CLI_TELEMETRY ?= 0
 init:
 	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON --managed-python)" -e '.[dev]'; \
+		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python $$UV_PYTHON -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
@@ -16,14 +16,13 @@ init:
 # Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
 	@if [ "$${RUNNER_OS:-}" = "Windows" ]; then \
-	  VENV_DIR="$$USERPROFILE/pytest"; \
-	  python -m venv "$$VENV_DIR"; \
-	  VENV_PY="$$VENV_DIR/Scripts/python.exe"; \
+	  python3.11 -m venv $(HOME)/pytest; \
+	  VENV_PY="$(HOME)/pytest/Scripts/python.exe"; \
 	  SAM_CLI_DEV=1 uv pip install --python "$$VENV_PY" -e '.[dev]'; \
-	  "$$VENV_DIR/Scripts/pytest" --version; \
+	  "$(HOME)/pytest/Scripts/pytest" --version; \
 	  if [ -n "$$GITHUB_ENV" ]; then \
 	    echo "SCRIPT_PY=$$VENV_PY" >> "$$GITHUB_ENV"; \
-	    echo "$$VENV_DIR/Scripts" >> "$$GITHUB_PATH"; \
+	    echo "$(HOME)/pytest/Scripts" >> "$$GITHUB_PATH"; \
 	  fi; \
 	else \
 	  python3.11 -m venv $(HOME)/pytest; \

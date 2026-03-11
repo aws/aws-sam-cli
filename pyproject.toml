@@ -7,7 +7,7 @@ dynamic = ["version", "scripts"]
 description = "AWS SAM CLI is a CLI tool for local development and testing of Serverless applications"
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10, <=3.14"
+requires-python = ">=3.10"
 authors = [
     { name = "Amazon Web Services", email = "aws-sam-developers@amazon.com" },
 ]
