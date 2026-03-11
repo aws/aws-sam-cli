@@ -184,9 +184,9 @@ cffi==2.0.0 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
     # via cryptography
-cfn-lint==1.45.0 \
-    --hash=sha256:0a05b34eff63f45d7b9b0465e01dca6c2035b730bd88910dca8c4bcf00913939 \
-    --hash=sha256:39aed0cdb3be4d09fad4ca4e410790313c1b6a4e4a9f0362dac1b1980dd48978
+cfn-lint==1.46.0 \
+    --hash=sha256:1dfca1993af3159411e4a4f79466617ccdca48eddaf424e216297167c500aa3b \
+    --hash=sha256:fa7cb76db683109133241baf1e1734b1d61b46d3900ba2a309db8f3d0e5d3994
     # via aws-sam-cli (pyproject.toml)
 chardet==5.2.0 \
     --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
@@ -318,9 +318,9 @@ click==8.1.8 \
     #   aws-sam-cli (pyproject.toml)
     #   cookiecutter
     #   flask
-cookiecutter==2.6.0 \
-    --hash=sha256:a54a8e37995e4ed963b3e82831072d1ad4b005af736bb17b99c2cbd9d41b6e2d \
-    --hash=sha256:db21f8169ea4f4fdc2408d48ca44859349de2647fbe494a9d6c3edfc0542c21c
+cookiecutter==2.7.1 \
+    --hash=sha256:ca7bb7bc8c6ff441fbf53921b5537668000e38d56e28d763a1b73975c66c6138 \
+    --hash=sha256:cee50defc1eaa7ad0071ee9b9893b746c1b3201b66bf4d3686d0f127c8ed6cf9
     # via aws-sam-cli (pyproject.toml)
 cryptography==46.0.5 \
     --hash=sha256:02f547fce831f5096c9a567fd41bc12ca8f11df260959ecc7c3202555cc47a72 \
@@ -1095,9 +1095,9 @@ s3transfer==0.16.0 \
     --hash=sha256:18e25d66fed509e3868dc1572b3f427ff947dd2c56f844a5bf09481ad3f3b2fe \
     --hash=sha256:8e990f13268025792229cd52fa10cb7163744bf56e719e0b9cb925ab79abf920
     # via boto3
-setuptools==82.0.0 \
-    --hash=sha256:22e0a2d69474c6ae4feb01951cb69d515ed23728cf96d05513d36e42b62b37cb \
-    --hash=sha256:70b18734b607bd1da571d097d236cfcfacaf01de45717d59e6e04b96877532e0
+setuptools==82.0.1 \
+    --hash=sha256:7d872682c5d01cfde07da7bccc7b65469d3dca203318515ada1de5eda35efbf9 \
+    --hash=sha256:a59e362652f08dcd477c78bb6e7bd9d80a7995bc73ce773050228a348ce2e5bb
     # via aws-lambda-builders
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
