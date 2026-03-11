@@ -6,7 +6,7 @@ set -eo pipefail
 echo "=== UV_PYTHON resolved to: $(uv python find ${UV_PYTHON:-3.11}) ==="
 
 if [ "${RUNNER_OS:-}" == "Windows" ] || [[ "$(uname -s)" == MINGW* ]] || [[ "$(uname -s)" == MSYS* ]]; then
-  python3 -m venv "$HOME/pytest"
+  python3.11 -m venv "$HOME/pytest"
   VENV_PY="$HOME/pytest/Scripts/python.exe"
   SAM_CLI_DEV=1 uv pip install --python "$VENV_PY" -e '.[dev]'
   "$HOME/pytest/Scripts/pytest" --version
