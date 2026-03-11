@@ -194,6 +194,15 @@ jobs:
         with:
           ruby-version: '3.4.7'
 
+      - name: Restore Git Bash on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # Ruby's setup-ruby action prepends MSYS2 bash to PATH, which mangles
+          # env vars and breaks MSI installs. Re-prepend Git Bash so shell: bash
+          # picks it up instead.
+          echo "C:\Program Files\Git\bin" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
       - name: Install Rust toolchain and cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
         shell: bash
