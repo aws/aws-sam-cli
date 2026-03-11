@@ -53,29 +53,29 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test_suite:
-          # # Build jobs (no-container mode — requires language toolchains)
-          # - build-x86-1
-          # - build-x86-2
-          # - build-arm64
-          # # Build jobs (docker container mode)
-          # - build-x86-container-1
-          # - build-x86-container-2
-          # - build-arm64-container-1
-          # - build-arm64-container-2
-          # # Docker-only test suites
-          # - terraform-build
-          # - terraform-start-api
-          # - terraform-invoke-start-lambda
-          # - package
-          # - deploy
-          # - sync-code
-          # - sync-watch
-          # - local-invoke
-          # - local-start-api
-          # - local-start-lambda
-          # - other-and-e2e
-          # # Runs only credential-requiring tests from build and local
-          # - cloud-based-tests
+          # Build jobs (no-container mode — requires language toolchains)
+          - build-x86-1
+          - build-x86-2
+          - build-arm64
+          # Build jobs (docker container mode)
+          - build-x86-container-1
+          - build-x86-container-2
+          - build-arm64-container-1
+          - build-arm64-container-2
+          # Docker-only test suites
+          - terraform-build
+          - terraform-start-api
+          - terraform-invoke-start-lambda
+          - package
+          - deploy
+          - sync-code
+          - sync-watch
+          - local-invoke
+          - local-start-api
+          - local-start-lambda
+          - other-and-e2e
+          # Runs only credential-requiring tests from build and local
+          - cloud-based-tests
           # Tier 1: Cross-platform smoke tests with Finch runtime
           - tier1-finch
         include:
