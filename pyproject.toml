@@ -35,11 +35,11 @@ dependencies = [
     "chevron~=0.12",
     "click==8.1.8",
     "Flask<3.2",
-    "boto3[crt]==1.42.59",
+    "boto3[crt]==1.42.64",
     "jmespath~=1.1.0",
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
-    "cookiecutter~=2.6.0",
+    "cookiecutter>=2.6,<2.8",
     "aws-sam-translator==1.107.0",
     # docker minor version updates can include breaking changes. Auto update micro version only.
     "docker~=7.1.0",
@@ -63,7 +63,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pre-dev = [
-    "ruff==0.15.4",
+    "ruff==0.15.5",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
@@ -91,7 +91,7 @@ dev = [
     "pytest-rerunfailures==16.1",
     "pytest-metadata==3.1.1",
     "pytest-json-report-wip==1.5.1",
-    "filelock==3.25.0",
+    "filelock==3.25.1",
     "black==26.1.0",
     "psutil==7.2.2",
     "chardet<6",
