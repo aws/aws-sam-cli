@@ -7,7 +7,7 @@ dynamic = ["version", "scripts"]
 description = "AWS SAM CLI is a CLI tool for local development and testing of Serverless applications"
 readme = "README.md"
 license = "Apache-2.0"
-requires-python = ">=3.10, <=3.14"
+requires-python = ">=3.10"
 authors = [
     { name = "Amazon Web Services", email = "aws-sam-developers@amazon.com" },
 ]
@@ -47,7 +47,7 @@ dependencies = [
     "requests~=2.32.5",
     "aws_lambda_builders==1.63.0",
     "tomlkit==0.14.0",
-    "watchdog==6.0.0",
+    "watchdog==4.0.2",
     "rich~=14.3.3",
     "pyopenssl~=25.3.0",
     # Pin to <4.27 until SAM-T no longer uses RefResolver
