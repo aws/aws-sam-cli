@@ -169,7 +169,6 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
-          windows-toolchain: none
       - uses: actions/setup-node@v6
         with:
           node-version: 24
