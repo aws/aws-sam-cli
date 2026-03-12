@@ -39,7 +39,7 @@ dependencies = [
     "jmespath~=1.1.0",
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
-    "cookiecutter~=2.6.0",
+    "cookiecutter>=2.6,<2.8",
     "aws-sam-translator==1.107.0",
     # docker minor version updates can include breaking changes. Auto update micro version only.
     "docker~=7.1.0",
@@ -56,14 +56,14 @@ dependencies = [
     # regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac
     "regex!=2021.10.8",
     "tzlocal==5.3.1",
-    "cfn-lint~=1.45.0",
+    "cfn-lint>=1.45,<1.47",
     "boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0",
     "python-dotenv~=1.0.0",
 ]
 
 [project.optional-dependencies]
 pre-dev = [
-    "ruff==0.15.4",
+    "ruff==0.15.5",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
@@ -91,7 +91,7 @@ dev = [
     "pytest-rerunfailures==16.1",
     "pytest-metadata==3.1.1",
     "pytest-json-report-wip==1.5.1",
-    "filelock==3.25.0",
+    "filelock==3.25.1",
     "black==26.3.0",
     "psutil==7.2.2",
     "chardet<6",
