@@ -66,9 +66,9 @@ awscrt==0.31.2 \
     --hash=sha256:f0c179c930ad8e4648bca9e310ab05fc1f6d41b334d5c2b124019822ce05f4ed \
     --hash=sha256:fed3f3686fbe796ea77a2aa3d12f4699aba5f2013acd3628d3065305146892d8
     # via botocore
-binaryornot==0.4.4 \
-    --hash=sha256:359501dfc9d40632edc9fac890e19542db1a287bbcfa58175b66658392018061 \
-    --hash=sha256:b8b71173c917bddcd2c16070412e369c3ed7f0528926f70cac18a6c97fd563e4
+binaryornot==0.6.0 \
+    --hash=sha256:900adfd5e1b821255ba7e63139b0396b14c88b9286e74e03b6f51e0200331337 \
+    --hash=sha256:cc8d57cfa71d74ff8c28a7726734d53a851d02fad9e3a5581fb807f989f702f0
     # via cookiecutter
 blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
@@ -188,10 +188,6 @@ cfn-lint==1.46.0 \
     --hash=sha256:1dfca1993af3159411e4a4f79466617ccdca48eddaf424e216297167c500aa3b \
     --hash=sha256:fa7cb76db683109133241baf1e1734b1d61b46d3900ba2a309db8f3d0e5d3994
     # via aws-sam-cli (pyproject.toml)
-chardet==5.2.0 \
-    --hash=sha256:1b3b6ff479a8c414bc3fa2c0852995695c4a026dcd6d0633b2dd092ca39c1cf7 \
-    --hash=sha256:e1cf59446890a00105fe7b7912492ea04b6e6f06d4b742b2c788469e34c82970
-    # via binaryornot
 charset-normalizer==3.4.5 \
     --hash=sha256:014837af6fabf57121b6254fa8ade10dceabc3528b27b721a64bbc7b8b1d4eb4 \
     --hash=sha256:01a1ed54b953303ca7e310fafe0fe347aab348bd81834a0bcd602eb538f89d66 \
