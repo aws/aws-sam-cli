@@ -112,7 +112,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          ref: ${{ env.TEST_TYPE == 'nightly-release' && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
+          ref: ${{ (env.TEST_TYPE == 'nightly-release' && github.event.action == 'published') && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
 
       - name: Free up disk space
         shell: bash
@@ -189,6 +189,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4.7'
+          windows-toolchain: none
 
       - name: Install Rust toolchain and cargo-lambda
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
@@ -225,13 +226,6 @@ jobs:
           make setup-pytest
           make init-nightly
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          # Detect venv python/pytest path (bin on Linux/macOS, Scripts on Windows)
-          if [ -f "$HOME/pytest/bin/python3" ]; then
-            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
-          else
-            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
-            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
-          fi
 
       - name: Initialize latest release test
         if: env.TEST_TYPE == 'latest-release'
@@ -242,12 +236,6 @@ jobs:
           make setup-pytest
           make init-latest-release
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
-          if [ -f "$HOME/pytest/bin/python3" ]; then
-            echo "SCRIPT_PY=$HOME/pytest/bin/python3" >> $GITHUB_ENV
-          else
-            echo "SCRIPT_PY=$HOME/pytest/Scripts/python.exe" >> $GITHUB_ENV
-            echo "$HOME/pytest/Scripts" >> $GITHUB_PATH
-          fi
 
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v6
@@ -450,21 +438,21 @@ jobs:
           esac
 
       - name: Upload test results
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.test_suite }}
           path: TEST_REPORT-*.json
 
       - name: Re-authenticate with OIDC for cleanup
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Assume test reporting role
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
@@ -472,7 +460,7 @@ jobs:
           role-chaining: true
 
       - name: Reset test account and upload reports
-        if: always()
+        if: always() && env.SCRIPT_PY != ''
         shell: bash
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
