@@ -8,8 +8,8 @@ MIN_MAVEN="3.9.12"
 MIN_GRADLE="9.2.0"
 
 version_gte() { printf '%s\n%s' "$2" "$1" | sort -V -C; }
-get_maven_ver() { mvn --version 2>/dev/null | head -1 | grep -oP '[\d.]+' | head -1 || true; }
-get_gradle_ver() { gradle --version 2>/dev/null | grep -oP 'Gradle \K[\d.]+' || true; }
+get_maven_ver() { mvn --version 2>/dev/null | head -1 | sed -n 's/.*Maven \([0-9.]*\).*/\1/p' || true; }
+get_gradle_ver() { gradle --version 2>/dev/null | sed -n 's/.*Gradle \([0-9.]*\).*/\1/p' || true; }
 
 MVN_VER=$(get_maven_ver)
 GRADLE_VER=$(get_gradle_ver)
@@ -24,23 +24,18 @@ if ! $NEED_MAVEN && ! $NEED_GRADLE; then
   exit 0
 fi
 
-# Resolve latest stable versions from official sources
 resolve_maven_version() {
-  # Maven metadata XML lists all 3.9.x versions
   curl -sfL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/maven-metadata.xml" \
-    | grep -oP '<version>3\.9\.\K[0-9]+' | sort -n | tail -1 | xargs -I{} echo "3.9.{}"
+    | sed -n 's/.*<version>3\.9\.\([0-9]*\)<.*/\1/p' | sort -n | tail -1 | xargs -I{} echo "3.9.{}"
 }
 
 resolve_gradle_version() {
-  # Gradle API returns the latest release version
-  curl -sfL "https://services.gradle.org/versions/current" | grep -oP '"version"\s*:\s*"\K[^"]+'
+  curl -sfL "https://services.gradle.org/versions/current" | sed -n 's/.*"version"\s*:\s*"\([^"]*\)".*/\1/p'
 }
 
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  # Chocolatey always installs latest by default
   $NEED_MAVEN && choco install maven -y
   $NEED_GRADLE && choco install gradle -y
-  # Refresh PATH from registry for current session
   CHOCO_BASE="C:/ProgramData/chocolatey/lib"
   MVN_BIN=$(find "$CHOCO_BASE/maven" -name "mvn.cmd" -print -quit 2>/dev/null | xargs dirname || true)
   GRADLE_BIN=$(find "$CHOCO_BASE/gradle" -name "gradle.bat" -print -quit 2>/dev/null | xargs dirname || true)
