@@ -7,7 +7,7 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Optional, cast
+from typing import Dict, Optional, Union, cast
 
 import tomlkit
 from tomlkit.items import Item
@@ -65,6 +65,45 @@ class SyncState:
         self.latest_infra_sync_time = datetime.now(timezone.utc)
 
 
+def _parse_time_from_toml(time_value: Union[str, int, float, datetime]) -> Optional[datetime]:
+    """
+    Parse time from TOML file - supports both epoch and ISO format.
+
+    Handles legacy ISO format strings as sam migrat to using epoch timestamps for backward compatibility.
+    New writes always use epoch format.
+
+    Parameters
+    ----------
+    time_value: Union[str, int, float, datetime]
+        Either epoch timestamp (new format), ISO format string (legacy), or datetime object
+
+    Returns
+    -------
+    Optional[datetime]
+        Timezone-aware datetime in UTC, or None if parsing fails
+    """
+    try:
+        if isinstance(time_value, datetime):
+            return time_value if time_value.tzinfo else time_value.replace(tzinfo=timezone.utc)
+
+        if isinstance(time_value, (int, float)):
+            return datetime.fromtimestamp(time_value, tz=timezone.utc)
+
+        if isinstance(time_value, str):
+            if time_value.endswith("Z"):
+                time_value = time_value[:-1] + "+00:00"
+            parsed = datetime.fromisoformat(time_value)
+            return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+    except (ValueError, OSError) as e:
+        LOG.warning(
+            "Failed to parse timestamp from sync.toml: %s. Triggering full CloudFormation deployment. Error: %s",
+            time_value,
+            e,
+        )
+    return None
+
+
 def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
     """
     Writes the sync state information to the TOML file.
@@ -82,7 +121,7 @@ def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
     sync_state_toml_table = tomlkit.table()
     sync_state_toml_table[DEPENDENCY_LAYER] = sync_state.dependency_layer
     if sync_state.latest_infra_sync_time:
-        sync_state_toml_table[LATEST_INFRA_SYNC_TIME] = sync_state.latest_infra_sync_time.isoformat()
+        sync_state_toml_table[LATEST_INFRA_SYNC_TIME] = sync_state.latest_infra_sync_time.timestamp()
 
     resource_sync_states_toml_table = tomlkit.table()
     for resource_id in sync_state.resource_sync_states:
@@ -91,7 +130,7 @@ def _sync_state_to_toml_document(sync_state: SyncState) -> TOMLDocument:
         resource_sync_state_toml_table = tomlkit.table()
 
         resource_sync_state_toml_table[HASH] = resource_sync_state.hash_value
-        resource_sync_state_toml_table[SYNC_TIME] = resource_sync_state.sync_time.isoformat()
+        resource_sync_state_toml_table[SYNC_TIME] = resource_sync_state.sync_time.timestamp()
 
         # For Nested stack resources, replace "/" with "-"
         resource_id_toml = resource_id.replace("/", "-")
@@ -129,9 +168,15 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
     if resource_sync_states_toml_table:
         for resource_id in resource_sync_states_toml_table:
             resource_sync_state_toml_table = resource_sync_states_toml_table.get(resource_id)
+            sync_time_str = resource_sync_state_toml_table.get(SYNC_TIME)
+            # Parse datetime and ensure it's timezone-aware UTC (consistent with how we write)
+            sync_time = _parse_time_from_toml(sync_time_str)
+            if sync_time is None:
+                # Skip this resource if timestamp is invalid - resource will be re-synced on next sam sync
+                continue
             resource_sync_state = ResourceSyncState(
                 resource_sync_state_toml_table.get(HASH),
-                datetime.fromisoformat(resource_sync_state_toml_table.get(SYNC_TIME)),
+                sync_time,
             )
 
             # For Nested stack resources, replace "-" with "/"
@@ -142,9 +187,9 @@ def _toml_document_to_sync_state(toml_document: Dict) -> Optional[SyncState]:
     latest_infra_sync_time = None
     if sync_state_toml_table:
         dependency_layer = sync_state_toml_table.get(DEPENDENCY_LAYER)
-        latest_infra_sync_time = sync_state_toml_table.get(LATEST_INFRA_SYNC_TIME)
-        if latest_infra_sync_time:
-            latest_infra_sync_time = datetime.fromisoformat(str(latest_infra_sync_time))
+        latest_infra_sync_time_str = sync_state_toml_table.get(LATEST_INFRA_SYNC_TIME)
+        if latest_infra_sync_time_str:
+            latest_infra_sync_time = _parse_time_from_toml(latest_infra_sync_time_str)
     sync_state = SyncState(dependency_layer, resource_sync_states, latest_infra_sync_time)
 
     return sync_state
