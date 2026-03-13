@@ -14,6 +14,7 @@ from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
 from samcli.lib.build.exceptions import MissingFunctionHandlerException
 from samcli.lib.providers.exceptions import InvalidLayerReference, MissingFunctionNameException
+from samcli.lib.utils.cloudformation import is_intrinsic_function
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -571,7 +572,19 @@ class SamFunctionProvider(SamBaseProvider):
 
             I.E: list_of_layers = ["layer1", "layer2"] the return would be [Layer("layer1"), Layer("layer2")]
         """
-        layers = []
+        layers: List[LayerVersion] = []
+
+        # Check if list_of_layers is an intrinsic function
+        if is_intrinsic_function(list_of_layers):
+            # At this point we know it's a dict with one key (the intrinsic function name)
+            intrinsic_dict = cast(Dict, list_of_layers)
+            intrinsic_name = next(iter(intrinsic_dict.keys())) if intrinsic_dict else "unknown"
+            LOG.debug(
+                "Layers property is defined as an intrinsic function (%s). "
+                "Skipping layer parsing as the actual layer list cannot be determined at build time.",
+                intrinsic_name,
+            )
+            return layers
 
         if locate_layer_nested and stacks and function_id:
             # The layer can be a parameter pass from parent stack, we need to locate to where the
