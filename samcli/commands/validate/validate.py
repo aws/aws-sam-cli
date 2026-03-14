@@ -57,6 +57,14 @@ class SamTemplate:
     "Create a cfnlintrc config file to specify additional parameters. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
+@click.option(
+    "--extra-lint-rules",
+    help="Specify additional lint rules to be used with cfn-lint. "
+         "Format: module.path (e.g. 'cfn_lint_serverless.rules'). "
+         "Multiple rule modules can be specified by separating with commas or using this option multiple times.",
+    default=None,
+    multiple=True
+)
 @save_params_option
 @pass_context
 @track_command
@@ -64,13 +72,12 @@ class SamTemplate:
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
-def cli(ctx, template_file, config_file, config_env, lint, save_params):
+def cli(ctx, template_file, config_file, config_env, lint, save_params, extra_lint_rules):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
+    do_cli(ctx, template_file, lint, extra_lint_rules)  # pragma: no cover
 
-    do_cli(ctx, template_file, lint)  # pragma: no cover
 
-
-def do_cli(ctx, template, lint):
+def do_cli(ctx, template, lint, extra_lint_rules=None):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -84,7 +91,7 @@ def do_cli(ctx, template, lint):
     sam_template = _read_sam_file(template)
 
     if lint:
-        _lint(ctx, sam_template.serialized, template)
+        _lint(ctx, sam_template.serialized, template, extra_lint_rules)
     else:
         iam_client = boto3.client("iam")
         validator = SamTemplateValidator(
@@ -136,54 +143,190 @@ def _read_sam_file(template) -> SamTemplate:
     return SamTemplate(serialized=template_string, deserialized=sam_template)
 
 
-def _lint(ctx: Context, template: str, template_path: str) -> None:
+def _lint(ctx: Context, template: str, template_path: str, extra_lint_rules=None):
     """
     Parses provided SAM template and maps errors from CloudFormation template back to SAM template.
 
     Cfn-lint loggers are added to the SAM cli logging hierarchy which at the root logger
-    configures with INFO level logging and a different formatting. This exposes and duplicates
-    some cfn-lint logs that are not typically shown to customers. Explicitly setting the level to
-    WARNING and propagate to be False remediates these issues.
+    formatter and handlers are defined. This ensures that logging is output correctly when used from SAM cli
+    for CLI consumers.
 
     Parameters
-    -----------
+    ----------
     ctx
-        Click context object
+        Click Context
     template
-        Contents of sam template as a string
+        SAM template contents
     template_path
         Path to the sam template
+    extra_lint_rules
+        List of additional rule modules to apply
     """
+    import logging
+    import importlib.util
+    import cfnlint
 
-    from cfnlint.api import ManualArgs, lint
+    from cfnlint.api import lint, ManualArgs
     from cfnlint.runner import InvalidRegionException
+    # Import only what is necessary
 
-    cfn_lint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
-    cfn_lint_logger.propagate = False
+    # To track events, we need to enable telemetry
+    from samcli.lib.telemetry.event import EventTracker
 
+    LOG = logging.getLogger(__name__)
+    LOG.debug("Starting template validation with linting")
+
+    # Set up cfnlint logger verbosity using context provided
+    cfnlint_logger = logging.getLogger(CNT_LINT_LOGGER_NAME)
+    cfnlint_logger.propagate = False
+    
+    if ctx and ctx.debug:
+        cfnlint_logger.propagate = True
+        cfnlint_logger.setLevel(logging.DEBUG)
+    else:
+        cfnlint_logger.setLevel(logging.INFO)
+
+    # Track linting in telemetry
     EventTracker.track_event("UsedFeature", "CFNLint")
-
+    
+    # Create linter configuration
     linter_config = {}
     if ctx.region:
         linter_config["regions"] = [ctx.region]
-    if ctx.debug:
-        cfn_lint_logger.propagate = True
-        cfn_lint_logger.setLevel(logging.DEBUG)
-
-    config = ManualArgs(**linter_config)
+    
+    # Process extra lint rules if provided
+    rules_to_append = []
+    if extra_lint_rules:
+        # Track usage of Extra Lint Rules
+        EventTracker.track_event("UsedFeature", "ExtraLintRules")
+        
+        # Process each rule option (multiple=True gives us a list)
+        for rule_option in extra_lint_rules:
+            # Handle comma-separated rule modules
+            for module in rule_option.split(','):
+                module = module.strip()
+                if not module:
+                    continue
+                    
+                LOG.debug("Processing lint rule module: %s", module)
+                if _is_module_available(module):
+                    rules_to_append.append(module)
+                    LOG.debug("Module %s is available and will be used", module)
+                else:
+                    module_name = module.split('.')[0].replace('_', '-')
+                    _handle_missing_module(module_name, 
+                                        f"The rule module '{module}' was specified but is not available.",
+                                        ctx.debug)
+        
+        if rules_to_append:
+            module_names = ', '.join(rules_to_append)
+            click.secho(f"Extra lint rules enabled: {module_names}", fg="green")
+            linter_config["append_rules"] = rules_to_append
+            LOG.debug("Linter configuration updated with rules: %s", rules_to_append)
 
     try:
+        # Create linter configuration and execute linting
+        config = ManualArgs(**linter_config)
+        LOG.debug("Executing linting with configuration")
         matches = lint(template, config=config)
+        
+        if not matches:
+            click.secho("{} is a valid SAM Template".format(template_path), fg="green")
+            return
+
+        # Display validation failures
+        click.secho(matches)
+        raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
+        
     except InvalidRegionException as ex:
+        LOG.debug("Region validation failed: %s", ex)
         raise UserException(
             f"AWS Region was not found. Please configure your region through the --region option.\n{ex}",
             wrapped_from=ex.__class__.__name__,
         ) from ex
+    except Exception as e:
+        LOG.debug("Unexpected exception during linting: %s", e)
+        raise
 
-    if not matches:
-        click.secho("{} is a valid SAM Template".format(template_path), fg="green")
-        return
 
-    click.secho(matches)
+def _is_module_available(module_path: str) -> bool:
+    """
+    Check if a module is available for import.
+    Works with both standard pip installations and installer-based SAM CLI.
+    
+    Parameters
+    ----------
+    module_path
+        Full module path (e.g. 'cfn_lint_serverless.rules')
+        
+    Returns
+    -------
+    bool
+        True if module can be imported, False otherwise
+    """
+    LOG = logging.getLogger(__name__)
+    
+    # Try using importlib.util which is safer
+    try:
+        root_module = module_path.split('.')[0]
+        spec = importlib.util.find_spec(root_module)
+        if spec is None:
+            LOG.debug("Module %s not found with importlib.util.find_spec", root_module)
+            return False
+            
+        # For deeper paths, try actually importing
+        try:
+            __import__(module_path)
+            return True
+        except (ImportError, ModuleNotFoundError) as e:
+            LOG.debug("Could not import module %s: %s", module_path, e)
+            return False
+    except Exception as e:
+        LOG.debug("Unexpected error checking for module %s: %s", module_path, e)
+        # Fallback to direct import attempt
+        try:
+            __import__(module_path)
+            return True
+        except (ImportError, ModuleNotFoundError):
+            return False
 
-    raise LinterRuleMatchedException("Linting failed. At least one linting rule was matched to the provided template.")
+
+def _handle_missing_module(package_name: str, error_context: str, debug_mode: bool = False):
+    """
+    Handle missing module by providing appropriate error message that works
+    in both pip and installer environments.
+    
+    Parameters
+    ----------
+    package_name
+        Name of the package (for pip install instructions)
+    error_context
+        Contextual message describing what feature requires this package
+    debug_mode
+        Whether to include detailed instructions for different install methods
+    
+    Raises
+    ------
+    UserException
+        With appropriate error message
+    """
+    LOG = logging.getLogger(__name__)
+    LOG.debug("Module %s is missing: %s", package_name, error_context)
+    
+    base_message = error_context
+    install_instruction = f"Please install it using: pip install {package_name}"
+    
+    if debug_mode:
+        # In debug mode, provide more comprehensive instructions
+        message = (
+            f"{base_message}\n\n"
+            f"The package '{package_name}' is not available. Installation options:\n"
+            f"1. If using pip-installed SAM CLI: {install_instruction}\n"
+            f"2. If using installer-based SAM CLI: You need to install the package in the same Python environment\n"
+            f"   that SAM CLI uses. Check the SAM CLI installation documentation for details."
+        )
+    else:
+        message = f"{base_message}\n\n{package_name} package is not installed. {install_instruction}"
+    
+    click.secho(message, fg="red")
+    raise UserException(message)
