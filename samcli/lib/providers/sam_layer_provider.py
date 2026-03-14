@@ -83,6 +83,11 @@ class SamLayerProvider(SamBaseProvider):
         layers = []
         for stack in self._stacks:
             for name, resource in stack.resources.items():
+                # Skip Fn::ForEach constructs which are lists, not dicts
+                if name.startswith("Fn::ForEach::") or not isinstance(resource, dict):
+                    LOG.debug(f"Skipping Fn::ForEach construct or non-dict resource: {name}")
+                    continue
+
                 # In the list of layers that is defined within a template, you can reference a LayerVersion resource.
                 # When running locally, we need to follow that Ref so we can extract the local path to the layer code.
                 resource_type = resource.get("Type")
