@@ -17,6 +17,7 @@ Cloudformation deploy class which also streams events and changeset information
 
 import logging
 import math
+import re
 import sys
 import time
 from collections import OrderedDict, deque
@@ -24,6 +25,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import botocore
+import click
 
 from samcli.commands._utils.table_print import MIN_OFFSET, newline_per_item, pprint_column_names, pprint_columns
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -141,7 +143,16 @@ class Deployer:
             raise e
 
     def create_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        include_nested_stacks=True,
     ):
         """
         Call Cloudformation to create a changeset and wait for it to complete
@@ -154,6 +165,7 @@ class Deployer:
         :param notification_arns: Arns for sending notifications
         :param s3_uploader: S3Uploader object to upload files to S3 buckets
         :param tags: Array of tags passed to CloudFormation
+        :param include_nested_stacks: Whether to include nested stack changes in changeset (default: True)
         :return:
         """
         if not self.has_stack(stack_name):
@@ -183,6 +195,7 @@ class Deployer:
             "Parameters": parameter_values,
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.now(timezone.utc).isoformat()),
             "Tags": tags,
+            "IncludeNestedStacks": include_nested_stacks,
         }
 
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
@@ -243,27 +256,69 @@ class Deployer:
         :param kwargs: Other arguments to pass to pprint_columns()
         :return: dictionary of changes described in the changeset.
         """
+        # Display changes for parent stack first
+        changeset = self._display_changeset_changes(change_set_id, stack_name, is_parent=True, **kwargs)
+
+        if changeset is None:
+            # There can be cases where there are no changes,
+            # but could be an an addition of a SNS notification topic.
+            pprint_columns(
+                columns=["-", "-", "-", "-"],
+                width=kwargs["width"],
+                margin=kwargs["margin"],
+                format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
+                format_args=kwargs["format_args"],
+                columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
+            )
+            return {"Add": [], "Modify": [], "Remove": []}
+
+        return changeset
+
+    def _display_changeset_changes(
+        self, change_set_id: str, stack_name: str, is_parent: bool = False, **kwargs
+    ) -> Optional[Dict[str, List]]:
+        """
+        Display changes for a changeset, including nested stack changes recursively
+
+        :param change_set_id: ID of the changeset
+        :param stack_name: Name of the CloudFormation stack
+        :param is_parent: Whether this is the parent stack (used to control header display)
+        :param kwargs: Other arguments to pass to pprint_columns()
+        :return: dictionary of changes or None if no changes
+        """
         paginator = self._client.get_paginator("describe_change_set")
         response_iterator = paginator.paginate(ChangeSetName=change_set_id, StackName=stack_name)
-        changes = {"Add": [], "Modify": [], "Remove": []}
+        changes: Dict[str, List] = {"Add": [], "Modify": [], "Remove": []}
         changes_showcase = {"Add": "+ Add", "Modify": "* Modify", "Remove": "- Delete"}
-        changeset = False
+        changeset_found = False
+        nested_changesets = []
+
         for item in response_iterator:
-            cf_changes = item.get("Changes")
+            cf_changes = item.get("Changes", [])
             for change in cf_changes:
-                changeset = True
-                resource_props = change.get("ResourceChange")
+                changeset_found = True
+                resource_props = change.get("ResourceChange", {})
                 action = resource_props.get("Action")
+                resource_type = resource_props.get("ResourceType")
+                logical_id = resource_props.get("LogicalResourceId")
+
+                # Check if this is a nested stack with its own changeset
+                nested_changeset_id = resource_props.get("ChangeSetId")
+                if resource_type == "AWS::CloudFormation::Stack" and nested_changeset_id:
+                    nested_changesets.append(
+                        {"changeset_id": nested_changeset_id, "logical_id": logical_id, "action": action}
+                    )
+
+                replacement = resource_props.get("Replacement")
                 changes[action].append(
                     {
-                        "LogicalResourceId": resource_props.get("LogicalResourceId"),
-                        "ResourceType": resource_props.get("ResourceType"),
-                        "Replacement": (
-                            "N/A" if resource_props.get("Replacement") is None else resource_props.get("Replacement")
-                        ),
+                        "LogicalResourceId": logical_id,
+                        "ResourceType": resource_type,
+                        "Replacement": "N/A" if replacement is None else replacement,
                     }
                 )
 
+        # Display changes for this stack
         for k, v in changes.items():
             for value in v:
                 row_color = self.deploy_color.get_changeset_action_color(action=k)
@@ -282,19 +337,27 @@ class Deployer:
                     color=row_color,
                 )
 
-        if not changeset:
-            # There can be cases where there are no changes,
-            # but could be an an addition of a SNS notification topic.
-            pprint_columns(
-                columns=["-", "-", "-", "-"],
-                width=kwargs["width"],
-                margin=kwargs["margin"],
-                format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
-                format_args=kwargs["format_args"],
-                columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
-            )
+        # Recursively display nested stack changes
+        # Only process nested stacks when is_parent=True to avoid duplicates
+        if is_parent:
+            for nested in nested_changesets:
+                try:
+                    # Display nested stack header
+                    click.echo(f"\n[Nested Stack: {nested['logical_id']}]")
 
-        return changes
+                    # Get the stack name from the changeset to support recursive call
+                    nested_response = self._client.describe_change_set(ChangeSetName=nested["changeset_id"])
+                    nested_stack_name = nested_response.get("StackName")
+                    if nested_stack_name:
+                        # Recursively call to display nested changes (supports arbitrary nesting depth)
+                        self._display_changeset_changes(
+                            nested["changeset_id"], nested_stack_name, is_parent=True, **kwargs
+                        )
+                except Exception as e:
+                    LOG.debug("Failed to describe nested changeset %s: %s", nested["changeset_id"], e)
+                    click.echo(f"Unable to fetch changes: {str(e)}")
+
+        return changes if changeset_found else None
 
     def wait_for_changeset(self, changeset_id, stack_name):
         """
@@ -330,7 +393,48 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
+            # Check if this is a nested stack changeset error
+            if status == "FAILED" and "Nested change set" in reason:
+                # Try to fetch detailed error from nested changeset
+                detailed_error = self._get_nested_changeset_error(reason)
+                if detailed_error:
+                    reason = detailed_error
+
             raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
+
+    def _get_nested_changeset_error(self, status_reason: str) -> Optional[str]:
+        """
+        Extract and fetch detailed error from nested changeset
+
+        :param status_reason: The status reason from parent changeset
+        :return: Detailed error message or None
+        """
+        try:
+            # Extract nested changeset ARN from status reason
+            # Format: "Nested change set arn:aws:cloudformation:... was not successfully created: Currently in FAILED."
+            # Support all AWS partitions: aws, aws-cn, aws-us-gov, aws-iso, aws-iso-b
+            match = re.search(
+                r"arn:aws[-a-z]*:cloudformation:[^:]+:[^:]+:changeSet/([^/]+)/([a-f0-9-]+)", status_reason
+            )
+            if match:
+                nested_changeset_arn = match.group(0)
+
+                # Fetch nested changeset details to get the actual stack name
+                try:
+                    response = self._client.describe_change_set(ChangeSetName=nested_changeset_arn)
+                    nested_stack_name = response.get("StackName")
+                    nested_status = response.get("Status")
+                    nested_reason = response.get("StatusReason", "")
+
+                    if nested_status == "FAILED" and nested_reason and nested_stack_name:
+                        return f"Nested stack '{nested_stack_name}' changeset failed: {nested_reason}"
+                except Exception as e:
+                    LOG.debug("Failed to fetch nested changeset details: %s", e)
+
+        except Exception as e:
+            LOG.debug("Failed to parse nested changeset error: %s", e)
+
+        return None
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback):
         """
@@ -556,11 +660,28 @@ class Deployer:
                 raise ex
 
     def create_and_wait_for_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        include_nested_stacks=True,
     ):
         try:
             result, changeset_type = self.create_changeset(
-                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+                stack_name,
+                cfn_template,
+                parameter_values,
+                capabilities,
+                role_arn,
+                notification_arns,
+                s3_uploader,
+                tags,
+                include_nested_stacks,
             )
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)

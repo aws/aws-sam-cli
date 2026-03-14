@@ -62,6 +62,7 @@ class GuidedContext:
         config_env=None,
         config_file=None,
         disable_rollback=None,
+        include_nested_stacks=True,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -95,6 +96,7 @@ class GuidedContext:
         self.color = Colored()
         self.function_provider = None
         self.disable_rollback = disable_rollback
+        self.include_nested_stacks = include_nested_stacks
 
     @property
     def guided_capabilities(self):
@@ -584,6 +586,7 @@ class GuidedContext:
                 region=self.guided_region,
                 profile=self.guided_profile,
                 confirm_changeset=self.confirm_changeset,
+                include_nested_stacks=self.include_nested_stacks,
                 capabilities=self._capabilities,
                 signing_profiles=self.signing_profiles,
                 disable_rollback=self.disable_rollback,
