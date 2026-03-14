@@ -1,55 +1,65 @@
 #!/bin/bash
-# Install Maven 3.9.13 and Gradle 9.3.1 for SAM CLI integration tests.
-# Supports both Linux and Windows (Git Bash on GitHub Actions).
+# Install latest stable Maven 3.x and Gradle for SAM CLI integration tests.
+# Auto-detects latest versions from official APIs.
+# Skips install if pre-installed versions meet minimums.
 set -euo pipefail
 
-MAVEN_VERSION="3.9.13"
-GRADLE_VERSION="9.3.1"
+MIN_MAVEN="3.9.12"
+MIN_GRADLE="9.2.0"
 
-# Check if correct versions are already installed
-MAVEN_INSTALLED=$(mvn --version 2>/dev/null | head -1 | grep -o "${MAVEN_VERSION}" || true)
-GRADLE_INSTALLED=$(gradle --version 2>/dev/null | grep "Gradle ${GRADLE_VERSION}" || true)
+version_gte() { printf '%s\n%s' "$2" "$1" | sort -V -C; }
+get_maven_ver() { mvn --version 2>/dev/null | head -1 | sed -n 's/.*Maven \([0-9.]*\).*/\1/p' || true; }
+get_gradle_ver() { gradle --version 2>/dev/null | sed -n 's/.*Gradle \([0-9.]*\).*/\1/p' || true; }
 
-if [[ -n "$MAVEN_INSTALLED" && -n "$GRADLE_INSTALLED" ]]; then
-  echo "Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} are already installed, skipping."
-  mvn --version
-  gradle --version
+MVN_VER=$(get_maven_ver)
+GRADLE_VER=$(get_gradle_ver)
+echo "=== Current: Maven=${MVN_VER:-none} Gradle=${GRADLE_VER:-none} ==="
+
+NEED_MAVEN=true; NEED_GRADLE=true
+[[ -n "$MVN_VER" ]] && version_gte "$MVN_VER" "$MIN_MAVEN" && NEED_MAVEN=false
+[[ -n "$GRADLE_VER" ]] && version_gte "$GRADLE_VER" "$MIN_GRADLE" && NEED_GRADLE=false
+
+if ! $NEED_MAVEN && ! $NEED_GRADLE; then
+  echo "Versions sufficient, skipping install."
   exit 0
 fi
 
+resolve_maven_version() {
+  curl -sfL "https://repo1.maven.org/maven2/org/apache/maven/apache-maven/maven-metadata.xml" \
+    | sed -n 's/.*<version>3\.9\.\([0-9]*\)<.*/\1/p' | sort -n | tail -1 | xargs -I{} echo "3.9.{}"
+}
+
+resolve_gradle_version() {
+  curl -sfL "https://services.gradle.org/versions/current" | sed -n 's/.*"version"\s*:\s*"\([^"]*\)".*/\1/p'
+}
+
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Windows via choco ==="
-  [[ -z "$MAVEN_INSTALLED" ]] && choco install maven --version="${MAVEN_VERSION}" -y --allow-downgrade
-  [[ -z "$GRADLE_INSTALLED" ]] && choco install gradle --version="${GRADLE_VERSION}" -y --allow-downgrade
-
-  # Chocolatey updates the system PATH in the registry but the current bash session
-  # doesn't see it. Explicitly add the known install paths so mvn/gradle are available
-  # in this session and in subsequent workflow steps.
-  CHOCO_MAVEN_BIN="C:/ProgramData/chocolatey/lib/maven/apache-maven-${MAVEN_VERSION}/bin"
-  CHOCO_GRADLE_BIN="C:/ProgramData/chocolatey/lib/gradle/gradle-${GRADLE_VERSION}/bin"
-  export PATH="${CHOCO_MAVEN_BIN}:${CHOCO_GRADLE_BIN}:${PATH}"
-  echo "${CHOCO_MAVEN_BIN}" >> "$GITHUB_PATH"
-  echo "${CHOCO_GRADLE_BIN}" >> "$GITHUB_PATH"
+  $NEED_MAVEN && choco install maven -y
+  $NEED_GRADLE && choco install gradle -y
+  CHOCO_BASE="C:/ProgramData/chocolatey/lib"
+  MVN_BIN=$(find "$CHOCO_BASE/maven" -name "mvn.cmd" -print -quit 2>/dev/null | xargs dirname || true)
+  GRADLE_BIN=$(find "$CHOCO_BASE/gradle" -name "gradle.bat" -print -quit 2>/dev/null | xargs dirname || true)
+  [[ -n "$MVN_BIN" ]] && { export PATH="$MVN_BIN:$PATH"; echo "$MVN_BIN" >> "$GITHUB_PATH"; }
+  [[ -n "$GRADLE_BIN" ]] && { export PATH="$GRADLE_BIN:$PATH"; echo "$GRADLE_BIN" >> "$GITHUB_PATH"; }
 else
-  echo "=== Installing Maven ${MAVEN_VERSION} and Gradle ${GRADLE_VERSION} on Linux ==="
-  sudo apt-get remove -y maven || true
+  sudo apt-get remove -y maven 2>/dev/null || true
 
-  wget -q "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.zip" -P /tmp
-  sudo unzip -o -q /tmp/apache-maven-*.zip -d /opt/mvn
+  if $NEED_MAVEN; then
+    MAVEN_VERSION=$(resolve_maven_version)
+    echo "Installing Maven ${MAVEN_VERSION}..."
+    wget -q "https://dlcdn.apache.org/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" -O /tmp/maven.tar.gz
+    sudo tar -xzf /tmp/maven.tar.gz -C /opt
+    sudo ln -sf "/opt/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn
+    echo "MAVEN_HOME=/opt/apache-maven-${MAVEN_VERSION}" >> "$GITHUB_ENV"
+  fi
 
-  wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -P /tmp
-  sudo unzip -o -q /tmp/gradle-*.zip -d /opt/gradle
-
-  sudo ln -sf "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin/mvn" /usr/local/bin/mvn
-  sudo ln -sf "/opt/gradle/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle
-
-  echo "/opt/mvn/apache-maven-${MAVEN_VERSION}/bin" >> "$GITHUB_PATH"
-  echo "/opt/gradle/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
-  echo "MAVEN_HOME=/opt/mvn/apache-maven-${MAVEN_VERSION}" >> "$GITHUB_ENV"
-
-  export PATH="/opt/mvn/apache-maven-${MAVEN_VERSION}/bin:/opt/gradle/gradle-${GRADLE_VERSION}/bin:$PATH"
+  if $NEED_GRADLE; then
+    GRADLE_VERSION=$(resolve_gradle_version)
+    echo "Installing Gradle ${GRADLE_VERSION}..."
+    wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip
+    sudo unzip -o -q /tmp/gradle.zip -d /opt
+    sudo ln -sf "/opt/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle
+  fi
 fi
 
-mvn --version || echo "WARNING: mvn --version failed"
-gradle --version || echo "WARNING: gradle --version failed"
-echo "=== Maven and Gradle installation complete ==="
+echo "=== Installed: Maven=$(get_maven_ver) Gradle=$(get_gradle_ver) ==="
