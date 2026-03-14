@@ -1,0 +1,62 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": [
+      "param1",
+      ["1"],
+      {
+        "Condition${param1}": {
+          "Fn::Equals": ["1", {"Ref": "param1"}]
+        },
+        "Fn::ForEach::UniqueLoop2": [
+          "param2",
+          ["2"],
+          {
+            "Condition${param1}${param2}": {
+              "Fn::Equals": ["1", {"Ref": "param2"}]
+            },
+            "Fn::ForEach::UniqueLoop3": [
+              "param3",
+              ["3"],
+              {
+                "Condition${param1}${param2}${param3}": {
+                  "Fn::Equals": ["1", {"Ref": "param3"}]
+                },
+                "Fn::ForEach::UniqueLoop4": [
+                  "param1",
+                  ["4"],
+                  {
+                    "Condition${param1}${param2}${param3}${param4}": {
+                      "Fn::Equals": ["1", {"Ref": "param4"}]
+                    },
+                    "Fn::ForEach::UniqueLoop5": [
+                      "param5",
+                      ["5"],
+                      {
+                        "Condition${param1}${param2}${param3}${param4}${param5}": {
+                          "Fn::Equals": ["1", {"Ref": "param5"}]
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Condition0": {
+      "Fn::Equals": ["1", "0"]
+    }
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}

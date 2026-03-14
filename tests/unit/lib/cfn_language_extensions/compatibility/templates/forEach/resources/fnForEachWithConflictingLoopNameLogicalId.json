@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Fn::ForEach::SameName": [
+      "VariableName",
+      ["1", "2"],
+      {
+        "Topic${VariableName}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "MyTopic${VariableName}"
+            }
+          }
+        }
+      }
+    ],
+    "SameName": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "Topic"
+      }
+    }
+  }
+}

@@ -107,6 +107,7 @@ class ResourceMappingProducer(Producer):
                 profile=self.profile,
                 region=self.region,
                 parameter_overrides=self.parameter_overrides,
+                template_path=self.template_file,
             )
             translated_dict = yaml_parse(validator.get_translated_template_if_valid())
             return translated_dict

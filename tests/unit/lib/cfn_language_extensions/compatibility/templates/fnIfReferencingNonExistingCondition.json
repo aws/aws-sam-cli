@@ -1,0 +1,29 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "Stage": {
+      "Type": "String",
+      "Default": "gamma"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Resources": {
+    "MyQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::If": [
+            "NonExistingCondition",
+            "A",
+            "B"
+          ]
+        }
+      }
+    }
+  }
+}

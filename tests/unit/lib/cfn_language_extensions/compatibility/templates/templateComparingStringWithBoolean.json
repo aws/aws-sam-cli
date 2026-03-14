@@ -1,0 +1,34 @@
+{
+  "Transform": "AWS::LanguageExtensions",
+  "Conditions": {
+    "SomeCondition": {
+      "Fn::Equals": [ true, { "Ref": "SomeParam" } ]
+    }
+  },
+  "Parameters": {
+    "SomeParam": {
+      "AllowedValues": [
+        true,
+        false
+      ],
+      "Default": "true",
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "SomeResource": {
+      "Type": "AWS::Elasticsearch::Domain",
+      "Properties": {
+        "DomainEndpointOptions": {
+          "CustomEndpointEnabled": {
+            "Fn::If": [
+              "SomeCondition",
+              true,
+              false
+            ]
+          }
+        }
+      }
+    }
+  }
+}

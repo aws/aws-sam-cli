@@ -1,0 +1,36 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "ValueList": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,ami-id1"
+    },
+    "IdentifierString": {
+      "Type": "String",
+      "Default": "LogicalId"
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::Instances": [
+      [{"Ref": "IdentifierString"}, "AmiId"],
+      [
+        {"Ref": "ValueList"},
+        [2, "ami-id2"],
+        [3, "ami-id3"]
+      ],
+      {
+        "${LogicalId}": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+            "DisableApiTermination": true,
+            "ImageId": {
+              "Ref": "AmiId"
+            },
+            "InstanceType": "m5.2xlarge"
+          }
+        }
+      }
+    ]
+  }
+}

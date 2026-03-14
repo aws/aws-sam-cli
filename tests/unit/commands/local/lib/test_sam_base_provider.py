@@ -22,5 +22,7 @@ class TestSamBaseProvider_get_template(TestCase):
         SamBaseProvider.get_template(template, overrides)
         called_parameter_values = IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES.copy()
         called_parameter_values.update(overrides)
-        SamTranslatorWrapperMock.assert_called_once_with(template, parameter_values=called_parameter_values)
+        SamTranslatorWrapperMock.assert_called_once_with(
+            template, parameter_values=called_parameter_values, language_extension_result=None
+        )
         translator_instance.run_plugins.assert_called_once()
