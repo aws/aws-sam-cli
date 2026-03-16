@@ -214,6 +214,34 @@ class TestWatchManager(TestCase):
         self.path_observer.stop.assert_called_once_with()
         stop_code_sync_mock.assert_called_once_with()
 
+    def test_start_with_code_flag(self):
+        _start_sync_mock = MagicMock()
+        _start_mock = MagicMock()
+        stop_code_sync_mock = MagicMock()
+        queue_up_code_syncs_mock = MagicMock()
+        get_non_layer_mock = MagicMock()
+
+        self.watch_manager._disable_infra_syncs = True
+        self.watch_manager._start_sync = _start_sync_mock
+        self.watch_manager._start = _start_mock
+        self.watch_manager._stop_code_sync = stop_code_sync_mock
+        self.watch_manager._queue_up_code_syncs = queue_up_code_syncs_mock
+        self.watch_manager._get_non_layer_resource_ids = get_non_layer_mock
+        self.watch_manager._stacks = [MagicMock()]
+
+        resource_ids = {ResourceIdentifier("Function")}
+        get_non_layer_mock.return_value = resource_ids
+
+        _start_mock.side_effect = KeyboardInterrupt()
+
+        self.watch_manager.start()
+
+        _start_sync_mock.assert_called_once()
+        get_non_layer_mock.assert_called_once_with(self.watch_manager._stacks)
+        queue_up_code_syncs_mock.assert_called_once_with(resource_ids)
+        self.path_observer.stop.assert_called_once_with()
+        stop_code_sync_mock.assert_called_once_with()
+
     @parameterized.expand([(True, {ResourceIdentifier("Function")}), (False, set())])
     @patch("samcli.lib.sync.watch_manager.time.sleep")
     def test__start(self, executed, code_sync_resources, sleep_mock):

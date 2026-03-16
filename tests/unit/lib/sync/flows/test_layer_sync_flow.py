@@ -50,7 +50,8 @@ class TestLayerSyncFlow(TestCase):
                 self.layer_sync_flow.set_up()
 
                 patched_super_setup.assert_called_once()
-                client_provider_mock.return_value.assert_called_with("lambda")
+                client_provider_mock.return_value.assert_any_call("lambda")
+                client_provider_mock.return_value.assert_any_call("s3")
 
     @patch("samcli.lib.sync.sync_flow.get_boto_client_provider_from_session_with_config")
     @patch("samcli.lib.sync.flows.layer_sync_flow.get_resource_by_id")
@@ -63,7 +64,8 @@ class TestLayerSyncFlow(TestCase):
                 self.layer_sync_flow.set_up()
 
                 patched_super_setup.assert_called_once()
-                client_provider_mock.return_value.assert_called_with("lambda")
+                client_provider_mock.return_value.assert_any_call("lambda")
+                client_provider_mock.return_value.assert_any_call("s3")
 
         self.assertEqual(self.layer_sync_flow._layer_arn, "layer_version_arn")
 
@@ -172,17 +174,18 @@ class TestLayerSyncFlow(TestCase):
 
     def test_sync(self):
         with patch.object(self.layer_sync_flow, "_publish_new_layer_version") as patched_publish_new_layer_version:
-            with patch.object(self.layer_sync_flow, "_delete_old_layer_version") as patched_delete_old_layer_version:
-                given_layer_version = Mock()
-                patched_publish_new_layer_version.return_value = given_layer_version
+            given_layer_version = Mock()
+            patched_publish_new_layer_version.return_value = given_layer_version
 
-                self.layer_sync_flow.sync()
-                self.assertEqual(self.layer_sync_flow._new_layer_version, given_layer_version)
+            self.layer_sync_flow.sync()
+            self.assertEqual(self.layer_sync_flow._new_layer_version, given_layer_version)
 
-                patched_publish_new_layer_version.assert_called_once()
-                patched_delete_old_layer_version.assert_called_once()
+            patched_publish_new_layer_version.assert_called_once()
 
-    def test_publish_new_layer_version(self):
+    @patch("samcli.lib.sync.flows.layer_sync_flow.os.path.getsize")
+    def test_publish_new_layer_version(self, patched_getsize):
+        patched_getsize.return_value = 1024  # Small file, direct upload
+
         given_layer_name = Mock()
 
         given_lambda_client = Mock()
@@ -211,6 +214,51 @@ class TestLayerSyncFlow(TestCase):
                 )
 
                 self.assertEqual(result_version, given_publish_layer_result.get("Version"))
+
+    @patch("samcli.lib.sync.flows.layer_sync_flow.S3Uploader")
+    @patch("samcli.lib.sync.flows.layer_sync_flow.os.path.getsize")
+    def test_publish_new_layer_version_via_s3(self, patched_getsize, patched_s3_uploader):
+        patched_getsize.return_value = 60 * 1024 * 1024  # 60MB, over limit
+
+        given_layer_name = Mock()
+        given_lambda_client = Mock()
+        given_s3_client = Mock()
+        self.layer_sync_flow._lambda_client = given_lambda_client
+        self.layer_sync_flow._s3_client = given_s3_client
+        self.layer_sync_flow._zip_file = "/tmp/test.zip"
+        self.layer_sync_flow._layer_arn = given_layer_name
+
+        self.deploy_context_mock.s3_bucket = "my-bucket"
+        self.deploy_context_mock.s3_prefix = "my-prefix"
+        self.deploy_context_mock.kms_key_id = "my-kms-key"
+
+        uploader_mock = patched_s3_uploader.return_value
+        uploader_mock.upload_with_dedup.return_value = "s3://my-bucket/my-prefix/abc123.zip"
+
+        with patch.object(self.layer_sync_flow, "_get_resource") as patched_get_resource:
+            given_publish_layer_result = {"Version": 25}
+            given_lambda_client.publish_layer_version.return_value = given_publish_layer_result
+
+            given_layer_resource = Mock()
+            patched_get_resource.return_value = given_layer_resource
+
+            result_version = self.layer_sync_flow._publish_new_layer_version()
+
+            patched_s3_uploader.assert_called_once_with(
+                s3_client=given_s3_client,
+                bucket_name="my-bucket",
+                prefix="my-prefix",
+                kms_key_id="my-kms-key",
+                force_upload=True,
+                no_progressbar=True,
+            )
+            uploader_mock.upload_with_dedup.assert_called_once_with("/tmp/test.zip")
+            given_lambda_client.publish_layer_version.assert_called_with(
+                LayerName=given_layer_name,
+                Content={"S3Bucket": "my-bucket", "S3Key": "my-prefix/abc123.zip"},
+                CompatibleRuntimes=given_layer_resource.get("Properties", {}).get("CompatibleRuntimes", []),
+            )
+            self.assertEqual(result_version, 25)
 
     def test_delete_old_layer_version(self):
         given_layer_name = Mock()

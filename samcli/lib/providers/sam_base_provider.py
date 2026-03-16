@@ -117,7 +117,7 @@ class SamBaseProvider:
 
     @staticmethod
     def _warn_imageuri_extraction(resource_type: str, resource_name: str, image_property: str) -> None:
-        LOG.warning(
+        LOG.debug(
             "The resource %s '%s' has specified ECR registry image for %s. "
             "It will not be built and SAM CLI does not support invoking it locally.",
             resource_type,

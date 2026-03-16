@@ -13,6 +13,7 @@ from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
 from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
+from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Function, LayerVersion, ResourceIdentifier, Stack, get_resource_by_id
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -31,6 +32,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function configuration last update to be successful
+MAXIMUM_LAYER_ZIP_SIZE = 50 * 1024 * 1024  # 50MB limit for Lambda direct ZIP upload
 
 
 def get_latest_layer_version(lambda_client: Any, layer_arn: str) -> int:
@@ -47,6 +49,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     """
 
     _lambda_client: Any
+    _s3_client: Any
     _layer_arn: Optional[str]
     _old_layer_version: Optional[int]
     _new_layer_version: Optional[int]
@@ -83,6 +86,7 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
     def set_up(self) -> None:
         super().set_up()
         self._lambda_client = self._boto_client("lambda")
+        self._s3_client = self._boto_client("s3")
 
     @property
     def sync_state_identifier(self) -> str:
@@ -110,11 +114,10 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
 
     def sync(self) -> None:
         """
-        Publish new layer version, and delete the existing (old) one
+        Publish new layer version
         """
         LOG.debug("%sPublishing new Layer Version", self.log_prefix)
         self._new_layer_version = self._publish_new_layer_version()
-        self._delete_old_layer_version()
 
     def gather_dependencies(self) -> List[SyncFlow]:
         if self._zip_file and os.path.exists(self._zip_file):
@@ -149,13 +152,33 @@ class AbstractLayerSyncFlow(SyncFlow, ABC):
         Publish new layer version and keep new layer version arn so that we can update related functions
         """
         compatible_runtimes = self._get_compatible_runtimes()
-        with open(cast(str, self._zip_file), "rb") as zip_file:
-            data = zip_file.read()
-            layer_publish_result = self._lambda_client.publish_layer_version(
-                LayerName=self._layer_arn, Content={"ZipFile": data}, CompatibleRuntimes=compatible_runtimes
+        zip_file_path = cast(str, self._zip_file)
+        zip_file_size = os.path.getsize(zip_file_path)
+
+        if zip_file_size < MAXIMUM_LAYER_ZIP_SIZE:
+            LOG.debug("%sUploading Layer directly", self.log_prefix)
+            with open(zip_file_path, "rb") as zip_file:
+                data = zip_file.read()
+                content: Dict[str, Any] = {"ZipFile": data}
+        else:
+            LOG.debug("%sUploading Layer through S3", self.log_prefix)
+            uploader = S3Uploader(
+                s3_client=self._s3_client,
+                bucket_name=self._deploy_context.s3_bucket,
+                prefix=self._deploy_context.s3_prefix,
+                kms_key_id=self._deploy_context.kms_key_id,
+                force_upload=True,
+                no_progressbar=True,
             )
-            LOG.debug("%sPublish Layer Version Result %s", self.log_prefix, layer_publish_result)
-            return int(layer_publish_result.get("Version"))
+            s3_url = uploader.upload_with_dedup(zip_file_path)
+            s3_key = s3_url[5:].split("/", 1)[1]
+            content = {"S3Bucket": self._deploy_context.s3_bucket, "S3Key": s3_key}
+
+        layer_publish_result = self._lambda_client.publish_layer_version(
+            LayerName=self._layer_arn, Content=content, CompatibleRuntimes=compatible_runtimes
+        )
+        LOG.debug("%sPublish Layer Version Result %s", self.log_prefix, layer_publish_result)
+        return int(layer_publish_result.get("Version"))
 
     def _delete_old_layer_version(self) -> None:
         """

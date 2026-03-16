@@ -12,13 +12,15 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set
 from watchdog.events import EVENT_TYPE_MODIFIED, EVENT_TYPE_OPENED, FileSystemEvent
 
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
-from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
+from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids, get_full_path
+from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.sync.continuous_sync_flow_executor import ContinuousSyncFlowExecutor
 from samcli.lib.sync.exceptions import InfraSyncRequiredError, MissingPhysicalResourceError, SyncFlowException
 from samcli.lib.sync.infra_sync_executor import InfraSyncExecutor, InfraSyncResult
 from samcli.lib.sync.sync_flow_factory import SyncFlowFactory
 from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
+from samcli.lib.utils.resources import AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
@@ -224,6 +226,9 @@ class WatchManager:
             self.queue_infra_sync()
             if self._disable_infra_syncs:
                 self._start_sync()
+                if self._stacks:
+                    resource_ids = self._get_non_layer_resource_ids(self._stacks)
+                    self._queue_up_code_syncs(resource_ids)
                 LOG.info(
                     self._color.color_log(msg="Sync watch started.", color=Colors.SUCCESS), extra=dict(markup=True)
                 )
@@ -317,6 +322,21 @@ class WatchManager:
             sync_flow = self._sync_flow_factory.create_sync_flow(resource_id, self._build_context.build_result)
             if sync_flow:
                 self._sync_flow_executor.add_delayed_sync_flow(sync_flow)
+
+    @staticmethod
+    def _get_non_layer_resource_ids(stacks: List[Stack]) -> Set[ResourceIdentifier]:
+        """Get all resource IDs excluding layer resources.
+        Layer builds can be very slow and are skipped on initial startup sync.
+        They will still sync when file changes are detected by the watcher.
+        """
+        layer_types = {AWS_LAMBDA_LAYERVERSION, AWS_SERVERLESS_LAYERVERSION}
+        resource_ids: Set[ResourceIdentifier] = set()
+        for stack in stacks:
+            for logical_id, resource in stack.resources.items():
+                if resource.get("Type", "") not in layer_types:
+                    resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
+                    resource_ids.add(ResourceIdentifier(get_full_path(stack.stack_path, resource_id)))
+        return resource_ids
 
     def _on_code_change_wrapper(self, resource_id: ResourceIdentifier) -> OnChangeCallback:
         """Wrapper method that generates a callback for code changes.
