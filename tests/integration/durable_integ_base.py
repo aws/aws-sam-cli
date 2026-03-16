@@ -126,7 +126,9 @@ class DurableIntegBase(TestCase):
         Returns:
             tuple: (process, output_lines, thread) where output_lines is a list that gets populated as output arrives
         """
-        process = Popen(command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd)
+        process = Popen(
+            command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd
+        )
         output_lines = []
 
         def log_output():
