@@ -65,8 +65,15 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         result = run_command(succeed_command)
         stdout_str = result.stdout.decode("utf-8") if isinstance(result.stdout, bytes) else result.stdout
         stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
-        LOG.info("First callback result: returncode=%d, stdout=%s, stderr=%s", result.process.returncode, stdout_str, stderr_str)
-        self.assertEqual(result.process.returncode, 0, f"First callback failed: stdout={stdout_str}, stderr={stderr_str}")
+        LOG.info(
+            "First callback result: returncode=%d, stdout=%s, stderr=%s",
+            result.process.returncode,
+            stdout_str,
+            stderr_str,
+        )
+        self.assertEqual(
+            result.process.returncode, 0, f"First callback failed: stdout={stdout_str}, stderr={stderr_str}"
+        )
 
         # Wait for process to complete and close file handles
         LOG.info("Waiting for invoke process to complete...")
