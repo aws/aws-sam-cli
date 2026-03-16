@@ -226,10 +226,14 @@ class DurableFunctionsEmulatorContainer:
         # Generate Dockerfile content
         dockerfile_content = self._generate_emulator_dockerfile(emulator_binary_name)
 
-        # Write Dockerfile to temp location and build image
-        with NamedTemporaryFile(mode="w", suffix="_Dockerfile") as dockerfile:
+        # Write Dockerfile to temp location and build image.
+        # Use delete=False because on Windows, NamedTemporaryFile keeps the file
+        # locked while open, preventing tarfile.add() from reading it.
+        dockerfile = NamedTemporaryFile(mode="w", suffix="_Dockerfile", delete=False)
+        try:
             dockerfile.write(dockerfile_content)
             dockerfile.flush()
+            dockerfile.close()
 
             # Prepare tar paths for build context
             tar_paths = {
@@ -248,6 +252,8 @@ class DurableFunctionsEmulatorContainer:
                     return image_tag
                 except Exception as e:
                     raise ClickException(f"Failed to build emulator image: {e}")
+        finally:
+            os.unlink(dockerfile.name)
 
     def _pull_image_if_needed(self):
         """Pull the emulator image if it doesn't exist locally or is out of date."""
