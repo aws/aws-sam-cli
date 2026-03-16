@@ -17,7 +17,12 @@ from click import ClickException
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
 from samcli.lib.utils.tar import create_tarball
-from samcli.local.docker.utils import get_tar_filter_for_windows, get_validated_container_client, is_image_current
+from samcli.local.docker.utils import (
+    get_tar_filter_for_windows,
+    get_validated_container_client,
+    is_image_current,
+    to_posix_path,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -293,7 +298,7 @@ class DurableFunctionsEmulatorContainer:
         os.makedirs(emulator_data_dir, exist_ok=True)
 
         volumes = {
-            emulator_data_dir: {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
+            to_posix_path(emulator_data_dir): {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
         }
 
         # Build image with emulator binary
