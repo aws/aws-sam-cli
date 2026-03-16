@@ -35,7 +35,7 @@ dependencies = [
     "chevron~=0.12",
     "click==8.1.8",
     "Flask<3.2",
-    "boto3[crt]==1.42.68",
+    "boto3[crt]==1.42.69",
     "jmespath~=1.1.0",
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
@@ -63,14 +63,14 @@ dependencies = [
 
 [project.optional-dependencies]
 pre-dev = [
-    "ruff==0.15.5",
+    "ruff==0.15.6",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
     "coverage==7.13.4",
     "pytest-cov==7.0.0",
     "mypy==1.19.1",
-    "types-pywin32==311.0.0.20251008",
+    "types-pywin32==311.0.0.20260316",
     "types-PyYAML==6.0.12.20250915",
     "types-chevron==0.14.2.20250103",
     "types-psutil==7.2.2.20260130",
