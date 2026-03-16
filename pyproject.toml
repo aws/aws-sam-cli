@@ -35,7 +35,7 @@ dependencies = [
     "chevron~=0.12",
     "click==8.1.8",
     "Flask<3.2",
-    "boto3[crt]==1.42.67",
+    "boto3[crt]==1.42.68",
     "jmespath~=1.1.0",
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
