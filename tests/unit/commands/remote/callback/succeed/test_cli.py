@@ -55,7 +55,7 @@ class TestRemoteCallbackSucceedCli(unittest.TestCase):
         mock_durable_client = Mock()
         mock_durable_client_class.return_value = mock_durable_client
 
-        expected_message = "✅ Callback success sent for ID: test-id"
+        expected_message = "Callback success sent for ID: test-id"
         mock_get_message.return_value = expected_message
 
         do_cli(mock_ctx, "test-id", None)

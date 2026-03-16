@@ -85,7 +85,7 @@ class DurableCallbackHandler:
         if execution_complete and execution_complete.is_set():
             return False
 
-        click.echo(f"\n🔄 Execution is waiting for callback: {callback_id}")
+        click.echo(f"\nExecution is waiting for callback: {callback_id}")
         click.echo("Choose an action:")
         click.echo("  1. Send callback success")
         click.echo("  2. Send callback failure")
@@ -96,14 +96,14 @@ class DurableCallbackHandler:
 
         # Check again after user makes selection in case execution completed
         if execution_complete and execution_complete.is_set():
-            click.echo("⚠️  Execution already completed, callback no longer needed")
+            click.echo("Execution already completed, callback no longer needed")
             return False
 
         try:
             if choice == CHOICE_SUCCESS:
                 result = click.prompt("Enter success result (optional)", default="", show_default=False)
                 self.client.send_callback_success(callback_id=callback_id, result=result)
-                click.echo("✅ Callback success sent")
+                click.echo("Callback success sent")
                 return True
 
             elif choice == CHOICE_FAILURE:
@@ -113,12 +113,12 @@ class DurableCallbackHandler:
                 self.client.send_callback_failure(
                     callback_id=callback_id, error_message=error_message, error_type=error_type
                 )
-                click.echo("❌ Callback failure sent")
+                click.echo("Callback failure sent")
                 return True
 
             elif choice == CHOICE_HEARTBEAT:
                 self.client.send_callback_heartbeat(callback_id=callback_id)
-                click.echo("💓 Callback heartbeat sent")
+                click.echo("Callback heartbeat sent")
                 return False  # Continue waiting after heartbeat
 
             else:  # CHOICE_STOP
@@ -128,10 +128,10 @@ class DurableCallbackHandler:
                 self.client.stop_durable_execution(
                     durable_execution_arn=execution_arn, error_message=error_message, error_type=error_type
                 )
-                click.echo("🛑 Execution stopped")
+                click.echo("Execution stopped")
                 return True
 
         except Exception as e:
             LOG.error("Failed to send callback: %s", e)
-            click.echo(f"❌ Failed to send callback: {e}")
+            click.echo(f"Failed to send callback: {e}")
             return False

@@ -28,7 +28,7 @@ class TestHeartbeatCommand(TestCase):
     def test_do_cli_success(self, mock_echo, mock_get_message, mock_send_callback):
         """Test successful execution of do_cli"""
         # Arrange
-        expected_message = "💓 Callback heartbeat sent for ID: test-callback-123"
+        expected_message = "Callback heartbeat sent for ID: test-callback-123"
         mock_get_message.return_value = expected_message
 
         # Act
@@ -45,7 +45,7 @@ class TestHeartbeatCommand(TestCase):
     def test_do_cli_with_non_json_serializable_objects(self, mock_echo, mock_get_message, mock_send_callback):
         """Test do_cli handles heartbeat message formatting"""
         # Arrange
-        expected_message = "💓 Callback heartbeat sent for ID: test-callback-123"
+        expected_message = "Callback heartbeat sent for ID: test-callback-123"
         mock_get_message.return_value = expected_message
 
         # Act

@@ -66,6 +66,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         second_command = self.get_callback_command_list(action, callback_id)
         result = run_command(second_command)
         stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
+        stderr_str = stderr_str.replace("\r\n", "\n")
 
         self.assertNotEqual(result.process.returncode, 0)
         expected_pattern = f"Error: An error occurred \\(404\\) when calling the {operation_name} operation: Failed to process callback {callback_type}: Callback .+ {error_suffix}"
