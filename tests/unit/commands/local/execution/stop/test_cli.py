@@ -27,7 +27,7 @@ class TestLocalExecutionStopCliCommand(TestCase):
     def test_do_cli_success(self, mock_echo, mock_format, mock_stop_execution):
         """Test successful execution of do_cli"""
         # Arrange
-        mock_format.return_value = "Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278"
+        mock_format.return_value = "🛑 Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278"
 
         # Act
         do_cli(self.test_execution_id)
@@ -41,7 +41,7 @@ class TestLocalExecutionStopCliCommand(TestCase):
             stack_trace=None,
         )
         mock_format.assert_called_once_with(self.test_execution_id, None, None, None)
-        mock_echo.assert_called_once_with("Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278")
+        mock_echo.assert_called_once_with("🛑 Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278")
 
     @patch("samcli.commands.local.execution.stop.cli._stop_durable_execution")
     @patch("samcli.commands.local.execution.stop.cli.format_stop_execution_message")
@@ -53,7 +53,7 @@ class TestLocalExecutionStopCliCommand(TestCase):
         test_error_type = "TEST_ERROR"
         test_error_data = "Additional error data"
         test_stack_trace = ["line1", "line2"]
-        mock_format.return_value = "Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278\nError Type: TEST_ERROR\nError Message: Test error message\nError Data: Additional error data"
+        mock_format.return_value = "🛑 Execution stopped: c63eec67-3415-4eb4-a495-116aa3a86278\nError Type: TEST_ERROR\nError Message: Test error message\nError Data: Additional error data"
 
         # Act
         do_cli(
@@ -248,7 +248,7 @@ class TestLocalExecutionStopCliIntegration(TestCase):
 
         # Assert
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("Execution stopped:", result.output)
+        self.assertIn("🛑 Execution stopped:", result.output)
         self.assertIn(self.test_execution_id, result.output)
 
     @patch("samcli.commands.local.execution.stop.cli._stop_durable_execution")

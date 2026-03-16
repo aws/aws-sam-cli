@@ -60,7 +60,7 @@ class TestRemoteExecutionStop(unittest.TestCase):
 
         mock_durable_client = Mock()
         mock_durable_client_class.return_value = mock_durable_client
-        mock_format.return_value = "Execution stopped: test-arn"
+        mock_format.return_value = "🛑 Execution stopped: test-arn"
 
         # Call function
         do_cli(mock_ctx, "test-arn")
@@ -74,7 +74,7 @@ class TestRemoteExecutionStop(unittest.TestCase):
             "test-arn", error_message=None, error_type=None, error_data=None, stack_trace=None
         )
         mock_format.assert_called_once_with("test-arn", None, None, None)
-        mock_echo.assert_called_once_with("Execution stopped: test-arn")
+        mock_echo.assert_called_once_with("🛑 Execution stopped: test-arn")
 
     @patch("samcli.commands.remote.execution.stop.cli.get_boto_client_provider_from_session_with_config")
     @patch("samcli.commands.remote.execution.stop.cli.Session")

@@ -86,11 +86,11 @@ def format_execution_details_summary(execution_arn: str, execution_details: Dict
     # Determine status with emoji
     status = execution_details.get("Status", "UNKNOWN")
     if status == "SUCCEEDED":
-        status_display = "SUCCEEDED"
+        status_display = "SUCCEEDED ✅"
     elif status == "FAILED":
-        status_display = "FAILED"
+        status_display = "FAILED ❌"
     elif status in ["TIMED_OUT", "STOPPED"]:
-        status_display = status
+        status_display = f"{status} ⚠️"
     else:
         status_display = status
 
@@ -358,7 +358,7 @@ def format_next_commands_after_invoke(execution_arn: str) -> str:
 
 def format_callback_success_message(callback_id: str, result: Optional[str] = None) -> str:
     """Get formatted success message for callback operations."""
-    message = f"Callback success sent for ID: {callback_id}"
+    message = f"✅ Callback success sent for ID: {callback_id}"
     if result:
         message += f"\nResult: {result}"
     return message
@@ -371,7 +371,7 @@ def format_callback_failure_message(
     error_message: Optional[str] = None,
 ) -> str:
     """Get formatted success message for callback failure operations."""
-    message = f"Callback failure sent for ID: {callback_id}"
+    message = f"❌ Callback failure sent for ID: {callback_id}"
     if error_type:
         message += f"\nError Type: {error_type}"
     if error_message:
@@ -383,7 +383,7 @@ def format_callback_failure_message(
 
 def format_callback_heartbeat_message(callback_id: str) -> str:
     """Get formatted success message for callback heartbeat operations."""
-    return f"Callback heartbeat sent for ID: {callback_id}"
+    return f"💓 Callback heartbeat sent for ID: {callback_id}"
 
 
 def format_stop_execution_message(
@@ -393,7 +393,7 @@ def format_stop_execution_message(
     error_data: Optional[str] = None,
 ) -> str:
     """Get formatted success message for execution stop operations."""
-    message = f"Execution stopped: {execution_arn}"
+    message = f"🛑 Execution stopped: {execution_arn}"
     if error_type:
         message += f"\nError Type: {error_type}"
     if error_message:

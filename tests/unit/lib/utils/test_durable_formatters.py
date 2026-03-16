@@ -316,7 +316,7 @@ class TestFormatExecutionDetailsSummary(TestCase):
         result = format_execution_details_summary(execution_arn, execution_details)
 
         self.assertIn("Execution Summary:", result)
-        self.assertIn("SUCCEEDED", result)
+        self.assertIn("SUCCEEDED ✅", result)
         self.assertIn("ARN:", result)
         self.assertIn("Duration: 1.51s", result)
         self.assertIn("Name:", result)
@@ -342,7 +342,7 @@ class TestFormatExecutionDetailsSummary(TestCase):
         }
         result = format_execution_details_summary(execution_arn, execution_details)
 
-        self.assertIn("FAILED", result)
+        self.assertIn("FAILED ❌", result)
         self.assertIn("Duration: N/A", result)
         self.assertIn("Error:    StepError: Your API Key Expired!", result)
         self.assertNotIn("Result:", result)
@@ -350,9 +350,9 @@ class TestFormatExecutionDetailsSummary(TestCase):
     @parameterized.expand(
         [
             ("RUNNING", "RUNNING"),
-            ("FAILED", "FAILED"),
-            ("TIMED_OUT", "TIMED_OUT"),
-            ("STOPPED", "STOPPED"),
+            ("FAILED", "FAILED ❌"),
+            ("TIMED_OUT", "TIMED_OUT ⚠️"),
+            ("STOPPED", "STOPPED ⚠️"),
         ]
     )
     def test_format_execution_details_summary_status_display(self, status, expected_display):
@@ -383,8 +383,8 @@ class TestFormatCallbackMessages(TestCase):
 
     @parameterized.expand(
         [
-            ("test-id-123", "success result", "Callback success sent for ID: test-id-123\nResult: success result"),
-            ("test-id-123", None, "Callback success sent for ID: test-id-123"),
+            ("test-id-123", "success result", "✅ Callback success sent for ID: test-id-123\nResult: success result"),
+            ("test-id-123", None, "✅ Callback success sent for ID: test-id-123"),
         ]
     )
     def test_format_callback_success_message(self, callback_id, result, expected):
@@ -399,15 +399,15 @@ class TestFormatCallbackMessages(TestCase):
                 "error data",
                 "TypeError",
                 "detailed error message",
-                "Callback failure sent for ID: test-id-123\nError Type: TypeError\nError Message: detailed error message\nError Data: error data",
+                "❌ Callback failure sent for ID: test-id-123\nError Type: TypeError\nError Message: detailed error message\nError Data: error data",
             ),
-            ("test-id-123", None, None, None, "Callback failure sent for ID: test-id-123"),
+            ("test-id-123", None, None, None, "❌ Callback failure sent for ID: test-id-123"),
             (
                 "test-id-123",
                 None,
                 "TimeoutError",
                 None,
-                "Callback failure sent for ID: test-id-123\nError Type: TimeoutError",
+                "❌ Callback failure sent for ID: test-id-123\nError Type: TimeoutError",
             ),
         ]
     )
@@ -419,7 +419,7 @@ class TestFormatCallbackMessages(TestCase):
     def test_format_callback_heartbeat_message(self):
         """Test heartbeat message"""
         result = format_callback_heartbeat_message("test-id-123")
-        expected = "Callback heartbeat sent for ID: test-id-123"
+        expected = "💓 Callback heartbeat sent for ID: test-id-123"
         self.assertEqual(result, expected)
 
     @parameterized.expand(
@@ -429,21 +429,21 @@ class TestFormatCallbackMessages(TestCase):
                 "TimeoutError",
                 "Execution timed out",
                 "timeout data",
-                "Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123\nError Type: TimeoutError\nError Message: Execution timed out\nError Data: timeout data",
+                "🛑 Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123\nError Type: TimeoutError\nError Message: Execution timed out\nError Data: timeout data",
             ),
             (
                 "arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123",
                 None,
                 None,
                 None,
-                "Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123",
+                "🛑 Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123",
             ),
             (
                 "arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123",
                 "CustomError",
                 None,
                 None,
-                "Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123\nError Type: CustomError",
+                "🛑 Execution stopped: arn:aws:lambda:us-east-1:123456789012:function:MyFunction:execution:abc123\nError Type: CustomError",
             ),
         ]
     )
