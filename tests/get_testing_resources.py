@@ -45,7 +45,7 @@ def get_testing_credentials(skip_role_deletion=False):
     lambda_client = boto3.client(
         "lambda",
         config=Config(
-            retries={"max_attempts": 0, "mode": "standard"},
+            retries={"max_attempts": 5, "mode": "standard"},
             connect_timeout=LAMBDA_TIME_OUT + 60,
             read_timeout=LAMBDA_TIME_OUT + 60,
         ),
