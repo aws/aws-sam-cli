@@ -102,14 +102,15 @@ Resources:
                   - Inventory
 
 
-  # Fn::ForEach::Topics:
-  #   - TopicName
-  #   - - Success
-  #     - Failure
-  #     - Timeout
-  #     - Unknown
-  #   - 'SnsTopic${TopicName}':
-  #       Type: 'AWS::SNS::Topic'
-  #       Properties:
-  #         TopicName: !Sub "SnsTopic${TopicName}.fifo"
-  #         FifoTopic: true
+  # Test Fn::ForEach with a non-Lambda resource type (SNS Topics)
+  Fn::ForEach::Topics:
+    - TopicName
+    - - Success
+      - Failure
+      - Timeout
+      - Unknown
+    - 'SnsTopic${TopicName}':
+        Type: 'AWS::SNS::Topic'
+        Properties:
+          TopicName: !Sub "SnsTopic${TopicName}.fifo"
+          FifoTopic: true
