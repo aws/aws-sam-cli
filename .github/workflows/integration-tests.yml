@@ -1,6 +1,9 @@
 name: Integration Tests
 
 on:
+  push:
+    branches:
+      - master
   schedule:
     # Run at 7pm PST (3am UTC next day) Monday-Friday
     # This translates to Tuesday-Saturday 3am UTC
