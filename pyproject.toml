@@ -40,7 +40,7 @@ dependencies = [
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
     "cookiecutter>=2.6,<2.8",
-    "aws-sam-translator==1.107.0",
+    "aws-sam-translator==1.108.0",
     # docker minor version updates can include breaking changes. Auto update micro version only.
     "docker~=7.1.0",
     "dateparser~=1.3",
