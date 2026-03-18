@@ -56,7 +56,7 @@ dependencies = [
     # regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac
     "regex!=2021.10.8",
     "tzlocal==5.3.1",
-    "cfn-lint>=1.45,<1.47",
+    "cfn-lint>=1.45,<1.48",
     "boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0",
     "python-dotenv>=1.0,<1.3",
 ]
