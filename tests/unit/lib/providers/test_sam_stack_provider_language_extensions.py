@@ -15,7 +15,7 @@ class TestGetStacksLanguageExtensions(TestCase):
     """Tests that get_stacks() calls expand_language_extensions() directly."""
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
     def test_get_stacks_calls_expand_language_extensions(self, mock_expand, mock_get_template):
         """get_stacks() should call expand_language_extensions() directly."""
         from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -52,7 +52,7 @@ class TestGetStacksLanguageExtensions(TestCase):
         self.assertEqual(stacks[0].template_dict, expanded)
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
     def test_get_stacks_stores_original_template_on_stack(self, mock_expand, mock_get_template):
         """get_stacks() should store original_template on Stack when language extensions are present."""
         from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -88,7 +88,7 @@ class TestGetStacksLanguageExtensions(TestCase):
         self.assertEqual(stacks[0].original_template_dict, template)
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
     def test_get_stacks_no_original_template_without_language_extensions(self, mock_expand, mock_get_template):
         """get_stacks() should not store original_template when no language extensions."""
         from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -111,7 +111,7 @@ class TestGetStacksLanguageExtensions(TestCase):
         self.assertIsNone(stacks[0].original_template_dict)
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
     def test_get_stacks_passes_merged_params_with_pseudo_params(self, mock_expand, mock_get_template):
         """get_stacks() should pass merged parameter overrides including pseudo-params."""
         from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider

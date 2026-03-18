@@ -483,7 +483,7 @@ class TestCallersUseExpandLanguageExtensions(TestCase):
     """
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
     def test_get_stacks_calls_expand_language_extensions(self, mock_expand, mock_get_template):
         """SamLocalStackProvider.get_stacks() calls expand_language_extensions()."""
         from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider

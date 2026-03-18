@@ -8,7 +8,8 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_data
-from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
+from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult, expand_language_extensions
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -265,9 +266,6 @@ class SamLocalStackProvider(SamBaseProvider):
         # This ensures Fn::ForEach and other language extensions are expanded early,
         # so that the Stack's template_dict contains expanded resources
         merged_params = SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides)
-
-        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
-        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 
         parameter_values: Dict[str, Any] = {}
         parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)

@@ -21,6 +21,7 @@ from samcli.commands._utils.template import (
     METADATA_WITH_LOCAL_PATHS,
     RESOURCES_WITH_LOCAL_PATHS,
     _update_relative_paths,
+    _update_sam_mappings_relative_paths,
     _resolve_relative_to,
     move_template,
     get_template_parameters,
@@ -471,7 +472,6 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_updates_relative_paths_in_sam_mappings(self):
         """SAM-prefixed Mapping values that are relative paths should be adjusted."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
 
         mappings = {
             "SAMCodeUriFunctions": {
@@ -494,7 +494,6 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_skips_non_sam_mappings(self):
         """Mappings without the SAM prefix should not be modified."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
 
         mappings = {
             "UserDefinedMapping": {
@@ -509,7 +508,6 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_skips_s3_uris_in_mappings(self):
         """S3 URIs in Mappings should not be modified."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
 
         mappings = {
             "SAMCodeUriFunctions": {
@@ -525,9 +523,10 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_handles_empty_mappings(self):
         """Empty or non-dict Mappings should not cause errors."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
+        empty_mappings = {}
+        _update_sam_mappings_relative_paths(empty_mappings, "/original", "/new")
+        self.assertEqual(empty_mappings, {})
 
-        _update_sam_mappings_relative_paths({}, "/original", "/new")
         _update_sam_mappings_relative_paths(None, "/original", "/new")
 
     def test_move_template_adjusts_sam_mappings(self):
@@ -575,7 +574,6 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_skips_docker_image_uris_in_imageuri_mappings(self):
         """Docker image references in ImageUri Mappings should not be rewritten with relative paths."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
 
         mappings = {
             "SAMImageUriFunctions": {
@@ -597,7 +595,6 @@ class Test_update_sam_mappings_relative_paths(TestCase):
 
     def test_updates_imageuri_when_pointing_to_local_archive(self):
         """ImageUri values that point to actual local files (e.g., .tar.gz archives) should be updated."""
-        from samcli.commands._utils.template import _update_sam_mappings_relative_paths
 
         with tempfile.TemporaryDirectory() as tmpdir:
             original_root = tmpdir
