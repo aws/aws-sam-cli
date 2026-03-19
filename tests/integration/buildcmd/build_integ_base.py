@@ -113,6 +113,7 @@ class BuildIntegBase(TestCase):
         config_file=None,
         save_params=False,
         project_root_dir=None,
+        use_buildkit=False,
     ):
         command_list = [self.cmd, "build"]
 
@@ -138,6 +139,9 @@ class BuildIntegBase(TestCase):
 
         if debug:
             command_list += ["--debug"]
+
+        if use_buildkit:
+            command_list += ["--use-buildkit"]
 
         if cached:
             command_list += ["--cached"]
@@ -1155,7 +1159,7 @@ class BuildIntegRustBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         newenv = os.environ.copy()
         if build_mode:

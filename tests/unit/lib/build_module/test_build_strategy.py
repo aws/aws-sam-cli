@@ -747,11 +747,10 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     def test_will_call_incremental_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", None, "package_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
-        with patch.object(
-            self.build_strategy, "_incremental_build_strategy"
-        ) as patched_incremental_build_strategy, patch.object(
-            self.build_strategy, "_cached_build_strategy"
-        ) as patched_cached_build_strategy:
+        with (
+            patch.object(self.build_strategy, "_incremental_build_strategy") as patched_incremental_build_strategy,
+            patch.object(self.build_strategy, "_cached_build_strategy") as patched_cached_build_strategy,
+        ):
             self.build_strategy.build()
 
             patched_incremental_build_strategy.build_single_function_definition.assert_called_with(build_definition)
@@ -767,11 +766,10 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
     def test_will_call_cached_build_strategy(self, mocked_read, mocked_write, runtime):
         build_definition = FunctionBuildDefinition(runtime, "codeuri", None, "package_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
-        with patch.object(
-            self.build_strategy, "_incremental_build_strategy"
-        ) as patched_incremental_build_strategy, patch.object(
-            self.build_strategy, "_cached_build_strategy"
-        ) as patched_cached_build_strategy:
+        with (
+            patch.object(self.build_strategy, "_incremental_build_strategy") as patched_incremental_build_strategy,
+            patch.object(self.build_strategy, "_cached_build_strategy") as patched_cached_build_strategy,
+        ):
             self.build_strategy.build()
 
             patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
@@ -841,11 +839,10 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
 
         build_definition = FunctionBuildDefinition(runtime, "codeuri", None, "package_type", X86_64, {}, "handler")
         self.build_graph.put_function_build_definition(build_definition, Mock(full_path="function_full_path"))
-        with patch.object(
-            build_strategy, "_incremental_build_strategy"
-        ) as patched_incremental_build_strategy, patch.object(
-            build_strategy, "_cached_build_strategy"
-        ) as patched_cached_build_strategy:
+        with (
+            patch.object(build_strategy, "_incremental_build_strategy") as patched_incremental_build_strategy,
+            patch.object(build_strategy, "_cached_build_strategy") as patched_cached_build_strategy,
+        ):
             build_strategy.build()
 
             if not use_container:
