@@ -55,7 +55,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
+          - "3.10"
           - "3.11"
     steps:
     # This allows temp file creation on drive D, which won't trigger windows defender scan and leads to faster IO
@@ -65,10 +65,13 @@ jobs:
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
     - uses: actions/checkout@v6
-    - uses: actions/setup-python@v6
+    - uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python }}
-    - uses: astral-sh/setup-uv@v7
+        cache-python: false
+    - name: Install and activate Python
+      run: bash tests/setup-python-uv.sh ${{ matrix.python }}
+      shell: bash
     - run: test -f "./.github/ISSUE_TEMPLATE/Bug_report.md"  # prevent Bug_report.md from being renamed or deleted
     - run: make pr
 
@@ -81,10 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        name: Install Python 3.11
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: 3.11
+          python-version: "3.11"
+          cache-python: false
+      - name: Install and activate Python
+        run: bash tests/setup-python-uv.sh 3.11
       - run: make init
       - run: |
           diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
@@ -116,7 +121,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
         python:
-          - "3.9"
+          - "3.10"
           - "3.11"
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
@@ -152,18 +157,12 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
         with:
-          # set last version as the one in matrix to make it default
-          python-version: |
-            3.9
-            3.10
-            3.11
-            3.12
-            3.13
-            3.14
-            ${{ matrix.python }}
-          cache: 'pip'
+          python-version: ${{ matrix.python }}
+          cache-python: false
+      - name: Install Python versions
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 ${{ matrix.python }}
       - uses: actions/setup-go@v6
         with:
           go-version: '1.19'
@@ -188,11 +187,11 @@ jobs:
        # Install and configure Rust & Cargo Lambda
       - name: Install Rust toolchain and cargo-lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run: bash tests/install-rust.sh
+        run: bash tests/install-rust.sh --uv
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
-        run: uv pip install --system --python python3.12 --upgrade pip setuptools
+        run: uv pip install --break-system-packages --python "$(uv python find 3.12)" --upgrade pip setuptools
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.params }}
         env:
@@ -213,7 +212,7 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - "3.9"
+          - "3.10"
           - "3.11"
         tests_config:
           - name: "Smoke & Functional Tests - All"
@@ -239,10 +238,12 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python }}
-          cache: 'pip'
+          cache-python: false
+      - name: Install and activate Python
+        run: bash tests/setup-python-uv.sh ${{ matrix.python }}
       - name: Init samdev
         run: make init
       - name: Run ${{ matrix.tests_config.name }}
@@ -269,16 +270,13 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: actions/setup-python@v6
+      - uses: astral-sh/setup-uv@v7
         with:
-          # These are the versions of Python that correspond to the supported Lambda runtimes
-          python-version: |
-            3.14
-            3.9
-            3.10
-            3.11
-            3.12
-            3.13
+          python-version: "3.10"
+          cache-python: false
+      - name: Install Python versions
+        shell: bash
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
@@ -292,7 +290,7 @@ jobs:
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
-        run: uv pip install --system --python python3.12 --upgrade pip setuptools
+        run: uv pip install --break-system-packages --python "$(uv python find 3.12)" --upgrade pip setuptools
       - name: Check Docker not Running
         run: docker info
         id: run-docker-info

@@ -45,8 +45,10 @@ class TestMacOSHandler(unittest.TestCase):
         """Test successful plist reading with finch preference"""
         mock_plist_data = {"DefaultContainerRuntime": "finch"}
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value=mock_plist_data
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value=mock_plist_data),
         ):
             result = self.handler.read_config()
             self.assertEqual(result, "finch")
@@ -55,8 +57,10 @@ class TestMacOSHandler(unittest.TestCase):
         """Test successful plist reading with docker preference"""
         mock_plist_data = {"DefaultContainerRuntime": "docker"}
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value=mock_plist_data
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value=mock_plist_data),
         ):
             result = self.handler.read_config()
             self.assertEqual(result, "docker")
@@ -71,8 +75,10 @@ class TestMacOSHandler(unittest.TestCase):
         """Test when plist exists but has no DefaultContainerRuntime key"""
         mock_plist_data = {"SomeOtherKey": "value"}
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value=mock_plist_data
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value=mock_plist_data),
         ):
             result = self.handler.read_config()
             self.assertIsNone(result)
@@ -86,8 +92,10 @@ class TestMacOSHandler(unittest.TestCase):
     )
     def test_read_config_exception_handling(self, exception):
         """Test exception handling during plist reading"""
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", side_effect=exception
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", side_effect=exception),
         ):
             result = self.handler.read_config()
             self.assertIsNone(result)
@@ -131,8 +139,10 @@ class TestMacOSHandler(unittest.TestCase):
         """Test read_config when container_runtime is None"""
         mock_plist_data = {"DefaultContainerRuntime": None}
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value=mock_plist_data
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value=mock_plist_data),
         ):
             result = self.handler.read_config()
             self.assertIsNone(result)
@@ -324,8 +334,10 @@ class TestMacOSHandlerIntegration(unittest.TestCase):
         mock_system.return_value = "Darwin"
         handler = get_platform_handler()
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value={"DefaultContainerRuntime": "finch"}
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value={"DefaultContainerRuntime": "finch"}),
         ):
             config = handler.read_config()
             self.assertEqual(config, "finch")
@@ -346,8 +358,10 @@ class TestMacOSHandlerIntegration(unittest.TestCase):
         mock_system.return_value = "Darwin"
         handler = get_platform_handler()
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value={"DefaultContainerRuntime": container_runtime}
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value={"DefaultContainerRuntime": container_runtime}),
         ):
             config = handler.read_config()
             self.assertEqual(config, expected)
@@ -358,9 +372,10 @@ class TestMacOSHandlerIntegration(unittest.TestCase):
         mock_system.return_value = "Darwin"
         handler = get_platform_handler()
 
-        with patch("os.path.exists", return_value=False), self.assertLogs(
-            "samcli.local.docker.platform_config", level="DEBUG"
-        ) as log_context:
+        with (
+            patch("os.path.exists", return_value=False),
+            self.assertLogs("samcli.local.docker.platform_config", level="DEBUG") as log_context,
+        ):
             result = handler.read_config()
             self.assertIsNone(result)
             self.assertIn("Administrator config file not found on macOS", log_context.output[0])
@@ -377,8 +392,10 @@ class TestMacOSHandlerIntegration(unittest.TestCase):
         mock_system.return_value = "Darwin"
         handler = get_platform_handler()
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", return_value=plist_data
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", return_value=plist_data),
         ):
             result = handler.read_config()
             self.assertIsNone(result)
@@ -396,9 +413,12 @@ class TestMacOSHandlerIntegration(unittest.TestCase):
         mock_system.return_value = "Darwin"
         handler = get_platform_handler()
 
-        with patch("os.path.exists", return_value=True), patch("builtins.open", mock_open()), patch(
-            "plistlib.load", side_effect=exception_type(error_message)
-        ), self.assertLogs("samcli.local.docker.platform_config", level="DEBUG") as log_context:
+        with (
+            patch("os.path.exists", return_value=True),
+            patch("builtins.open", mock_open()),
+            patch("plistlib.load", side_effect=exception_type(error_message)),
+            self.assertLogs("samcli.local.docker.platform_config", level="DEBUG") as log_context,
+        ):
 
             result = handler.read_config()
             self.assertIsNone(result)

@@ -19,8 +19,11 @@ jobs:
           repository: aws/aws-sam-cli
           ref: develop
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Push to mirror repo
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git push origin develop:develop --force
+          git config user.name "aws-sam-cli-bot"
+          git config user.email "aws-sam-cli-gh-bot@amazon.com"
+          git config --unset-all http.https://github.com/.extraheader || true
+          git push https://x-access-token:${{ secrets.SYNC_REPO_PAT }}@github.com/${{ github.repository }}.git develop:develop --force
