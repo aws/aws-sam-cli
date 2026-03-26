@@ -219,8 +219,11 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
         env = os.environ.copy()
         with self.assertRaises(subprocess.CalledProcessError) as ctx:
             subprocess.check_output(
-                command, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-                cwd=self.working_dir, env=env,
+                command,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.PIPE,
+                cwd=self.working_dir,
+                env=env,
             )
         self.assertIn(
             "Failed to extract file from the zip file. A symlink has an absolute target which is not allowed",
@@ -244,7 +247,10 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             "--mount-symlinks",
         ]
         subprocess.check_call(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE,
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
             cwd=self.working_dir,
         )
         # Verify the symlink was created
