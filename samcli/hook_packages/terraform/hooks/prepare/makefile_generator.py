@@ -150,6 +150,7 @@ def _build_makerule_python_command(
     show_command_template = (
         '{python_command_name} "{terraform_built_artifacts_script_path}" '
         '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
+        " $(SAM_CLI_MOUNT_SYMLINKS_FLAG)"
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = convert_path_to_unix_path(

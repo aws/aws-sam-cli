@@ -961,6 +961,20 @@ class ApplicationBuilder:
 
         runtime_patched = patch_runtime(runtime)
 
+        # For Terraform Makefile builds, replace the $(SAM_CLI_MOUNT_SYMLINKS_FLAG) placeholder
+        # in the Makefile with the actual --mount-symlinks flag if enabled.
+        # Each build has its own Makefile copy, so this is safe for parallel builds.
+        if self._mount_symlinks and manifest_path and os.path.basename(manifest_path) == "Makefile":
+            try:
+                with open(manifest_path, "r") as f:
+                    content = f.read()
+                if "$(SAM_CLI_MOUNT_SYMLINKS_FLAG)" in content:
+                    content = content.replace("$(SAM_CLI_MOUNT_SYMLINKS_FLAG)", "--mount-symlinks")
+                    with open(manifest_path, "w") as f:
+                        f.write(content)
+            except OSError:
+                LOG.debug("Could not update Makefile with mount_symlinks flag")
+
         try:
             builder.build(
                 source_dir,
