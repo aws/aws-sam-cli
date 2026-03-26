@@ -29,7 +29,7 @@ class TestLocalStartAPICommand(unittest.TestCase):
             MockParams(rv=("--host", ""), name="host"),
             MockParams(rv=("--config-file", ""), name="config_file"),
             MockParams(rv=("--hook_name", ""), name="hook_name"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--log-file", ""), name="log_file"),
             MockParams(rv=("--debug", ""), name="debug"),
             MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
@@ -37,28 +37,32 @@ class TestLocalStartAPICommand(unittest.TestCase):
 
         cmd = InvokeAPICommand(name="local start-api", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Container Options": [("", ""), ("--host", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Setup": [
-                ("", ""),
-                ("Start the local lambda with Amazon API Gateway endpoint", ""),
+            "Setup": [],
+            "Start the local lambda with Amazon API Gateway endpoint:": [
                 ("$ sam local start-api\x1b[0m", ""),
             ],
-            "Invoke local Lambda endpoint": [
-                ("", ""),
-                ("Invoke Lambda function locally using curl", ""),
+            "Invoke local Lambda endpoint": [],
+            "Invoke Lambda function locally using curl:": [
                 ("$ curl http://127.0.0.1:3000/hello\x1b[0m", ""),
             ],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
+            "Required Options": [("--template-file", "")],
+            "Template Options": [("--parameter-overrides", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Container Options": [("--host", "")],
+            "Artifact Location Options": [("--log-file", "")],
+            "Extension Options": [("--hook_name", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("--terraform-plan-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

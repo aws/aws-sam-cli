@@ -36,6 +36,7 @@ class TestCallbackFailCommand(TestCase):
             MockParams(rv=("--stack-trace", "Stack trace information"), name="stack_trace"),
             MockParams(rv=("--error-type", "Type of error"), name="error_type"),
             MockParams(rv=("--error-message", "Detailed error message"), name="error_message"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -46,33 +47,25 @@ class TestCallbackFailCommand(TestCase):
             ],
             "Examples": [],
             "Send failure callback with no parameters": [
-                ("", ""),
                 ("$ sam local callback fail my-callback-id\x1b[0m", ""),
             ],
             "Send failure callback with error message": [
-                ("", ""),
                 ("$ sam local callback fail my-callback-id --error-message 'Task failed'\x1b[0m", ""),
             ],
             "Send failure callback with additional error details": [
-                ("", ""),
                 (
                     "$ sam local callback fail my-callback-id --error-message 'Task failed' --error-type 'ValidationError' --stack-trace 'at line 42' --error-data '{\"code\": 500}'\x1b[0m",
                     "",
                 ),
             ],
             "Callback Options": [
-                ("", ""),
                 ("--error-data", ""),
-                ("", ""),
                 ("--stack-trace", ""),
-                ("", ""),
                 ("--error-type", ""),
-                ("", ""),
                 ("--error-message", ""),
-                ("", ""),
             ],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act
