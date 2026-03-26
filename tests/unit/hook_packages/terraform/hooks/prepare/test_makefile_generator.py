@@ -84,7 +84,6 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             f'[?address==\\"{escaped_resource}\\"]'
             '|values|triggers|built_output_path" --directory "$(ARTIFACTS_DIR)" '
             f'--target "{escaped_resource}"'
-            " $(SAM_CLI_MOUNT_SYMLINKS_FLAG)"
         )
         self.assertEqual(show_command, expected_show_command)
 

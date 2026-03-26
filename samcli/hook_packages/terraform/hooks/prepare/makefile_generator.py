@@ -29,6 +29,7 @@ def generate_makefile_rule_for_lambda_resource(
     terraform_application_dir: str,
     python_command_name: str,
     output_dir: str,
+    mount_symlinks: bool = False,
 ) -> str:
     """
     Generates and returns a makefile rule for the lambda resource associated with the given sam metadata resource.
@@ -56,7 +57,12 @@ def generate_makefile_rule_for_lambda_resource(
     resource_address = sam_metadata_resource.resource.get("address", "")
     python_command_recipe = _format_makefile_recipe(
         _build_makerule_python_command(
-            python_command_name, output_dir, resource_address, sam_metadata_resource, terraform_application_dir
+            python_command_name,
+            output_dir,
+            resource_address,
+            sam_metadata_resource,
+            terraform_application_dir,
+            mount_symlinks=mount_symlinks,
         )
     )
     return f"{target}{python_command_recipe}"
@@ -124,6 +130,7 @@ def _build_makerule_python_command(
     resource_address: str,
     sam_metadata_resource: SamMetadataResource,
     terraform_application_dir: str,
+    mount_symlinks: bool = False,
 ) -> str:
     """
     Build the Python command recipe to be used inside of the Makefile rule
@@ -150,18 +157,20 @@ def _build_makerule_python_command(
     show_command_template = (
         '{python_command_name} "{terraform_built_artifacts_script_path}" '
         '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
-        " $(SAM_CLI_MOUNT_SYMLINKS_FLAG)"
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = convert_path_to_unix_path(
         str(Path(output_dir, TERRAFORM_BUILD_SCRIPT).relative_to(terraform_application_dir))
     )
-    return show_command_template.format(
+    command = show_command_template.format(
         python_command_name=python_command_name,
         terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
         jpath_string=jpath_string.replace('"', '\\"'),
         resource_address=resource_address.replace('"', '\\"'),
     )
+    if mount_symlinks:
+        command += " --mount-symlinks"
+    return command
 
 
 def _get_makefile_build_target(logical_id: str) -> str:

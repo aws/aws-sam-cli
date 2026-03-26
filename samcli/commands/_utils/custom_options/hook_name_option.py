@@ -100,6 +100,7 @@ class HookNameOption(click.Option):
                 skip_prepare_infra,
                 plan_file,
                 project_root_dir,
+                mount_symlinks=_read_parameter_value("mount_symlinks", opts, ctx, False),
             )
 
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)
