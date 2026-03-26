@@ -16,7 +16,10 @@ from botocore.exceptions import ClientError
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
 from tests.testing_utils import IS_WINDOWS, get_sam_command, kill_process
 from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
-from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
+from tests.integration.local.start_lambda.start_lambda_api_integ_base import (
+    StartLambdaIntegBaseClass,
+    WatchWarmContainersIntegBaseClass,
+)
 
 
 class TestParallelRequests(StartLambdaIntegBaseClass):
