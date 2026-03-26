@@ -1,6 +1,111 @@
 [build-system]
 requires = ["setuptools", "wheel"]  # PEP 508 specifications.
 
+[project]
+name = "aws-sam-cli"
+dynamic = ["version", "scripts"]
+description = "AWS SAM CLI is a CLI tool for local development and testing of Serverless applications"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Amazon Web Services", email = "aws-sam-developers@amazon.com" },
+]
+keywords = ["AWS", "SAM", "CLI"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Environment :: Other Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "chevron~=0.12",
+    "click==8.1.8",
+    "Flask<3.2",
+    "boto3[crt]==1.42.70",
+    "jmespath~=1.1.0",
+    "ruamel_yaml~=0.19.1",
+    "PyYAML~=6.0",
+    "cookiecutter>=2.6,<2.8",
+    "aws-sam-translator==1.108.0",
+    # docker minor version updates can include breaking changes. Auto update micro version only.
+    "docker~=7.1.0",
+    "dateparser~=1.3",
+    "requests~=2.32.5",
+    "aws_lambda_builders==1.63.0",
+    "tomlkit==0.14.0",
+    "watchdog==4.0.2",
+    "rich~=14.3.3",
+    "pyopenssl>=25.3,<26.1",
+    # Pin to <4.27 until SAM-T no longer uses RefResolver
+    "jsonschema<4.27",
+    "typing_extensions>=4.4.0,<5",
+    # regex is not a direct dependency of SAM CLI, exclude version 2021.10.8 due to not working on M1 Mac
+    "regex!=2021.10.8",
+    "tzlocal==5.3.1",
+    "cfn-lint>=1.45,<1.48",
+    "boto3-stubs[apigateway,cloudformation,ecr,iam,lambda,s3,schemas,secretsmanager,signer,stepfunctions,sts,xray,sqs,kinesis]>=1.41.0",
+    "python-dotenv>=1.0,<1.3",
+]
+
+[project.optional-dependencies]
+pre-dev = [
+    "ruff==0.15.6",
+]
+dev = [
+    "aws-sam-cli[pre-dev]",
+    "coverage==7.13.4",
+    "pytest-cov==7.1.0",
+    "mypy==1.19.1",
+    "types-pywin32==311.0.0.20260323",
+    "types-PyYAML==6.0.12.20250915",
+    "types-chevron==0.14.2.20250103",
+    "types-psutil==7.2.2.20260130",
+    "types-setuptools==82.0.0.20260210",
+    "types-Pygments==2.19.0.20251121",
+    "types-colorama==0.4.15.20250801",
+    "types-dateparser==1.3.0.20260211",
+    "types-docutils==0.22.3.20260316",
+    "types-jsonschema==4.26.0.20260202",
+    "types-pyOpenSSL==24.1.0.20240722",
+    "types-requests==2.32.4.20260107",
+    "types-urllib3==1.26.25.14",
+    "pytest==9.0.2",
+    "parameterized==0.9.0",
+    "pytest-xdist==3.8.0",
+    "pytest-forked==1.6.0",
+    "pytest-timeout==2.4.0",
+    "pytest-rerunfailures==16.1",
+    "pytest-metadata==3.1.1",
+    "pytest-json-report-wip==1.5.1",
+    "filelock==3.25.2",
+    "black==26.3.1",
+    "psutil==7.2.2",
+    "chardet<6",
+]
+
+[project.urls]
+Homepage = "https://github.com/aws/aws-sam-cli"
+
+[tool.setuptools]
+packages = { find = { exclude = ["tests.*", "tests", "installer.*", "installer", "schema.*", "schema"] } }
+
+[tool.setuptools.dynamic]
+version = { attr = "samcli.__version__" }
+
 [tool.ruff]
 line-length = 120
 
@@ -25,7 +130,7 @@ max-statements = 80
 
 [tool.black]
 line-length = 120
-target_version = ['py38', 'py37', 'py36']
+target_version = ['py310', 'py311', 'py312', 'py313']
 exclude = '''
 
 (

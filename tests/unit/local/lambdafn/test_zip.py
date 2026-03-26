@@ -65,6 +65,90 @@ class TestUnzipWithPermissions(TestCase):
 
         self._verify_file_count(verify_external_attributes)
 
+    def test_must_block_absolute_symlink_by_default(self):
+        """Test that absolute symlinks are blocked when mount_symlinks=False"""
+        files_with_absolute_symlink = {
+            "1.txt": {"file_type": 0o10, "contents": b"foo", "permissions": 0o644},
+            "absolute_link": {"file_type": 0o12, "contents": b"/tmp/external", "permissions": 0o644},
+        }
+
+        with self._create_zip(files_with_absolute_symlink) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                with self.assertRaises(ValueError) as context:
+                    unzip(zip_file_name, extract_dir, mount_symlinks=False)
+
+                self.assertIn("absolute target", str(context.exception).lower())
+
+    def test_must_block_relative_escape_symlink_by_default(self):
+        """Test that relative symlinks escaping the directory are blocked when mount_symlinks=False"""
+        files_with_escape_symlink = {
+            "1.txt": {"file_type": 0o10, "contents": b"foo", "permissions": 0o644},
+            "escape_link": {"file_type": 0o12, "contents": b"../../external", "permissions": 0o644},
+        }
+
+        with self._create_zip(files_with_escape_symlink) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                with self.assertRaises(ValueError) as context:
+                    unzip(zip_file_name, extract_dir, mount_symlinks=False)
+
+                self.assertIn("outside", str(context.exception).lower())
+
+    def test_must_allow_regular_symlink_by_default(self):
+        """Test that symlinks within the extraction directory are allowed by default"""
+        with self._create_zip(self.files_with_external_attr) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                unzip(zip_file_name, extract_dir, mount_symlinks=False)
+
+                # Verify that symlink was created
+                regular_path = os.path.join(extract_dir, "symlinkToF2")
+                self.assertTrue(os.path.islink(regular_path))
+                self.assertEqual(os.readlink(regular_path), "1.txt")
+
+    def test_must_block_subdirectory_symlink_escaping_extraction_dir(self):
+        """Test that a symlink nested in a subdirectory escaping via relative path is blocked"""
+        files_with_nested_escape = {
+            "1.txt": {"file_type": 0o10, "contents": b"foo", "permissions": 0o644},
+            "subdir/link": {"file_type": 0o12, "contents": b"../../../external", "permissions": 0o644},
+        }
+
+        with self._create_zip(files_with_nested_escape) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                with self.assertRaises(ValueError) as context:
+                    unzip(zip_file_name, extract_dir, mount_symlinks=False)
+
+                self.assertIn("outside", str(context.exception).lower())
+
+    def test_must_allow_relative_escape_symlink_with_mount_symlinks(self):
+        """Test that relative symlinks escaping the directory are allowed when mount_symlinks=True"""
+        files_with_escape_symlink = {
+            "1.txt": {"file_type": 0o10, "contents": b"foo", "permissions": 0o644},
+            "escape_link": {"file_type": 0o12, "contents": b"../../external", "permissions": 0o644},
+        }
+
+        with self._create_zip(files_with_escape_symlink) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                unzip(zip_file_name, extract_dir, mount_symlinks=True)
+
+                link_path = os.path.join(extract_dir, "escape_link")
+                self.assertTrue(os.path.islink(link_path))
+                self.assertEqual(os.readlink(link_path), "../../external")
+
+    def test_must_allow_absolute_symlink_with_mount_symlinks(self):
+        """Test that absolute symlinks are allowed when mount_symlinks=True"""
+        files_with_absolute_symlink = {
+            "1.txt": {"file_type": 0o10, "contents": b"foo", "permissions": 0o644},
+            "external_link": {"file_type": 0o12, "contents": b"/tmp/external", "permissions": 0o644},
+        }
+
+        with self._create_zip(files_with_absolute_symlink) as zip_file_name:
+            with self._temp_dir() as extract_dir:
+                unzip(zip_file_name, extract_dir, mount_symlinks=True)
+
+                # Verify the symlink was created
+                link_path = os.path.join(extract_dir, "external_link")
+                self.assertTrue(os.path.islink(link_path))
+                self.assertEqual(os.readlink(link_path), "/tmp/external")
+
     @contextmanager
     def _reset(self, verify_external_attributes):
         self.expected_files = 0

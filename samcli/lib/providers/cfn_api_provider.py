@@ -353,7 +353,14 @@ class CfnApiProvider(CfnBaseApiProvider):
                 response_parameters = responses.get("ResponseParameters")
                 if response_parameters:
                     cors = self.extract_cors_from_method(response_parameters)
-        if cors:
+
+        # If CORS is found and this is an OPTIONS method, attach it to the route
+        # Otherwise, set it globally on the collector for backward compatibility
+        if cors and method == "OPTIONS":
+            # Route-specific CORS for OPTIONS methods
+            pass  # Will be attached to the route below
+        elif cors:
+            # Global CORS for non-OPTIONS methods (backward compatibility)
             collector.cors = cors
 
         content_handling = integration.get("ContentHandling")
@@ -370,6 +377,7 @@ class CfnApiProvider(CfnBaseApiProvider):
             operation_name=operation_name,
             stack_path=stack_path,
             authorizer_name=authorizer_name,
+            cors=cors if method == "OPTIONS" else None,
         )
         collector.add_routes(rest_api_id, [routes])
 

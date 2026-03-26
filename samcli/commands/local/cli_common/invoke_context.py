@@ -10,6 +10,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
 
+from dotenv import dotenv_values
+
 from samcli.commands._utils.template import TemplateFailedParsingException, TemplateNotFoundException
 from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
@@ -561,7 +563,9 @@ class InvokeContext:
     @property
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
-            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
+            layer_downloader = LayerDownloader(
+                self._layer_cache_basedir, self.get_cwd(), self._stacks, mount_symlinks=self._mount_symlinks
+            )
             image_builder = LambdaImage(
                 layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
             )
@@ -705,24 +709,51 @@ class InvokeContext:
     def _get_env_vars_value(filename: Optional[str]) -> Optional[Dict]:
         """
         If the user provided a file containing values of environment variables, this method will read the file and
-        return its value
+        return its value. Supports both JSON and .env file formats with automatic detection.
 
         :param string filename: Path to file containing environment variable values
         :return dict: Value of environment variables, if provided. None otherwise
-        :raises InvokeContextException: If the file was not found or not a valid JSON
+        :raises InvokeContextException: If the file was not found or could not be parsed as JSON or .env format
         """
         if not filename:
             return None
 
-        # Try to read the file and parse it as JSON
+        # Try to read the file and parse it as JSON or .env
         try:
             with open(filename, "r") as fp:
-                return cast(Dict, json.load(fp))
+                content = fp.read()
+
+            # Try JSON first (most common and fastest to validate)
+            try:
+                return cast(Dict, json.loads(content))
+            except json.JSONDecodeError:
+                # If JSON parsing fails, try .env format
+                LOG.debug("Failed to parse %s as JSON, attempting .env format", filename)
+                return InvokeContext._parse_dotenv_file(filename)
 
         except Exception as ex:
             raise InvalidEnvironmentVariablesFileException(
                 "Could not read environment variables overrides from file {}: {}".format(filename, str(ex))
             ) from ex
+
+    @staticmethod
+    def _parse_dotenv_file(filename: str) -> Dict:
+        """
+        Parse a .env file and return environment variables wrapped in Parameters structure.
+        All variables from .env files are treated as global variables that apply to all functions.
+
+        :param filename: Path to .env file
+        :return: Dict with Parameters key containing parsed environment variables
+        :raises InvalidEnvironmentVariablesFileException: If .env file contains no valid key-value pairs
+        """
+        env_dict = dotenv_values(filename)
+        if not env_dict:
+            raise InvalidEnvironmentVariablesFileException(
+                "Could not read environment variables overrides from file {}: "
+                "file is not in valid JSON or .env format".format(filename)
+            )
+        # Wrap in Parameters structure for consistency with JSON global variables format
+        return {"Parameters": dict(env_dict)}
 
     @staticmethod
     def _setup_log_file(log_file: Optional[str]) -> Optional[TextIO]:
