@@ -7,6 +7,7 @@ import tempfile
 import time
 import logging
 import json
+from datetime import datetime, timezone
 from typing import Optional
 from unittest import TestCase
 
@@ -31,9 +32,30 @@ from tests.testing_utils import (
     get_sam_command,
     run_command_with_input,
 )
-
+from samcli.commands.build.utils import MountMode
 
 LOG = logging.getLogger(__name__)
+
+
+def show_container_in_test_name(testcase_func, param_num, param):
+    """
+    Generates a custom name for parameterized test cases.
+    Adds '_in_container' suffix when any parameter contains 'container' in its string representation.
+    """
+    # Get the base test name
+    base_name = f"{testcase_func.__name__}_{param_num}"
+
+    # Check if any parameter contains "container" in its string representation
+    for arg in param.args:
+        if isinstance(arg, str) and "container" in arg.lower():
+            base_name += "_in_container"
+            break
+        elif arg is True:  # Also check for boolean True which might indicate use_container
+            # Check if this might be a use_container parameter by position
+            # This is a fallback for cases where True is used instead of "use_container"
+            continue
+
+    return base_name
 
 
 class BuildIntegBase(TestCase):
@@ -91,6 +113,7 @@ class BuildIntegBase(TestCase):
         config_file=None,
         save_params=False,
         project_root_dir=None,
+        use_buildkit=False,
     ):
         command_list = [self.cmd, "build"]
 
@@ -116,6 +139,9 @@ class BuildIntegBase(TestCase):
 
         if debug:
             command_list += ["--debug"]
+
+        if use_buildkit:
+            command_list += ["--use-buildkit"]
 
         if cached:
             command_list += ["--cached"]
@@ -543,6 +569,12 @@ class BuildIntegGoBase(BuildIntegBase):
         newenv["GOPROXY"] = "direct"
         newenv["GOPATH"] = str(self.working_dir)
 
+        # Build with musl target to avoid glibc compatibility issues
+        # This ensures the binary works in the Lambda execution environment
+        newenv["GOOS"] = "linux"
+        newenv["GOARCH"] = "arm64" if architecture == ARM64 else "amd64"
+        newenv["CGO_ENABLED"] = "0"
+
         run_command(cmdlist, cwd=self.working_dir, env=newenv)
 
         self._verify_built_artifact(
@@ -606,6 +638,7 @@ class BuildIntegJavaBase(BuildIntegBase):
     FUNCTION_LOGICAL_ID = "Function"
     USING_GRADLE_PATH = os.path.join("Java", "gradle")
     USING_GRADLEW_PATH = os.path.join("Java", "gradlew")
+    USING_GRADLEW_IN_CONTAINER_PATH = os.path.join("Java", "gradlew-in-container")
     USING_GRADLE_KOTLIN_PATH = os.path.join("Java", "gradle-kotlin")
     USING_MAVEN_PATH = os.path.join("Java", "maven")
 
@@ -632,13 +665,24 @@ class BuildIntegJavaBase(BuildIntegBase):
             self.skipTest(self.SKIP_ARM64_EARLIER_JAVA_TESTS)
 
         overrides = self.get_override(runtime, code_path, architecture, "aws.example.Hello::myHandler")
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        if use_container and str(runtime).lower() in ["java21", "java25"] and self.USING_MAVEN_PATH not in code_path:
+            container_env = "GRADLE_USER_HOME=/tmp/.gradle"
+            mount_with = MountMode.WRITE
+        else:
+            container_env = None
+            mount_with = None
+        cmdlist = self.get_command_list(
+            use_container=use_container,
+            parameter_overrides=overrides,
+            mount_with=mount_with,
+            container_env_var=container_env,
+        )
         cmdlist += ["--skip-pull-image"]
         if code_path == self.USING_GRADLEW_PATH and use_container and IS_WINDOWS:
             osutils.convert_to_unix_line_ending(os.path.join(self.test_data_path, self.USING_GRADLEW_PATH, "gradlew"))
         # Use shorter timeout in GitHub Actions to fail faster;
         # Putting 1800 because Windows Canary Instances takes longer
-        timeout = 90 if os.environ.get("GITHUB_ACTIONS") else 1800
+        timeout = 1800 if os.environ.get("BY_CANARY") else 180
         run_command(cmdlist, cwd=self.working_dir, timeout=timeout)
 
         self._verify_built_artifact(
@@ -702,12 +746,11 @@ class BuildIntegJavaBase(BuildIntegBase):
 
 @pytest.mark.python
 class BuildIntegPythonBase(BuildIntegBase):
-    EXPECTED_FILES_PROJECT_MANIFEST = {
+    EXPECTED_FILES = {
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
-        "requirements.txt",
+        "cryptography",
     }
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -719,19 +762,23 @@ class BuildIntegPythonBase(BuildIntegBase):
         codeuri,
         use_container,
         relative_path,
+        manifest="requirements.txt",
         do_override=True,
         check_function_only=False,
         architecture=None,
+        beta_features=False,
     ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
         overrides = self.get_override(runtime, codeuri, architecture, "main.handler") if do_override else None
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, beta_features=beta_features
+        )
 
         run_command(cmdlist, cwd=self.working_dir)
 
         self._verify_built_artifact(
-            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, (self.EXPECTED_FILES | {manifest})
         )
 
         if not check_function_only:
@@ -1112,7 +1159,7 @@ class BuildIntegRustBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         newenv = os.environ.copy()
         if build_mode:

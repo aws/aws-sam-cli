@@ -1,0 +1,67 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run: Remote Invoke Sync",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/samcli/__main__.py",
+      "python": "${command:python.interpreterPath}",
+      "args": [
+        "remote",
+        "invoke",
+        "<REMOTE_LAMBDA_ARN>",
+        "--debug",
+        "--output",
+        "json"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Run: Remote Invoke Streaming Response",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/samcli/__main__.py",
+      "python": "${command:python.interpreterPath}",
+      "args": [
+        "remote",
+        "invoke",
+        "<REMOTE_LAMBDA_ARN>",
+        "--debug",
+        "--output",
+        "json"
+      ],
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Test: Run current test file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["${file}", "-v"],
+      "python": "${command:python.interpreterPath}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "Format and PR",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd \"${workspaceFolder}\" && make black && make pr"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ]
+}

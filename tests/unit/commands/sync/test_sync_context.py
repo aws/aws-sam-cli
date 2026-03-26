@@ -201,7 +201,10 @@ class TestSyncStateToTomlSerde(TestCase):
 
 
 @parameterized_class(
-    [{"dependency_layer": True, "skip_deploy_sync": True}, {"dependency_layer": False, "skip_deploy_sync": False}]
+    [
+        {"dependency_layer": True, "skip_deploy_sync": True},
+        {"dependency_layer": False, "skip_deploy_sync": False},
+    ]
 )
 class TestSyncContext(TestCase):
     dependency_layer: bool

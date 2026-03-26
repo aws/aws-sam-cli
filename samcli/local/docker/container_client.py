@@ -32,7 +32,8 @@ from typing import Any, List, Optional, Tuple, Union
 import docker
 from docker.utils import kwargs_from_env
 
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
+from samcli.cli.global_config import GlobalConfig
+from samcli.lib.constants import DOCKER_MIN_API_VERSION, DOCKER_MIN_API_VERSION_FALLBACK
 from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException, ContainerInvalidSocketPathException
 from samcli.local.docker.platform_config import get_finch_socket_path
 
@@ -87,19 +88,20 @@ class ContainerClient(docker.DockerClient, ABC):
 
         # Always start with environment variables
         current_env = os.environ.copy()
-        client_params = kwargs_from_env(environment=current_env)
+        self.client_params = kwargs_from_env(environment=current_env)
 
         # Override base_url if explicitly provided
         if base_url is not None:
-            client_params["base_url"] = base_url
+            self.client_params["base_url"] = base_url
 
         # Specify minimum version
-        client_params["version"] = DOCKER_MIN_API_VERSION
+        self.client_params["version"] = os.environ.get(GlobalConfig.DOCKER_API_ENV_VAR, DOCKER_MIN_API_VERSION)
 
         # Initialize DockerClient with processed parameters
-        LOG.debug(f"Creating container client with parameters: {client_params}")
-        super().__init__(**client_params)
+        LOG.debug(f"Creating container client with parameters: {self.client_params}")
+        super().__init__(**self.client_params)
 
+    @abstractmethod
     def is_available(self) -> bool:
         """
         Check if this client instance is available and can connect.
@@ -111,12 +113,7 @@ class ContainerClient(docker.DockerClient, ABC):
         Returns:
             bool: True if the client can successfully connect to the runtime
         """
-        try:
-            self.ping()
-            return True
-        except Exception as e:
-            LOG.debug(f"Container daemon availability check failed: {e}")
-            return False
+        pass
 
     @abstractmethod
     def get_socket_path(self) -> str:
@@ -297,6 +294,23 @@ class DockerContainerClient(ContainerClient):
             LOG.debug("Creating Docker container client from environment variable.")
             super().__init__()
 
+    def is_available(self):
+        try:
+            self.ping()
+            return True
+        except Exception as e:
+            try:
+                # docker engine > 29 requires 1.44 as minimum api version
+                LOG.debug(f"Fall back docker api version to {DOCKER_MIN_API_VERSION_FALLBACK}: {e}")
+                self.client_params["version"] = DOCKER_MIN_API_VERSION_FALLBACK
+                self.api = docker.APIClient(**self.client_params)
+                self.ping()
+                LOG.debug(f"Docker daemon check succeeded with fallback: {e}")
+                return True
+            except Exception as e:
+                LOG.debug(f"Docker daemon availability check failed with fallback: {e}")
+                return False
+
     def get_runtime_type(self) -> str:
         """
         Return the runtime type identifier for Docker.
@@ -368,7 +382,7 @@ class DockerContainerClient(ContainerClient):
         Check if error is a dockerfile-related error for Docker.
 
         Docker-specific error patterns for dockerfile-related issues typically
-        contain "Cannot locate specified Dockerfile" in the error message.
+        contain "Cannot locate specified Dockerfile" or "failed to read dockerfile" in the error message.
 
         Args:
             error: Exception or error message to check
@@ -376,14 +390,15 @@ class DockerContainerClient(ContainerClient):
         Returns:
             bool: True if the error indicates a dockerfile-related issue
         """
+        patterns = ["Cannot locate specified Dockerfile", "failed to read dockerfile"]
         if isinstance(error, docker.errors.APIError):
             if not error.is_server_error:
                 return False
             if not hasattr(error, "explanation") or error.explanation is None:
                 return False
-            return "Cannot locate specified Dockerfile" in str(error.explanation)
+            return any(pattern in str(error.explanation) for pattern in patterns)
         elif isinstance(error, str):
-            return "Cannot locate specified Dockerfile" in error
+            return any(pattern in error for pattern in patterns)
         return False
 
     def list_containers_by_image(self, image_name: str, all_containers: bool = True) -> List[Any]:
@@ -504,7 +519,15 @@ class FinchContainerClient(ContainerClient):
             return None
 
         LOG.debug(f"Creating Finch container client with base_url={socket_path}")
-        super().__init__(base_url=socket_path)
+        super().__init__(base_url=socket_path)  # TODO: Placeholder until Finch updates to Docker's min latest version
+
+    def is_available(self):
+        try:
+            self.ping()
+            return True
+        except Exception as e:
+            LOG.debug(f"Finch daemon availability check failed: {e}")
+            return False
 
     def get_socket_path(self) -> str:
         """

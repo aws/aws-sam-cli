@@ -10,19 +10,23 @@ _DEBUG_RUNTIMES = [
     Runtime.java11,
     Runtime.java17,
     Runtime.java21,
+    Runtime.java25,
     Runtime.dotnet6,
     Runtime.dotnet8,
+    Runtime.dotnet10,
     Runtime.go1x,
     Runtime.nodejs16x,
     Runtime.nodejs18x,
     Runtime.nodejs20x,
     Runtime.nodejs22x,
+    Runtime.nodejs24x,
     Runtime.python38,
     Runtime.python39,
     Runtime.python310,
     Runtime.python311,
     Runtime.python312,
     Runtime.python313,
+    Runtime.python314,
 ]
 
 

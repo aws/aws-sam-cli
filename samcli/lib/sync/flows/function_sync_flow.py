@@ -3,6 +3,8 @@
 import logging
 import time
 from abc import ABC
+from contextlib import ExitStack
+from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
@@ -22,6 +24,42 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 FUNCTION_SLEEP = 1  # used to wait for lambda function last update to be successful
+
+
+@dataclass
+class FunctionUpdateParams:
+    FunctionName: str
+    ZipFile: Optional[bytes] = None
+    S3Bucket: Optional[str] = None
+    S3Key: Optional[str] = None
+    S3ObjectVersion: Optional[str] = None
+    ImageUri: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            k: v for k, v in asdict(self).items() if v is not None and v != "" and not (isinstance(v, list) and not v)
+        }
+
+
+class FunctionPublishTarget:
+    """Constants for function version publishing options"""
+
+    LATEST_PUBLISHED = "LATEST_PUBLISHED"
+
+
+@dataclass
+class FunctionPublishVersionParams:
+    FunctionName: str
+    CodeSha256: Optional[str] = None
+    Description: Optional[str] = None
+    PublishTo: str = FunctionPublishTarget.LATEST_PUBLISHED
+    RevisionId: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        # Filter out None, empty strings, and empty lists
+        return {
+            k: v for k, v in asdict(self).items() if v is not None and v != "" and not (isinstance(v, list) and not v)
+        }
 
 
 class FunctionSyncFlow(SyncFlow, ABC):
@@ -82,6 +120,11 @@ class FunctionSyncFlow(SyncFlow, ABC):
         self._lambda_waiter = self._lambda_client.get_waiter("function_updated")
 
     @property
+    def auto_publish_latest_invocable(self) -> bool:
+        # Publish when a function has capacity provider configuration and publish_to_latest_published:true
+        return bool(self._function.publish_to_latest_published) and bool(self._function.capacity_provider_configuration)
+
+    @property
     def sync_state_identifier(self) -> str:
         """
         Sync state is the unique identifier for each sync flow
@@ -128,6 +171,60 @@ class FunctionSyncFlow(SyncFlow, ABC):
     def _equality_keys(self):
         return self._function_identifier
 
+    def update_function_with_lock(self, update_params: FunctionUpdateParams) -> None:
+        """
+        Helper function to update Lambda function code with lock management
+
+        Parameters:
+            update_params: FunctionUpdateParams - Object containing function update parameters
+        """
+        with ExitStack() as exit_stack:
+            if self.has_locks():
+                exit_stack.enter_context(self._get_lock_chain())
+
+            self._lambda_client.update_function_code(**update_params.to_dict())
+
+            # We need to wait for the cloud side update to finish
+            # Otherwise even if the call is finished and lockchain is released
+            # It is still possible that we have a race condition on cloud updating the same function
+            wait_for_function_update_complete(self._lambda_client, update_params.FunctionName)
+
+    def publish_function_version_with_lock(self, publish_params: FunctionPublishVersionParams) -> None:
+        """
+        Publishes a new version of the Lambda function.
+
+        Parameters
+        ----------
+        function_name : str
+            The name or ARN of the Lambda function
+        description : Optional[str]
+            Description for the version
+
+        Returns
+        -------
+        Dict
+            Response from the publish_version API call
+        """
+        LOG.debug("%sPublishing new version for function %s", self.log_prefix, publish_params.FunctionName)
+
+        with ExitStack() as exit_stack:
+            if self.has_locks():
+                exit_stack.enter_context(self._get_lock_chain())
+
+            response = self._lambda_client.publish_version(**publish_params.to_dict())
+
+            new_version = response["Version"]
+            LOG.debug(
+                "%sPublishing new version for function %s: %s",
+                self.log_prefix,
+                publish_params.FunctionName,
+                new_version,
+            )
+
+            # Wait for the publish version to complete to prevent a new publishVersion call
+            # before previous one completes.
+            wait_for_function_update_complete(self._lambda_client, publish_params.FunctionName, new_version)
+
 
 class FunctionUpdateStatus(Enum):
     """Function update return types"""
@@ -137,7 +234,9 @@ class FunctionUpdateStatus(Enum):
     IN_PROGRESS = "InProgress"
 
 
-def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: str) -> None:
+def wait_for_function_update_complete(
+    lambda_client: BaseClient, physical_id: str, qualifier: Optional[str] = None
+) -> None:
     """
     Checks on cloud side to wait for the function update status to be complete
 
@@ -147,11 +246,15 @@ def wait_for_function_update_complete(lambda_client: BaseClient, physical_id: st
         Lambda client that performs get_function API call.
     physical_id : str
         Physical identifier of the function resource
+    qualifier : str
+        A string indicating a version or an alias of the function
     """
-
+    get_function_params = (
+        {"FunctionName": physical_id} if not qualifier else {"FunctionName": physical_id, "Qualifier": qualifier}
+    )
     status = FunctionUpdateStatus.IN_PROGRESS.value
     while status == FunctionUpdateStatus.IN_PROGRESS.value:
-        response = lambda_client.get_function(FunctionName=physical_id)  # type: ignore
+        response = lambda_client.get_function(**get_function_params)  # type: ignore
         status = response.get("Configuration", {}).get("LastUpdateStatus", "")
 
         if status == FunctionUpdateStatus.IN_PROGRESS.value:

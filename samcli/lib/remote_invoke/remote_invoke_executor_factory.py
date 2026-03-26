@@ -3,22 +3,26 @@ Remote Invoke factory to instantiate remote invoker for given resource
 """
 
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from samcli.lib.remote_invoke.kinesis_invoke_executors import KinesisPutDataExecutor
 from samcli.lib.remote_invoke.lambda_invoke_executors import (
     DefaultConvertToJSON,
+    DurableFunctionQualifierMapper,
     LambdaInvokeExecutor,
     LambdaInvokeWithResponseStreamExecutor,
     LambdaResponseConverter,
     LambdaStreamResponseConverter,
+    _is_durable_function,
     _is_function_invoke_mode_response_stream,
 )
 from samcli.lib.remote_invoke.remote_invoke_executors import (
     RemoteInvokeConsumer,
+    RemoteInvokeExecutionInfo,
     RemoteInvokeExecutor,
     RemoteInvokeLogOutput,
     RemoteInvokeOutputFormat,
+    RemoteInvokeRequestResponseMapper,
     RemoteInvokeResponse,
     ResponseObjectToJsonStringMapper,
 )
@@ -113,6 +117,12 @@ class RemoteInvokeExecutorFactory:
         """
         LOG.info("Invoking Lambda Function %s", cfn_resource_summary.logical_resource_id)
         lambda_client = self._boto_client_provider("lambda")
+
+        # Add qualifier mapper only for durable functions
+        request_mappers: List[RemoteInvokeRequestResponseMapper[RemoteInvokeExecutionInfo]] = [DefaultConvertToJSON()]
+        if _is_durable_function(lambda_client, cfn_resource_summary.physical_resource_id):
+            request_mappers.append(DurableFunctionQualifierMapper())
+
         mappers = []
         if _is_function_invoke_mode_response_stream(lambda_client, cfn_resource_summary.physical_resource_id):
             LOG.debug("Creating response stream invocator for function %s", cfn_resource_summary.physical_resource_id)
@@ -124,7 +134,7 @@ class RemoteInvokeExecutorFactory:
                 ]
 
             return RemoteInvokeExecutor(
-                request_mappers=[DefaultConvertToJSON()],
+                request_mappers=request_mappers,
                 response_mappers=mappers,
                 boto_action_executor=LambdaInvokeWithResponseStreamExecutor(
                     lambda_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format
@@ -140,7 +150,7 @@ class RemoteInvokeExecutorFactory:
             ]
 
         return RemoteInvokeExecutor(
-            request_mappers=[DefaultConvertToJSON()],
+            request_mappers=request_mappers,
             response_mappers=mappers,
             boto_action_executor=LambdaInvokeExecutor(
                 lambda_client, cfn_resource_summary.physical_resource_id, remote_invoke_output_format

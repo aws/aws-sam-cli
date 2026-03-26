@@ -37,7 +37,7 @@ class InvokeLambdaCommand(CoreCommand):
                             text="\n",
                         ),
                         RowDefinition(
-                            name="Start the local lambda endpoint.",
+                            name="Start the local lambda endpoint for all functions",
                         ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path}"),
@@ -45,14 +45,42 @@ class InvokeLambdaCommand(CoreCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Using AWS CLI", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
                             text="\n",
                         ),
                         RowDefinition(
-                            name="Invoke Lambda function locally using the AWS CLI.",
+                            name="Start the local lambda endpoint for one function",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} HelloWorldFunction"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name="Start the local lambda endpoint for multiple functions",
+                        ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} HelloWorldFunctionOne HelloWorldFunctionTwo"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Invoke local Lambda endpoint", extra_indents=1):
+                formatter.write_rd(
+                    [
+                        RowDefinition(
+                            text="\n",
+                        ),
+                        RowDefinition(
+                            name="Use the AWS CLI.",
                         ),
                         RowDefinition(
                             name=style(
@@ -63,7 +91,6 @@ class InvokeLambdaCommand(CoreCommand):
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Using AWS SDK", extra_indents=1):
                 formatter.write_rd(
                     [
                         RowDefinition(
@@ -79,7 +106,7 @@ class InvokeLambdaCommand(CoreCommand):
                     ]
                 )
 
-    def format_options(self, ctx: Context, formatter: InvokeStartLambdaCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: InvokeStartLambdaCommandHelpTextFormatter) -> None:  # type: ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

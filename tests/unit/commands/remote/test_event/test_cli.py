@@ -130,7 +130,7 @@ class TestRemoteTestEventCliCommand(TestCase):
         context_mock.get_lambda_shared_test_event_provider.return_value = test_event_mock
         mock_remote_invoke_context.return_value.__enter__.return_value = context_mock
 
-        test_event_mock.get_event.return_value = "placeholderstring"
+        test_event_mock.get_event.return_value = {"json": "placeholderstring", "metadata": {}}
 
         function_resource = Mock()
         context_mock.resource_summary = function_resource
@@ -215,7 +215,7 @@ class TestRemoteTestEventCliCommand(TestCase):
         context_mock.get_lambda_shared_test_event_provider.return_value = test_event_mock
         mock_remote_invoke_context.return_value.__enter__.return_value = context_mock
 
-        test_event_mock.get_event.return_value = "placeholderstring"
+        test_event_mock.get_event.return_value = {"json": "placeholderstring", "metadata": {}}
 
         context_mock.resource_summary = Mock()
 
@@ -265,6 +265,7 @@ class TestRemoteTestEventCliCommand(TestCase):
             resource_id=self.resource_id,
             name=self.name,
             file=Mock(),
+            invocation_type="RequestResponse",
             force=False,
             region=self.region,
             profile=self.profile,
@@ -279,7 +280,9 @@ class TestRemoteTestEventCliCommand(TestCase):
             resource_id=self.resource_id,
         )
 
-        test_event_mock.create_event.assert_called_with(self.name, function_resource, '{"foo": "bar"}', force=False)
+        test_event_mock.create_event.assert_called_with(
+            self.name, function_resource, '{"foo": "bar"}', "RequestResponse", force=False
+        )
 
     @parameterized.expand(
         [
@@ -315,6 +318,7 @@ class TestRemoteTestEventCliCommand(TestCase):
                 resource_id="mock-resource-id",
                 name="event",
                 file="foo",
+                invocation_type="RequestResponse",
                 force=False,
                 region=self.region,
                 profile=self.profile,
@@ -351,6 +355,7 @@ class TestRemoteTestEventCliCommand(TestCase):
                 resource_id="mock-resource-id",
                 name="event",
                 file=empty_file,
+                invocation_type="RequestResponse",
                 force=False,
                 region=self.region,
                 profile=self.profile,
@@ -387,6 +392,7 @@ class TestRemoteTestEventCliCommand(TestCase):
                 resource_id="mock-resource-id",
                 name="event",
                 file=empty_file,
+                invocation_type="RequestResponse",
                 force=False,
                 region=self.region,
                 profile=self.profile,

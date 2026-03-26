@@ -158,7 +158,13 @@ class SyncContext:
     _file_path: Path
     skip_deploy_sync: bool
 
-    def __init__(self, dependency_layer: bool, build_dir: str, cache_dir: str, skip_deploy_sync: bool):
+    def __init__(
+        self,
+        dependency_layer: bool,
+        build_dir: str,
+        cache_dir: str,
+        skip_deploy_sync: bool,
+    ):
         self._current_state = SyncState(dependency_layer, dict(), None)
         self._previous_state = None
         self.skip_deploy_sync = skip_deploy_sync

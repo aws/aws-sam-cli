@@ -16,7 +16,6 @@ from tests.integration.buildcmd.build_integ_base import (
     BuildIntegJavaBase,
 )
 
-
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
@@ -37,7 +36,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java8.al2",
                 "8",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -65,7 +64,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java11",
                 "11",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -93,7 +92,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java17",
                 "17",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -138,7 +137,7 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java21",
                 "21",
-                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
                 BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
             ),
@@ -152,6 +151,34 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             (
                 "java21",
                 "21",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_IN_CONTAINER_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
                 BuildIntegJavaBase.USING_MAVEN_PATH,
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
@@ -286,6 +313,34 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
                 BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
                 BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
             ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLEW_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_GRADLE_KOTLIN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_GRADLE,
+                BuildIntegJavaBase.EXPECTED_GRADLE_DEPENDENCIES,
+            ),
+            (
+                "java25",
+                "25",
+                BuildIntegJavaBase.USING_MAVEN_PATH,
+                BuildIntegJavaBase.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+                BuildIntegJavaBase.EXPECTED_MAVEN_DEPENDENCIES,
+            ),
         ]
     )
     def test_building_java_in_process(self, runtime, runtime_version, code_path, expected_files, expected_dependencies):
@@ -295,5 +350,30 @@ class TestBuildCommand_Java(BuildIntegJavaBase):
             expected_files,
             expected_dependencies,
             False,
+            self.test_data_path,
+        )
+
+    @pytest.mark.tier1_extra
+    def test_tier1_java_build(self):
+        """Single Java build test for cross-platform validation."""
+        self._test_with_building_java(
+            "java25",
+            os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            self.EXPECTED_MAVEN_DEPENDENCIES,
+            False,
+            self.test_data_path,
+        )
+
+    @pytest.mark.tier1_extra
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_java_build_in_container(self):
+        """Single Java container build test for cross-platform validation."""
+        self._test_with_building_java(
+            "java25",
+            os.path.join(self.USING_MAVEN_PATH, "25"),
+            self.EXPECTED_FILES_PROJECT_MANIFEST_MAVEN,
+            self.EXPECTED_MAVEN_DEPENDENCIES,
+            "use_container",
             self.test_data_path,
         )

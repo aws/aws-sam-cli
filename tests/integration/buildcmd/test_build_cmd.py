@@ -14,6 +14,8 @@ from parameterized import parameterized, parameterized_class
 
 from samcli.lib.utils import osutils
 from samcli.local.docker.utils import get_validated_container_client
+from samcli.local.docker.image_build_client import CLIBuildClient
+from samcli.local.docker.container_client_factory import ContainerClientFactory
 from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
@@ -36,8 +38,8 @@ from tests.integration.buildcmd.build_integ_base import (
     IntrinsicIntegBase,
     BuildIntegGoBase,
     BuildIntegPythonBase,
+    show_container_in_test_name,
 )
-
 
 LOG = logging.getLogger(__name__)
 
@@ -46,8 +48,24 @@ SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
+@parameterized_class(
+    ("use_buildkit",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
+class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
     template = "template_image.yaml"
+
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
 
     def test_with_invalid_dockerfile_location(self):
         overrides = {
@@ -56,7 +74,7 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
             "DockerFile": "ThisDockerfileDoesNotExist",
             "Tag": uuid4().hex,
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # confirm build failed
@@ -77,7 +95,7 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
             "DockerFile": "InvalidDockerfile",
             "Tag": uuid4().hex,
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         # confirm build failed
@@ -86,21 +104,37 @@ class TestBuildingImageTypeLambdaDockerFileFailures(BuildIntegBase):
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-class TestLoadingImagesFromArchive(BuildIntegBase):
+@parameterized_class(
+    ("use_buildkit",),
+    [
+        (False,),
+        (True,),
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
+class TestLoadingImagesFromArchiveContainer(BuildIntegBase):
     template = "template_loadable_image.yaml"
 
     FUNCTION_LOGICAL_ID = "ImageFunction"
 
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
+
     def test_load_not_an_archive_passthrough(self):
         overrides = {"ImageUri": "./load_image_archive/this_file_does_not_exist.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
 
     def test_bad_image_archive_fails(self):
         overrides = {"ImageUri": "./load_image_archive/error.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 1)
@@ -108,7 +142,7 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
 
     def test_load_success(self):
         overrides = {"ImageUri": "./load_image_archive/archive.tar.gz"}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0)
@@ -139,18 +173,29 @@ class TestLoadingImagesFromArchive(BuildIntegBase):
     "Skip build tests on windows when running in CI unless overridden",
 )
 @parameterized_class(
-    ("template", "prop"),
+    ("template", "prop", "use_buildkit"),
     [
-        ("template_local_prebuilt_image.yaml", "ImageUri"),
-        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri"),
+        ("template_local_prebuilt_image.yaml", "ImageUri", False),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri", False),
+        ("template_local_prebuilt_image.yaml", "ImageUri", True),
+        ("template_cfn_local_prebuilt_image.yaml", "Code.ImageUri", True),
     ],
 )
-class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
+class TestSkipBuildingFunctionsWithLocalImageUriContainer(BuildIntegBase):
     EXPECTED_FILES_PROJECT_MANIFEST: Set[str] = set()
 
     FUNCTION_LOGICAL_ID_IMAGE = "ImageFunction"
 
-    @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"])
+    def setUp(self):
+        super().setUp()
+        if self.use_buildkit:
+            client = ContainerClientFactory.create_client()
+            is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+            if not is_available:
+                self.skipTest(f"Buildkit not available: {error_msg}")
+
+    @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
     def test_with_default_requirements(self, runtime):
         _tag = uuid4().hex
         image_uri = f"func:{_tag}"
@@ -165,7 +210,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
             "ImageUri": image_uri,
             "Handler": "main.handler",
         }
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
@@ -223,7 +268,7 @@ class TestSkipBuildingFunctionsWithLocalImageUri(BuildIntegBase):
         ),
     ],
 )
-class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
+class TestSkipBuildingFlaggedFunctionsContainer(BuildIntegPythonBase):
     template = "template_cfn_function_flagged_to_skip_build.yaml"
     SKIPPED_FUNCTION_LOGICAL_ID = "SkippedFunction"
     src_code_path = "PreBuiltPython"
@@ -280,7 +325,7 @@ class TestSkipBuildingFlaggedFunctions(BuildIntegPythonBase):
 
 @pytest.mark.ruby
 class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
-    @parameterized.expand([(False,), ("use_container",)])
+    @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -290,14 +335,14 @@ class TestBuildCommand_RubyFunctions(BuildIntegRubyBase):
     @parameterized.expand([("ruby3.3",), ("ruby3.4",)])
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_al2023(self, runtime):
+    def test_building_ruby_al2023_in_container(self, runtime):
         self._test_with_default_gemfile(runtime, "use_container", "Ruby", self.test_data_path)
 
 
 class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     template = "template_with_architecture.yaml"
 
-    @parameterized.expand([(False,), ("use_container",)])
+    @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
     def test_building_ruby_3_2(self, use_container):
         if use_container and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -306,14 +351,26 @@ class TestBuildCommand_RubyFunctions_With_Architecture(BuildIntegRubyBase):
     @parameterized.expand(
         [
             ("ruby3.3", "Ruby33", False),
-            ("ruby3.3", "Ruby33", True),
-            # ("ruby3.4", "Ruby34", False), # TODO: Try to make this work in AppVeyor (windows-al2023)
-            ("ruby3.4", "Ruby34", True),
-        ]
+            ("ruby3.3", "Ruby33", "use_container"),
+        ],
+        name_func=show_container_in_test_name,
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_building_ruby_al2023(self, runtime, codeuri, use_container):
+    def test_building_ruby_3_3_al2023(self, runtime, codeuri, use_container):
+        self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
+
+    @parameterized.expand(
+        [
+            ("ruby3.4", "Ruby34", False),  # TODO: Try to make this work in AppVeyor (windows-al2023)
+            ("ruby3.4", "Ruby34", "use_container"),
+        ],
+        name_func=show_container_in_test_name,
+    )
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    @pytest.mark.al2023
+    @pytest.mark.tier1
+    def test_building_ruby_3_4_al2023(self, runtime, codeuri, use_container):
         self._test_with_default_gemfile(runtime, use_container, codeuri, self.test_data_path, "x86_64")
 
 
@@ -357,7 +414,9 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
 
 
 class TestBuildCommand_Go_Modules(BuildIntegGoBase):
-    @parameterized.expand([("go1.x", "Go", None, False), ("go1.x", "Go", "debug", True)])
+    @parameterized.expand(
+        [("go1.x", "Go", None, False), ("go1.x", "Go", "debug", "use_container")], name_func=show_container_in_test_name
+    )
     def test_building_go(self, runtime, code_uri, mode, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -394,7 +453,7 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 
@@ -413,9 +472,10 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
             ("python3.11", "use_container", "FunctionOne"),
             ("python3.11", False, "FunctionTwo"),
             ("python3.11", "use_container", "FunctionTwo"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
-    def test_build_single_function(self, runtime, use_container, function_identifier):
+    def test_build_single_function_invoke_in_container(self, runtime, use_container, function_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -504,6 +564,7 @@ class TestBuildCommand_ExcludeResources(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.requires_credential
 class TestBuildCommand_LayerBuilds(BuildIntegBase):
     template = "layers-functions-template.yaml"
 
@@ -518,12 +579,15 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             ("python3.12", "use_container", "LayerOne", "ContentUri"),
             ("python3.12", False, "LambdaLayerOne", "Content"),
             ("python3.12", "use_container", "LambdaLayerOne", "Content"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
+        self._do_build_single_layer(runtime, use_container, layer_identifier, content_property)
 
+    def _do_build_single_layer(self, runtime, use_container, layer_identifier, content_property):
         overrides = {"LayerBuildMethod": runtime, "LayerContentUri": "PyLayer"}
         cmdlist = self.get_command_list(
             use_container=use_container, parameter_overrides=overrides, function_identifier=layer_identifier
@@ -542,7 +606,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
     @parameterized.expand(
-        [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")]
+        [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")],
+        name_func=show_container_in_test_name,
     )
     def test_build_layer_with_makefile(self, build_method, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -566,7 +631,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_build_layer_with_makefile_no_compatible_runtimes(self):
+    def test_build_layer_with_makefile_no_compatible_runtimes_in_container(self):
         build_method = "makefile"
         use_container = True
         layer_identifier = "LayerWithMakefileNoCompatibleRuntimes"
@@ -589,7 +654,8 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         )
 
     @parameterized.expand(
-        [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")]
+        [("makefile", False), ("makefile", "use_container"), ("python3.9", False), ("python3.9", "use_container")],
+        name_func=show_container_in_test_name,
     )
     def test_build_layer_with_architecture_not_compatible(self, build_method, use_container):
         # The BuildArchitecture is not one of the listed CompatibleArchitectures
@@ -617,7 +683,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")])
+    @parameterized.expand(
+        [("python3.11", False), ("python3.11", "use_container")], name_func=show_container_in_test_name
+    )
     def test_build_arch_no_compatible_arch(self, runtime, use_container):
         # BuildArchitecture is present, but CompatibleArchitectures section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -643,7 +711,9 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.11", False), ("python3.11", "use_container")])
+    @parameterized.expand(
+        [("python3.11", False), ("python3.11", "use_container")], name_func=show_container_in_test_name
+    )
     def test_compatible_arch_no_build_arch(self, runtime, use_container):
         # CompatibleArchitectures is present, but BuildArchitecture section is missing
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -694,7 +764,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         # Build should still succeed
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.12", False, "LayerTwo"), ("python3.12", "use_container", "LayerTwo")])
+    @parameterized.expand(
+        [("python3.12", False, "LayerTwo"), ("python3.12", "use_container", "LayerTwo")],
+        name_func=show_container_in_test_name,
+    )
     def test_build_fails_with_missing_metadata(self, runtime, use_container, layer_identifier):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -708,7 +781,7 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         self.assertEqual(command_result.process.returncode, 1)
         self.assertFalse(self.default_build_dir.joinpath(layer_identifier).exists())
 
-    @parameterized.expand([False, "use_container"])
+    @parameterized.expand([False, "use_container"], name_func=show_container_in_test_name)
     def test_function_build_succeeds_with_referenced_layer(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
@@ -722,8 +795,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         command_result = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(command_result.process.returncode, 0)
 
-    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")])
-    def test_build_function_and_layer(self, runtime, use_container):
+    @parameterized.expand(
+        [("python3.12", False), ("python3.12", "use_container")], name_func=show_container_in_test_name
+    )
+    def test_build_function_and_layer_invoke_in_conatiner(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -757,8 +832,10 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @parameterized.expand([("python3.12", False), ("python3.12", "use_container")])
-    def test_build_function_with_dependent_layer(self, runtime, use_container):
+    @parameterized.expand(
+        [("python3.12", False), ("python3.12", "use_container")], name_func=show_container_in_test_name
+    )
+    def test_build_function_with_dependent_layer_invoke_in_container(self, runtime, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -792,6 +869,11 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
         if use_container:
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_layer_build(self):
+        """Single layer build test for cross-platform validation."""
+        self._do_build_single_layer("python3.12", False, "LayerOne", "ContentUri")
 
     def _verify_built_artifact(
         self, build_dir, resource_logical_id, expected_files, code_property_name, artifact_subfolder=""
@@ -828,8 +910,13 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     FUNCTION_LOGICAL_ID = "Function"
 
-    @parameterized.expand([(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")])
-    def test_with_makefile_builder_specified_python_runtime(self, use_container, manifest, build_method):
+    @parameterized.expand(
+        [(False, None, "makefile"), ("use_container", "Makefile-container", "makefile")],
+        name_func=show_container_in_test_name,
+    )
+    def test_with_makefile_builder_specified_python_runtime_invoke_in_container(
+        self, use_container, manifest, build_method
+    ):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -864,8 +951,8 @@ class TestBuildWithBuildMethod(BuildIntegBase):
             self.verify_docker_container_cleanedup(runtime)
             self.verify_pulled_image(runtime)
 
-    @parameterized.expand([(False,), ("use_container")])
-    def test_with_native_builder_specified_python_runtime(self, use_container):
+    @parameterized.expand([(False,), ("use_container")], name_func=show_container_in_test_name)
+    def test_with_native_builder_specified_python_runtime_invoke_in_container(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -973,16 +1060,17 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
-                True,
-                "Java/gradlew/8",
+                "use_container",
+                "Java/gradlew-in-container/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
                 "java8.al2",
             ),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
-        ]
+            ("use_container", "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
+            ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1018,7 +1106,7 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
 class TestBuildWithDedupImageBuilds(DedupBuildIntegBase):
     template = "dedup-functions-image-template.yaml"
 
-    def test_dedup_build(self):
+    def test_dedup_build_invoke_in_container(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1104,16 +1192,17 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
-                True,
-                "Java/gradlew/8",
+                "use_container",
+                "Java/gradlew-in-container/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
                 "java8.al2",
             ),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
-        ]
+            ("use_container", "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
+            ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_cache_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1175,7 +1264,7 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
         )
 
     @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
-    def test_cached_build_with_env_vars(self):
+    def test_cached_build_with_env_vars_in_container(self):
         """
         Build 2 times to verify that second time hits the cached build
         """
@@ -1214,7 +1303,7 @@ class TestRepeatedBuildHitsCache(BuildIntegBase):
     # Use template containing both functions and layers
     template = "layers-functions-template.yaml"
 
-    @parameterized.expand([(True,), (False,)])
+    @parameterized.expand([("use_container",), (False,)], name_func=show_container_in_test_name)
     def test_repeated_cached_build_hits_cache(self, use_container):
         """
         Build 2 times to verify that second time hits the cached build
@@ -1295,16 +1384,17 @@ class TestParallelBuilds(DedupBuildIntegBase):
             (False, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
             # container
             (
-                True,
-                "Java/gradlew/8",
+                "use_container",
+                "Java/gradlew-in-container/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
                 "java8.al2",
             ),
-            (True, "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
-            (True, "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
-            (True, "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
-        ]
+            ("use_container", "Node", "main.lambdaHandler", "main.secondLambdaHandler", "nodejs20.x"),
+            ("use_container", "Python", "main.first_function_handler", "main.second_function_handler", "python3.9"),
+            ("use_container", "Ruby", "app.lambda_handler", "app.second_lambda_handler", "ruby3.4"),
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_dedup_build(self, use_container, code_uri, function1_handler, function2_handler, runtime):
         """
@@ -1342,7 +1432,7 @@ class TestParallelBuildsJavaWithLayers(DedupBuildIntegBase):
     template = "template-java-maven-with-layers.yaml"
     beta_features = False  # parameterized
 
-    def test_dedup_build(self):
+    def test_dedup_build_invoke_in_container(self):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1374,7 +1464,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         [
             (False,),
             ("use_container",),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_inline_not_built(self, use_container):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1388,8 +1479,8 @@ class TestBuildWithInlineCode(BuildIntegBase):
         self._verify_built_artifact(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_artifact(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1421,7 +1512,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         [
             ("use_container", "env_vars_function.json"),
             ("use_container", "env_vars_parameters.json"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_json_env_vars_passed(self, use_container, env_vars_file):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1437,8 +1529,8 @@ class TestBuildWithJsonContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     @staticmethod
     def get_env_file(filename):
@@ -1471,7 +1563,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         [
             ("use_container", "TEST_ENV_VAR=MyVar"),
             ("use_container", "CheckEnvVarsFunction.TEST_ENV_VAR=MyVar"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_inline_env_vars_passed(self, use_container, inline_env_var):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1485,8 +1578,8 @@ class TestBuildWithInlineContainerEnvVars(BuildIntegBase):
         self._verify_built_env_var(self.default_build_dir)
 
         if use_container:
-            self.verify_docker_container_cleanedup("python3.12")
-            self.verify_pulled_image("python3.12")
+            self.verify_docker_container_cleanedup("python3.11")
+            self.verify_pulled_image("python3.11")
 
     def _verify_built_env_var(self, build_dir):
         self.assertTrue(build_dir.exists(), "Build directory should be created")
@@ -1525,9 +1618,11 @@ class TestBuildWithNestedStacks(NestedBuildIntegBase):
                 True,
                 True,
             ),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
-    def test_nested_build(self, use_container, cached, parallel):
+    @pytest.mark.tier1
+    def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1601,7 +1696,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
     template = os.path.join("deep-nested", "template.yaml")
 
-    def test_nested_build(self):
+    def test_nested_build_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1645,6 +1740,7 @@ class TestBuildWithNestedStacks3Level(NestedBuildIntegBase):
 
 
 @skipIf(IS_WINDOWS, "symlink is not resolved consistently on windows")
+@pytest.mark.tier1
 class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
     """
     In this template, it has the same structure as .aws-sam/build
@@ -1663,7 +1759,7 @@ class TestBuildWithNestedStacks3LevelWithSymlink(NestedBuildIntegBase):
 
     template = os.path.join("deep-nested", "template-with-symlink.yaml")
 
-    def test_nested_build(self):
+    def test_nested_build_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1722,7 +1818,7 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 
@@ -1743,9 +1839,10 @@ class TestBuildWithNestedStacksImage(NestedBuildIntegBase):
                 True,
                 True,
             ),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
-    def test_nested_build(self, use_container, cached, parallel):
+    def test_nested_build_invoke_in_container(self, use_container, cached, parallel):
         """
         Build template above and verify that each function call returns as expected
         """
@@ -1803,7 +1900,8 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         [
             ("use_container", None),
             ("use_container", "public.ecr.aws/sam/build-python3.11:latest-x86_64"),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_custom_build_image_succeeds(self, use_container, build_image):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
@@ -1819,7 +1917,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
         self._verify_right_image_pulled(build_image, process_stderr)
         self._verify_build_succeeds(self.default_build_dir)
 
-        self.verify_docker_container_cleanedup("python3.12")
+        self.verify_docker_container_cleanedup("python3.11")
 
     def _verify_right_image_pulled(self, build_image, process_stderr):
         image_name = build_image if build_image is not None else "public.ecr.aws/sam/build-python3.11:latest-x86_64"
@@ -1834,6 +1932,74 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
 
         build_dir_files = os.listdir(str(build_dir))
         self.assertIn("BuildImageFunction", build_dir_files)
+
+
+@skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
+@parameterized_class(
+    ("cached", "parallel", "use_custom_build_dir"),
+    [
+        (False, False, False),  # Basic
+        (True, False, False),  # With Caching
+        (False, True, False),  # With parallelism
+        (False, False, True),  # With custom build dir
+    ],
+)
+@pytest.mark.filterwarnings("ignore::ResourceWarning")
+@pytest.mark.tier1
+class TestBuildImageWithBuildkit(BuildIntegBase):
+    """Test building image functions with buildkit"""
+
+    template = "template_image.yaml"
+    function_logical_id = "ImageFunction"
+
+    def test_build_image_function_with_buildkit(self):
+        client = ContainerClientFactory.create_client()
+        is_available, error_msg = CLIBuildClient.is_available(client.get_runtime_type())
+
+        if not is_available:
+            self.skipTest(f"Buildkit not available: {error_msg}")
+
+        build_dir = self.custom_build_dir if self.use_custom_build_dir else None
+
+        tag = uuid4().hex
+        overrides = {
+            "Runtime": "3.12",
+            "Handler": "main.handler",
+            "DockerFile": "Dockerfile",
+            "Tag": tag,
+        }
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides,
+            use_buildkit=True,
+            cached=self.cached,
+            parallel=self.parallel,
+            build_dir=build_dir,
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        if self.use_custom_build_dir:
+            built_template = Path(self.custom_build_dir, "template.yaml")
+        else:
+            built_template = self.built_template
+
+        # Verify image was built
+        self._verify_image_build_artifact(
+            built_template,
+            self.function_logical_id,
+            "ImageUri",
+            f"{self.function_logical_id.lower()}:{tag}",
+        )
+
+        # Verify image works
+        expected = {"pi": "3.14"}
+        self._verify_invoke_built_function(
+            built_template,
+            self.function_logical_id,
+            self._make_parameter_override_arg(overrides),
+            expected,
+        )
 
 
 @parameterized_class(
@@ -1860,7 +2026,7 @@ class TestBuildWithCustomBuildImage(BuildIntegBase):
     ],
 )
 class TestBuildPassingLayerAcrossStacks(IntrinsicIntegBase):
-    def test_nested_build(self):
+    def test_nested_build_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1894,11 +2060,11 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
         "requirements.txt",
     }
 
-    def test_functions_layers_with_s3_codeuri(self):
+    def test_functions_layers_with_s3_codeuri_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1927,7 +2093,7 @@ class TestBuildWithS3FunctionsOrLayers(NestedBuildIntegBase):
 class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
     template = "template-with-zip-code.yaml"
 
-    def test_functions_layers_with_s3_codeuri(self):
+    def test_functions_layers_with_s3_codeuri_in_container(self):
         if SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
             self.skipTest(SKIP_DOCKER_MESSAGE)
 
@@ -1949,6 +2115,7 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
 
 
 @skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
+@pytest.mark.requires_credential
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"
 
@@ -1974,7 +2141,8 @@ class TestBuildSAR(BuildIntegBase):
             (False, "us-east-2"),
             (False, "eu-west-1"),
             (False, None),
-        ]
+        ],
+        name_func=show_container_in_test_name,
     )
     def test_sar_application_with_location_resolved_from_map(self, use_container, region):
         if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
