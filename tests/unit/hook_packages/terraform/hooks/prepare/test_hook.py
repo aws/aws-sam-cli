@@ -113,6 +113,7 @@ class TestPrepareHook(PrepareHookUnitBase):
             output_dir_path,
             "iac/project/path",
             "iac/project/path",
+            mount_symlinks=False,
         )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
@@ -206,6 +207,7 @@ class TestPrepareHook(PrepareHookUnitBase):
             output_dir_path,
             "iac/project/path",
             "/project/root/dir",
+            mount_symlinks=False,
         )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "iac/project/path")
@@ -304,6 +306,7 @@ class TestPrepareHook(PrepareHookUnitBase):
             f"/current/dir/iac/project/path/{output_dir_path}",
             "/current/dir/iac/project/path",
             "/current/dir/iac/project/path",
+            mount_symlinks=False,
         )
         mock_json.dump.assert_called_once_with(mock_cfn_dict, mock_metadata_file)
         mock_update_resources_paths.assert_called_once_with(mock_cfn_dict_resources, "/current/dir/iac/project/path")

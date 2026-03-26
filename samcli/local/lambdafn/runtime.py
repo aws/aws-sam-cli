@@ -11,6 +11,7 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
@@ -430,7 +431,7 @@ class LambdaRuntime:
         """
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
-            decompressed_dir: str = _unzip_file(code_path)
+            decompressed_dir: str = _unzip_file(code_path, mount_symlinks=self._mount_symlinks)
             self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
             return decompressed_dir
 
@@ -709,11 +710,12 @@ class WarmLambdaRuntime(LambdaRuntime):
                 self._containers.pop(function_full_path, None)
 
 
-def _unzip_file(filepath):
+def _unzip_file(filepath, mount_symlinks=False):
     """
     Helper method to unzip a file to a temporary directory
 
     :param string filepath: Absolute path to this file
+    :param bool mount_symlinks: If True, allow symlinks pointing outside extraction directory
     :return string: Path to the temporary directory where it was unzipped
     """
 
@@ -723,8 +725,10 @@ def _unzip_file(filepath):
         os.chmod(temp_dir, 0o755)
 
     LOG.info("Decompressing %s", filepath)
-
-    unzip(filepath, temp_dir)
+    try:
+        unzip(filepath, temp_dir, mount_symlinks=mount_symlinks)
+    except ValueError as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     # The directory that Python returns might have symlinks. The Docker File sharing settings will not resolve
     # symlinks. Hence get the real path before passing to Docker.

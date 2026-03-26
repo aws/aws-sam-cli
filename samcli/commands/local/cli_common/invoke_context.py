@@ -563,7 +563,9 @@ class InvokeContext:
     @property
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
-            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
+            layer_downloader = LayerDownloader(
+                self._layer_cache_basedir, self.get_cwd(), self._stacks, mount_symlinks=self._mount_symlinks
+            )
             image_builder = LambdaImage(
                 layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
             )
