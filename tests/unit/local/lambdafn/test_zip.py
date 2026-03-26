@@ -11,7 +11,6 @@ from unittest.mock import patch
 from parameterized import parameterized, param
 
 from samcli.local.lambdafn.zip import unzip, _override_permissions
-from samcli.commands.exceptions import UserException
 
 # On Windows, permissions do not match 1:1 with permissions on Unix systems.
 SKIP_UNZIP_PERMISSION_TESTS = platform.system() == "Windows"
@@ -75,7 +74,7 @@ class TestUnzipWithPermissions(TestCase):
 
         with self._create_zip(files_with_absolute_symlink) as zip_file_name:
             with self._temp_dir() as extract_dir:
-                with self.assertRaises(UserException) as context:
+                with self.assertRaises(ValueError) as context:
                     unzip(zip_file_name, extract_dir, mount_symlinks=False)
 
                 self.assertIn("absolute target", str(context.exception).lower())
@@ -89,7 +88,7 @@ class TestUnzipWithPermissions(TestCase):
 
         with self._create_zip(files_with_escape_symlink) as zip_file_name:
             with self._temp_dir() as extract_dir:
-                with self.assertRaises(UserException) as context:
+                with self.assertRaises(ValueError) as context:
                     unzip(zip_file_name, extract_dir, mount_symlinks=False)
 
                 self.assertIn("outside", str(context.exception).lower())
@@ -114,7 +113,7 @@ class TestUnzipWithPermissions(TestCase):
 
         with self._create_zip(files_with_nested_escape) as zip_file_name:
             with self._temp_dir() as extract_dir:
-                with self.assertRaises(UserException) as context:
+                with self.assertRaises(ValueError) as context:
                     unzip(zip_file_name, extract_dir, mount_symlinks=False)
 
                 self.assertIn("outside", str(context.exception).lower())

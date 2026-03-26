@@ -7,8 +7,6 @@ import logging
 import os
 import zipfile
 
-from samcli.commands.exceptions import UserException
-
 LOG = logging.getLogger(__name__)
 
 S_IFLNK = 0xA
@@ -139,8 +137,8 @@ def unzip(zip_file_path, output_dir, permission=None, mount_symlinks=False):
                 if not os.path.islink(extracted_path):
                     _set_permissions(file_info, extracted_path)
                     _override_permissions(extracted_path, permission)
-            except ValueError as ex:
-                raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
+            except ValueError:
+                raise
             except Exception as ex:
                 LOG.debug("Failed to extract '%s' from %s: %s", file_info.filename, zip_file_path, ex)
 
