@@ -31,7 +31,7 @@ def _is_symlink(file_info):
     return (file_info.external_attr >> 28) == 0xA  # noqa: PLR2004
 
 
-def _extract(file_info, output_dir, zip_ref):
+def _extract(file_info, output_dir, zip_ref, mount_symlinks=False):
     """
     Unzip the given file into the given directory while preserving file permissions in the process.
 
@@ -40,9 +40,12 @@ def _extract(file_info, output_dir, zip_ref):
     file_info : zipfile.ZipInfo
         The ZipInfo for a ZipFile
     output_dir : str
-        Path to the directory where the it should be unzipped to
+        Path to the directory where it should be unzipped to
     zip_ref : zipfile.ZipFile
         The ZipFile we are working with.
+    mount_symlinks : bool
+        If True, symlinks pointing outside the extraction directory are allowed.
+        Default is False.
 
     Returns
     -------
@@ -66,8 +69,30 @@ def _extract(file_info, output_dir, zip_ref):
     output_dir_abs = os.path.abspath(output_dir)
     link_name_abs = os.path.abspath(link_name)
 
+    # Validate that the symlink path itself is within the output directory
     if not link_name_abs.startswith(output_dir_abs + os.sep) and link_name_abs != output_dir_abs:
         raise ValueError(f"Failed to extract file from the zip file. The '{file_info.filename}' is invalid")
+
+    # When mount_symlinks is disabled (default)
+    if not mount_symlinks:
+        if os.path.isabs(source):
+            LOG.warning("Use --mount-symlinks to allow symlinks pointing outside the extraction directory.")
+            raise ValueError(
+                "Failed to extract file from the zip file. " "A symlink has an absolute target which is not allowed"
+            )
+
+        # For relative paths, validate that the resolved target stays within the extraction directory
+        link_dir = os.path.dirname(link_name_abs)
+        target_abs = os.path.abspath(os.path.join(link_dir, source))
+
+        if not target_abs.startswith(output_dir_abs + os.sep) and target_abs != output_dir_abs:
+            LOG.warning(
+                "Symlink pointing outside the extraction directory. "
+                "Use --mount-symlinks to allow symlinks pointing outside the extraction directory."
+            )
+            raise ValueError(
+                "Failed to extract file from the zip file. " "A symlink points outside the extraction directory"
+            )
 
     # make leading dirs if needed
     leading_dirs = os.path.dirname(link_name)
@@ -84,7 +109,7 @@ def _extract(file_info, output_dir, zip_ref):
     return link_name
 
 
-def unzip(zip_file_path, output_dir, permission=None):
+def unzip(zip_file_path, output_dir, permission=None, mount_symlinks=False):
     """
     Unzip the given file into the given directory while preserving file permissions in the process.
 
@@ -93,22 +118,27 @@ def unzip(zip_file_path, output_dir, permission=None):
     zip_file_path : str
         Path to the zip file
     output_dir : str
-        Path to the directory where the it should be unzipped to
+        Path to the directory where it should be unzipped to
     permission : int
         Permission to set in an octal int form
+    mount_symlinks : bool
+        If True, symlinks pointing outside the extraction directory are allowed.
+        This corresponds to the --mount-symlinks CLI option. Default is False.
     """
     extracted_path = None
     with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
         # For each item in the zip file, extract the file and set permissions if available
         for file_info in zip_ref.infolist():
             try:
-                extracted_path = _extract(file_info, output_dir, zip_ref)
+                extracted_path = _extract(file_info, output_dir, zip_ref, mount_symlinks)
 
                 # If the extracted_path is a symlink, do not set the permissions. If the target of the symlink does not
                 # exist, then os.chmod will fail with FileNotFoundError
                 if not os.path.islink(extracted_path):
                     _set_permissions(file_info, extracted_path)
                     _override_permissions(extracted_path, permission)
+            except ValueError:
+                raise
             except Exception as ex:
                 LOG.debug("Failed to extract '%s' from %s: %s", file_info.filename, zip_file_path, ex)
 

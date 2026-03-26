@@ -74,19 +74,19 @@ blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
     # via flask
-boto3[crt]==1.42.69 \
-    --hash=sha256:6823a4b59aa578c7d98124280a9b6d83cea04bdb02525cbaa79370e5b6f7f631 \
-    --hash=sha256:e59846f4ff467b23bae4751948298db554dbdda0d72b09028d2cacbeff27e1ad
+boto3[crt]==1.42.70 \
+    --hash=sha256:18a108c4d5df89a200b3949de0d39c0879b100c455e3229ea38275dd392db0f4 \
+    --hash=sha256:d060b0d83d2832e403671b9a895e73c3b025df8bb5896d89e401b0678705aac4
     # via
     #   aws-sam-cli (pyproject.toml)
     #   aws-sam-translator
-boto3-stubs[apigateway, cloudformation, ecr, iam, kinesis, lambda, s3, schemas, secretsmanager, signer, sqs, stepfunctions, sts, xray]==1.42.69 \
-    --hash=sha256:021360b519ac54822eb00f125b0c4292ad2a1869ae8e1d0c6c097db99215d41b \
-    --hash=sha256:52ccd645a34d2b4e97af8f44dbaffbb854a1de52610e9502c284bfb24e6d8962
+boto3-stubs[apigateway, cloudformation, ecr, iam, kinesis, lambda, s3, schemas, secretsmanager, signer, sqs, stepfunctions, sts, xray]==1.42.70 \
+    --hash=sha256:823dc17af74427a2220f9da3007285145a21b44bbf149af7ed01eb7697fd5cac \
+    --hash=sha256:9e36a01c08169906be846105c14e2dd8907bef5a6b04151dffaab5aff13895b9
     # via aws-sam-cli (pyproject.toml)
-botocore[crt]==1.42.69 \
-    --hash=sha256:0934f2d90403c5c8c2cba83e754a39d77edcad5885d04a79363edff3e814f55e \
-    --hash=sha256:ef0e3d860a5d7bffc0ccb4911781c4c27d538557ed9a616ba1926c762d72e5f6
+botocore[crt]==1.42.70 \
+    --hash=sha256:54ed9d25f05f810efd22b0dfda0bb9178df3ad8952b2e4359e05156c9321bd3c \
+    --hash=sha256:9ee17553b7febd1a0c1253b3b62ab5d79607eb6163c8fb943470a8893c31d4fa
     # via
     #   boto3
     #   s3transfer
@@ -184,9 +184,9 @@ cffi==2.0.0 \
     --hash=sha256:fc7de24befaeae77ba923797c7c87834c73648a05a4bde34b3b7e5588973a453 \
     --hash=sha256:fe562eb1a64e67dd297ccc4f5addea2501664954f2692b69a76449ec7913ecbf
     # via cryptography
-cfn-lint==1.46.0 \
-    --hash=sha256:1dfca1993af3159411e4a4f79466617ccdca48eddaf424e216297167c500aa3b \
-    --hash=sha256:fa7cb76db683109133241baf1e1734b1d61b46d3900ba2a309db8f3d0e5d3994
+cfn-lint==1.47.0 \
+    --hash=sha256:1148f37f2733cdb361897746eda903b5414ad5dd7e5df9ea634ac9f6c67975c9 \
+    --hash=sha256:29a9377febd6c8fa30903d437a010bcf042426b220d009101c6cf8523819291f
     # via aws-sam-cli (pyproject.toml)
 charset-normalizer==3.4.6 \
     --hash=sha256:06a7e86163334edfc5d20fe104db92fcd666e5a5df0977cb5680a506fe26cc8e \
