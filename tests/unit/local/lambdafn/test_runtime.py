@@ -821,7 +821,7 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         result = self.runtime._get_code_dir(code_path)
         self.assertEqual(result, decompressed_dir)
 
-        unzip_file_mock.assert_called_with(code_path)
+        unzip_file_mock.assert_called_with(code_path, mount_symlinks=False)
         os_mock.path.isfile.assert_called_with(code_path)
 
     @patch("samcli.local.lambdafn.runtime.os")
@@ -1399,7 +1399,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_not_called()  # Assert we do not chmod the temporary directory
 
@@ -1419,7 +1419,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_called_with(tmpdir, 0o755)  # Assert we do chmod the temporary directory
 
