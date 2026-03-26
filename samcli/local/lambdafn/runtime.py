@@ -11,6 +11,7 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
@@ -724,8 +725,10 @@ def _unzip_file(filepath, mount_symlinks=False):
         os.chmod(temp_dir, 0o755)
 
     LOG.info("Decompressing %s", filepath)
-
-    unzip(filepath, temp_dir, mount_symlinks=mount_symlinks)
+    try:
+        unzip(filepath, temp_dir, mount_symlinks=mount_symlinks)
+    except ValueError as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     # The directory that Python returns might have symlinks. The Docker File sharing settings will not resolve
     # symlinks. Hence get the real path before passing to Docker.

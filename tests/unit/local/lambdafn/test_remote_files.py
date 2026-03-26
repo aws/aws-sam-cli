@@ -35,7 +35,7 @@ class TestUnzipFromUri(TestCase):
         progressbar_mock.update.assert_called_with(5)
         path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_called()
-        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700, mount_symlinks=False)
         os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE")
 
     @patch("samcli.local.lambdafn.remote_files.unzip")
@@ -68,7 +68,7 @@ class TestUnzipFromUri(TestCase):
         progressbar_mock.update.assert_called_with(5)
         path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_not_called()
-        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700, mount_symlinks=False)
         os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE")
 
     @patch("samcli.local.lambdafn.remote_files.unzip")
@@ -101,5 +101,5 @@ class TestUnzipFromUri(TestCase):
         progressbar_mock.update.assert_called_with(5)
         path_patch.assert_called_with("layer_zip_path")
         path_mock.unlink.assert_called()
-        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700)
+        unzip_patch.assert_called_with("layer_zip_path", "output_zip_dir", permission=0o700, mount_symlinks=False)
         os_patch.environ.get.assert_called_with("AWS_CA_BUNDLE")
