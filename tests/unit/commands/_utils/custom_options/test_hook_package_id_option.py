@@ -99,7 +99,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -140,7 +140,7 @@ class TestHookPackageIdOption(TestCase):
             True,
             "/path/plan/file",
             "/path/path",
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
         record_hook_telemetry_mock.assert_called_once()
@@ -210,7 +210,7 @@ class TestHookPackageIdOption(TestCase):
             True,
             "/path/plan/file",
             "/path/path",
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -283,7 +283,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -328,7 +328,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -443,7 +443,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             "path",
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -490,7 +490,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             "./..",
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -534,7 +534,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
-            mount_symlinks=False,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
