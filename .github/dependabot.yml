@@ -13,7 +13,7 @@ updates:
     open-pull-requests-limit: 10
 
   - package-ecosystem: "pip"
-    directory: "/requirements"
+    directory: "/"
     schedule:
       interval: "daily"
     target-branch: "develop"
@@ -26,14 +26,13 @@ updates:
     groups:
       boto:
         patterns:
-        - "boto3"
+        - "boto3[crt]"
         - "boto3-stubs*"
-        - "botocore"
+        - "botocore[crt]"
         - "botocore-stubs"
         - "mypy-boto3-*"
-      types:
-        patterns:
-        - "types-*"
+        - "types-awscrt"
+        - "types-s3transfer"
       pytest:
         patterns:
         - "pytest-*"
@@ -42,6 +41,68 @@ updates:
         # as of writing this
         - "pytest-metadata"
         - "pytest-json-report"
+      cookiecutter:
+        patterns:
+        - "cookiecutter"
+        - "arrow"
+        - "binaryornot"
+        - "chardet"
+        - "python-slugify"
+        - "text-unidecode"
+      flask:
+        patterns:
+        - "flask"
+        - "blinker"
+        - "werkzeug"
+        - "itsdangerous"
+      cfn-lint:
+        patterns:
+        - "cfn-lint"
+        - "networkx"
+        - "sympy"
+        - "mpmath"
+        - "jsonpatch"
+        - "jsonpointer"
+      cryptography:
+        patterns:
+        - "cryptography"
+        - "pyopenssl"
+        - "cffi"
+        - "pycparser"
+      requests:
+        patterns:
+        - "requests"
+        - "certifi"
+        - "charset-normalizer"
+        - "idna"
+        - "urllib3"
+      rich:
+        patterns:
+        - "rich"
+        - "markdown-it-py"
+        - "mdurl"
+        - "pygments"
+      jsonschema:
+        patterns:
+        - "jsonschema"
+        - "jsonschema-specifications"
+        - "referencing"
+        - "attrs"
+        - "rpds-py"
+      pydantic:
+        patterns:
+        - "pydantic"
+        - "pydantic-core"
+        - "annotated-types"
+        - "typing-inspection"
+      jinja2:
+        patterns:
+        - "jinja2"
+        - "markupsafe"
+      pyyaml:
+        patterns:
+        - "pyyaml"
+        - "ruamel-yaml"
     ignore:
       # Ignored intentionally since we have a GHA that updates to more
       # completely
@@ -49,6 +110,9 @@ updates:
       # Ignored intentionally since we have a GHA that updates to more
       # completely
       - dependency-name: "aws_lambda_builders"
+      # Ignored intentionally since watchdog v5+ breaks sync watch
+      # file change detection; pinned to 4.0.2
+      - dependency-name: "watchdog"
       # The dependencies are intentionally pinned to certain
       # version ranges for specific Python versions
       - dependency-name: "flake8"

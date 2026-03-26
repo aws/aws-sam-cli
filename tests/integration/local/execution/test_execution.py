@@ -38,6 +38,7 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
 
         result = run_command(command_list)
         stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
+        stderr_str = stderr_str.replace("\r\n", "\n")
 
         self.assertNotEqual(result.process.returncode, 0)
         expected_message = f"Error: An error occurred (404) when calling the {operation_name} operation: Execution {nonexistent_arn} not found\n"
@@ -63,6 +64,7 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
         stop_command = [self.cmd, "local", "execution", "stop", execution_arn]
         result = run_command(stop_command)
         stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
+        stderr_str = stderr_str.replace("\r\n", "\n")
 
         self.assertNotEqual(result.process.returncode, 0)
         expected_message = f"Error: An error occurred (409) when calling the StopDurableExecution operation: Execution {execution_arn} is already completed\n"
