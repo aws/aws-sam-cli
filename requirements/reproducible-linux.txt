@@ -80,9 +80,9 @@ boto3[crt]==1.42.70 \
     # via
     #   aws-sam-cli (pyproject.toml)
     #   aws-sam-translator
-boto3-stubs[apigateway, cloudformation, ecr, iam, kinesis, lambda, s3, schemas, secretsmanager, signer, sqs, stepfunctions, sts, xray]==1.42.76 \
-    --hash=sha256:13863d2dc56a3df2f7e35b6cc5b9fe6dcc9024c24357ad470648f60ad4a7c9b7 \
-    --hash=sha256:6a56ab2838bac7891c58f19c533cdf25dfaadee49ee1d58c4551363291cb59f9
+boto3-stubs[apigateway, cloudformation, ecr, iam, kinesis, lambda, s3, schemas, secretsmanager, signer, sqs, stepfunctions, sts, xray]==1.42.77 \
+    --hash=sha256:4bc720e96ba24f42db2a21a13159d343606d2fdeda90d9e08d66917209d0daec \
+    --hash=sha256:7427a8af6e7864bc82d934b277b75bd9612c115ce49416d46d36008f8e9edaae
     # via aws-sam-cli (pyproject.toml)
 botocore[crt]==1.42.77 \
     --hash=sha256:807bc2c3825bec6f025506ceeba5f7f111a00de8d58f35c679ee16c8ff6e7b10 \
