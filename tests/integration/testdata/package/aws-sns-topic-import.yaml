@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template for testing --import-existing-resources flag.
+
+Parameters:
+  TopicName:
+    Type: String
+    Description: Name of the SNS topic to import
+
+Resources:
+  TestTopic:
+    DeletionPolicy: Retain
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Ref TopicName
