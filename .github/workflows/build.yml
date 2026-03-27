@@ -65,7 +65,7 @@ jobs:
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
     - uses: actions/checkout@v6
-    - uses: astral-sh/setup-uv@v7
+    - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
       with:
         python-version: ${{ matrix.python }}
         cache-python: false
@@ -79,12 +79,11 @@ jobs:
     name: Validate JSON schema
     if: github.repository_owner == 'aws'
     permissions:
-      pull-requests: write
-      contents: write
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.11"
           cache-python: false
@@ -157,7 +156,7 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: ${{ matrix.python }}
           cache-python: false
@@ -166,7 +165,7 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version: '1.19'
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
         with:
           ruby-version: "3.3"
       - uses: actions/setup-node@v6
@@ -238,7 +237,7 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: ${{ matrix.python }}
           cache-python: false
@@ -270,7 +269,7 @@ jobs:
           mkdir "D:\\Temp"
           echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
         if: ${{ matrix.os == 'windows-latest' }}
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.10"
           cache-python: false
