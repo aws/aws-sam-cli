@@ -69,7 +69,7 @@ def _parse_time_from_toml(time_value: Union[str, int, float, datetime]) -> Optio
     """
     Parse time from TOML file - supports both epoch and ISO format.
 
-    Handles legacy ISO format strings as sam migrat to using epoch timestamps for backward compatibility.
+    Handles legacy ISO format strings as sam migrates to using epoch timestamps for backward compatibility.
     New writes always use epoch format.
 
     Parameters
