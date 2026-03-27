@@ -131,7 +131,7 @@ class TestCodeDeployWarning(TestCase):
     )
     def test_code_deploy_warning(self, template, expected):
         code_deploy_warning = CodeDeployWarning()
-        (is_warning, message) = code_deploy_warning.check(yaml_parse(template))
+        is_warning, message = code_deploy_warning.check(yaml_parse(template))
         self.assertEqual(expected, is_warning)
 
 
@@ -178,5 +178,5 @@ class TestCodeDeployWarningCondition(TestCase):
     )
     def test_code_deploy_warning_condition(self, template, expected):
         code_deploy_warning_condition = CodeDeployConditionWarning()
-        (is_warning, _) = code_deploy_warning_condition.check(yaml_parse(template))
+        is_warning, _ = code_deploy_warning_condition.check(yaml_parse(template))
         self.assertEqual(expected, is_warning)

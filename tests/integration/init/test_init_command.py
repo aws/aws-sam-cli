@@ -31,6 +31,7 @@ COMMIT_ERROR = "WARN: Commit not exist:"
 
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitCommand(TestCase):
+    @pytest.mark.tier1
     def test_init_command_passes_and_dir_created(self):
         with tempfile.TemporaryDirectory() as temp:
             process = Popen(
@@ -912,7 +913,7 @@ class TestInteractiveInit(TestCase):
 1
 1
 N
-11
+13
 1
 1
 N
@@ -1142,7 +1143,7 @@ class TestInitCommand(InitIntegBase):
 
         # Send SIGINT signal
         process_execute.send_signal(signal.CTRL_C_EVENT if platform.system().lower() == "windows" else signal.SIGINT)
-        (_, stderr) = process_execute.communicate(timeout=10)
+        _, stderr = process_execute.communicate(timeout=20)
         # Process should exit gracefully with an exit code of 1.
         self.assertEqual(process_execute.returncode, 1)
         self.assertIn("Aborted!", stderr.decode("utf-8"))

@@ -10,11 +10,11 @@ from typing import Optional
 from unittest import skipIf
 
 import boto3
-import docker
 import pytest
 from docker.errors import APIError
 from parameterized import parameterized, parameterized_class
 
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI, RUN_BY_CANARY
@@ -35,7 +35,7 @@ class InvokeTerraformApplicationIntegBase(InvokeIntegBase):
     def run_command(cls, command_list, env=None, input=None):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE, stdin=PIPE, env=env, cwd=cls.terraform_application_path)
         try:
-            (stdout, stderr) = process.communicate(input=input, timeout=TIMEOUT)
+            stdout, stderr = process.communicate(input=input, timeout=TIMEOUT)
             LOG.info("sam stdout: %s", stdout.decode("utf-8"))
             LOG.info("sam stderr: %s", stderr.decode("utf-8"))
             return stdout, stderr, process.returncode
@@ -347,7 +347,7 @@ class TestInvokeTerraformApplicationWithLocalImageUri(InvokeTerraformApplication
     @classmethod
     def setUpClass(cls):
         super(TestInvokeTerraformApplicationWithLocalImageUri, cls).setUpClass()
-        cls.client = docker.from_env()
+        cls.client = get_validated_container_client()
         cls.image_name = "sam-test-lambdaimage"
         cls.docker_tag = f"{cls.image_name}:v1"
         cls.test_data_invoke_path = str(Path(__file__).resolve().parents[2].joinpath("testdata", "invoke"))

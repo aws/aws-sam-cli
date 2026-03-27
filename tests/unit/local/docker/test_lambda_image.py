@@ -34,6 +34,7 @@ class TestRuntime(TestCase):
             ("go1.x", "go:1"),
             ("dotnet6", "dotnet:6-x86_64"),
             ("dotnet8", "dotnet:8-x86_64"),
+            ("dotnet10", "dotnet:10-x86_64"),
             ("provided", "provided:alami"),
             ("provided.al2", "provided:al2-x86_64"),
             ("provided.al2023", "provided:al2023-x86_64"),
@@ -56,10 +57,10 @@ class TestLambdaImage(TestCase):
         self.assertEqual(lambda_image.docker_client, "docker_client")
         self.assertIsNone(lambda_image.invoke_images)
 
-    @patch("samcli.local.docker.lambda_image.docker")
-    def test_initialization_with_defaults(self, docker_patch):
+    @patch("samcli.local.docker.lambda_image.get_validated_container_client")
+    def test_initialization_with_defaults(self, mock_get_validated_client):
         docker_client_mock = Mock()
-        docker_patch.from_env.return_value = docker_client_mock
+        mock_get_validated_client.return_value = docker_client_mock
 
         lambda_image = LambdaImage("layer_downloader", False, False)
 
@@ -158,6 +159,7 @@ class TestLambdaImage(TestCase):
     def test_building_image_with_no_layers(self, build_image_patch, is_base_image_current_patch):
         docker_client_mock = Mock()
         layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = self.layer_cache_dir
         stream = Mock()
         docker_client_mock.api.build.return_value = ["mock"]
 
@@ -224,6 +226,79 @@ class TestLambdaImage(TestCase):
         )
         build_image_patch.assert_not_called()
 
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_with_invoke_image_global(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={None: "my-custom-image:local"},
+        )
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"my-custom-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1",
+            f"my-custom-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+            [],
+            X86_64,
+            stream=ANY,
+        )
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_with_invoke_image_function_specific(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={
+                None: "global-image:latest",
+                "Function1": "function1-image:local",
+            },
+        )
+        # Function-specific override
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"function1-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function2"),
+            f"global-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_without_invoke_image_uses_template_image(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1",
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+            [],
+            X86_64,
+            stream=ANY,
+        )
+
     @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
@@ -264,6 +339,7 @@ class TestLambdaImage(TestCase):
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
         layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = self.layer_cache_dir
         layer_downloader_mock.download_all.return_value = ["layers1"]
 
         generate_docker_image_version_patch.return_value = "runtime:image-version"
@@ -304,6 +380,7 @@ class TestLambdaImage(TestCase):
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
         layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = self.layer_cache_dir
         layer_downloader_mock.download_all.return_value = ["layers1"]
 
         generate_docker_image_version_patch.return_value = "runtime:image-version"
@@ -370,6 +447,7 @@ class TestLambdaImage(TestCase):
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
         layer_downloader_mock = Mock()
+        layer_downloader_mock.layer_cache = self.layer_cache_dir
         layer_downloader_mock.download_all.return_value = ["layers1"]
 
         generate_docker_image_version_patch.return_value = "runtime:image-version"
@@ -470,7 +548,7 @@ class TestLambdaImage(TestCase):
 
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
-        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        path_patch.assert_called_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
             rm=True,
@@ -519,7 +597,7 @@ class TestLambdaImage(TestCase):
 
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
-        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        path_patch.assert_called_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
             rm=True,
@@ -543,6 +621,7 @@ class TestLambdaImage(TestCase):
         generate_dockerfile_patch.return_value = "Dockerfile content"
 
         docker_full_path_mock = Mock()
+        docker_full_path_mock.__str__ = Mock(return_value="/cached/layers/dockerfile_uuid")
         docker_full_path_mock.exists.return_value = False
         path_patch.return_value = docker_full_path_mock
 
@@ -568,7 +647,9 @@ class TestLambdaImage(TestCase):
 
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
-        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        # Path is called twice: once for creation, once for exists() check
+        self.assertEqual(path_patch.call_count, 2)
+        path_patch.assert_any_call("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
             rm=True,
@@ -592,6 +673,8 @@ class TestLambdaImage(TestCase):
         generate_dockerfile_patch.return_value = "Dockerfile content"
 
         docker_full_path_mock = Mock()
+        docker_full_path_mock.__str__ = Mock(return_value="/cached/layers/dockerfile_uuid")
+        docker_full_path_mock.exists.return_value = True
         path_patch.return_value = docker_full_path_mock
 
         docker_client_mock = Mock()
@@ -616,7 +699,9 @@ class TestLambdaImage(TestCase):
 
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
-        path_patch.assert_called_once_with("cached layers", "dockerfile_uuid")
+        # Path is called twice: once for creation, once for exists() check
+        self.assertEqual(path_patch.call_count, 2)
+        path_patch.assert_any_call("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
             rm=True,
@@ -656,10 +741,10 @@ class TestLambdaImage(TestCase):
 
         docker_client_mock.images.remove.assert_has_calls(
             [
-                call("old1"),
-                call("old2"),
-                call("old3"),
-                call("old4"),
+                call("old1", force=True),
+                call("old2", force=True),
+                call("old3", force=True),
+                call("old4", force=True),
             ]
         )
 
@@ -688,9 +773,9 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.list.assert_called_once()
         docker_client_mock.images.remove.assert_has_calls(
             [
-                call("old1"),
-                call("old2"),
-                call("old3"),
+                call("old1", force=True),
+                call("old2", force=True),
+                call("old3", force=True),
             ]
         )
 

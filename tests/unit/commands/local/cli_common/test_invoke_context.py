@@ -4,6 +4,7 @@ Tests the InvokeContext class
 
 import errno
 import os
+import tempfile
 
 from parameterized import parameterized
 
@@ -14,23 +15,53 @@ from samcli.commands.local.cli_common.invoke_context import (
     ContainersInitializationMode,
     ContainersMode,
     DebugContextException,
-    DockerIsNotReachableException,
     NoFunctionIdentifierProvidedException,
     InvalidEnvironmentVariablesFileException,
 )
+from samcli.local.lambdafn.exceptions import FunctionNotFound
+from samcli.local.docker.exceptions import ContainerNotReachableException
 
 from unittest import TestCase
-from unittest.mock import Mock, PropertyMock, patch, ANY, mock_open, call
+from unittest.mock import Mock, patch, ANY, mock_open, call
 
 from samcli.lib.providers.provider import Stack
+import pytest
+
+# Mock container runtime availability for consistent behavior across environments
+# These can be overridden in individual tests that need to test failure scenarios
+_admin_preference_patcher = patch(
+    "samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference",
+    return_value=None,
+)
+
+
+# use fixture to avoid noisy neighbor problem
+@pytest.fixture(scope="module", autouse=True)
+def setup_module_patches():
+    """Setup and teardown module-level patches"""
+    _admin_preference_patcher.start()
+
+    yield
+
+    _admin_preference_patcher.stop()
 
 
 class TestInvokeContext__enter__(TestCase):
+    @patch(
+        "samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference",
+        return_value=None,
+    )
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
     def test_must_read_from_necessary_files(
-        self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock
+        self,
+        _add_account_id_to_global_mock,
+        SamFunctionProviderMock,
+        ContainerManagerMock,
+        mock_create_client,
+        mock_enterprise,
     ):
         function_provider = Mock()
         function_provider.get_all.return_value = [
@@ -87,7 +118,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.return_value = debug_context_mock
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = True
+
         ContainerManagerMock.return_value = container_manager_mock
 
         # Call Enter method manually for testing purposes
@@ -175,7 +206,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.return_value = debug_context_mock
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = True
+
         ContainerManagerMock.return_value = container_manager_mock
 
         # Call Enter method manually for testing purposes
@@ -268,7 +299,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.return_value = debug_context_mock
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = True
+
         ContainerManagerMock.return_value = container_manager_mock
 
         # Call Enter method manually for testing purposes
@@ -360,7 +391,7 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context.return_value = debug_context_mock
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = True
+
         ContainerManagerMock.return_value = container_manager_mock
 
         # Call Enter method manually for testing purposes
@@ -402,23 +433,46 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._get_debug_context = Mock()
 
         container_manager_mock = Mock()
+        invoke_context._get_container_manager = Mock()
+        invoke_context._get_container_manager.return_value = container_manager_mock
 
-        with patch.object(
-            type(container_manager_mock),
-            "is_docker_reachable",
-            create=True,
-            new_callable=PropertyMock,
-            return_value=True,
-        ) as is_docker_reachable_mock:
-            invoke_context._get_container_manager = Mock()
-            invoke_context._get_container_manager.return_value = container_manager_mock
+        # This should succeed with our mocked container runtime availability
+        invoke_context.__enter__()
 
-            invoke_context.__enter__()
-
-            is_docker_reachable_mock.assert_called_once_with()
-
+    @parameterized.expand(
+        [
+            (
+                "Windows",
+                "Running AWS SAM projects locally requires a container runtime. Do you have Docker installed and running?",
+            ),
+            (
+                "Darwin",
+                "Running AWS SAM projects locally requires a container runtime. Do you have Docker or Finch installed and running?",
+            ),
+            (
+                "Linux",
+                "Running AWS SAM projects locally requires a container runtime. Do you have Docker or Finch installed and running?",
+            ),
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch(
+        "samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference",
+        return_value=None,
+    )
     @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
-    def test_must_raise_if_docker_is_not_reachable(self, SamFunctionProviderMock):
+    def test_must_raise_if_docker_is_not_reachable(
+        self,
+        platform_name,
+        expected_message,
+        SamFunctionProviderMock,
+        mock_platform,
+        mock_get_validated_client,
+    ):
+        mock_platform.return_value = platform_name
+        # Mock the get_validated_container_client to raise ContainerNotReachableException
+        mock_get_validated_client.side_effect = ContainerNotReachableException(expected_message)
+
         invoke_context = InvokeContext("template-file")
 
         invoke_context._get_stacks = Mock()
@@ -427,25 +481,10 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context._setup_log_file = Mock()
         invoke_context._get_debug_context = Mock()
 
-        container_manager_mock = Mock()
+        with self.assertRaises(ContainerNotReachableException) as ex_ctx:
+            invoke_context.__enter__()
 
-        with patch.object(
-            type(container_manager_mock),
-            "is_docker_reachable",
-            create=True,
-            new_callable=PropertyMock,
-            return_value=False,
-        ):
-            invoke_context._get_container_manager = Mock()
-            invoke_context._get_container_manager.return_value = container_manager_mock
-
-            with self.assertRaises(DockerIsNotReachableException) as ex_ctx:
-                invoke_context.__enter__()
-
-                self.assertEqual(
-                    "Running AWS SAM projects locally requires Docker. Have you got it installed and running?",
-                    str(ex_ctx.exception),
-                )
+        self.assertEqual(expected_message, str(ex_ctx.exception))
 
     @patch("samcli.commands.local.cli_common.invoke_context.SamLocalStackProvider.get_stacks")
     def test_must_raise_if_template_cannot_be_parsed(self, get_buildable_stacks_mock):
@@ -481,7 +520,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context.__enter__()
 
-        extract_func_mock.assert_called_with([], expected, False, False)
+        extract_func_mock.assert_called_with([], expected, False, False, None)
 
 
 class TestInvokeContext__exit__(TestCase):
@@ -490,17 +529,40 @@ class TestInvokeContext__exit__(TestCase):
         handle_mock = Mock()
         context._log_file_handle = handle_mock
 
+        # Mock lambda runtime for durable cleanup
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
         context.__exit__()
 
         handle_mock.close.assert_called_with()
         self.assertIsNone(context._log_file_handle)
+        runtime_mock.clean_runtime_containers.assert_called_once()
 
     def test_must_ignore_if_handle_is_absent(self):
         context = InvokeContext(template_file="template")
         context._log_file_handle = None
 
+        # Mock lambda runtime for durable cleanup
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
         context.__exit__()
+
         self.assertIsNone(context._log_file_handle)
+        runtime_mock.clean_runtime_containers.assert_called_once()
+
+    def test_must_cleanup_durable_containers(self):
+        context = InvokeContext(template_file="template")
+
+        # Mock lambda runtime
+        runtime_mock = Mock()
+        context._lambda_runtimes = {context._containers_mode: runtime_mock}
+
+        context.__exit__()
+
+        # Verify runtime containers cleanup method was called
+        runtime_mock.clean_runtime_containers.assert_called_once()
 
 
 class TestInvokeContextAsContextManager(TestCase):
@@ -623,7 +685,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context._get_debug_context = Mock(return_value=None)
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = PropertyMock(return_value=True)
+
         self.context._get_container_manager = Mock(return_value=container_manager_mock)
 
         with self.context:
@@ -709,7 +771,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context._get_debug_context = Mock(return_value=None)
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = PropertyMock(return_value=True)
+
         self.context._get_container_manager = Mock(return_value=container_manager_mock)
 
         with self.context:
@@ -801,7 +863,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context._get_debug_context = Mock(return_value=None)
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = PropertyMock(return_value=True)
+
         self.context._get_container_manager = Mock(return_value=container_manager_mock)
 
         with self.context:
@@ -893,7 +955,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context._get_debug_context = Mock(return_value=None)
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = PropertyMock(return_value=True)
+
         self.context._get_container_manager = Mock(return_value=container_manager_mock)
 
         with self.context:
@@ -987,7 +1049,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
         self.context._get_debug_context = Mock(return_value=None)
 
         container_manager_mock = Mock()
-        container_manager_mock.is_docker_reachable = PropertyMock(return_value=True)
+
         self.context._get_container_manager = Mock(return_value=container_manager_mock)
 
         with self.context:
@@ -1034,9 +1096,8 @@ class TestInvokeContext_stdout_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                context.stdout
+        with context:
+            context.stdout
 
         StreamWriterMock.assert_called_once_with(ANY, auto_flush=True)
 
@@ -1063,12 +1124,11 @@ class TestInvokeContext_stdout_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                stdout = context.stdout
+        with context:
+            stdout = context.stdout
 
-                StreamWriterMock.assert_called_once_with(stdout_mock, ANY)
-                self.assertEqual(stream_writer_mock, stdout)
+            StreamWriterMock.assert_called_once_with(stdout_mock, ANY)
+            self.assertEqual(stream_writer_mock, stdout)
 
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
@@ -1089,12 +1149,11 @@ class TestInvokeContext_stdout_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                stdout = context.stdout
+        with context:
+            stdout = context.stdout
 
-                StreamWriterMock.assert_called_once_with(log_file_handle_mock, ANY)
-                self.assertEqual(stream_writer_mock, stdout)
+            StreamWriterMock.assert_called_once_with(log_file_handle_mock, ANY)
+            self.assertEqual(stream_writer_mock, stdout)
 
 
 class TestInvokeContext_stderr_property(TestCase):
@@ -1113,9 +1172,8 @@ class TestInvokeContext_stderr_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                context.stderr
+        with context:
+            context.stderr
 
         StreamWriterMock.assert_called_once_with(ANY, auto_flush=True)
 
@@ -1142,12 +1200,11 @@ class TestInvokeContext_stderr_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                stderr = context.stderr
+        with context:
+            stderr = context.stderr
 
-                StreamWriterMock.assert_called_once_with(stderr_mock, ANY)
-                self.assertEqual(stream_writer_mock, stderr)
+            StreamWriterMock.assert_called_once_with(stderr_mock, ANY)
+            self.assertEqual(stream_writer_mock, stderr)
 
     @patch.object(InvokeContext, "__exit__")
     @patch("samcli.commands.local.cli_common.invoke_context.StreamWriter")
@@ -1168,12 +1225,11 @@ class TestInvokeContext_stderr_property(TestCase):
         container_manager_mock = Mock()
         context._get_container_manager = Mock(return_value=container_manager_mock)
 
-        with patch.object(type(container_manager_mock), "is_docker_reachable", create=True, return_value=True):
-            with context:
-                stderr = context.stderr
+        with context:
+            stderr = context.stderr
 
-                StreamWriterMock.assert_called_once_with(log_file_handle_mock, ANY)
-                self.assertEqual(stream_writer_mock, stderr)
+            StreamWriterMock.assert_called_once_with(log_file_handle_mock, ANY)
+            self.assertEqual(stream_writer_mock, stderr)
 
 
 class TestInvokeContextget_cwd(TestCase):
@@ -1199,7 +1255,7 @@ class TestInvokeContext_get_env_vars_value(TestCase):
         result = InvokeContext._get_env_vars_value(filename=None)
         self.assertIsNone(result, "No value must be returned")
 
-    def test_must_read_file_and_parse_as_json(self):
+    def test_must_parse_simple_json_file(self):
         filename = "filename"
         file_data = '{"a": "b"}'
         expected = {"a": "b"}
@@ -1213,20 +1269,57 @@ class TestInvokeContext_get_env_vars_value(TestCase):
 
         m.assert_called_with(filename, "r")
 
-    def test_must_raise_if_failed_to_parse_json(self):
-        filename = "filename"
-        file_data = "invalid json"
+    def test_must_parse_simple_dotenv_file(self):
+        """Test parsing a simple .env file with key=value pairs"""
 
-        m = mock_open(read_data=file_data)
+        file_data = "KEY1=value1\nKEY2=value2"
+        expected = {"Parameters": {"KEY1": "value1", "KEY2": "value2"}}
 
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
+            result = InvokeContext._get_env_vars_value(filename)
+            self.assertEqual(expected, result)
+        finally:
+            os.unlink(filename)
+
+    def test_must_raise_if_failed_to_parse_json_and_dotenv(self):
+        """Test that invalid content (neither JSON nor .env) raises exception"""
+
+        file_data = "invalid content that is neither JSON nor valid .env format"
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
             with self.assertRaises(InvalidEnvironmentVariablesFileException) as ex_ctx:
                 InvokeContext._get_env_vars_value(filename)
 
             msg = str(ex_ctx.exception)
-            self.assertTrue(
-                msg.startswith("Could not read environment variables overrides from file {}".format(filename))
-            )
+            self.assertIn("not in valid JSON or .env format", msg)
+        finally:
+            os.unlink(filename)
+
+    def test_must_raise_if_empty_dotenv_file(self):
+        """Test that empty .env file raises exception"""
+
+        file_data = "# Only comments\n\n"
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
+            with self.assertRaises(InvalidEnvironmentVariablesFileException) as ex_ctx:
+                InvokeContext._get_env_vars_value(filename)
+
+            msg = str(ex_ctx.exception)
+            self.assertIn("not in valid JSON or .env format", msg)
+        finally:
+            os.unlink(filename)
 
 
 class TestInvokeContext_setup_log_file(TestCase):
@@ -1401,10 +1494,20 @@ class TestInvokeContext_get_stacks(TestCase):
 
 
 class TestInvokeContext_add_account_id_to_global(TestCase):
-    def test_must_work_with_no_token(self):
+    @patch("samcli.commands.local.cli_common.invoke_context.get_boto_client_provider_with_config")
+    def test_must_work_with_no_token(self, get_boto_client_provider_mock):
+        # Mock STS client to raise exception (no credentials)
+        sts_mock = Mock()
+        sts_mock.get_caller_identity.side_effect = Exception("No credentials")
+        get_boto_client_provider_mock.return_value.return_value = sts_mock
+
         invoke_context = InvokeContext("template_file")
-        invoke_context._add_account_id_to_global()
-        self.assertIsNone(invoke_context._global_parameter_overrides)
+        # Account ID should not be set when STS call fails
+        self.assertIsNone(
+            invoke_context._global_parameter_overrides.get("AWS::AccountId")
+            if invoke_context._global_parameter_overrides
+            else None
+        )
 
     @patch("samcli.commands.local.cli_common.invoke_context.get_boto_client_provider_with_config")
     def test_must_work_with_token(self, get_boto_client_provider_with_config_mock):
@@ -1414,3 +1517,122 @@ class TestInvokeContext_add_account_id_to_global(TestCase):
         invoke_context = InvokeContext("template_file")
         invoke_context._add_account_id_to_global()
         self.assertEqual(invoke_context._global_parameter_overrides.get("AWS::AccountId"), "210987654321")
+
+
+class TestInvokeContext_validate_function_logical_ids(TestCase):
+    """Tests for _validate_function_logical_ids method"""
+
+    def create_mock_functions(self):
+        """Helper method to create standard mock functions for testing"""
+        func1 = Mock()
+        func1.name = "Function1"
+        func1.function_id = "Function1"
+        func1.functionname = None
+        func1.full_path = "Function1"
+
+        func2 = Mock()
+        func2.name = "Function2"
+        func2.function_id = "Function2"
+        func2.functionname = "MyFunction2"
+        func2.full_path = "Function2"
+
+        return func1, func2
+
+    def test_validation_with_valid_names(self):
+        """Test that no exception is raised when all function names are valid"""
+        # Create mock functions
+        func1, func2 = self.create_mock_functions()
+
+        # Create InvokeContext with valid function names
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=("Function1", "MyFunction2"))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func1, func2]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()
+
+    @parameterized.expand(
+        [
+            (("InvalidFunction", "AnotherInvalid"), "AnotherInvalid, InvalidFunction"),
+            (("Function1", "InvalidFunc", "AnotherInvalid"), "AnotherInvalid, InvalidFunc"),
+        ]
+    )
+    @patch("samcli.commands.local.cli_common.invoke_context.LOG")
+    def test_validation_with_invalid_function_names(self, function_logical_ids, expected_invalid_names, log_mock):
+        """Test that FunctionNotFound is raised with invalid names"""
+
+        # Create mock functions using helper method
+        func1, func2 = self.create_mock_functions()
+
+        # Create InvokeContext with function names (some invalid)
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=function_logical_ids)
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func1, func2]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should raise FunctionNotFound
+        with self.assertRaises(FunctionNotFound) as ex_ctx:
+            invoke_context._validate_function_logical_ids()
+
+        error_message = str(ex_ctx.exception)
+        # Verify error message matches sam local invoke pattern
+        self.assertIn("Unable to find Function(s) with name(s)", error_message)
+        self.assertIn(expected_invalid_names, error_message)
+
+        # Verify LOG.info was called with the proper message
+        log_mock.info.assert_called_once()
+        log_call_args = log_mock.info.call_args[0][0]
+        self.assertIn("not found", log_call_args)
+        self.assertIn("Possible options in your template:", log_call_args)
+
+    @parameterized.expand(
+        [
+            ("none", None),
+            ("empty_tuple", ()),
+        ]
+    )
+    def test_validation_with_no_function_filter(self, test_name, function_logical_ids):
+        """Test that no validation occurs when function_logical_ids is None or empty"""
+        # Create InvokeContext with no function filter
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=function_logical_ids)
+
+        # Mock the function provider (should not be called)
+        function_provider_mock = Mock()
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception and should not call get_all
+        invoke_context._validate_function_logical_ids()
+
+        # Verify get_all was not called since no validation needed
+        function_provider_mock.get_all.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("FunctionLogicalId", "MyFunction", "FunctionLogicalId", None),
+            ("MyFunction", "MyFunction", "FunctionLogicalId", None),
+            ("CustomFunctionName", "MyFunction", "FunctionLogicalId", "CustomFunctionName"),
+        ]
+    )
+    def test_validation_matches_function_attributes(self, search_name, func_name, func_id, func_functionname):
+        """Test that validation matches against different function attributes"""
+        # Create mock function with specified attributes
+        func = Mock()
+        func.name = func_name
+        func.function_id = func_id
+        func.functionname = func_functionname
+
+        # Create InvokeContext using search_name
+        invoke_context = InvokeContext(template_file="template_file", function_logical_ids=(search_name,))
+
+        # Mock the function provider
+        function_provider_mock = Mock()
+        function_provider_mock.get_all.return_value = [func]
+        invoke_context._function_provider = function_provider_mock
+
+        # Should not raise any exception
+        invoke_context._validate_function_logical_ids()

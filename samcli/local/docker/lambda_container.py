@@ -135,6 +135,16 @@ class LambdaContainer(Container):
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
 
         env_vars = {**env_vars, **container_env_vars}
+
+        # Prepare container labels with SAM CLI defaults
+        container_labels = {
+            "sam.cli.container.type": "lambda",
+            "sam.cli.function.name": function_full_path or "unknown",
+            "sam.cli.runtime": runtime or "unknown",
+        }
+
+        # Only use SAM CLI default labels
+
         super().__init__(
             image,
             _command if _command else [],
@@ -150,6 +160,8 @@ class LambdaContainer(Container):
             container_host_interface=container_host_interface,
             extra_hosts=extra_hosts,
             mount_symlinks=mount_symlinks,
+            labels=container_labels,
+            debug_options=debug_options,
         )
 
     @staticmethod
@@ -300,3 +312,7 @@ class LambdaContainer(Container):
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
         )
+
+    def get_port(self):
+        """Get the host port that the Lambda container is bound to."""
+        return self.rapid_port_host

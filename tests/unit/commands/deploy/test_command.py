@@ -668,7 +668,7 @@ class TestDeployCliCommand(TestCase):
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
-        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 9)
+        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 10)
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
@@ -676,6 +676,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["global"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
                 call(["deploy"], "parameters", "disable_rollback", True, env="test-env"),
@@ -826,7 +827,7 @@ class TestDeployCliCommand(TestCase):
         mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
-        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 9)
+        self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 10)
         self.assertEqual(
             MOCK_SAM_CONFIG.put.call_args_list,
             [
@@ -834,6 +835,7 @@ class TestDeployCliCommand(TestCase):
                 call(["deploy"], "parameters", "resolve_s3", True, env="test-env"),
                 call(["deploy"], "parameters", "s3_prefix", "sam-app", env="test-env"),
                 call(["deploy"], "parameters", "region", "us-east-1", env="test-env"),
+                call(["global"], "parameters", "region", "us-east-1", env="test-env"),
                 call(["deploy"], "parameters", "confirm_changeset", True, env="test-env"),
                 call(["deploy"], "parameters", "capabilities", "CAPABILITY_IAM", env="test-env"),
                 call(["deploy"], "parameters", "disable_rollback", True, env="test-env"),

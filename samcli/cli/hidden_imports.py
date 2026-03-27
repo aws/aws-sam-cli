@@ -25,9 +25,6 @@ SAM_CLI_HIDDEN_IMPORTS = list(samcli_modules) + [
     "cookiecutter.extensions",
     "text_unidecode",
     "samtranslator",
-    # default hidden import 'pkg_resources.py2_warn' is added
-    # since pyInstaller 4.0.
-    "pkg_resources.py2_warn",
     "aws_lambda_builders.workflows",
     "configparser",
     "dateparser",

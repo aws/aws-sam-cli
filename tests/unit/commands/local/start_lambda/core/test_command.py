@@ -30,58 +30,54 @@ class TestLocalStartLambdaCommand(unittest.TestCase):
             MockParams(rv=("--config-file", ""), name="config_file"),
             MockParams(rv=("--hook_name", ""), name="hook_name"),
             MockParams(rv=("--log-file", ""), name="log_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
             MockParams(rv=("--terraform-plan-file", ""), name="terraform_plan_file"),
         ]
 
-        cmd = InvokeLambdaCommand(name="local start-api", requires_credentials=False, description=DESCRIPTION)
+        cmd = InvokeLambdaCommand(name="local start-lambda", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Container Options": [("", ""), ("--port", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Setup": [("", ""), ("Start the local lambda endpoint.", ""), ("$ sam local start-lambda\x1b[0m", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
-            "Using AWS CLI": [
-                ("", ""),
-                ("Invoke Lambda function locally using the AWS CLI.", ""),
+            "Setup": [],
+            "Start the local lambda endpoint for all functions": [
+                ("$ sam local start-lambda\x1b[0m", ""),
+            ],
+            "Start the local lambda endpoint for one function": [
+                ("$ sam local start-lambda HelloWorldFunction\x1b[0m", ""),
+            ],
+            "Start the local lambda endpoint for multiple functions": [
+                ("$ sam local start-lambda HelloWorldFunctionOne HelloWorldFunctionTwo\x1b[0m", ""),
+            ],
+            "Invoke local Lambda endpoint": [],
+            "Use the AWS CLI:": [
                 (
-                    "$ aws lambda invoke --function-name HelloWorldFunction "
-                    "--endpoint-url http://127.0.0.1:3001 --no-verify-ssl "
-                    "out.txt\x1b[0m",
+                    "$ aws lambda invoke --function-name HelloWorldFunction --endpoint-url http://127.0.0.1:3001 --no-verify-ssl out.txt\x1b[0m",
                     "",
                 ),
             ],
-            "Using AWS SDK": [
-                ("", ""),
-                ("Use AWS SDK in automated tests.", ""),
+            "Use AWS SDK in automated tests:": [
                 (
-                    "\n"
-                    "        self.lambda_client = boto3.client('lambda',\n"
-                    "                                          "
-                    'endpoint_url="http://127.0.0.1:3001",\n'
-                    "                                          use_ssl=False,\n"
-                    "                                          verify=False,\n"
-                    "                                          "
-                    "config=Config(signature_version=UNSIGNED,\n"
-                    "                                                        "
-                    "read_timeout=0,\n"
-                    "                                                        "
-                    "retries={'max_attempts': 0}))\n"
-                    "        "
-                    'self.lambda_client.invoke(FunctionName="HelloWorldFunction")\n'
-                    "        ",
+                    "self.lambda_client = boto3.client('lambda',\n                                          endpoint_url=\"http://127.0.0.1:3001\",\n                                          use_ssl=False,\n                                          verify=False,\n                                          config=Config(signature_version=UNSIGNED,\n                                                        read_timeout=0,\n                                                        retries={'max_attempts': 0}))\n            self.lambda_client.invoke(FunctionName=\"HelloWorldFunction\")\n        ",
                     "",
                 ),
             ],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
+            "Required Options": [("--template-file", "")],
+            "Template Options": [("--parameter-overrides", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Container Options": [("--port", "")],
+            "Artifact Location Options": [("--log-file", "")],
+            "Extension Options": [("--hook_name", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("--terraform-plan-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

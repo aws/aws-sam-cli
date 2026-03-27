@@ -37,31 +37,37 @@ class TestLocalInvokeCommand(unittest.TestCase):
 
         cmd = InvokeCommand(name="local invoke", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Artifact Location Options": [("", ""), ("--log-file", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Container Options": [("", ""), ("--event", ""), ("", "")],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
-            "Extension Options": [("", ""), ("--hook_name", ""), ("", "")],
-            "Terraform Hook Options": [("", ""), ("--terraform-plan-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Invoke default lambda function with no event": [("", ""), ("$ sam local invoke\x1b[0m", "")],
-            "Invoke lambda function with stdin input": [
-                ("", ""),
-                ('$ echo {"message": "hello!"} | ' "sam local invoke " "HelloWorldFunction -e -\x1b[0m", ""),
+            "Invoke default Lambda function with no event": [("$ sam local invoke\x1b[0m", "")],
+            "Invoke named Lambda function with no event": [
+                ("$ sam local invoke HelloWorldFunction\x1b[0m", ""),
             ],
-            "Invoke named lambda function with an event file": [
-                ("", ""),
-                ("$ sam local invoke " "HelloWorldFunction -e " "event.json\x1b[0m", ""),
+            "Invoke named Lambda function with an event file": [
+                ("$ sam local invoke HelloWorldFunction -e event.json\x1b[0m", ""),
             ],
-            "Invoke named lambda function with no event": [
-                ("", ""),
-                ("$ sam local invoke " "HelloWorldFunction\x1b[0m", ""),
+            "Invoke Lambda function with stdin input": [
+                ('$ echo {"message": "hello!"} | sam local invoke HelloWorldFunction -e -\x1b[0m', ""),
             ],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Required Options": [("", ""), ("--template-file", ""), ("", "")],
-            "Template Options": [("", ""), ("--parameter-overrides", ""), ("", "")],
+            "Invoke Lambda function with durable execution name": [
+                ("$ sam local invoke HelloWorldFunction --durable-execution-name my-execution\x1b[0m", ""),
+            ],
+            "Required Options": [("--template-file", "")],
+            "Template Options": [("--parameter-overrides", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Invoke Options": [("--event", "")],
+            "Artifact Location Options": [("--log-file", "")],
+            "Extension Options": [("--hook_name", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Terraform Hook Options": [("--terraform-plan-file", "")],
+            "Beta Options": [("--beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

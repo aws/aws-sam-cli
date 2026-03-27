@@ -1,4 +1,5 @@
 import base64
+import os
 import shutil
 import signal
 from unittest import skipIf
@@ -10,12 +11,14 @@ from typing import Dict
 import requests
 from http.client import HTTPConnection
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from time import time, sleep
+import time
+from time import sleep
 
 import pytest
 from parameterized import parameterized_class, parameterized
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
+from samcli.commands.local.cli_common.options import get_default_layer_cache_dir
 from samcli.local.apigw.route import Route
 from tests.testing_utils import IS_WINDOWS
 from .start_api_integ_base import StartApiIntegBaseClass, WritableStartApiIntegBaseClass
@@ -152,6 +155,38 @@ class TestServiceHTTP10(StartApiIntegBaseClass):
 
 
 @parameterized_class(
+    ("template_path",),
+    [
+        ("/testdata/start_api/template.yaml",),
+        ("/testdata/start_api/nested-templates/template-parent.yaml",),
+    ],
+)
+class TestServiceHTTP10LMI(StartApiIntegBaseClass):
+    """
+    Testing general requirements around the Service that powers `sam local start-api` with LMI
+    """
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+        self.current_svn_str = HTTPConnection._http_vsn_str
+        HTTPConnection._http_vsn_str = "HTTP/1.0"
+
+    def tearDown(self) -> None:
+        HTTPConnection._http_vsn_str = self.current_svn_str  # type: ignore
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_capacity_provider_api_http10(self):
+        response = requests.get(self.url + "/capacity-provider/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", response_json)
+        self.assertEqual(response.raw.version, 11)
+
+
+@parameterized_class(
     ("template_path", "container_mode", "endpoint"),
     [
         ("/testdata/start_api/template.yaml", "LAZY", "/sleepfortenseconds/function1"),
@@ -177,14 +212,14 @@ class TestParallelRequests(StartApiIntegBaseClass):
         multiple requests at once and do not block/queue up requests
         """
         number_of_requests = 10
-        start_time = time()
+        start_time = time.time()
         with ThreadPoolExecutor(number_of_requests) as thread_pool:
             futures = [
                 thread_pool.submit(requests.get, self.url + self.endpoint, timeout=300)
                 for _ in range(0, number_of_requests)
             ]
             results = [r.result() for r in as_completed(futures)]
-            end_time = time()
+            end_time = time.time()
 
             for result in results:
                 self.assertEqual(result.status_code, 200)
@@ -202,7 +237,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
         multiple requests for different paths and do not block/queue up the requests
         """
         number_of_requests = 10
-        start_time = time()
+        start_time = time.time()
         with ThreadPoolExecutor(10) as thread_pool:
             test_url_paths = ["/sleepfortenseconds/function0", "/sleepfortenseconds/function1"]
 
@@ -214,7 +249,7 @@ class TestParallelRequests(StartApiIntegBaseClass):
             ]
             results = [r.result() for r in as_completed(futures)]
 
-            end_time = time()
+            end_time = time.time()
 
             self.assertEqual(len(results), 10)
             self.assertGreater(end_time - start_time, 10)
@@ -323,6 +358,7 @@ class TestService(StartApiIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
+    @pytest.mark.tier1
     def test_calling_proxy_endpoint(self):
         response = requests.get(self.url + "/proxypath/this/is/some/path", timeout=300)
 
@@ -451,6 +487,17 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"hello": "world"})
+        self.assertEqual(response.raw.version, 11)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_capacity_provider_http_api(self):
+        response = requests.get(self.url + "/capacity-provider/anyandall", timeout=300)
+
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", response_json)
         self.assertEqual(response.raw.version, 11)
 
     @pytest.mark.flaky(reruns=3)
@@ -615,6 +662,29 @@ class TestServiceWithHttpApi(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 500)
         self.assertEqual(response.json(), {"message": "Internal server error"})
         self.assertEqual(response.raw.version, 11)
+
+
+class TestMultiTenantStartApi(StartApiIntegBaseClass):
+    """
+    Test multi-tenant Lambda functions with start-api
+    """
+
+    template_path = "/testdata/start_api/template-http-api-multi-tenant.yaml"
+
+    def setUp(self):
+        self.url = "http://127.0.0.1:{}".format(self.port)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_multi_tenant_function_http_api_with_tenant_id(self):
+        """Test multi-tenant function via HTTP API with tenant-id header"""
+        response = requests.get(
+            self.url + "/multi-tenant-http", headers={"X-Amz-Tenant-Id": "test-tenant-789"}, timeout=300
+        )
+
+        self.assertEqual(response.status_code, 200)
+        body = response.json()
+        self.assertEqual(body["tenant_id"], "test-tenant-789")
 
 
 class TestStartApiWithSwaggerApis(StartApiIntegBaseClass):
@@ -2130,21 +2200,85 @@ class TestCFNTemplateHttpApiWithSwaggerBody(StartApiIntegBaseClass):
 
 
 class TestWarmContainersBaseClass(StartApiIntegBaseClass):
+    @classmethod
+    def setUpClass(cls):
+        # Test mode is automatically detected by presence of MODE environment variable
+        # from parameter_overrides - no global environment variables needed
+        super().setUpClass()
+
+    @classmethod
+    def tearDownClass(cls):
+        # No cleanup needed - using parameter_overrides instead of global env vars
+        super().tearDownClass()
+
     def setUp(self):
         self.url = "http://127.0.0.1:{}".format(self.port)
 
+        # Initialize mode_env_variable if not already set (for test method isolation)
+        if not hasattr(self, "mode_env_variable"):
+            # Get the initial value from class attribute, or generate new one
+            self.mode_env_variable = getattr(self.__class__, "mode_env_variable", str(uuid.uuid4()))
+
     def count_running_containers(self):
-        running_containers = 0
-        for container in self.docker_client.containers.list():
-            _, output = container.exec_run(["bash", "-c", "'printenv'"])
-            if f"MODE={self.mode_env_variable}" in str(output):
-                running_containers += 1
-        return running_containers
+        """Count containers created by this test using Docker client directly."""
+        try:
+            sam_containers = self.docker_client.containers.list(
+                all=False, filters={"label": "sam.cli.container.type=lambda"}
+            )
+
+            test_containers = []
+            for container in sam_containers:
+                try:
+                    container.reload()
+                    env_vars = container.attrs.get("Config", {}).get("Env", [])
+                    for env_var in env_vars:
+                        if env_var == f"MODE={self.mode_env_variable}":
+                            test_containers.append(container)
+                            break
+                except Exception:
+                    continue
+
+            return len(test_containers)
+
+        except Exception:
+            return 0
+
+    def _parse_container_ids_from_output(self):
+        """Parse container IDs from the service output."""
+        container_ids = []
+        if hasattr(self, "start_api_process_output") and self.start_api_process_output:
+            for line in self.start_api_process_output.split("\n"):
+                # Look for container IDs: "SAM_CONTAINER_ID: <container_id>"
+                if "SAM_CONTAINER_ID:" in line:
+                    parts = line.split("SAM_CONTAINER_ID:")
+                    if len(parts) > 1:
+                        container_id = parts[1].strip()
+                        if container_id:
+                            container_ids.append(container_id)
+        return container_ids
+
+    def get_test_containers(self):
+        """Get all containers created by this test (running and stopped)."""
+        try:
+            return self.docker_client.containers.list(
+                all=True, filters={"label": f"sam.test.mode={self.mode_env_variable}"}
+            )
+        except Exception:
+            return []
+
+    def cleanup_test_containers(self):
+        """Clean up all containers created by this test."""
+        for container in self.get_test_containers():
+            try:
+                container.remove(force=True)
+            except Exception:
+                pass  # Container already removed
 
     def tearDown(self) -> None:
-        # Use a new container test UUID for the next test run to avoid
-        # counting additional containers in the event of a retry
-        self.mode_env_variable = str(uuid.uuid4())
+        # For EAGER mode, containers are shared across test methods in the same class
+        # So we DON'T clean up containers or change the UUID between test methods
+        # The containers will be cleaned up in tearDownClass()
+
         super().tearDown()
 
 
@@ -2544,6 +2678,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2608,6 +2743,7 @@ COPY main.py ./"""
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocation(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2751,6 +2887,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -2950,6 +3087,7 @@ def handler(event, context):
         self.assertEqual(response.json(), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesImageDockerFileChangedLocationLazyContainers(WritableStartApiIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
@@ -3185,11 +3323,27 @@ class WarmContainersWithRemoteLayersBase(TestWarmContainersBaseClass):
         super().tearDownClass()
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Clean layer cache before running tests to avoid corrupted cache issues
+        default_cache_dir = Path(get_default_layer_cache_dir())
+        if default_cache_dir.exists():
+            shutil.rmtree(str(default_cache_dir))
+
+        # Also clean the integration test layer cache
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+
+        super().setUpClass()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -3206,11 +3360,26 @@ class TestWarmContainersRemoteLayers(WarmContainersWithRemoteLayersBase):
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-layers.yaml"
     container_mode = ContainersInitializationMode.LAZY.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Clean layer cache before running tests to avoid corrupted cache issues
+        default_cache_dir = Path(get_default_layer_cache_dir())
+        if default_cache_dir.exists():
+            shutil.rmtree(str(default_cache_dir))
+
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+
+        super().setUpClass()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -3220,11 +3389,26 @@ class TestWarmContainersRemoteLayersLazyInvoke(WarmContainersWithRemoteLayersBas
         self.assertEqual(response.content.decode("utf-8"), '"Layer1"')
 
 
+@pytest.mark.xdist_group(name="remote_layers")
+@pytest.mark.requires_credential
 class TestWarmContainersMultipleRemoteLayersInvoke(WarmContainersWithRemoteLayersBase):
     template_path = "/testdata/start_api/template-warm-containers-multi-layers.yaml"
     container_mode = ContainersInitializationMode.EAGER.value
     mode_env_variable = str(uuid.uuid4())
     parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        # Clean layer cache before running tests to avoid corrupted cache issues
+        default_cache_dir = Path(get_default_layer_cache_dir())
+        if default_cache_dir.exists():
+            shutil.rmtree(str(default_cache_dir))
+
+        integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
+        if integ_layer_cache_dir.exists():
+            shutil.rmtree(str(integ_layer_cache_dir))
+
+        super().setUpClass()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")

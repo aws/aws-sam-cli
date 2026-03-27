@@ -72,7 +72,7 @@ if TYPE_CHECKING:  # pragma: no cover
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-  NEW! Sync an AWS SAM Project to AWS.
+  Sync an AWS SAM Project to AWS.
 
 """
 
@@ -316,10 +316,8 @@ def do_cli(
 
     # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
     if use_container and dependency_layer:
-        LOG.info(
-            "Note: Automatic Dependency Layer is not yet supported with use-container. \
-            sam sync will be run without Automatic Dependency Layer."
-        )
+        LOG.info("Note: Automatic Dependency Layer is not yet supported with use-container. \
+            sam sync will be run without Automatic Dependency Layer.")
         dependency_layer = False
 
     build_dir = DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER if dependency_layer else DEFAULT_BUILD_DIR
@@ -404,7 +402,10 @@ def do_cli(
                     max_wait_duration=60,
                 ) as deploy_context:
                     with SyncContext(
-                        dependency_layer, build_context.build_dir, build_context.cache_dir, skip_deploy_sync
+                        dependency_layer,
+                        build_context.build_dir,
+                        build_context.cache_dir,
+                        skip_deploy_sync,
                     ) as sync_context:
                         if watch:
                             watch_excludes_filter = watch_exclude or {}

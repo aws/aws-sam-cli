@@ -731,6 +731,7 @@ class TestBuildContext__enter__(TestCase):
             build_images={},
             create_auto_dependency_layer=auto_dependency_layer,
             print_success_message=False,
+            use_buildkit=False,
         ) as build_context:
             with patch("samcli.commands.build.build_context.BuildContext._gen_success_msg") as mock_message:
                 build_context.run()
@@ -1010,6 +1011,7 @@ class TestBuildContext_run(TestCase):
             build_in_source=False,
             mount_with=MountMode.READ,
             mount_symlinks=True,
+            use_buildkit=False,
         ) as build_context:
             build_context.run()
             is_sam_template_mock.assert_called_once_with()
@@ -1032,6 +1034,7 @@ class TestBuildContext_run(TestCase):
                 build_in_source=build_context._build_in_source,
                 mount_with_write=False,
                 mount_symlinks=True,
+                use_buildkit=False,
             )
             builder_mock.build.assert_called_once()
             builder_mock.update_template.assert_has_calls(
@@ -1167,6 +1170,7 @@ class TestBuildContext_run(TestCase):
                 container_env_var={},
                 container_env_var_file=None,
                 build_images={},
+                use_buildkit=False,
             ) as build_context:
                 build_context.run()
 
@@ -1245,21 +1249,34 @@ class TestBuildContext_run(TestCase):
                 container_env_var={},
                 container_env_var_file=None,
                 build_images={},
+                use_buildkit=False,
             ) as build_context:
                 build_context.run()
 
         self.assertEqual(str(ctx.exception), "Function Not Found")
 
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
-    @patch("samcli.commands.build.build_context.BuildContext._check_rust_cargo_experimental_flag")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
     @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
     @patch("samcli.lib.telemetry.event.EventTracker.track_event")
     def test_build_in_source_event_sent(
-        self, mock_track_event, mock_builder, mock_rust, mock_warning, mock_get_resources, mock_is_sam_template
+        self,
+        mock_track_event,
+        mock_builder,
+        mock_experimental,
+        mock_warning,
+        mock_get_resources,
+        mock_is_sam_template,
+        mock_get_validated_client,
     ):
         mock_builder.side_effect = [FunctionNotFound()]
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         context = BuildContext(
             resource_identifier="",
@@ -1389,3 +1406,56 @@ Commands you can use next
         )
 
         self.assertEqual(msg, expected_msg)
+
+
+class TestBuildContext_check_build_method_experimental_flag(TestCase):
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_python_uv(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_experimental_method(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-pip"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_metadata(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = None
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()

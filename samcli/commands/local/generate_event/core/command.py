@@ -20,23 +20,17 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
     def format_examples(ctx: Context, formatter: RootCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Generate event S3 sends to local Lambda function", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete]"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ]
                 )
-            with formatter.indented_section(name="Customize event by adding parameter flags.", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Customize event by adding parameter flags", extra_indents=1):
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} s3 [put/delete] --help"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -50,11 +44,8 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
             with formatter.indented_section(
                 name="Test generated event with serverless function locally!", extra_indents=1
             ):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} s3 [put/delete] --bucket <bucket> --key <key> | "
@@ -65,12 +56,11 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
                     ]
                 )
 
-    def format_commands(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_commands(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:  # type: ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         with formatter.indented_section(name="Commands", extra_indents=1):
-            formatter.write_rd([RowDefinition(text="\n")])
             formatter.write_rd([RowDefinition(name=command) for command in self.all_cmds.keys()])
 
     def format_options(self, ctx: Context, formatter: RootCommandHelpTextFormatter) -> None:  # type: ignore

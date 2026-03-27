@@ -20,7 +20,7 @@ import math
 import sys
 import time
 from collections import OrderedDict, deque
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import botocore
@@ -191,7 +191,7 @@ class Deployer:
             "TemplateBody": cfn_template,
             "ChangeSetType": changeset_type,
             "Parameters": parameter_values,
-            "Description": "Created by SAM CLI at {0} UTC".format(datetime.utcnow().isoformat()),
+            "Description": "Created by SAM CLI at {0} UTC".format(datetime.now(timezone.utc).isoformat()),
             "Tags": tags,
             "ImportExistingResources": import_existing_resources,
         }
@@ -861,6 +861,4 @@ Actions you can take next
 =========================
 [*] Fix issues and try deploying again
 [*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
-""".format(
-            stack_name=stack_name
-        )
+""".format(stack_name=stack_name)

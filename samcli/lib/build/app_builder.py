@@ -31,11 +31,10 @@ from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
     DockerBuildFailed,
-    DockerConnectionError,
     DockerfileOutSideOfContext,
     UnsupportedBuilderLibraryVersionError,
 )
-from samcli.lib.build.utils import _make_env_vars
+from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
     UnsupportedRuntimeException,
@@ -43,7 +42,6 @@ from samcli.lib.build.workflow_config import (
     get_workflow_config,
     supports_specified_workflow,
 )
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
 from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
@@ -62,9 +60,15 @@ from samcli.lib.utils.resources import (
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
+from samcli.local.docker.container_client import ContainerClient
+from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerArchiveImageLoadFailedException
+from samcli.local.docker.image_build_client import CLIBuildClient, ImageBuildClient, SDKBuildClient
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
 from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
-from samcli.local.docker.utils import get_docker_platform, is_docker_reachable
+from samcli.local.docker.utils import (
+    get_docker_platform,
+    get_validated_container_client,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -104,7 +108,7 @@ class ApplicationBuilder:
         parallel: bool = False,
         mode: Optional[str] = None,
         stream_writer: Optional[StreamWriter] = None,
-        docker_client: Optional[docker.DockerClient] = None,
+        container_client: Optional[ContainerClient] = None,
         container_env_var: Optional[Dict] = None,
         container_env_var_file: Optional[str] = None,
         build_images: Optional[Dict] = None,
@@ -112,6 +116,7 @@ class ApplicationBuilder:
         build_in_source: Optional[bool] = None,
         mount_with_write: bool = False,
         mount_symlinks: Optional[bool] = False,
+        use_buildkit: Optional[bool] = False,
     ) -> None:
         """
         Initialize the class
@@ -142,8 +147,8 @@ class ApplicationBuilder:
             Optional, name of the build mode to use ex: 'debug'
         stream_writer : Optional[StreamWriter]
             An optional stream writer to accept stderr output
-        docker_client : Optional[docker.DockerClient]
-            An optional Docker client object to replace the default one loaded from env
+        container_client : Optional[ContainerClient]
+            An optional container client object to replace the default one loaded from env
         container_env_var : Optional[Dict]
             An optional dictionary of environment variables to pass to the container
         container_env_var_file : Optional[str]
@@ -159,6 +164,8 @@ class ApplicationBuilder:
             Mount source code directory with write permissions when building inside container.
         mount_symlinks: Optional[bool]
             True if symlinks should be mounted in the container.
+        use_buildkit: Optional[bool]
+            Optional flag for building Image functions with buildkit support.
         """
         self._resources_to_build = resources_to_build
         self._build_dir = build_dir
@@ -172,7 +179,13 @@ class ApplicationBuilder:
         self._parallel = parallel
         self._mode = mode
         self._stream_writer = stream_writer if stream_writer else StreamWriter(stream=osutils.stderr(), auto_flush=True)
-        self._docker_client = docker_client if docker_client else docker.from_env(version=DOCKER_MIN_API_VERSION)
+
+        # Store container_client parameter for lazy initialization
+        # Only validate container runtime when container client is actually accessed
+        # This prevents unnecessary validation for builds that don't require containers
+        # NOTE: It seems like at this point container_client is only ever passed in the tests for mocking.
+        self._container_client_param = container_client
+        self._validated_container_client: Optional[ContainerClient] = None
 
         self._deprecated_runtimes = DEPRECATED_RUNTIMES
         self._colored = Colored()
@@ -183,6 +196,18 @@ class ApplicationBuilder:
         self._build_in_source = build_in_source
         self._mount_with_write = mount_with_write
         self._mount_symlinks = mount_symlinks
+        self._use_buildkit = use_buildkit
+        self._image_build_client: Optional[ImageBuildClient] = None
+
+    @property
+    def _container_client(self) -> ContainerClient:
+        """
+        Lazy initialization of container client. Only validates container runtime when actually accessed.
+        This prevents unnecessary container runtime validation for builds that don't require containers.
+        """
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or get_validated_container_client()
+        return self._validated_container_client
 
     def build(self) -> ApplicationBuildResult:
         """
@@ -195,6 +220,13 @@ class ApplicationBuilder:
             to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
+
+        # Add cross-architecture warning when using containers
+        if self._container_manager:
+            functions = self._resources_to_build.functions
+            container_runtime = self._container_manager.container_client.get_runtime_type()
+            warn_cross_architecture_build(functions, container_runtime)
+
         build_strategy: BuildStrategy = DefaultBuildStrategy(
             build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
         )
@@ -409,8 +441,6 @@ class ApplicationBuilder:
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
         docker_context_dir = pathlib.Path(self._base_dir, docker_context).resolve()
-        if not is_docker_reachable(self._docker_client):
-            raise DockerConnectionError(msg=f"Building image for {function_name} requires Docker. is Docker running?")
 
         if os.environ.get("SAM_BUILD_MODE") and isinstance(docker_build_args, dict):
             docker_build_args["SAM_BUILD_MODE"] = os.environ.get("SAM_BUILD_MODE")
@@ -431,19 +461,39 @@ class ApplicationBuilder:
             build_args["target"] = cast(str, docker_build_target)
 
         try:
-            (build_image, build_logs) = self._docker_client.images.build(**build_args)
-            LOG.debug("%s image is built for %s function", build_image, function_name)
+            if not self._image_build_client:
+                if self._use_buildkit:
+                    container_client = self._container_client
+                    engine_type = container_client.get_runtime_type()
+
+                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
+                    if not is_available:
+                        raise BuildkitNotAvailableException(error_msg)
+
+                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
+                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
+                else:
+                    self._image_build_client = SDKBuildClient(self._container_client)
+                    LOG.debug("Using SDKBuildClient")
+            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            LOG.debug(f"Image built for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
             self._stream_lambda_image_build_logs(ex.build_log, function_name, False)
             raise DockerBuildFailed(str(ex)) from ex
+        except docker.errors.APIError as e:
+            if self._container_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+
+            # Re-raise other API errors
+            raise
 
         # The Docker-py low level api will stream logs back but if an exception is raised by the api
         # this is raised when accessing the generator. So we need to wrap accessing build_logs in a try: except.
         try:
-            self._stream_lambda_image_build_logs(build_logs, function_name)
+            self._stream_lambda_image_build_logs(build_logs, function_name)  # type: ignore[arg-type]
         except docker.errors.APIError as e:
-            if e.is_server_error and "Cannot locate specified Dockerfile" in e.explanation:
+            if self._container_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
 
             # Not sure what else can be raise that we should be catching but re-raising for now
@@ -473,11 +523,9 @@ class ApplicationBuilder:
     def _load_lambda_image(self, image_archive_path: str) -> str:
         try:
             with open(image_archive_path, mode="rb") as image_archive:
-                [image, *rest] = self._docker_client.images.load(image_archive)
-                if len(rest) != 0:
-                    raise DockerBuildFailed("Archive must represent a single image")
+                image = self._container_client.load_image_from_archive(image_archive)
                 return f"{image.id}"
-        except (docker.errors.APIError, OSError) as ex:
+        except (docker.errors.APIError, OSError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerBuildFailed(msg=str(ex)) from ex
 
     def _build_layer(
@@ -550,7 +598,11 @@ class ApplicationBuilder:
                 manifest_context_path = str(
                     pathlib.Path(self._base_dir, layer_metadata.get("ContextPath", code_dir)).resolve()
                 )
-            manifest_path = self._manifest_path_override or os.path.join(manifest_context_path, config.manifest_name)
+            manifest_path = (
+                self._manifest_path_override
+                if self._manifest_path_override
+                else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
+            )
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
@@ -705,8 +757,10 @@ class ApplicationBuilder:
                     manifest_context_path = str(
                         pathlib.Path(self._base_dir, metadata.get("ContextPath", code_dir)).resolve()
                     )
-                manifest_path = self._manifest_path_override or os.path.join(
-                    manifest_context_path, config.manifest_name
+                manifest_path = (
+                    self._manifest_path_override
+                    if self._manifest_path_override
+                    else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
                 )
                 scratch_dir_path = (
                     LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
@@ -890,7 +944,7 @@ class ApplicationBuilder:
         source_dir: str,
         artifacts_dir: str,
         scratch_dir: str,
-        manifest_path: str,
+        manifest_path: Optional[str],
         runtime: str,
         architecture: str,
         options: Optional[Dict],
@@ -936,7 +990,7 @@ class ApplicationBuilder:
         config: CONFIG,
         source_dir: str,
         artifacts_dir: str,
-        manifest_path: str,
+        manifest_path: Optional[str],
         runtime: str,
         architecture: str,
         options: Optional[Dict],
@@ -948,11 +1002,6 @@ class ApplicationBuilder:
         # _build_function_on_container() is only called when self._container_manager if not None
         if not self._container_manager:
             raise RuntimeError("_build_function_on_container() is called when self._container_manager is None.")
-
-        if not self._container_manager.is_docker_reachable:
-            raise BuildInsideContainerError(
-                "Docker is unreachable. Docker needs to be running to build inside a container."
-            )
 
         # If we are printing debug logs in SAM CLI, the builder library should also print debug logs
         log_level = LOG.getEffectiveLevel()

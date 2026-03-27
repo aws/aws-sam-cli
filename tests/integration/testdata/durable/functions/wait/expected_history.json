@@ -1,0 +1,51 @@
+[
+  {
+    "EventType": "ExecutionStarted",
+    "EventId": 1,
+    "Name": "namedwait-integration-test",
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 300
+    }
+  },
+  {
+    "EventType": "WaitStarted",
+    "SubType": "Wait",
+    "EventId": 2,
+    "Name": "custom_wait",
+    "WaitStartedDetails": {
+      "Duration": 2
+    }
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 3
+  },
+  {
+    "EventType": "WaitSucceeded",
+    "SubType": "Wait",
+    "EventId": 4,
+    "Name": "custom_wait",
+    "WaitSucceededDetails": {}
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 5
+  },
+  {
+    "EventType": "ExecutionSucceeded",
+    "EventId": 6,
+    "Name": "namedwait-integration-test",
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "\"Wait with name completed\"",
+        "Truncated": false
+      }
+    }
+  }
+]
+
+

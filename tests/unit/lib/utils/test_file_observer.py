@@ -508,11 +508,11 @@ class FileObserver_stop(TestCase):
 
 class ImageObserver_init(TestCase):
     @patch("samcli.lib.utils.file_observer.threading")
-    @patch("samcli.lib.utils.file_observer.docker")
-    def test_image_observer_initiated_successfully(self, docker_mock, threading_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def test_image_observer_initiated_successfully(self, get_validated_container_client_mock, threading_mock):
         on_change = Mock()
         docker_client_mock = Mock()
-        docker_mock.from_env.return_value = docker_client_mock
+        get_validated_container_client_mock.return_value = docker_client_mock
         events_mock = Mock()
         docker_client_mock.events.return_value = events_mock
         lock_mock = Mock()
@@ -527,11 +527,11 @@ class ImageObserver_init(TestCase):
 
 
 class ImageObserver_watch(TestCase):
-    @patch("samcli.lib.utils.file_observer.docker")
-    def setUp(self, docker_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def setUp(self, get_validated_container_client_mock):
         self.on_change = Mock()
         self.docker_client_mock = Mock()
-        docker_mock.from_env.return_value = self.docker_client_mock
+        get_validated_container_client_mock.return_value = self.docker_client_mock
         self.events_mock = Mock()
         self.docker_client_mock.events.return_value = self.events_mock
         self.image_observer = ImageObserver(self.on_change)
@@ -561,11 +561,11 @@ class ImageObserver_watch(TestCase):
 
 
 class ImageObserver_unwatch(TestCase):
-    @patch("samcli.lib.utils.file_observer.docker")
-    def setUp(self, docker_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def setUp(self, get_validated_container_client_mock):
         self.on_change = Mock()
         self.docker_client_mock = Mock()
-        docker_mock.from_env.return_value = self.docker_client_mock
+        get_validated_container_client_mock.return_value = self.docker_client_mock
         self.events_mock = Mock()
         self.docker_client_mock.events.return_value = self.events_mock
         self.image_observer = ImageObserver(self.on_change)
@@ -592,11 +592,11 @@ class ImageObserver_unwatch(TestCase):
 
 
 class ImageObserver_start(TestCase):
-    @patch("samcli.lib.utils.file_observer.docker")
-    def setUp(self, docker_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def setUp(self, get_validated_container_client_mock):
         self.on_change = Mock()
         self.docker_client_mock = Mock()
-        docker_mock.from_env.return_value = self.docker_client_mock
+        get_validated_container_client_mock.return_value = self.docker_client_mock
         self.events_mock = Mock()
         self.docker_client_mock.events.return_value = self.events_mock
         self.image_observer = ImageObserver(self.on_change)
@@ -621,11 +621,11 @@ class ImageObserver_start(TestCase):
 
 class ImageObserver_stop(TestCase):
     @patch("samcli.lib.utils.file_observer.threading")
-    @patch("samcli.lib.utils.file_observer.docker")
-    def setUp(self, docker_mock, threading_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def setUp(self, get_validated_container_client_mock, threading_mock):
         self.on_change = Mock()
         self.docker_client_mock = Mock()
-        docker_mock.from_env.return_value = self.docker_client_mock
+        get_validated_container_client_mock.return_value = self.docker_client_mock
         self.events_mock = Mock()
         self.docker_client_mock.events.return_value = self.events_mock
         self.image_observer = ImageObserver(self.on_change)
@@ -641,11 +641,11 @@ class ImageObserver_stop(TestCase):
 
 
 class ImageObserver_watch_images_events(TestCase):
-    @patch("samcli.lib.utils.file_observer.docker")
-    def setUp(self, docker_mock):
+    @patch("samcli.lib.utils.file_observer.get_validated_container_client")
+    def setUp(self, get_validated_container_client_mock):
         self.on_change = Mock()
         self.docker_client_mock = Mock()
-        docker_mock.from_env.return_value = self.docker_client_mock
+        get_validated_container_client_mock.return_value = self.docker_client_mock
         self.mocked_events_list = []
         self.events_mock = iter(self.mocked_events_list)
         self.docker_client_mock.events.return_value = self.events_mock

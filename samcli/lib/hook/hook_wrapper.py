@@ -54,6 +54,7 @@ class IacHookWrapper:
         skip_prepare_infra: bool = False,
         plan_file: Optional[str] = None,
         project_root_dir: Optional[str] = None,
+        mount_symlinks: bool = False,
     ) -> str:
         """
         Run the prepare hook to generate the IaC Metadata file.
@@ -96,6 +97,8 @@ class IacHookWrapper:
             params["PlanFile"] = plan_file
         if project_root_dir:
             params["ProjectRootDir"] = project_root_dir
+        if mount_symlinks:
+            params["MountSymlinks"] = mount_symlinks
 
         output = self._execute("prepare", params)
 

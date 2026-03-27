@@ -4,7 +4,7 @@ This file contains puller implementations for XRay
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import zip_longest
 from typing import Any, Dict, List, Optional, Union
 
@@ -46,7 +46,7 @@ class AbstractXRayPuller(ObservabilityPuller):
 
             counter -= 1
             try:
-                self.load_time_period(to_datetime(self.latest_event_time), datetime.utcnow())
+                self.load_time_period(to_datetime(self.latest_event_time), datetime.now(timezone.utc))
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code == "ThrottlingException":
