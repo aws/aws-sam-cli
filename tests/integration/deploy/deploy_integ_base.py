@@ -135,6 +135,7 @@ class DeployIntegBase(PackageIntegBase):
         signing_profiles=None,
         resolve_image_repos=False,
         disable_rollback=False,
+        import_existing_resources=False,
         on_failure=None,
     ):
         command_list = [get_sam_command(), "deploy"]
@@ -198,6 +199,8 @@ class DeployIntegBase(PackageIntegBase):
             command_list = command_list + ["--resolve-image-repos"]
         if disable_rollback:
             command_list = command_list + ["--disable-rollback"]
+        if import_existing_resources:
+            command_list = command_list + ["--import-existing-resources"]
         if on_failure:
             command_list = command_list + ["--on-failure", str(on_failure)]
 
