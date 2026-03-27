@@ -1,0 +1,20 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Template for testing --import-existing-resources flag.
+
+Parameters:
+  ParameterName:
+    Type: String
+    Description: Name of the SSM parameter to import
+  ParameterValue:
+    Type: String
+    Description: Value of the SSM parameter
+    Default: import-test
+
+Resources:
+  TestParameter:
+    DeletionPolicy: Retain
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Ref ParameterName
+      Type: String
+      Value: !Ref ParameterValue

@@ -113,7 +113,8 @@ LOG = logging.getLogger(__name__)
     default=False,
     required=False,
     is_flag=True,
-    help="Requests CloudFormation to import any existing referenced by the template when creating the changeset.",
+    help="Requests CloudFormation to import any existing resources referenced "
+    "by the template when creating the changeset.",
 )
 @click.option(
     "--disable-rollback/--no-disable-rollback",
