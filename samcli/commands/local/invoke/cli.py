@@ -30,6 +30,14 @@ from samcli.local.docker.exceptions import (
     PortAlreadyInUse,
 )
 
+
+class HiddenChoice(click.Choice):
+    """Custom Choice type that hides the list of choices in help text."""
+
+    def get_metavar(self, param):
+        return "RUNTIME"
+
+
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
@@ -71,7 +79,7 @@ STDIN_FILE_NAME = "-"
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
+    type=HiddenChoice(get_sorted_runtimes(INIT_RUNTIMES), case_sensitive=False),
     help="Lambda runtime used to invoke the function."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
