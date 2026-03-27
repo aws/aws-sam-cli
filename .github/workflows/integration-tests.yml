@@ -130,7 +130,7 @@ jobs:
         run: bash tests/setup-wsl.sh
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.11"
           cache-python: false
@@ -178,19 +178,19 @@ jobs:
 
       - name: Set up Ruby 3.3.7
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
         with:
           ruby-version: '3.3.7'
 
       - name: Set up Ruby 3.2.7
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
         with:
           ruby-version: '3.2.7'
 
       - name: Set up Ruby 3.4.7
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
         with:
           ruby-version: '3.4.7'
           windows-toolchain: none
