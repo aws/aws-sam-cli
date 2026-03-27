@@ -19,7 +19,7 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
             execution_id = "c63eec67-3415-4eb4-a495-116aa3a86278"
 
             with formatter.indented_section(name="Stop execution without error details", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id}"),
@@ -30,7 +30,7 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
 
             with formatter.indented_section(name="Stop execution with error message and type", extra_indents=1):
                 error_options = '--error-message "Execution cancelled" --error-type "UserCancellation"'
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id} {error_options}"),
@@ -46,7 +46,7 @@ class LocalExecutionStopCommand(LocalExecutionBaseCommand):
                     '--error-message "Task failed" --error-type "TaskFailure" --error-data \'{"reason":"timeout"}\' '
                     '--stack-trace "at function1()" --stack-trace "at function2()"'
                 )
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id} {full_options}"),
