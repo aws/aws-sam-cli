@@ -294,7 +294,7 @@ class IntrinsicsSymbolTable:
             resource_name=resource_name,
         )
 
-    def _get_function_name(self, logical_id, intrinsic_resolver=None):
+    def _get_function_name(self, logical_id):
         """
         This function returns the function name associated with the logical ID.
         If the template doesn't define a FunctionName, it will just return the
@@ -304,8 +304,6 @@ class IntrinsicsSymbolTable:
         -----------
         logical_id: str
             This the reference to the function name used
-        intrinsic_resolver: IntrinsicResolver
-            Optional resolver to resolve intrinsic functions in FunctionName
 
         Return
         -------
@@ -322,13 +320,6 @@ class IntrinsicsSymbolTable:
             return logical_id
 
         resource_name = resource_properties.get(IntrinsicsSymbolTable.CFN_LAMBDA_FUNCTION_NAME)
-
-        # If resource_name is an intrinsic function (dict), resolve it
-        if resource_name and isinstance(resource_name, dict) and intrinsic_resolver:
-            resource_name = intrinsic_resolver.intrinsic_property_resolver(
-                resource_name, ignore_errors=True, parent_function="FunctionName"
-            )
-
         return resource_name or logical_id
 
     def get_translation(self, logical_id, resource_attributes=IntrinsicResolver.REF):
