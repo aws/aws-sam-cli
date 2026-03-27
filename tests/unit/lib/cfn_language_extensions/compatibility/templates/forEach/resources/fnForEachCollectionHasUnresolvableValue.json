@@ -1,0 +1,25 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Resources": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      ["1", "2", {"Ref": "DoesNotExistValue"}],
+      {
+        "Topic${Value}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "MyTopic${VariableName}"
+            }
+          }
+        }
+      }
+    ],
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  }
+}

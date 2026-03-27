@@ -1,0 +1,37 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "stage": {
+      "Type": "String",
+      "Default": "prod"
+    },
+    "queueName": {
+      "Type": "String",
+      "Default": "hello"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [
+        {"Ref": "stage"},
+        "prod"
+      ]
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Ref": {
+            "Fn::If": [
+              "IsProd",
+              "queueName",
+              {"Ref": "AWS::NoValue"}
+            ]
+          }
+        }
+      }
+    }
+  }
+}

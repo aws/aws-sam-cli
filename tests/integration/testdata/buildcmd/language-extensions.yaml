@@ -1,26 +1,116 @@
-AWSTemplateFormatVersion : '2010-09-09'
+AWSTemplateFormatVersion: '2010-09-09'
 Transform:
   - AWS::LanguageExtensions
   - AWS::Serverless-2016-10-31
 
+Description: >
+  Test template for CloudFormation Language Extensions integration.
+  Demonstrates Fn::ForEach usage for generating multiple Lambda functions,
+  and conditional DeletionPolicy/UpdateReplacePolicy support.
+
 Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+    Description: Python runtime version for Lambda functions
   Environment:
     Type: String
     Default: dev
     AllowedValues:
       - dev
       - prod
+    Description: Deployment environment
 
 Conditions:
-  IsProd: !Equals [!Ref Environment, prod]
+  IsProd: !Equals [!Ref Environment, "prod"]
 
 Globals:
   Function:
     Timeout: 20
     MemorySize: 512
+    Runtime: !Ref Runtime
 
 Resources:
-  Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: !If [ IsProd, Retain, Delete ]
-    UpdateReplacePolicy: !If [ IsProd, Retain, Delete ]
+  # Test Fn::ForEach generating multiple Lambda functions (Requirement 17.1)
+  # with conditional DeletionPolicy and UpdateReplacePolicy
+  # This generates AlphaFunction and BetaFunction
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        DeletionPolicy: !If [IsProd, Retain, Delete]
+        UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+        Properties:
+          Handler: main.handler
+          CodeUri: PreBuiltPython
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}
+
+  # Test Fn::ToJsonString in environment variables (Requirement 17.2)
+  # with conditional DeletionPolicy and UpdateReplacePolicy
+  ConfigFunction:
+    Type: AWS::Serverless::Function
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      Handler: main.handler
+      CodeUri: PreBuiltPython
+      Environment:
+        Variables:
+          # Fn::ToJsonString converts the object to a JSON string
+          CONFIG_JSON:
+            Fn::ToJsonString:
+              setting1: value1
+              setting2: value2
+              nested:
+                key: nestedValue
+
+  # Test Fn::Length for array operations (Requirement 17.3)
+  # Fn::Length returns the number of elements in an array
+  ArrayLengthFunction:
+    Type: AWS::Serverless::Function
+    DeletionPolicy: !If [IsProd, Retain, Delete]
+    UpdateReplacePolicy: !If [IsProd, Retain, Delete]
+    Properties:
+      Handler: main.handler
+      CodeUri: Python
+      Environment:
+        Variables:
+          # Fn::Length returns the count of items in the array
+          SERVICES_COUNT:
+            Fn::Length:
+              - Users
+              - Orders
+              - Products
+              - Inventory
+          # Fn::Length can also be used with Fn::ToJsonString
+          ARRAY_INFO:
+            Fn::ToJsonString:
+              services:
+                - Users
+                - Orders
+                - Products
+                - Inventory
+              count:
+                Fn::Length:
+                  - Users
+                  - Orders
+                  - Products
+                  - Inventory
+
+
+  # Test Fn::ForEach with a non-Lambda resource type (SNS Topics)
+  Fn::ForEach::Topics:
+    - TopicName
+    - - Success
+      - Failure
+      - Timeout
+      - Unknown
+    - 'SnsTopic${TopicName}':
+        Type: 'AWS::SNS::Topic'
+        Properties:
+          TopicName: !Sub "SnsTopic${TopicName}.fifo"
+          FifoTopic: true
