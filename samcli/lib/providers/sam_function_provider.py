@@ -992,7 +992,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
 
     def _set_templates_changed(self, paths: List[str]) -> None:
         LOG.info(
-            "A change got detected in the templates %s. Mark templates as changed to be reloaded in the next invoke",
+            "A change has been detected in the templates %s. Marking templates as changed to be reloaded in the next invoke",
             ", ".join(paths),
         )
         self.is_changed = True
@@ -1011,7 +1011,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         Reload the stacks, and lambda functions from template files.
         Applies the same function filter during refresh.
         """
-        LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+        LOG.debug("A change has been detected in one of the stack templates. Reload the lambda function resources")
         self._stacks = []
 
         for template_file in self.parent_templates_paths:
