@@ -244,15 +244,12 @@ def warm_containers_common_options(f):
             "--warm-containers",
             help="""
             \b
-            Optional. Specifies how AWS SAM CLI manages 
-            containers for each function.
+            Optional. Specifies how AWS SAM CLI manages containers for each function.'            
+            \b
             Two modes are available:
-            EAGER: Containers for all functions are 
-            loaded at startup and persist between 
-            invocations.
-            LAZY:  Containers are only loaded when each 
-            function is first invoked. Those containers 
-            persist for additional invocations.
+            EAGER: Containers for all functions are loaded at startup and persist between invocations.
+            LAZY:  Containers are only loaded when each function is first invoked. 
+                   Those containers persist for additional invocations.
             """,
             type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
         ),

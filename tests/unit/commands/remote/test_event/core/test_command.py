@@ -27,11 +27,13 @@ class TestRemoteTestEventGetCommand(unittest.TestCase):
         # NOTE: One option per option section.
         mock_get_params.return_value = [
             MockParams(rv=("--region", "Region"), name="region"),
+            MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--parameter", ""), name="parameter"),
             MockParams(rv=("--name", ""), name="name"),
+            MockParams(rv=("--output-file", ""), name="output_file"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -42,34 +44,36 @@ class TestRemoteTestEventGetCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Get a test event from default Lambda function": [
-                ("", ""),
                 ("$ sam remote test-event get --stack-name hello-world --name MyEvent\x1b[0m", ""),
             ],
             "Get a test event for a named Lambda function in the stack": [
-                ("", ""),
                 ("$ sam remote test-event get --stack-name hello-world HelloWorldFunction --name MyEvent\x1b[0m", ""),
             ],
             "Get a test event for a named Lambda function in the stack and save the result to a file": [
-                ("", ""),
                 (
                     "$ sam remote test-event get --stack-name hello-world HelloWorldFunction --name MyEvent --output-file my-event.json\x1b[0m",
                     "",
                 ),
             ],
             "Get a test event for a function using the Lambda ARN": [
-                ("", ""),
                 (
                     "$ sam remote test-event get arn:aws:lambda:us-west-2:123456789012:function:my-function --name MyEvent\x1b[0m",
                     "",
                 ),
             ],
             "Acronyms": [("ARN", "")],
-            "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Test Event Options": [("", ""), ("--name", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Infrastructure Options": [("--stack-name", "")],
+            "Test Event Options": [("--name", ""), ("--output-file", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)
@@ -86,11 +90,13 @@ class TestRemoteTestEventPutCommand(unittest.TestCase):
         # NOTE: One option per option section.
         mock_get_params.return_value = [
             MockParams(rv=("--region", "Region"), name="region"),
+            MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--parameter", ""), name="parameter"),
             MockParams(rv=("--name", ""), name="name"),
+            MockParams(rv=("--file", ""), name="file"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -101,40 +107,42 @@ class TestRemoteTestEventPutCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Put a remote test event for default Lambda function using the contents of a file": [
-                ("", ""),
                 (
                     "$ sam remote test-event put --stack-name hello-world --name MyEvent --file /path/to/event.json\x1b[0m",
                     "",
                 ),
             ],
             "Put a remote test event for a named Lambda function using the contents of a file": [
-                ("", ""),
                 (
                     "$ sam remote test-event put --stack-name hello-world HelloWorldFunction --name MyEvent --file /path/to/event.json\x1b[0m",
                     "",
                 ),
             ],
             "Put a remote test event for a named Lambda function with stdin input": [
-                ("", ""),
                 (
                     '$ echo \'{"message": "hello!"}\' | sam remote test-event put --stack-name hello-world HelloWorldFunction --name MyEvent --file -\x1b[0m',
                     "",
                 ),
             ],
             "Put a test event for a function using the Lambda ARN using the contents of a file": [
-                ("", ""),
                 (
                     "$ sam remote test-event put arn:aws:lambda:us-west-2:123456789012:function:my-function --name MyEvent --file /path/to/event.json\x1b[0m",
                     "",
                 ),
             ],
             "Acronyms": [("ARN", "")],
-            "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Test Event Options": [("", ""), ("--name", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Infrastructure Options": [("--stack-name", "")],
+            "Test Event Options": [("--name", ""), ("--file", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)
@@ -151,10 +159,11 @@ class TestRemoteTestEventListCommand(unittest.TestCase):
         # NOTE: One option per option section.
         mock_get_params.return_value = [
             MockParams(rv=("--region", "Region"), name="region"),
+            MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--parameter", ""), name="parameter"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -165,26 +174,29 @@ class TestRemoteTestEventListCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "List remote test events for default Lambda function": [
-                ("", ""),
                 ("$ sam remote test-event list --stack-name hello-world\x1b[0m", ""),
             ],
             "List remote test events for a named Lambda function in the stack": [
-                ("", ""),
                 ("$ sam remote test-event list --stack-name hello-world HelloWorldFunction\x1b[0m", ""),
             ],
             "List remote test events for a function using Lambda ARN": [
-                ("", ""),
                 (
                     "$ sam remote test-event list arn:aws:lambda:us-west-2:123456789012:function:my-function\x1b[0m",
                     "",
                 ),
             ],
             "Acronyms": [("ARN", "")],
-            "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Infrastructure Options": [("--stack-name", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)
@@ -201,11 +213,12 @@ class TestRemoteTestEventDeleteCommand(unittest.TestCase):
         # NOTE: One option per option section.
         mock_get_params.return_value = [
             MockParams(rv=("--region", "Region"), name="region"),
+            MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--parameter", ""), name="parameter"),
             MockParams(rv=("--name", ""), name="name"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -216,30 +229,33 @@ class TestRemoteTestEventDeleteCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Delete a test event from default Lambda function": [
-                ("", ""),
                 ("$ sam remote test-event delete --stack-name hello-world --name MyEvent\x1b[0m", ""),
             ],
             "Delete a test event for a named Lambda function in the stack": [
-                ("", ""),
                 (
                     "$ sam remote test-event delete --stack-name hello-world HelloWorldFunction --name MyEvent\x1b[0m",
                     "",
                 ),
             ],
             "Delete a test event for a function using the Lambda ARN": [
-                ("", ""),
                 (
                     "$ sam remote test-event delete arn:aws:lambda:us-west-2:123456789012:function:my-function --name MyEvent\x1b[0m",
                     "",
                 ),
             ],
             "Acronyms": [("ARN", "")],
-            "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Test Event Options": [("", ""), ("--name", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Infrastructure Options": [("--stack-name", "")],
+            "Test Event Options": [("--name", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)
