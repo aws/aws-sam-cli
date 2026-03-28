@@ -1749,6 +1749,21 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
 
         self.assertEqual(result, "name:Tag")
 
+    def test_can_build_image_with_custom_name(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerImage": "custom-Name_With-symbols-v1.2.3",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        self.container_client_mock.images.build.return_value = (Mock(), [])
+
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertEqual(result, "custom-name_with-symbols-v1.2.3:Tag")
+
     @patch("samcli.lib.build.app_builder.SDKBuildClient")
     def test_lazy_initialization_creates_sdk_build_client_by_default(self, mock_sdk_build_client_class):
         """Test that _image_build_client is lazily initialized with SDKBuildClient when use_buildkit is False"""

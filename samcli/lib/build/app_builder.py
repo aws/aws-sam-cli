@@ -430,8 +430,8 @@ class ApplicationBuilder:
         docker_context = cast(str, metadata.get("DockerContext"))
         # Have a default tag if not present.
         tag = metadata.get("DockerTag", "latest")
-        image_name = cast(str, metadata.get("DockerImage", function_name.lower()))
-        docker_tag = f"{image_name}:{tag}"
+        image_name = cast(str, metadata.get("DockerImage", function_name))
+        docker_tag = f"{image_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
 
