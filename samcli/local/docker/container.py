@@ -98,7 +98,7 @@ class Container:
         extra_hosts: Optional[dict] = None,
         mount_symlinks: Optional[bool] = False,
         labels: Optional[dict] = None,
-        dns: Optional[list] = None,
+        dns: Optional[tuple] = None,
         debug_options=None,
     ):
         """
@@ -123,7 +123,7 @@ class Container:
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         :param bool mount_symlinks: Optional. True if symlinks should be mounted in the container
-        :param list dns: Optional. List of DNS servers for the container
+        :param tuple dns: Optional. Tuple of DNS server IP addresses for the container
         :param debug_options: Optional. Debug context containing debug configuration
         """
 
