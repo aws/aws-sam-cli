@@ -4,7 +4,7 @@ import io
 import json
 import logging
 import signal
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 
 from flask import Response
 
@@ -79,7 +79,7 @@ class BaseLocalService:
         self._app.run(threaded=multi_threaded, host=self.host, port=self.port, ssl_context=self.ssl_context)
 
     @staticmethod
-    def service_response(body, headers, status_code):
+    def service_response(body: str, headers: Dict[str, str], status_code: int) -> Response:
         """
         Constructs a Flask Response from the body, headers, and status_code.
 
@@ -89,7 +89,7 @@ class BaseLocalService:
         :return: Flask Response
         """
         response = Response(body)
-        response.headers = headers
+        response.headers.update(headers)
         response.status_code = status_code
         return response
 

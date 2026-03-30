@@ -1,0 +1,471 @@
+name: Integration Tests
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # Run at 7pm PST (3am UTC next day) Monday-Friday
+    # This translates to Tuesday-Saturday 3am UTC
+    - cron: '0 3 * * 2-6'
+  release:
+    types: [published]
+    # prerelease published → nightly binary test
+    # full release published → latest-release binary test
+  workflow_dispatch:  # Allow manual triggering
+    # NOTE: This workflow can only be manually triggered from develop or main branches
+    # The other branch will not pass the OIDC permission check
+    inputs:
+      install_mode:
+        description: '"code" to install from source (make init), "nightly-release" to install SAM CLI nightly binary, "latest-release" to install latest stable release binary'
+        required: false
+        default: 'code'
+        type: choice
+        options:
+          - code
+          - nightly-release
+          - latest-release
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  SAM_CLI_DEV: 1
+  SAM_CLI_TELEMETRY: 0
+  SAM_CLI_CONTAINER_CONNECTION_TIMEOUT: 60
+  NODE_VERSION: "22.21.1"
+  AWS_S3: "AWS_S3_TESTING"
+  AWS_ECR: "AWS_ECR_TESTING"
+  CARGO_LAMBDA_VERSION: "v0.17.1"
+  NOSE_PARAMETERIZED_NO_WARN: 1
+  BY_CANARY: true
+  UV_PYTHON: python3.11
+  PYTHONUTF8: 1
+  CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
+  ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
+
+jobs:
+  integration-tests:
+    # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    name: ${{ matrix.test_suite }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        test_suite:
+          # Build jobs (no-container mode — requires language toolchains)
+          - build-x86-1
+          - build-x86-2
+          - build-arm64
+          # Build jobs (docker container mode)
+          - build-x86-container-1
+          - build-x86-container-2
+          - build-arm64-container-1
+          - build-arm64-container-2
+          # Docker-only test suites
+          - terraform-build
+          - terraform-start-api
+          - terraform-invoke-start-lambda
+          - package
+          - deploy
+          - sync-code
+          - sync-watch
+          - local-invoke
+          - local-start-api
+          - local-start-lambda
+          - other-and-e2e
+          # Runs only credential-requiring tests from build and local
+          - cloud-based-tests
+          # Tier 1: Cross-platform smoke tests with Finch runtime
+          - tier1-finch
+        include:
+          # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
+          # Split into 3 to balance load and avoid out-of-storage
+          - test_suite: tier1-windows-build-1
+            os: windows-latest
+          - test_suite: tier1-windows-build-2
+            os: windows-latest
+          - test_suite: tier1-windows-build-3
+            os: windows-latest
+          - test_suite: tier1-windows-other
+            os: windows-latest
+
+    steps:
+      - name: Determine test type
+        shell: bash
+        run: |
+          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
+          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
+             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
+               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
+            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> $GITHUB_ENV
+          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> $GITHUB_ENV
+          else
+            echo "TEST_TYPE=other" >> $GITHUB_ENV
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ (env.TEST_TYPE == 'nightly-release' && github.event.action == 'published') && 'nightly-builds' || (github.event_name == 'schedule' && 'develop' || github.ref) }}
+
+      - name: Free up disk space
+        shell: bash
+        run: |
+          bash tests/free_disk_space.sh
+
+      # ── Windows WSL2 Docker Setup (tier1-windows-* only) ──
+      - name: Setup WSL2 and Docker for Windows
+        if: startsWith(matrix.test_suite, 'tier1-windows')
+        shell: bash
+        run: bash tests/setup-wsl.sh
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          python-version: "3.11"
+          cache-python: false
+
+      - name: Install Python versions (tier1)
+        if: contains(fromJSON('["tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        # Tier 1 tests only need 3.11 (for SAM CLI) and 3.12-3.14 (for runtime tests)
+        run: bash tests/setup-python-uv.sh 3.12 3.13 3.14 3.11
+
+      - name: Install Python versions (full)
+        if: "!contains(fromJSON('[\"tier1-finch\", \"tier1-windows-build-1\", \"tier1-windows-build-2\", \"tier1-windows-build-3\", \"tier1-windows-other\"]'), matrix.test_suite)"
+        shell: bash
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.12 3.13 3.14 3.11
+
+      - name: Set up Node.js
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up Java 25
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'corretto'
+          java-version: '25'
+
+      - name: Set up Go
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+
+      - name: Install Maven and Gradle
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-maven-gradle.sh
+
+      - name: Install .NET 10 SDK
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Set up Ruby 3.3.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
+        with:
+          ruby-version: '3.3.7'
+
+      - name: Set up Ruby 3.2.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
+        with:
+          ruby-version: '3.2.7'
+
+      - name: Set up Ruby 3.4.7
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "sync-code", "sync-watch", "other-and-e2e", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
+        with:
+          ruby-version: '3.4.7'
+          windows-toolchain: none
+
+      - name: Install Rust toolchain and cargo-lambda
+        if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-rust.sh --uv
+
+      - name: Install Terraform
+        if: contains(fromJSON('["terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
+        shell: bash
+        run: bash tests/install-terraform.sh
+
+      - name: Setup Finch runtime
+        if: matrix.test_suite == 'tier1-finch'
+        run: bash tests/setup_finch.sh
+
+      - name: Setup QEMU for ARM64 emulation
+        if: contains(fromJSON('["build-arm64", "build-arm64-container-1", "build-arm64-container-2", "terraform-build", "terraform-start-api", "terraform-invoke-start-lambda", "package", "deploy", "sync-code", "sync-watch", "local-invoke", "local-start-api", "local-start-lambda", "other-and-e2e", "cloud-based-tests"]'), matrix.test_suite)
+        shell: bash
+        run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+      - name: Initialize integration test
+        if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
+        shell: bash
+        run: |
+          make init
+          echo "SCRIPT_PY=python3.11" >> $GITHUB_ENV
+
+      - name: Initialize nightly release test
+        if: env.TEST_TYPE == 'nightly-release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          make setup-pytest
+          make init-nightly
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+
+      - name: Initialize latest release test
+        if: env.TEST_TYPE == 'latest-release'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          make setup-pytest
+          make init-latest-release
+          echo "SAM_CLI_DEV=" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Setup testing resources, ECR login, and credential management
+        shell: bash
+        run: $SCRIPT_PY tests/setup_testing_resources.py --test-suite "${{ matrix.test_suite }}" --container-runtime "$CONTAINER_RUNTIME"
+
+      - name: Run tests
+        shell: bash
+        run: |
+          case "${{ matrix.test_suite }}" in
+            "build-x86-1")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd.py \
+                tests/integration/buildcmd/test_build_cmd_python.py \
+                tests/integration/buildcmd/test_build_in_source.py \
+                tests/integration/buildcmd/test_build_samconfig.py \
+                -k "not container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-x86-2")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
+                --ignore=tests/integration/buildcmd/test_build_in_source.py \
+                --ignore=tests/integration/buildcmd/test_build_samconfig.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
+                -k "not container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-arm64")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
+                -k "not container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-x86-container-1")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd.py \
+                tests/integration/buildcmd/test_build_in_source.py \
+                tests/integration/buildcmd/test_build_samconfig.py \
+                -k "container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-x86-container-2")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_in_source.py \
+                --ignore=tests/integration/buildcmd/test_build_samconfig.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
+                --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
+                -k "container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-arm64-container-1")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra and not java" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
+                -k "container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "build-arm64-container-2")
+              pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra and java" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
+                -k "container" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "terraform-build")
+              pytest -vv -n 4 --reruns 3 -m "not tier1_extra" \
+                tests/integration/buildcmd/test_build_terraform_applications.py \
+                tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "terraform-start-api")
+              pytest -vv --reruns 3 -m "not tier1_extra" \
+                tests/integration/local/start_api/test_start_api_with_terraform_application.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "terraform-invoke-start-lambda")
+              pytest -vv --reruns 3 -m "not tier1_extra" \
+                tests/integration/local/invoke/test_invoke_terraform_applications.py \
+                tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "package")
+              pytest -vv tests/integration/package tests/integration/delete \
+                --dist=loadgroup -n 4 --reruns 3 -m "not tier1_extra" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "deploy")
+              pytest -vv tests/integration/deploy -m "not tier1_extra" \
+                --dist=loadgroup -n 4 --reruns 4 \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "sync-watch")
+              pytest -vv tests/integration/sync -n 4 --reruns 3 -m "not tier1_extra" \
+                --ignore=tests/integration/sync/test_sync_code.py \
+                --ignore=tests/integration/sync/test_sync_infra.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "sync-code")
+              pytest -vv -n 5 --reruns 3 --dist loadscope -m "not tier1_extra" \
+                tests/integration/sync/test_sync_code.py \
+                tests/integration/sync/test_sync_infra.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "local-invoke")
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
+                tests/integration/local/invoke \
+                tests/integration/local/generate_event \
+                tests/integration/local/callback \
+                tests/integration/local/execution \
+                --ignore=tests/integration/local/invoke/test_invoke_terraform_applications.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "local-start-api")
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
+                tests/integration/local/start_api \
+                --ignore=tests/integration/local/start_api/test_start_api_with_terraform_application.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "local-start-lambda")
+              pytest -vv --reruns 3 --dist loadgroup -m "not requires_credential and not tier1_extra" \
+                tests/integration/local/start_lambda \
+                --ignore=tests/integration/local/start_lambda/test_start_lambda_terraform_applications.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "other-and-e2e")
+              pytest -vv -n 5 --reruns 3 --dist loadgroup -m "not tier1_extra" \
+                tests/integration tests/end_to_end tests/regression \
+                --ignore=tests/integration/buildcmd \
+                --ignore=tests/integration/delete \
+                --ignore=tests/integration/deploy \
+                --ignore=tests/integration/package \
+                --ignore=tests/integration/sync \
+                --ignore=tests/integration/local \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "cloud-based-tests")
+              pytest -vv --reruns 3 \
+                tests/integration/buildcmd \
+                tests/integration/local \
+                -m "requires_credential and not tier1_extra" \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-finch")
+              export CONTAINER_RUNTIME=finch
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" -n 2\
+                tests/integration \
+                tests/regression \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-1")
+              # Tier1 build tests - half 1: python, dotnet, node, main build cmd, java
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_python.py \
+                tests/integration/buildcmd/test_build_cmd_java.py \
+                tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                tests/integration/buildcmd/test_build_cmd_node.py \
+                tests/integration/buildcmd/test_build_cmd.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-2")
+              # Tier1 build tests - third 2: rust, provided, arm64
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd/test_build_cmd_arm64.py \
+                tests/integration/buildcmd/test_build_cmd_rust.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-build-3")
+              # Tier1 build tests - third 3: go, ruby, terraform, and remaining
+              pytest -vv --reruns 3 -n 2 -m "tier1 or tier1_extra" \
+                tests/integration/buildcmd \
+                --ignore=tests/integration/buildcmd/test_build_cmd_python.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_node.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_rust.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_java.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+            "tier1-windows-other")
+              # Tier1 non-build tests (local, deploy, etc.)
+              # Exclude durable/execution tests — they require Linux-specific Docker behavior
+              pytest -vv --reruns 3 -m "tier1 or tier1_extra" \
+                tests/integration \
+                tests/regression \
+                --ignore=tests/integration/buildcmd \
+                --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always() && env.SCRIPT_PY != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.test_suite }}
+          path: TEST_REPORT-*.json
+
+      - name: Re-authenticate with OIDC for cleanup
+        if: always() && env.SCRIPT_PY != ''
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Assume test reporting role
+        if: always() && env.SCRIPT_PY != ''
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
+          aws-region: us-east-1
+          role-chaining: true
+
+      - name: Reset test account and upload reports
+        if: always() && env.SCRIPT_PY != ''
+        shell: bash
+        env:
+          TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
+        run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}

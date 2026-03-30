@@ -15,7 +15,6 @@ from samcli.local.docker.utils import get_validated_container_client
 from .package_integ_base import PackageIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, MAX_ERROR_OUTPUT_LENGTH
 
-
 # Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
 # This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
 SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
@@ -349,3 +348,33 @@ class TestPackageImage(PackageIntegBase):
 
         self.assertEqual(1, process.returncode)
         self.assertIn("unexpected EOF", process_stderr.decode("utf-8"))
+
+    @parameterized.expand(
+        [
+            "aws-serverless-function-image.yaml",
+            "aws-lambda-function-image.yaml",
+        ]
+    )
+    def test_package_template_with_resolve_image_repos(self, template_file):
+
+        template_path = self.test_data_path.joinpath(template_file)
+        command_list = PackageIntegBase.get_command_list(
+            s3_bucket=self.bucket_name,
+            template=template_path,
+            resolve_image_repos=True,
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip().decode("utf-8")
+        process_stderr = stderr.strip().decode("utf-8")
+        self.assertEqual(0, process.returncode, f"Command failed. Stderr: {process_stderr}")
+        # Verify ECR repository URI is in the output (auto-created repository)
+        # The output should contain an ECR repository URI pattern
+        ecr_uri_pattern = r"\d+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com/"
+        self.assertRegex(process_stdout, ecr_uri_pattern, "Expected ECR repository URI in packaged template")

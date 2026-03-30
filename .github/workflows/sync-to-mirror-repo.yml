@@ -1,0 +1,29 @@
+name: "Sync to Mirror Repo"
+
+on:
+  schedule:
+    # Run twice daily at 3am and 3pm PST
+    - cron: '0 11,23 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync-from-public:
+    runs-on: ubuntu-latest
+    if: github.repository != 'aws/aws-sam-cli' # Only run in mirror repo
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout public repo
+        uses: actions/checkout@v6
+        with:
+          repository: aws/aws-sam-cli
+          ref: develop
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Push to mirror repo
+        run: |
+          git config user.name "aws-sam-cli-bot"
+          git config user.email "aws-sam-cli-gh-bot@amazon.com"
+          git config --unset-all http.https://github.com/.extraheader || true
+          git push https://x-access-token:${{ secrets.SYNC_REPO_PAT }}@github.com/${{ github.repository }}.git develop:develop --force

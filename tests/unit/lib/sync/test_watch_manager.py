@@ -7,7 +7,7 @@ from samcli.lib.providers.exceptions import MissingCodeUri, MissingLocalDefiniti
 from samcli.lib.sync.exceptions import MissingPhysicalResourceError, SyncFlowException
 from parameterized import parameterized
 
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
 
 class TestWatchManager(TestCase):
@@ -105,6 +105,31 @@ class TestWatchManager(TestCase):
         self.path_observer.schedule_handlers.assert_any_call(trigger_1.get_path_handlers.return_value)
         self.path_observer.schedule_handlers.assert_any_call(trigger_2.get_path_handlers.return_value)
         self.assertEqual(self.path_observer.schedule_handlers.call_count, 2)
+
+    @patch("samcli.lib.sync.watch_manager.LOG")
+    @patch("samcli.lib.sync.watch_manager.get_all_resource_ids")
+    def test_add_code_triggers_function_not_found(self, get_all_resource_ids_mock, patched_log):
+        """Test that FunctionNotFound is handled gracefully for ECR-based image functions"""
+        resource_ids = [MagicMock(), MagicMock()]
+        get_all_resource_ids_mock.return_value = resource_ids
+
+        trigger_1 = MagicMock()
+
+        trigger_factory = MagicMock()
+        trigger_factory.create_trigger.side_effect = [
+            trigger_1,
+            FunctionNotFound(),
+        ]
+        self.watch_manager._stacks = [MagicMock()]
+        self.watch_manager._trigger_factory = trigger_factory
+
+        on_code_change_wrapper_mock = MagicMock()
+        self.watch_manager._on_code_change_wrapper = on_code_change_wrapper_mock
+
+        self.watch_manager._add_code_triggers()
+
+        # Should only schedule handlers for the first trigger, not the FunctionNotFound one
+        self.path_observer.schedule_handlers.assert_called_once_with(trigger_1.get_path_handlers.return_value)
 
     @patch("samcli.lib.sync.watch_manager.TemplateTrigger")
     @patch("samcli.lib.sync.watch_manager.SamLocalStackProvider.get_stacks")

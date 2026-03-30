@@ -1,7 +1,6 @@
 """SyncFlow for Image based Lambda Functions"""
 
 import logging
-from contextlib import ExitStack
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from docker.client import DockerClient
@@ -9,7 +8,12 @@ from docker.client import DockerClient
 from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.providers.provider import Stack
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
+from samcli.lib.sync.flows.function_sync_flow import (
+    FunctionPublishTarget,
+    FunctionPublishVersionParams,
+    FunctionSyncFlow,
+    FunctionUpdateParams,
+)
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 from samcli.local.docker.utils import get_validated_container_client
 
@@ -145,24 +149,33 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         ecr_uploader = ECRUploader(self._get_docker_client(), self._get_ecr_client(), ecr_repo, None)
         image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)
 
-        with ExitStack() as exit_stack:
-            if self.has_locks():
-                exit_stack.enter_context(self._get_lock_chain())
+        update_params = FunctionUpdateParams(FunctionName=function_physical_id, ImageUri=image_uri)
 
-            self._lambda_client.update_function_code(FunctionName=function_physical_id, ImageUri=image_uri)
+        self.update_function_with_lock(update_params)
 
-            # We need to wait for the cloud side update to finish
-            # Otherwise even if the call is finished and lockchain is released
-            # It is still possible that we have a race condition on cloud updating the same function
-            wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
+        # Publish the latest change to PublishTarget.LATEST_PUBLISHED to reflect in invocations.
+        if self.auto_publish_latest_invocable:
+            LOG.debug("%sPublishing new version for function %s", self.log_prefix, function_physical_id)
+            self.publish_function_version_with_lock(
+                FunctionPublishVersionParams(
+                    FunctionName=function_physical_id,
+                    PublishTo=FunctionPublishTarget.LATEST_PUBLISHED,
+                )
+            )
 
     def _get_resource_api_calls(self) -> List[ResourceAPICall]:
         # We need to acquire lock for both API calls since they would conflict on cloud
         # Any UPDATE_FUNCTION_CODE and UPDATE_FUNCTION_CONFIGURATION on the same function
         # Cannot take place in parallel
+        api_call_types = [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]
+
+        # Add PUBLISH_VERSION to API call types for Lambda Managed Instance (LMI) functions
+        if self.auto_publish_latest_invocable:
+            api_call_types.append(ApiCallTypes.PUBLISH_VERSION)
+
         return [
             ResourceAPICall(
                 self._function_identifier,
-                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+                api_call_types,
             )
         ]

@@ -165,6 +165,7 @@ class LambdaContainer(Container):
             mount_symlinks=mount_symlinks,
             labels=container_labels,
             dns=dns,
+            debug_options=debug_options,
         )
 
     @staticmethod
@@ -315,3 +316,7 @@ class LambdaContainer(Container):
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
         )
+
+    def get_port(self):
+        """Get the host port that the Lambda container is bound to."""
+        return self.rapid_port_host

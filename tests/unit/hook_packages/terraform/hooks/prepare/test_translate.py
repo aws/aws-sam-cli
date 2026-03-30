@@ -326,7 +326,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.project_root,
         )
 
-        mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
+        mock_enrich_resources_and_generate_makefile.assert_called_once_with(
+            *expected_arguments_in_call, mount_symlinks=False
+        )
         self.assertEqual(len(lambda_properties_mock.method_calls), 6)
         lambda_properties_mock.add_lambda_resources_to_code_map.assert_has_calls(
             [
@@ -458,7 +460,9 @@ class TestPrepareHookTranslate(PrepareHookUnitBase):
             self.project_root,
         )
 
-        mock_enrich_resources_and_generate_makefile.assert_called_once_with(*expected_arguments_in_call)
+        mock_enrich_resources_and_generate_makefile.assert_called_once_with(
+            *expected_arguments_in_call, mount_symlinks=False
+        )
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate.get_resource_property_mapping")
     @patch("samcli.hook_packages.terraform.hooks.prepare.translate._check_dummy_remote_values")

@@ -194,6 +194,7 @@ class TestExperimentalMetric(IntegBase):
                                 "projectName": ANY,
                                 "initialCommit": ANY,
                                 "adminContainerPreference": ANY,
+                                "functionFieldsUsed": ANY,
                             },
                             "duration": ANY,
                             "exitReason": ANY,

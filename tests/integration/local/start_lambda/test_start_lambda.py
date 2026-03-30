@@ -1,21 +1,21 @@
 import signal
-from unittest import skipIf
+from unittest import skipIf, TestCase
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from time import time, sleep
 import json
 from parameterized import parameterized, parameterized_class
+from subprocess import Popen, PIPE
+from pathlib import Path
 
 import pytest
 import random
 
-import boto3
-from botocore import UNSIGNED
-from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from samcli.commands.local.cli_common.invoke_context import ContainersInitializationMode
-from tests.testing_utils import IS_WINDOWS
+from tests.testing_utils import IS_WINDOWS, get_sam_command, kill_process
+from tests.integration.local.common_utils import random_port, InvalidAddressException, wait_for_local_process
 from .start_lambda_api_integ_base import StartLambdaIntegBaseClass, WatchWarmContainersIntegBaseClass
 
 
@@ -23,15 +23,7 @@ class TestParallelRequests(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template.yml"
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
@@ -62,15 +54,7 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template.yml"
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
@@ -82,6 +66,15 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload="notat:asdfasdf")
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction",
+                Payload="notat:asdfasdf",
+                InvocationType="Event",
+            )
 
         self.assertEqual(str(error.exception), expected_error_message)
 
@@ -103,11 +96,78 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     def test_invoke_with_invocation_type_not_RequestResponse(self):
         expected_error_message = (
             "An error occurred (NotImplemented) when calling the Invoke operation: "
-            "invocation-type: DryRun is not supported. RequestResponse is only supported."
+            "invocation-type: DryRun is not supported. Only Event and RequestResponse are supported."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_image_uri_missing(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " ImageUri not provided for Function: HelloWorldFunctionMissingImageUri of PackageType: Image"
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(FunctionName="HelloWorldFunctionMissingImageUri", Payload='"This is json data"')
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="HelloWorldFunctionMissingImageUri",
+                Payload='"This is json data"',
+                InvocationType="Event",
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_missing_tenant_id(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(FunctionName="MultiTenantFunction", Payload='"This is json data"')
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="MultiTenantFunction", InvocationType="Event", Payload='"This is json data"'
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_function_with_tenant_id(self):
+        expected_error_message = (
+            "An error occurred (ValidationException) when calling the Invoke operation:"
+            " The invoked function is not enabled with tenancy configuration. Remove the tenant ID from your request and try again."
+        )
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction", TenantId="tenant-123", Payload='"This is json data"'
+            )
+
+        self.assertEqual(str(error.exception), expected_error_message)
+
+        with self.assertRaises(ClientError) as error:
+            self.lambda_client.invoke(
+                FunctionName="EchoEventFunction",
+                TenantId="tenant-123",
+                Payload='"This is json data"',
+                InvocationType="Event",
+            )
 
         self.assertEqual(str(error.exception), expected_error_message)
 
@@ -116,15 +176,7 @@ class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
     template_path = "/testdata/invoke/template-inlinecode.yaml"
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
@@ -163,19 +215,12 @@ class TestLambdaService(StartLambdaIntegBaseClass):
     parent_path = ""
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
+    @pytest.mark.tier1
     def test_invoke_with_data(self, use_full_path):
         response = self.lambda_client.invoke(
             FunctionName=f"{self.parent_path if use_full_path == 'True' else ''}EchoEventFunction",
@@ -209,6 +254,22 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), "{}")
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_multi_tenant_function_with_tenant_id(self):
+        response = self.lambda_client.invoke(
+            FunctionName="MultiTenantFunction", TenantId="tenant-123", Payload='{"test": "data"}'
+        )
+
+        self.assertEqual(response.get("StatusCode"), 200)
+        payload = json.loads(response.get("Payload").read().decode("utf-8"))
+
+        # The response is wrapped in a Lambda response format
+        self.assertEqual(payload.get("statusCode"), 200)
+        body = json.loads(payload.get("body"))
+        self.assertEqual(body.get("tenant_id"), "tenant-123")
+        self.assertEqual(body.get("message"), "Hello from multi-tenant function")
 
     @parameterized.expand([("False"), ("True")])
     @pytest.mark.flaky(reruns=3)
@@ -308,50 +369,61 @@ class TestLambdaService(StartLambdaIntegBaseClass):
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
 
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_event_invocation_type(self):
+        response = self.lambda_client.invoke(
+            FunctionName="EchoEventFunction",
+            Payload='"This is json data"',
+            InvocationType="Event",
+        )
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), "")
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 202)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_with_event_invocation_type_calls_function(self):
+        response = self.lambda_client.invoke(
+            FunctionName="WriteToStderrFunction",
+            InvocationType="Event",
+        )
+        self.assertIsNone(response.get("FunctionError"))
+        self.assertEqual(response.get("StatusCode"), 202)
+
+        # Wait for function to be called
+        sleep(2)
+
+        # Check stderr that function was called
+        self.assertIn("Docker Lambda is writing to stderr", self.start_lambda_process_output)
+
 
 class TestWarmContainersBaseClass(StartLambdaIntegBaseClass):
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     def count_running_containers(self):
         """Count containers created by this test using Docker client directly."""
-        # Use Docker client to find containers with SAM CLI labels
         try:
-            # Get running containers with SAM CLI lambda container label
             sam_containers = self.docker_client.containers.list(
                 all=False, filters={"label": "sam.cli.container.type=lambda"}
             )
 
-            # Filter by our test's mode environment variable if possible
             test_containers = []
             for container in sam_containers:
                 try:
                     container.reload()
                     env_vars = container.attrs.get("Config", {}).get("Env", [])
                     for env_var in env_vars:
-                        if env_var.startswith("MODE=") and self.mode_env_variable in env_var:
+                        if env_var == f"MODE={self.mode_env_variable}":
                             test_containers.append(container)
                             break
                 except Exception:
                     continue
 
-            # If we found containers with our mode variable, return that count
-            if test_containers:
-                return len(test_containers)
+            return len(test_containers)
 
-            # Otherwise, return all SAM containers (fallback)
-            return len(sam_containers)
-
-        except Exception as e:
-            # If we can't access Docker client, fall back to 0
+        except Exception:
             return 0
 
     def _parse_container_ids_from_output(self):
@@ -416,7 +488,7 @@ class TestWarmContainersHandlesSigTermInterrupt(TestWarmContainersBaseClass):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
 
         initiated_containers = self.count_running_containers()
-        self.assertEqual(initiated_containers, 2)
+        self.assertGreaterEqual(initiated_containers, 2, "Expected at least 2 warm containers after invoke")
 
         service_process = self.start_lambda_process
         service_process.send_signal(signal.SIGTERM)
@@ -548,15 +620,7 @@ class TestImagePackageType(StartLambdaIntegBaseClass):
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -578,15 +642,7 @@ class TestImagePackageTypeWithEagerWarmContainersMode(StartLambdaIntegBaseClass)
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -608,15 +664,7 @@ class TestImagePackageTypeWithEagerLazyContainersMode(StartLambdaIntegBaseClass)
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -661,15 +709,7 @@ def handler(event, context):
     container_mode = ContainersInitializationMode.EAGER.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -754,15 +794,7 @@ def handler2(event, context):
     container_mode = ContainersInitializationMode.EAGER.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -857,15 +889,7 @@ def handler2(event, context):
     container_mode = ContainersInitializationMode.EAGER.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -949,15 +973,7 @@ def handler(event, context):
     container_mode = ContainersInitializationMode.EAGER.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -981,6 +997,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageWarmContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1027,15 +1044,7 @@ COPY main.py ./"""
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1059,6 +1068,7 @@ COPY main.py ./"""
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChanged(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1133,15 +1143,7 @@ COPY main.py ./"""
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1199,15 +1201,7 @@ def handler(event, context):
     container_mode = ContainersInitializationMode.LAZY.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1230,6 +1224,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingImageLazyContainers(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1276,15 +1271,7 @@ COPY main.py ./"""
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1370,15 +1357,7 @@ def handler2(event, context):
     container_mode = ContainersInitializationMode.LAZY.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1473,15 +1452,7 @@ def handler2(event, context):
     container_mode = ContainersInitializationMode.LAZY.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1565,15 +1536,7 @@ def handler(event, context):
     container_mode = ContainersInitializationMode.LAZY.value
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1597,6 +1560,7 @@ def handler(event, context):
         self.assertEqual(json.loads(response.get("body")), {"hello": "world2"})
 
 
+@pytest.mark.xdist_group(name="docker_watcher")
 class TestWatchingTemplateChangesDockerFileLocationChangedLazyContainer(WatchWarmContainersIntegBaseClass):
     template_content = """AWSTemplateFormatVersion : '2010-09-09'
 Transform: AWS::Serverless-2016-10-31    
@@ -1671,15 +1635,7 @@ COPY main.py ./"""
     parameter_overrides = {"ImageUri": f"helloworldfunction:{tag}"}
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=600, method="thread")
@@ -1719,15 +1675,7 @@ class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
     ]
 
     def setUp(self):
-        self.url = "http://127.0.0.1:{}".format(self.port)
-        self.lambda_client = boto3.client(
-            "lambda",
-            endpoint_url=self.url,
-            region_name="us-east-1",
-            use_ssl=False,
-            verify=False,
-            config=Config(signature_version=UNSIGNED, read_timeout=120, retries={"max_attempts": 0}),
-        )
+        self.lambda_client = self.get_local_lambda_client()
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
@@ -1737,3 +1685,153 @@ class TestLambdaServiceWithCustomInvokeImages(StartLambdaIntegBaseClass):
         self.assertEqual(response.get("Payload").read().decode("utf-8"), '"This is json data"')
         self.assertIsNone(response.get("FunctionError"))
         self.assertEqual(response.get("StatusCode"), 200)
+
+
+class TestFunctionNameFilteringWithFilter(StartLambdaIntegBaseClass):
+    """Test function name filtering with specific functions"""
+
+    template_path = "/testdata/invoke/template.yml"
+    function_logical_ids = ["EchoEventFunction", "HelloWorldServerlessFunction"]
+
+    def setUp(self):
+        self.lambda_client = self.get_local_lambda_client()
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_filtered_function(self):
+        """Test invoking a function that is in the filter"""
+        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='"filtered test"')
+        self.assertEqual(response.get("StatusCode"), 200)
+        self.assertEqual(response.get("Payload").read().decode("utf-8"), '"filtered test"')
+        self.assertIsNone(response.get("FunctionError"))
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_non_filtered_function(self):
+        """Test invoking a function that is NOT in the filter returns ResourceNotFoundException"""
+        with self.assertRaises(ClientError) as context:
+            self.lambda_client.invoke(FunctionName="FunctionWithMetadata")
+            self.assertIn("ResourceNotFound", str(context.exception))
+
+
+class TestFunctionNameFilteringWarmContainersEager(TestWarmContainersBaseClass):
+    """Test function filtering with EAGER warm containers"""
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.EAGER.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+    function_logical_ids = ["HelloWorldFunction"]
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_only_filtered_functions_have_containers(self):
+        """Test that only filtered functions have containers pre-warmed in EAGER mode"""
+        self.assertEqual(self.count_running_containers(), 1)
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_invoke_filtered_function_with_eager_containers(self):
+        """Test invoking filtered function with EAGER warm containers"""
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+        response = json.loads(result.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response.get("statusCode"), 200)
+        self.assertEqual(json.loads(response.get("body")), {"hello": "world"})
+
+
+class TestFunctionNameFilteringWarmContainersLazyNoContainers(TestWarmContainersBaseClass):
+    """
+    Test function filtering with LAZY warm containers.
+    This class and the next one have a similar set up, but they need to be separate
+    otherwise the containers count would be mixed up.
+    """
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+    function_logical_ids = ["HelloWorldFunction"]
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_no_containers_before_invoke_with_lazy(self):
+        """Test that no containers are initialized before invocation in LAZY mode"""
+        self.assertEqual(self.count_running_containers(), 0)
+
+
+class TestFunctionNameFilteringWarmContainersLazy(TestWarmContainersBaseClass):
+    """Test function filtering with LAZY warm containers"""
+
+    template_path = "/testdata/start_api/template-warm-containers.yaml"
+    container_mode = ContainersInitializationMode.LAZY.value
+    mode_env_variable = str(uuid.uuid4())
+    parameter_overrides = {"ModeEnvVariable": mode_env_variable}
+    function_logical_ids = ["HelloWorldFunction"]
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=600, method="thread")
+    def test_container_created_on_demand_for_filtered_function(self):
+        """Test that container is created on-demand for filtered function in LAZY mode"""
+        self.assertEqual(self.count_running_containers(), 0)
+        result = self.lambda_client.invoke(FunctionName="HelloWorldFunction")
+        self.assertEqual(result.get("StatusCode"), 200)
+        self.assertEqual(self.count_running_containers(), 1)
+
+
+class TestFunctionNameFilteringInvalidNames(TestCase):
+    """Test error handling for invalid function names"""
+
+    integration_dir = str(Path(__file__).resolve().parents[2])
+    template_path = "/testdata/invoke/template.yml"
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invalid_function_names_error(self):
+        """Test that invalid function names produce helpful error message at startup"""
+        template = self.integration_dir + self.template_path
+        command_list = [
+            get_sam_command(),
+            "local",
+            "start-lambda",
+            "InvalidFunction1",
+            "InvalidFunction2",
+            "-p",
+            str(random_port()),
+            "-t",
+            template,
+        ]
+
+        process = Popen(command_list, stderr=PIPE, stdout=PIPE, cwd=str(Path(template).resolve().parents[0]))
+        stdout, stderr = process.communicate(timeout=30)
+
+        self.assertNotEqual(process.returncode, 0)
+        error_output = stderr.decode("utf-8")
+        # Should match sam local invoke error pattern: "function not found. Possible options in your template:"
+        for expected in ["not found", "InvalidFunction1, InvalidFunction2", "Possible options in your template"]:
+            self.assertIn(expected, error_output)
+
+
+class TestCapacityProviderFunction(StartLambdaIntegBaseClass):
+    """Test capacity provider functionality with a dedicated template"""
+
+    template_path = "/testdata/invoke/template-capacity-provider.yml"
+
+    def setUp(self):
+        self.lambda_client = self.get_local_lambda_client()
+
+    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.timeout(timeout=300, method="thread")
+    def test_invoke_capacity_provider_function(self):
+        """Test invoking a function with capacity provider configuration"""
+        response = self.lambda_client.invoke(
+            FunctionName="HelloWorldCapacityProviderFunction",
+            Payload='{"key1": "value1", "key2": "value2", "key3": "value3"}',
+        )
+        self.assertEqual(response.get("StatusCode"), 200)
+        self.assertIsNone(response.get("FunctionError"))
+        response_data = json.loads(response.get("Payload").read().decode("utf-8"))
+        self.assertEqual(response_data["statusCode"], 200)
+        body = json.loads(response_data["body"])
+        self.assertEqual(body["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", body)

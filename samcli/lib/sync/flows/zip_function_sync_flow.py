@@ -15,7 +15,12 @@ from samcli.lib.build.build_graph import BuildGraph
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.utils import make_zip_with_lambda_permissions
 from samcli.lib.providers.provider import Stack
-from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow, wait_for_function_update_complete
+from samcli.lib.sync.flows.function_sync_flow import (
+    FunctionPublishTarget,
+    FunctionPublishVersionParams,
+    FunctionSyncFlow,
+    FunctionUpdateParams,
+)
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall
 from samcli.lib.utils.colors import Colored
 from samcli.lib.utils.hash import file_checksum
@@ -142,26 +147,15 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             return
 
         zip_file_size = os.path.getsize(self._zip_file)
+        function_name = self.get_physical_id(self._function_identifier)
+
         if zip_file_size < MAXIMUM_FUNCTION_ZIP_SIZE:
             # Direct upload through Lambda API
             LOG.debug("%sUploading Function Directly", self.log_prefix)
             with open(self._zip_file, "rb") as zip_file:
                 data = zip_file.read()
 
-                with ExitStack() as exit_stack:
-                    if self.has_locks():
-                        exit_stack.enter_context(self._get_lock_chain())
-
-                    self._lambda_client.update_function_code(
-                        FunctionName=self.get_physical_id(self._function_identifier), ZipFile=data
-                    )
-
-                    # We need to wait for the cloud side update to finish
-                    # Otherwise even if the call is finished and lockchain is released
-                    # It is still possible that we have a race condition on cloud updating the same function
-                    wait_for_function_update_complete(
-                        self._lambda_client, self.get_physical_id(self._function_identifier)
-                    )
+                self.update_function_with_lock(FunctionUpdateParams(FunctionName=function_name, ZipFile=data))
 
         else:
             # Upload to S3 first for oversized ZIPs
@@ -177,20 +171,17 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
             s3_url = uploader.upload_with_dedup(self._zip_file)
             s3_key = s3_url[5:].split("/", 1)[1]
 
-            with ExitStack() as exit_stack:
-                if self.has_locks():
-                    exit_stack.enter_context(self._get_lock_chain())
-
-                self._lambda_client.update_function_code(
-                    FunctionName=self.get_physical_id(self._function_identifier),
-                    S3Bucket=self._deploy_context.s3_bucket,
-                    S3Key=s3_key,
+            self.update_function_with_lock(
+                FunctionUpdateParams(FunctionName=function_name, S3Bucket=self._deploy_context.s3_bucket, S3Key=s3_key)
+            )
+        # Publish the latest change to PublishTarget.LATEST_PUBLISHED to reflect in invocations.
+        if self.auto_publish_latest_invocable:
+            LOG.debug("%sPublishing new version for function %s", self.log_prefix, function_name)
+            self.publish_function_version_with_lock(
+                FunctionPublishVersionParams(
+                    FunctionName=function_name, PublishTo=FunctionPublishTarget.LATEST_PUBLISHED
                 )
-
-                # We need to wait for the cloud side update to finish
-                # Otherwise even if the call is finished and lockchain is released
-                # It is still possible that we have a race condition on cloud updating the same function
-                wait_for_function_update_complete(self._lambda_client, self.get_physical_id(self._function_identifier))
+            )
 
         if os.path.exists(self._zip_file):
             os.remove(self._zip_file)
@@ -218,10 +209,16 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
         # We need to acquire lock for both API calls since they would conflict on cloud
         # Any UPDATE_FUNCTION_CODE and UPDATE_FUNCTION_CONFIGURATION on the same function
         # Cannot take place in parallel
+        api_call_types = [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION]
+
+        # Add PUBLISH_VERSION to API call types for Lambda Managed Instance (LMI) functions
+        if self.auto_publish_latest_invocable:
+            api_call_types.append(ApiCallTypes.PUBLISH_VERSION)
+
         return [
             ResourceAPICall(
                 self._function_identifier,
-                [ApiCallTypes.UPDATE_FUNCTION_CODE, ApiCallTypes.UPDATE_FUNCTION_CONFIGURATION],
+                api_call_types,
             )
         ]
 

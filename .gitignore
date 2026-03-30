@@ -10,7 +10,6 @@
 .idea/**/tasks.xml
 .idea/dictionaries
 .idea
-.vscode
 
 # Sensitive or high-churn files:
 .idea/**/dataSources/
@@ -376,10 +375,7 @@ GitHub.sublime-settings
 
 ### VisualStudioCode ###
 .vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+!.vscode/launch.json.template
 .history
 
 ### Theia editor (GitPod)
@@ -411,6 +407,7 @@ cov.xml
 coverage.xml
 
 # Temporary scratch directory used by the tests
+tests/integration/*/tmp/*
 tests/integration/buildcmd/scratch
 tests/integration/testdata/buildcmd/Dotnet*/bin
 tests/integration/testdata/buildcmd/Dotnet*/obj
@@ -426,3 +423,7 @@ samcli/lib/init/templates/cookiecutter-aws-sam-hello-java-gradle/**/.gradle/
 .build
 
 .kiro
+mise.toml
+
+# Durable executions
+**/.durable-executions-local/

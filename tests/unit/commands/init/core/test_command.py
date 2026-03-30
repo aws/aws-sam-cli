@@ -32,12 +32,16 @@ class TestInitCommand(unittest.TestCase):
 
         cmd = InitCommand(name="init", requires_credentials=False, description=DESCRIPTION)
         expected_output = {
-            "Additional Options": [("", ""), ("--tracing", ""), ("", "")],
-            "Application Options": [("", ""), ("--name", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "Additional Options": [("--tracing", "")],
+            "Application Options": [("--name", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
             "Customized Interactive Mode": [
-                ("", ""),
                 ("$ sam init --name sam-app --runtime " "nodejs18.x --architecture arm64\x1b[0m", ""),
                 (
                     "$ sam init --name sam-app --runtime "
@@ -49,7 +53,6 @@ class TestInitCommand(unittest.TestCase):
             ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Direct Initialization": [
-                ("", ""),
                 ("$ sam init --location " "gh:aws-samples/cookiecutter-aws-sam-python\x1b[0m", ""),
                 (
                     "$ sam init --location "
@@ -61,9 +64,9 @@ class TestInitCommand(unittest.TestCase):
                 ("$ sam init --location " "https://example.com/path/to/template.zip\x1b[0m", ""),
             ],
             "Examples": [],
-            "Interactive Mode": [("", ""), ("$ sam init\x1b[0m", "")],
-            "Non Interactive Options": [("", ""), ("--no-interactive", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Interactive Mode": [("$ sam init\x1b[0m", "")],
+            "Non Interactive Options": [("--no-interactive", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)
