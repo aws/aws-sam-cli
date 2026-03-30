@@ -625,7 +625,6 @@ class WarmLambdaRuntime(LambdaRuntime):
 
             return container
 
-
     def _on_invoke_done(self, container):
         """
         Cleanup the created resources, just before the invoke function ends.

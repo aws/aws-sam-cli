@@ -1,6 +1,7 @@
 """
 Integration tests for DNS option in sam local start-lambda
 """
+
 import pytest
 from tests.integration.local.start_lambda.start_lambda_api_integ_base import StartLambdaIntegBaseClass
 
@@ -101,7 +102,7 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
                             expected_dns,
                             container_dns,
                             f"Expected DNS server {expected_dns} not found in container {container.id}. "
-                            f"Found: {container_dns}"
+                            f"Found: {container_dns}",
                         )
                     dns_verified = True
                     # Found a container with DNS configured
@@ -113,6 +114,5 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
 
         self.assertTrue(
             dns_verified,
-            f"Could not verify DNS configuration in any container. "
-            f"Checked {len(sam_containers)} containers"
+            f"Could not verify DNS configuration in any container. " f"Checked {len(sam_containers)} containers",
         )

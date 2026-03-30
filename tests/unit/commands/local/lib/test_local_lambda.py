@@ -673,6 +673,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            dns=None,
             durable_execution_name=None,
         )
 
@@ -742,6 +743,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            dns=None,
             durable_execution_name=None,
         )
 
@@ -844,6 +846,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            dns=None,
             durable_execution_name=None,
         )
 
@@ -905,6 +908,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            dns=None,
         )
 
 
@@ -958,6 +962,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             container_host="localhost",
             container_host_interface="127.0.0.1",
             extra_hosts=None,
+            dns=None,
             durable_execution_name=None,
         )
 

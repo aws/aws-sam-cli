@@ -708,6 +708,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -794,6 +795,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -886,6 +888,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
                 extra_hosts=None,
+                dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -981,6 +984,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                     "prod-na.host": "10.11.12.13",
                     "gamma-na.host": "10.22.23.24",
                 },
+                dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1072,6 +1076,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                dns=None,
             )
 
             result = self.context.local_lambda_runner

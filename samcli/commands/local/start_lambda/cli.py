@@ -67,6 +67,13 @@ DESCRIPTION = """
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
+@click.option(
+    "--dns",
+    multiple=True,
+    help="Set custom DNS servers for the Lambda container. "
+    "This parameter can be passed multiple times to specify multiple DNS servers. "
+    "Example: --dns 8.8.8.8 --dns 1.1.1.1",
+)
 @cli_framework_options
 @aws_creds_options
 @save_params_option
