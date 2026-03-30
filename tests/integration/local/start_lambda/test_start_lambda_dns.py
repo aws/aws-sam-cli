@@ -34,7 +34,6 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
         terraform_plan_file=None,
         function_logical_ids=None,
     ):
-        # Get base command from parent class
         command_list = super().get_start_lambda_command(
             port=port,
             template_path=template_path,
@@ -59,7 +58,6 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
     def setUp(self):
         self.lambda_client = self.get_local_lambda_client()
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_custom_dns(self):
         """
@@ -70,40 +68,34 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
 
         self.assertEqual(response.get("StatusCode"), 200)
         payload = response.get("Payload").read().decode("utf-8")
-        # EchoEventFunction should echo back the input
+
         self.assertIn("key", payload)
         self.assertIn("value", payload)
 
-    @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_dns_configured_in_container(self):
         """
         Test that DNS servers are actually configured in the Docker container.
         This inspects the container configuration to verify DNS was set correctly.
         """
-        # First invoke a function to ensure a container is created
         response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='{"key": "value"}')
         self.assertEqual(response.get("StatusCode"), 200)
 
-        # Get SAM Lambda containers (running only, since that's what we just created)
         sam_containers = self.docker_client.containers.list(
             all=False, filters={"label": "sam.cli.container.type=lambda"}
         )
 
-        # Verify at least one container exists
         self.assertGreater(len(sam_containers), 0, "Expected at least one running Lambda container")
 
         # Check DNS configuration in any of the containers
         dns_verified = False
         for container in sam_containers:
             try:
-                container.reload()  # Refresh container state
-                # Get DNS configuration from HostConfig
+                container.reload()
                 host_config = container.attrs.get("HostConfig", {})
                 container_dns = host_config.get("Dns", [])
 
                 if container_dns:
-                    # Verify our DNS servers are present
                     for expected_dns in self.dns_servers:
                         self.assertIn(
                             expected_dns,
@@ -112,7 +104,8 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
                             f"Found: {container_dns}"
                         )
                     dns_verified = True
-                    break  # Found a container with DNS configured
+                    # Found a container with DNS configured
+                    break
 
             except Exception as e:
                 # Continue checking other containers if one fails
