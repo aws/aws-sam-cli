@@ -364,6 +364,13 @@ def docker_click_options():
             "If not specified, the Lambda containers will only connect to the default"
             " bridge docker network.",
         ),
+        click.option(
+            "--dns",
+            multiple=True,
+            help="Set custom DNS servers for the Lambda container. "
+            "This parameter can be passed multiple times to specify multiple DNS servers. "
+            "Example: --dns 8.8.8.8 --dns 1.1.1.1",
+        ),
     ]
 
 

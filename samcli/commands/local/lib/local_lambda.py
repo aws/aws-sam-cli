@@ -5,7 +5,7 @@ Implementation of Local Lambda runner
 import logging
 import os
 import platform
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, Tuple, cast
 
 import boto3
 import click
@@ -65,6 +65,7 @@ class LocalLambdaRunner:
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
         extra_hosts: Optional[dict] = None,
+        dns: Optional[Tuple[str]] = None,
     ) -> None:
         """
         Initializes the class
@@ -80,6 +81,7 @@ class LocalLambdaRunner:
         :param string container_host: Optional. Host of locally emulated Lambda container
         :param string container_host_interface: Optional. Interface that Docker host binds ports to
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
+        :param tuple dns: Optional. Tuple of DNS server IP addresses for the container
         """
 
         self.local_runtime = local_runtime
@@ -95,6 +97,7 @@ class LocalLambdaRunner:
         self.container_host = container_host
         self.container_host_interface = container_host_interface
         self.extra_hosts = extra_hosts
+        self.dns = dns
 
     def get_function(self, function_identifier: str, tenant_id: Optional[str] = None) -> Function:
         """
@@ -245,6 +248,7 @@ class LocalLambdaRunner:
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 extra_hosts=self.extra_hosts,
+                dns=self.dns,
             )
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.
