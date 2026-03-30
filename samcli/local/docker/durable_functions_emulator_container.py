@@ -15,7 +15,7 @@ from click import ClickException
 
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
-from samcli.local.docker.utils import get_validated_container_client, is_image_current
+from samcli.local.docker.utils import is_image_current, to_posix_path
 
 LOG = logging.getLogger(__name__)
 
