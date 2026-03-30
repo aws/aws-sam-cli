@@ -231,7 +231,7 @@ class DurableFunctionsEmulatorContainer:
         os.makedirs(emulator_data_dir, exist_ok=True)
 
         volumes = {
-            emulator_data_dir: {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
+            to_posix_path(emulator_data_dir): {"bind": "/tmp/.durable-executions-local", "mode": "rw"},
         }
 
         self._pull_image_if_needed()

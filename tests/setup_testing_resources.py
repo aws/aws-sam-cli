@@ -1,19 +1,39 @@
 """
-Script for getting test account credentials and managed test account resources,
-then exporting them as masked GitHub Actions environment variables.
+Script for setting up test resources, ECR login, and credential management.
 
-Usage: python3.11 tests/setup_testing_resources.py
+Usage: python3.11 tests/setup_testing_resources.py [--test-suite <name>] [--container-runtime <docker|finch>]
+
+Behavior:
+  - If test suite requires credentials: fetches test credentials and resources
+  - For all suites: logs in to Public ECR (with retry)
+  - If test suite does NOT require credentials: clears credentials and sets SKIP_ACCOUNT_RESET
 """
 
 import json
 import os
+import subprocess
 import sys
+import time
 
 from get_testing_resources import get_testing_credentials, get_managed_test_resource_outputs  # type: ignore[import-not-found]  # noqa: E402
 
 from boto3.session import Session
 
 GITHUB_ENV_FILE = os.environ.get("GITHUB_ENV")
+
+# Test suites that do NOT require AWS credentials
+NO_CREDENTIAL_SUITES = {
+    "build-x86-1",
+    "build-x86-2",
+    "build-arm64",
+    "build-x86-container-1",
+    "build-x86-container-2",
+    "build-arm64-container-1",
+    "build-arm64-container-2",
+    "local-invoke",
+    "local-start-api",
+    "local-start-lambda",
+}
 
 SENSITIVE_CREDENTIAL_KEYS = {
     "accessKeyID": "AWS_ACCESS_KEY_ID",
@@ -44,11 +64,38 @@ def write_env(name, value):
         f.write(f"{name}={value}\n")
 
 
-def main():
-    if not GITHUB_ENV_FILE:
-        print("ERROR: GITHUB_ENV is not set. This script must run inside GitHub Actions.", file=sys.stderr)
-        sys.exit(1)
+def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
+    """Log in to Public ECR with retry logic."""
+    for attempt in range(1, retries + 1):
+        try:
+            token_result = subprocess.run(
+                ["aws", "ecr-public", "get-login-password", "--region", "us-east-1"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            token = token_result.stdout.strip()
 
+            if container_runtime == "finch":
+                login_cmd = ["sudo", "finch", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
+            else:
+                login_cmd = ["docker", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
+
+            subprocess.run(login_cmd, input=token, text=True, check=True)
+            print(f"Successfully logged in to Public ECR via {container_runtime}.")
+            return
+        except subprocess.CalledProcessError as e:
+            print(f"ECR login attempt {attempt}/{retries} failed: {e}", file=sys.stderr)
+            if attempt < retries:
+                print(f"Retrying in {delay}s...")
+                time.sleep(delay)
+            else:
+                print(f"FATAL: ECR login failed after {retries} attempts.", file=sys.stderr)
+                sys.exit(1)
+
+
+def setup_credentials():
+    """Fetch and export test credentials and resources."""
     # Save current CI role credentials for later reset
     for env_key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
         value = os.environ.get(env_key, "")
@@ -56,7 +103,7 @@ def main():
             mask_value(value)
             write_env(f"CI_ACCESS_ROLE_{env_key}", value)
 
-    # Get test credentials (try skip_role_deletion first)
+    # Get test credentials
     try:
         env_vars = get_testing_credentials(skip_role_deletion=True)
     except Exception:
@@ -84,6 +131,40 @@ def main():
         write_env(env_name, value)
 
     print("Testing resources and credentials exported successfully.")
+
+
+def clear_credentials():
+    """Clear credentials and mark account reset as skipped."""
+    write_env("SKIP_ACCOUNT_RESET", "true")
+    write_env("AWS_ACCESS_KEY_ID", "")
+    write_env("AWS_SECRET_ACCESS_KEY", "")
+    write_env("AWS_SESSION_TOKEN", "")
+    print("Credentials cleared; account reset will be skipped.")
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test-suite", default=os.environ.get("TEST_SUITE", ""))
+    parser.add_argument("--container-runtime", default=os.environ.get("CONTAINER_RUNTIME", "docker"))
+    args = parser.parse_args()
+
+    if not GITHUB_ENV_FILE:
+        print("ERROR: GITHUB_ENV is not set. This script must run inside GitHub Actions.", file=sys.stderr)
+        sys.exit(1)
+
+    needs_credentials = args.test_suite not in NO_CREDENTIAL_SUITES
+
+    if needs_credentials:
+        setup_credentials()
+
+    # All suites need ECR login, if needs_credentials -> login with test account, else login with oidc account
+    ecr_login(args.container_runtime)
+
+    if not needs_credentials:
+        # clear all the credentail from oidc, we don't want any request routed to oidc account
+        clear_credentials()
 
 
 if __name__ == "__main__":

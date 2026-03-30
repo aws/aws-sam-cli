@@ -12,6 +12,7 @@ import docker
 from click import ClickException
 
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
+from samcli.local.docker.utils import to_posix_path
 
 
 class TestDurableFunctionsEmulatorContainer(TestCase):
@@ -306,9 +307,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             # Verify volumes
             volumes = call_args.kwargs["volumes"]
             expected_data_dir = os.path.join(test_dir, ".durable-executions-local")
-            self.assertIn(expected_data_dir, volumes)
-            self.assertEqual(volumes[expected_data_dir]["bind"], "/tmp/.durable-executions-local")
-            self.assertEqual(volumes[expected_data_dir]["mode"], "rw")
+            expected_volume_key = to_posix_path(expected_data_dir)
+            self.assertIn(expected_volume_key, volumes)
+            self.assertEqual(volumes[expected_volume_key]["bind"], "/tmp/.durable-executions-local")
+            self.assertEqual(volumes[expected_volume_key]["mode"], "rw")
 
             # Verify networking
             self.assertEqual(call_args.kwargs["extra_hosts"], {"host.docker.internal": "host-gateway"})

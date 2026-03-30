@@ -24,11 +24,12 @@ class TestRemoteInvokeCommand(unittest.TestCase):
         # NOTE: One option per option section.
         mock_get_params.return_value = [
             MockParams(rv=("--region", "Region"), name="region"),
+            MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--stack-name", ""), name="stack_name"),
             MockParams(rv=("--parameter", ""), name="parameter"),
             MockParams(rv=("--event", ""), name="event"),
             MockParams(rv=("--config-file", ""), name="config_file"),
-            MockParams(rv=("--beta-features", ""), name="beta_features"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -140,13 +141,19 @@ class TestRemoteInvokeCommand(unittest.TestCase):
                 ),
             ],
             "Acronyms": [("ARN", "")],
-            "Infrastructure Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Input Event Options": [("", ""), ("--event", ""), ("", "")],
-            "Additional Options": [("", ""), ("--parameter", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Infrastructure Options": [("--stack-name", "")],
+            "Input Event Options": [("--event", "")],
+            "Additional Options": [("--parameter", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         cmd.format_options(ctx, formatter)

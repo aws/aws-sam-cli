@@ -6,20 +6,17 @@ SAM_CLI_TELEMETRY ?= 0
 
 # Initialize environment specifically for Github action tests using uv
 init:
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+	if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
+		echo "=== UV_PYTHON resolved to: $$(uv python find $$UV_PYTHON) ==="; \
 		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON)" -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
-# Set up a pytest venv with test dependencies (without installing sam-cli itself)
+# Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
-	python3.11 -m venv $(HOME)/pytest
-	uv pip install --python $(HOME)/pytest/bin/python3 --only-deps --extra dev '.'
-	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
-	pytest --version
-
+	bash tests/setup-pytest.sh
 # Install SAM CLI nightly binary
 init-nightly:
 	bash tests/install-sam-cli-binary.sh sam-cli-nightly

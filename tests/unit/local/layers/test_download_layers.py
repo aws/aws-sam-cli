@@ -142,6 +142,7 @@ class TestDownloadLayers(TestCase):
             AnyStringWith(str(Path("/tmp/cache/layer1_"))),
             unzip_output_dir=str(Path("/tmp/cache/layer1").resolve()),
             progressbar_label="Downloading arn:layer:layer1",
+            mount_symlinks=False,
         )
 
     @patch("samcli.local.layers.layer_downloader.LayerDownloader._create_cache")

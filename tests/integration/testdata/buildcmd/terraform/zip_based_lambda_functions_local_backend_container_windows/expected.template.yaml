@@ -7,7 +7,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
       Handler: index.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
     Metadata:
@@ -24,7 +24,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
       Handler: index.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
     Metadata:
@@ -41,7 +41,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -60,7 +60,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -79,7 +79,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -98,7 +98,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -117,7 +117,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -134,7 +134,7 @@ Resources:
     Properties:
       LayerName: my_layer
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/my_layer_code
     Metadata:
       SamResourceId: aws_lambda_layer_version.from_local
@@ -148,7 +148,7 @@ Resources:
     Properties:
       LayerName: lambda_layer1
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer1
     Metadata:
       SamResourceId: aws_lambda_layer_version.layer1[0]
@@ -162,7 +162,7 @@ Resources:
     Properties:
       LayerName: lambda_layer3
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer3
     Metadata:
       SamResourceId: aws_lambda_layer_version.layer3["my_idx"]
@@ -176,7 +176,7 @@ Resources:
     Properties:
       LayerName: lambda_layer4
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer4
     Metadata:
       SamResourceId: aws_lambda_layer_version.layer4
@@ -190,7 +190,7 @@ Resources:
     Properties:
       LayerName: lambda_layer5
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer5
     Metadata:
       SamResourceId: aws_lambda_layer_version.layer5
@@ -204,7 +204,7 @@ Resources:
     Properties:
       LayerName: lambda_layer6
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer6
     Metadata:
       SamResourceId: aws_lambda_layer_version.layer6
@@ -220,7 +220,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/HelloWorldFunction
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -239,7 +239,7 @@ Resources:
       Code: ModuleFunction9AwsLambdaFunctionThis0B50511AC
       Handler: app.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
       Layers:
@@ -256,7 +256,7 @@ Resources:
     Properties:
       LayerName: lambda_layer2
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/artifacts/layer2
     Metadata:
       SamResourceId: module.layer2.aws_lambda_layer_version.layer
@@ -270,7 +270,7 @@ Resources:
     Properties:
       LayerName: lambda_layer9
       CompatibleRuntimes:
-      - python3.9
+      - python3.11
       Content: ModuleLayer9AwsLambdaLayerVersionThis0DC055E13
     Metadata:
       BuildMethod: makefile
@@ -286,7 +286,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
       Handler: index.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
     Metadata:
@@ -303,7 +303,7 @@ Resources:
       Code: aws-sam-cli/tests/integration/testdata/buildcmd/terraform/zip_based_lambda_functions_local_backend_container_windows/src/list_books
       Handler: index.lambda_handler
       PackageType: Zip
-      Runtime: python3.9
+      Runtime: python3.11
       Timeout: 300
       MemorySize: 128
     Metadata:
