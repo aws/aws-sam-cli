@@ -76,16 +76,50 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
-    def test_multiple_invocations_with_dns(self):
+    def test_dns_configured_in_container(self):
         """
-        Test that multiple invocations work correctly with custom DNS
+        Test that DNS servers are actually configured in the Docker container.
+        This inspects the container configuration to verify DNS was set correctly.
         """
-        # Invoke the function multiple times
-        for i in range(3):
-            response = self.lambda_client.invoke(
-                FunctionName="EchoEventFunction", Payload=f'{{"iteration": {i}}}'
-            )
+        # First invoke a function to ensure a container is created
+        response = self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload='{"key": "value"}')
+        self.assertEqual(response.get("StatusCode"), 200)
 
-            self.assertEqual(response.get("StatusCode"), 200)
-            payload = response.get("Payload").read().decode("utf-8")
-            self.assertIn("iteration", payload)
+        # Get SAM Lambda containers (running only, since that's what we just created)
+        sam_containers = self.docker_client.containers.list(
+            all=False, filters={"label": "sam.cli.container.type=lambda"}
+        )
+
+        # Verify at least one container exists
+        self.assertGreater(len(sam_containers), 0, "Expected at least one running Lambda container")
+
+        # Check DNS configuration in any of the containers
+        dns_verified = False
+        for container in sam_containers:
+            try:
+                container.reload()  # Refresh container state
+                # Get DNS configuration from HostConfig
+                host_config = container.attrs.get("HostConfig", {})
+                container_dns = host_config.get("Dns", [])
+
+                if container_dns:
+                    # Verify our DNS servers are present
+                    for expected_dns in self.dns_servers:
+                        self.assertIn(
+                            expected_dns,
+                            container_dns,
+                            f"Expected DNS server {expected_dns} not found in container {container.id}. "
+                            f"Found: {container_dns}"
+                        )
+                    dns_verified = True
+                    break  # Found a container with DNS configured
+
+            except Exception as e:
+                # Continue checking other containers if one fails
+                continue
+
+        self.assertTrue(
+            dns_verified,
+            f"Could not verify DNS configuration in any container. "
+            f"Checked {len(sam_containers)} containers"
+        )
