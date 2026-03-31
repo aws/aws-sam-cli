@@ -246,7 +246,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
-        dns=None,
+        container_dns=None,
     ) -> Optional[Dict[str, str]]:
         """
         Invoke the given Lambda function locally.
@@ -274,7 +274,7 @@ class LambdaRuntime:
             Interface that Docker host binds ports to
         :param dict extra_hosts: Optional.
             Dict of hostname to IP resolutions
-        :param tuple dns: Optional.
+        :param tuple container_dns: Optional.
             Tuple of DNS server IP addresses for the container
         :returns: Optional[Dict[str, str]]
             HTTP headers dict if this was a durable function invocation, None otherwise
@@ -285,7 +285,7 @@ class LambdaRuntime:
         try:
             # Start the container. This call returns immediately after the container starts
             container = self.create(
-                function_config, debug_context, container_host, container_host_interface, extra_hosts, dns
+                function_config, debug_context, container_host, container_host_interface, extra_hosts, container_dns
             )
             container = self.run(
                 container,
@@ -294,7 +294,7 @@ class LambdaRuntime:
                 container_host,
                 container_host_interface,
                 extra_hosts,
-                dns,
+                container_dns,
             )
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
             # get callback function to start timeout timer
