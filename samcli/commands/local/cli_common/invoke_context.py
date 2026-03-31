@@ -360,6 +360,7 @@ class InvokeContext:
                 container_host=self._container_host,
                 container_host_interface=self._container_host_interface,
                 extra_hosts=self._extra_hosts,
+                container_dns=self._container_dns,
             )
 
             # Collect container ID in a thread-safe way
