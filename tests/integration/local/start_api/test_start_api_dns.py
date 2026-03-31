@@ -17,14 +17,12 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
 
     @classmethod
     def setUpClass(cls):
-        # Set DNS options before starting the service
         cls.dns_servers = ["8.8.8.8", "1.1.1.1"]
         super().setUpClass()
 
     @classmethod
     def start_api(cls):
         """Override to add DNS options to the start-api command"""
-        # Get the base command
         command = cls._get_sam_command()
         from tests.testing_utils import get_sam_command
 
@@ -53,12 +51,10 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
         if cls.config_file:
             command_list += ["--config-file", cls.config_file]
 
-        # Add DNS options
         if hasattr(cls, "dns_servers") and cls.dns_servers:
             for dns_server in cls.dns_servers:
                 command_list += ["--container-dns", dns_server]
 
-        # Start the process using the parent class's logic
         from subprocess import Popen, PIPE
         from tests.integration.local.common_utils import wait_for_local_process
         import threading
@@ -126,7 +122,6 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
         Test that DNS servers are actually configured in the Docker container.
         This inspects the container configuration to verify DNS was set correctly.
         """
-        # Make a request to trigger container creation
         response = requests.get(f"http://127.0.0.1:{self.port}/anyandall", timeout=300)
         self.assertEqual(response.status_code, 200)
 
@@ -136,7 +131,6 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
 
         self.assertGreater(len(sam_containers), 0, "Expected at least one running Lambda container")
 
-        # Check DNS configuration in any of the containers
         dns_verified = False
         for container in sam_containers:
             try:
@@ -153,11 +147,9 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
                             f"Found: {container_dns}",
                         )
                     dns_verified = True
-                    # Found a container with DNS configured
                     break
 
             except Exception as e:
-                # Continue checking other containers if one fails
                 continue
 
         self.assertTrue(

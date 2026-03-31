@@ -37,31 +37,23 @@ class TestInvokeWithDNS(InvokeIntegBase):
             function_to_invoke="TimeoutFunctionWithParameter",
             template_path=self.template_path,
             no_event=True,
-            parameter_overrides={"DefaultTimeout": "15"},  # Increase timeout to 15s
+            parameter_overrides={"DefaultTimeout": "15"},
         )
 
-        # Add DNS options
         for dns_server in self.dns_servers:
             command_list += ["--container-dns", dns_server]
 
-        # Start invoke process (don't wait for it)
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
 
         try:
-            # Poll for container - it should appear while function is sleeping (10 seconds)
-            sam_containers = []
-            max_attempts = 100  # Poll for up to 10 seconds (100 * 0.1s)
-            for attempt in range(max_attempts):
-                time.sleep(0.1)
-                sam_containers = self.docker_client.containers.list(
-                    all=False, filters={"label": "sam.cli.container.type=lambda"}
-                )
-                if sam_containers:
-                    break
+            # Wait for container to start (appears around 5-6 seconds into function execution)
+            time.sleep(7)
+            sam_containers = self.docker_client.containers.list(
+                all=False, filters={"label": "sam.cli.container.type=lambda"}
+            )
 
             self.assertGreater(len(sam_containers), 0, "Expected at least one running Lambda container")
 
-            # Check DNS configuration
             dns_verified = False
             for container in sam_containers:
                 try:
@@ -83,7 +75,6 @@ class TestInvokeWithDNS(InvokeIntegBase):
 
             self.assertTrue(dns_verified, "Could not verify DNS configuration in any container")
 
-            # Now wait for invoke to complete
             stdout, stderr = process.communicate(timeout=300)
             self.assertEqual(process.returncode, 0, f"Invoke failed with stderr: {stderr.decode('utf-8')}")
 
@@ -99,13 +90,11 @@ class TestInvokeWithDNS(InvokeIntegBase):
         and executes successfully
         """
         command_list = self.get_command_list(
-            function_to_invoke="TimeoutFunctionWithParameter",
+            function_to_invoke="HelloWorldServerlessFunction",
             template_path=self.template_path,
             no_event=True,
-            parameter_overrides={"DefaultTimeout": "15"},  # Increase timeout to 15s
         )
 
-        # Add multiple DNS options
         command_list += ["--container-dns", "8.8.8.8"]
         command_list += ["--container-dns", "1.1.1.1"]
         command_list += ["--container-dns", "8.8.4.4"]
@@ -114,6 +103,5 @@ class TestInvokeWithDNS(InvokeIntegBase):
 
         self.assertEqual(return_code, 0, f"Command failed with stderr: {stderr}")
 
-        # Verify we got valid output
         output = stdout.decode("utf-8")
-        self.assertIn("Slept", output)
+        self.assertIn("Hello World", output)

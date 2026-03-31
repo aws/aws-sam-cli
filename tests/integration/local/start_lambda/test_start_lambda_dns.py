@@ -49,7 +49,6 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
             function_logical_ids=function_logical_ids,
         )
 
-        # Add DNS options
         if hasattr(cls, "dns_servers") and cls.dns_servers:
             for dns_server in cls.dns_servers:
                 command_list += ["--container-dns", dns_server]
