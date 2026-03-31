@@ -98,7 +98,7 @@ class Container:
         extra_hosts: Optional[dict] = None,
         mount_symlinks: Optional[bool] = False,
         labels: Optional[dict] = None,
-        dns: Optional[tuple] = None,
+        container_dns: Optional[tuple] = None,
         debug_options=None,
     ):
         """
@@ -123,7 +123,7 @@ class Container:
         :param string host_tmp_dir: Optional. Temporary directory on the host when mounting with write permissions.
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
         :param bool mount_symlinks: Optional. True if symlinks should be mounted in the container
-        :param tuple dns: Optional. Tuple of DNS server IP addresses for the container
+        :param tuple container_dns: Optional. Tuple of DNS server IP addresses for the container
         :param debug_options: Optional. Debug context containing debug configuration
         """
 
@@ -142,7 +142,7 @@ class Container:
         self._extra_hosts = extra_hosts
         self._logs_thread_event = None
         self._labels = labels or {}
-        self._dns = dns
+        self._container_dns = container_dns
 
         # Store docker_client parameter for lazy initialization
         # Only validate container runtime when Docker client is actually accessed
@@ -270,8 +270,8 @@ class Container:
         if self._extra_hosts:
             kwargs["extra_hosts"] = self._extra_hosts
 
-        if self._dns:
-            kwargs["dns"] = list(self._dns)
+        if self._container_dns:
+            kwargs["dns"] = list(self._container_dns)
 
         if self._labels:
             kwargs["labels"] = self._labels

@@ -75,7 +75,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
-        dns=None,
+        container_dns=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -94,7 +94,7 @@ class LambdaRuntime:
             Optional. Interface that Docker host binds ports to
         extra_hosts Dict
             Optional. Dict of hostname to IP resolutions
-        dns tuple
+        container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
 
         Returns
@@ -139,7 +139,7 @@ class LambdaRuntime:
             "extra_hosts": extra_hosts,
             "function_full_path": function_config.full_path,
             "mount_symlinks": self._mount_symlinks,
-            "dns": dns,
+            "container_dns": container_dns,
         }
 
         # Check if this is a durable function and create appropriate container type
@@ -179,7 +179,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
-        dns=None,
+        container_dns=None,
     ):
         """
         Find the created container for the passed Lambda function, then using the
@@ -200,7 +200,7 @@ class LambdaRuntime:
             Optional. Interface that Docker host binds ports to
         extra_hosts Dict
             Optional. Dict of hostname to IP resolutions
-        dns tuple
+        container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
 
         Returns
@@ -216,7 +216,7 @@ class LambdaRuntime:
                 container_host=container_host,
                 container_host_interface=container_host_interface,
                 extra_hosts=extra_hosts,
-                dns=dns,
+                container_dns=container_dns,
             )
 
         if container.is_running():
@@ -553,7 +553,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
-        dns=None,
+        container_dns=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -570,7 +570,7 @@ class WarmLambdaRuntime(LambdaRuntime):
             Host of locally emulated Lambda container
         container_host_interface string
             Interface that Docker host binds ports to
-        dns tuple
+        container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
 
         Returns
@@ -616,7 +616,12 @@ class WarmLambdaRuntime(LambdaRuntime):
             self._observer.start()
 
             container = super().create(
-                function_config, effective_debug_context, container_host, container_host_interface, extra_hosts, dns
+                function_config,
+                effective_debug_context,
+                container_host,
+                container_host_interface,
+                extra_hosts,
+                container_dns,
             )
 
             # Store container and config
@@ -624,7 +629,6 @@ class WarmLambdaRuntime(LambdaRuntime):
             self._containers[function_path] = container
 
             return container
-
 
     def _on_invoke_done(self, container):
         """

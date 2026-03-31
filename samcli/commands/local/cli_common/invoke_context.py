@@ -101,7 +101,7 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
-        dns: Optional[Tuple[str]] = None,
+        container_dns: Optional[Tuple[str]] = None,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
     ) -> None:
         """
@@ -159,7 +159,7 @@ class InvokeContext:
             Optional. A dictionary that defines the custom invoke image URI of each function
         mount_symlinks bool
             Optional. Indicates if symlinks should be mounted inside the container
-        dns tuple
+        container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
         function_logical_ids tuple(str)
             Optional. Tuple of function logical IDs to filter and make available for local execution.
@@ -191,7 +191,7 @@ class InvokeContext:
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._container_env_vars_file = container_env_vars_file
-        self._dns = dns
+        self._container_dns = container_dns
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
@@ -614,7 +614,7 @@ class InvokeContext:
             container_host=self._container_host,
             container_host_interface=self._container_host_interface,
             extra_hosts=self._extra_hosts,
-            dns=self._dns,
+            container_dns=self._container_dns,
         )
         return self._local_lambda_runner
 
