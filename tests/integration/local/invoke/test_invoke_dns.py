@@ -28,7 +28,7 @@ class TestInvokeWithDNS(InvokeIntegBase):
         Test that a function can be invoked successfully with custom DNS servers
         and verify DNS configuration is applied to the container.
 
-        Uses a function that sleeps for 10 seconds to keep the container alive
+        Uses a function with a 15 second timeout to keep the container alive
         long enough for inspection.
         """
         from subprocess import Popen, PIPE, TimeoutExpired
