@@ -85,6 +85,13 @@ def local_common_options(f):
             "--add-host example.com:127.0.0.1",
         ),
         click.option(
+            "--container-dns",
+            multiple=True,
+            help="Set custom DNS servers for the Lambda container. "
+            "This parameter can be passed multiple times to specify multiple DNS servers. "
+            "Example: --container-dns 8.8.8.8 --container-dns 1.1.1.1",
+        ),
+        click.option(
             "--invoke-image",
             "-ii",
             default=None,

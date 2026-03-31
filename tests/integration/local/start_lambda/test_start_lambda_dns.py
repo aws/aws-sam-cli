@@ -8,7 +8,7 @@ from tests.integration.local.start_lambda.start_lambda_api_integ_base import Sta
 
 class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
     """
-    Test that --dns option is properly passed to start-lambda command
+    Test that --container-dns option is properly passed to start-lambda command
     and the service starts successfully with custom DNS configuration
     """
 
@@ -49,10 +49,9 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
             function_logical_ids=function_logical_ids,
         )
 
-        # Add DNS options
         if hasattr(cls, "dns_servers") and cls.dns_servers:
             for dns_server in cls.dns_servers:
-                command_list += ["--dns", dns_server]
+                command_list += ["--container-dns", dns_server]
 
         return command_list
 

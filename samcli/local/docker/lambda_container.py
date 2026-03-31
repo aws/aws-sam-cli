@@ -57,7 +57,7 @@ class LambdaContainer(Container):
         extra_hosts=None,
         function_full_path=None,
         mount_symlinks=False,
-        dns=None,
+        container_dns=None,
     ):
         """
         Initializes the class
@@ -100,7 +100,7 @@ class LambdaContainer(Container):
             Optional. The function full path, unique in all stacks
         mount_symlinks bool
             Optional. True is symlinks should be mounted in the container
-        dns tuple
+        container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
@@ -164,7 +164,7 @@ class LambdaContainer(Container):
             extra_hosts=extra_hosts,
             mount_symlinks=mount_symlinks,
             labels=container_labels,
-            dns=dns,
+            container_dns=container_dns,
             debug_options=debug_options,
         )
 

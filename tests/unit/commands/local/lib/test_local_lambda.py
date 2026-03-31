@@ -673,7 +673,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
-            dns=None,
+            container_dns=None,
             durable_execution_name=None,
         )
 
@@ -743,7 +743,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
-            dns=None,
+            container_dns=None,
             durable_execution_name=None,
         )
 
@@ -846,7 +846,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
-            dns=None,
+            container_dns=None,
             durable_execution_name=None,
         )
 
@@ -908,7 +908,7 @@ class TestLocalLambda_invoke(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
-            dns=None,
+            container_dns=None,
         )
 
 
@@ -934,6 +934,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             debug_context=self.debug_context,
             container_host=self.container_host,
             container_host_interface=self.container_host_interface,
+            container_dns=None,
         )
 
     @patch("samcli.commands.local.lib.local_lambda.validate_architecture_runtime")
@@ -962,7 +963,7 @@ class TestLocalLambda_invoke_with_container_host_option(TestCase):
             container_host="localhost",
             container_host_interface="127.0.0.1",
             extra_hosts=None,
-            dns=None,
+            container_dns=None,
             durable_execution_name=None,
         )
 

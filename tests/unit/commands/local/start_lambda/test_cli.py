@@ -46,7 +46,7 @@ class TestCli(TestCase):
         self.invoke_image = ()
         self.hook_name = None
         self.no_mem_limit = False
-        self.dns = None
+        self.container_dns = None
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaService")
@@ -88,7 +88,7 @@ class TestCli(TestCase):
             invoke_images={},
             function_logical_ids=(),
             no_mem_limit=self.no_mem_limit,
-            dns=self.dns,
+            container_dns=self.container_dns,
         )
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)
@@ -192,5 +192,5 @@ class TestCli(TestCase):
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
             no_mem_limit=self.no_mem_limit,
-            dns=self.dns,
+            container_dns=self.container_dns,
         )

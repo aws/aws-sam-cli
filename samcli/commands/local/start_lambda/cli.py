@@ -67,13 +67,6 @@ DESCRIPTION = """
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
-@click.option(
-    "--dns",
-    multiple=True,
-    help="Set custom DNS servers for the Lambda container. "
-    "This parameter can be passed multiple times to specify multiple DNS servers. "
-    "Example: --dns 8.8.8.8 --dns 1.1.1.1",
-)
 @cli_framework_options
 @aws_creds_options
 @save_params_option
@@ -115,7 +108,7 @@ def cli(
     skip_prepare_infra,
     terraform_plan_file,
     no_memory_limit,
-    dns,
+    container_dns,
 ):
     """
     `sam local start-lambda` command entry point
@@ -149,7 +142,7 @@ def cli(
         invoke_image,
         hook_name,
         no_memory_limit,
-        dns,
+        container_dns,
     )  # pragma: no cover
 
 
@@ -180,7 +173,7 @@ def do_cli(  # pylint: disable=R0914
     invoke_image,
     hook_name,
     no_mem_limit,
-    dns,
+    container_dns,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -228,7 +221,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             function_logical_ids=function_logical_ids,
             no_mem_limit=no_mem_limit,
-            dns=dns,
+            container_dns=container_dns,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)
             service.start()

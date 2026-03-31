@@ -594,6 +594,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 True,
                 True,
+                (),
                 None,
                 None,
             )
@@ -664,6 +665,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "python3.11",
                 True,
                 True,
+                (),
                 None,
                 None,
             )
@@ -737,6 +739,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 False,
+                (),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -803,7 +806,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
                 None,
                 False,
-                (),  # dns
+                (),
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -1450,7 +1453,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 False,
-                (),  # dns
+                (),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1553,7 +1556,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 True,
-                (),  # dns
+                (),
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
