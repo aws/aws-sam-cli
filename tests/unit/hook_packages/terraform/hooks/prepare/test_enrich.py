@@ -147,6 +147,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "/terraform/project/root",
                     "python",
                     "/output/dir",
+                    mount_symlinks=False,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -236,6 +237,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "/terraform/project/root",
                     "python",
                     "/output/dir",
+                    mount_symlinks=False,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -345,6 +347,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "/terraform/project/root",
                     "python",
                     "/output/dir",
+                    mount_symlinks=False,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -542,6 +545,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "/terraform/project/root",
                     "python",
                     "/output/dir",
+                    mount_symlinks=False,
                 )
                 for i in range(len(sam_metadata_resources))
             ]
@@ -694,6 +698,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                     "/terraform/project/root",
                     "python",
                     "/output/dir",
+                    mount_symlinks=False,
                 )
                 for i in range(len(sam_metadata_resources))
             ]

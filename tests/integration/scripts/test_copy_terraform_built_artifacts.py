@@ -200,3 +200,60 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             subprocess.check_call(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
             )
+
+    def test_script_zip_with_symlink_fails_without_mount_symlinks(self):
+        """Test that unzipping a zip with an absolute symlink fails by default."""
+        input_file = self.testdata_directory.joinpath("build-output-path-symlink-zip.json")
+        with open(input_file, "rb") as f:
+            json_str = f.read().decode("utf-8")
+        command = [
+            str(sys.executable),
+            str(self.script_location),
+            "--directory",
+            str(self.directory),
+            "--expression",
+            self.expression,
+            "--json",
+            json_str,
+        ]
+        env = os.environ.copy()
+        with self.assertRaises(subprocess.CalledProcessError) as ctx:
+            subprocess.check_output(
+                command,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.PIPE,
+                cwd=self.working_dir,
+                env=env,
+            )
+        self.assertIn(
+            "Failed to extract file from the zip file. A symlink has an absolute target which is not allowed",
+            ctx.exception.output.decode("utf-8"),
+        )
+
+    def test_script_zip_with_symlink_succeeds_with_mount_symlinks(self):
+        """Test that unzipping a zip with an absolute symlink succeeds when --mount-symlinks is passed."""
+        input_file = self.testdata_directory.joinpath("build-output-path-symlink-zip.json")
+        with open(input_file, "rb") as f:
+            json_str = f.read().decode("utf-8")
+        command = [
+            str(sys.executable),
+            str(self.script_location),
+            "--directory",
+            str(self.directory),
+            "--expression",
+            self.expression,
+            "--json",
+            json_str,
+            "--mount-symlinks",
+        ]
+        subprocess.check_call(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            stdin=subprocess.PIPE,
+            cwd=self.working_dir,
+        )
+        # Verify the symlink was created
+        link_path = os.path.join(self.directory, "external_link")
+        self.assertTrue(os.path.islink(link_path))
+        self.assertEqual(os.readlink(link_path), "/tmp/external_target")

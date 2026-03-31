@@ -9,9 +9,9 @@ from collections import OrderedDict
 import click
 from click import Group
 
-from samcli.cli.formatters import RootCommandHelpTextFormatter
+from samcli.cli.formatters import RootCommandHelpTextFormatter, get_terminal_width
 from samcli.cli.root.command_list import SAM_CLI_COMMANDS
-from samcli.cli.row_modifiers import HighlightNewRowNameModifier, RowDefinition, ShowcaseRowModifier
+from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,18 @@ class BaseCommand(Group):
     class CustomFormatterContext(click.Context):
         formatter_class = RootCommandHelpTextFormatter
 
+        def __init__(self, *args, **kwargs):
+            if "max_content_width" not in kwargs:
+                kwargs["max_content_width"] = 140
+            # Explicitly set terminal width if not provided to ensure proper text wrapping
+            # Apply right padding to prevent text from wrapping at the terminal edge
+            if "terminal_width" not in kwargs:
+                terminal_width = get_terminal_width()
+                if terminal_width is not None:
+                    # Apply padding but ensure minimum width of 60
+                    kwargs["terminal_width"] = max(terminal_width - 5, 60)
+            super().__init__(*args, **kwargs)
+
     context_class = CustomFormatterContext
 
     def __init__(self, *args, cmd_packages=None, **kwargs):
@@ -106,7 +118,8 @@ class BaseCommand(Group):
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         # NOTE(sriram-mv): Re-order options so that they come after the commands.
         self.format_commands(ctx, formatter)
-        opts = [RowDefinition(name="", text="\n")]
+
+        opts = []
         for param in self.get_params(ctx):
             row = param.get_help_record(ctx)
             if row is not None:
@@ -118,19 +131,15 @@ class BaseCommand(Group):
                 formatter.write_rd(opts)
 
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        name="",
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name="Get Started:",
-                        text=click.style(f"$ {ctx.command_path} init"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-            )
+            with formatter.indented_section(name="Get Started", extra_indents=1):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=click.style(f"$ {ctx.command_path} init"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ],
+                )
 
     def format_commands(self, ctx: click.Context, formatter: RootCommandHelpTextFormatter):  # type: ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
@@ -138,13 +147,12 @@ class BaseCommand(Group):
         # mypy raises argument needs to be HelpFormatter as super class defines it.
         with formatter.section("Commands"):
             with formatter.section("Learn"):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name="docs",
                             text=SAM_CLI_COMMANDS.get("docs", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
-                        )
+                        ),
                     ]
                 )
 
@@ -173,12 +181,10 @@ class BaseCommand(Group):
                         RowDefinition(
                             name="sync",
                             text=SAM_CLI_COMMANDS.get("sync", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                         RowDefinition(
                             name="remote",
                             text=SAM_CLI_COMMANDS.get("remote", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                     ],
                 )
@@ -217,7 +223,6 @@ class BaseCommand(Group):
                         RowDefinition(
                             name="list",
                             text=SAM_CLI_COMMANDS.get("list", ""),
-                            extra_row_modifiers=[HighlightNewRowNameModifier()],
                         ),
                         RowDefinition(
                             name="delete",

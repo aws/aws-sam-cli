@@ -28,9 +28,8 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
         """Format command examples for help text"""
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Send failure callback with no parameters", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -39,9 +38,8 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
                 )
 
             with formatter.indented_section(name="Send failure callback with error message", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id --error-message 'Task failed'"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
@@ -57,9 +55,8 @@ class LocalCallbackFailCommand(LocalCallbackCommand):
                     f"$ {ctx.command_path} my-callback-id --error-message 'Task failed' "
                     f"--error-type 'ValidationError' --stack-trace 'at line 42' --error-data '{json_data}'"
                 )
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(command_example),
                             extra_row_modifiers=[ShowcaseRowModifier()],
