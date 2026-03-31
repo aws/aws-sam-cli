@@ -421,6 +421,20 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container._pull_image_if_needed()
         self.assertIn("Failed to pull emulator image", str(context.exception))
 
+    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
+    def test_image_pull_failure_with_existing_local_image_logs_debug_message(self, mock_is_current):
+        """Test that image pull failure with existing local image logs debug message before raising exception"""
+        container = self._create_container()
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
+        mock_is_current.return_value = False
+        self.mock_docker_client.images.pull.side_effect = Exception("Network timeout")
+
+        with (self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log,):
+            container._pull_image_if_needed()
+
+        self.assertTrue(any("Using existing local emulator image since we failed to pull" in msg for msg in log.output))
+
     @patch("samcli.local.docker.durable_functions_emulator_container.requests")
     def test_start_durable_execution_success(self, mock_requests):
         """Test that start_durable_execution() posts correct payload and returns response json"""
@@ -690,3 +704,18 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             container._capture_emulator_logs.assert_called_once()
             self.mock_container.stop.assert_called_once()
+
+    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
+    def test_skip_pull_image_with_existing_local_image_logs_debug_and_returns_early(self, mock_is_current):
+        """Test that _skip_pull_image=True with existing local image logs debug message and returns early"""
+        container = self._create_container()
+        container._skip_pull_image = True
+        mock_image = Mock()
+        mock_is_current.return_value = False
+        self.mock_docker_client.images.get.return_value = mock_image
+
+        with self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log:
+            container._pull_image_if_needed()
+
+        self.assertTrue(any("Skipping pulling new emulator image" in msg for msg in log.output))
+        self.mock_docker_client.images.pull.assert_not_called()

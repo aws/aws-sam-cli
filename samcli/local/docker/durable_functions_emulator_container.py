@@ -80,11 +80,12 @@ class DurableFunctionsEmulatorContainer:
     """
     ENV_EMULATOR_IMAGE_TAG = "DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG"
 
-    def __init__(self, container_client=None, existing_container=None):
+    def __init__(self, container_client=None, existing_container=None, skip_pull_image=False):
         self._docker_client_param = container_client
         self._validated_docker_client: Optional[docker.DockerClient] = None
         self.container = existing_container
         self.lambda_client: Optional[DurableFunctionsClient] = None
+        self._skip_pull_image = skip_pull_image
 
         self.port = self._get_emulator_port()
 
@@ -200,11 +201,12 @@ class DurableFunctionsEmulatorContainer:
         return f"aws-durable-execution-emulator-{arch}"
 
     def _pull_image_if_needed(self):
+        local_image_exists = False
         """Pull the emulator image if it doesn't exist locally or is out of date."""
         try:
             self._docker_client.images.get(self._get_emulator_image())
+            local_image_exists = True
             LOG.debug(f"Emulator image {self._get_emulator_image()} exists locally")
-
             if is_image_current(self._docker_client, self._get_emulator_image()):
                 LOG.debug("Local emulator image is up-to-date")
                 return
@@ -214,10 +216,19 @@ class DurableFunctionsEmulatorContainer:
             LOG.debug(f"Pulling emulator image {self._get_emulator_image()}...")
 
         try:
+            if self._skip_pull_image and local_image_exists:
+                LOG.debug("Skipping pulling new emulator image")
+                return
             self._docker_client.images.pull(self._get_emulator_image())
             LOG.info(f"Successfully pulled image {self._get_emulator_image()}")
         except Exception as e:
-            raise ClickException(f"Failed to pull emulator image {self._get_emulator_image()}: {e}")
+            if local_image_exists:
+                LOG.debug(
+                    f"Using existing local emulator image since we failed to pull emulator image "
+                    f"{self._get_emulator_image()}: {e}"
+                )
+            else:
+                raise ClickException(f"Failed to pull emulator image {self._get_emulator_image()}: {e}")
 
     def start(self):
         """Start the emulator container."""
