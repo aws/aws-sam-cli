@@ -48,9 +48,9 @@ class TestInvokeWithDNS(InvokeIntegBase):
         process = Popen(command_list, stdout=PIPE, stderr=PIPE)
 
         try:
-            # Poll for container - it should appear while function is sleeping
+            # Poll for container - it should appear while function is sleeping (10 seconds)
             sam_containers = []
-            max_attempts = 50  # Poll for up to 5 seconds (50 * 0.1s)
+            max_attempts = 100  # Poll for up to 10 seconds (100 * 0.1s)
             for attempt in range(max_attempts):
                 time.sleep(0.1)
                 sam_containers = self.docker_client.containers.list(
