@@ -1749,6 +1749,40 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
 
         self.assertEqual(result, "name:Tag")
 
+    def test_can_build_image_with_custom_name(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerImage": "custom-Name_With-symbols-v1.2.3",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+        }
+
+        self.container_client_mock.images.build.return_value = (Mock(), [])
+
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        self.assertEqual(result, "custom-name_with-symbols-v1.2.3:Tag")
+
+    def test_build_lambda_image_raises_for_non_dict_docker_build_args(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": "not-a-dict",
+        }
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
+
+    def test_build_lambda_image_uses_latest_tag_when_not_specified(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+        }
+        self.container_client_mock.images.build.return_value = (Mock(), [])
+        result = self.builder._build_lambda_image("Name", metadata, X86_64)
+        self.assertEqual(result, "name:latest")
+
     @patch("samcli.lib.build.app_builder.SDKBuildClient")
     def test_lazy_initialization_creates_sdk_build_client_by_default(self, mock_sdk_build_client_class):
         """Test that _image_build_client is lazily initialized with SDKBuildClient when use_buildkit is False"""
@@ -3156,6 +3190,14 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
 
     def tearDown(self):
         EventTracker.clear_trackers()
+
+    def test_must_raise_when_container_manager_is_none(self):
+        self.builder._container_manager = None
+        config = Mock()
+        with self.assertRaises(RuntimeError):
+            self.builder._build_function_on_container(
+                config, "source_dir", "artifacts_dir", "manifest_path", "runtime", X86_64, None
+            )
 
     @patch(
         "samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference",
