@@ -50,9 +50,8 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
         response_holder = {}
 
         def make_request():
-            response_holder['response'] = requests.get(
-                f"http://127.0.0.1:{self.port}/sleepfortenseconds/function0",
-                timeout=300
+            response_holder["response"] = requests.get(
+                f"http://127.0.0.1:{self.port}/sleepfortenseconds/function0", timeout=300
             )
 
         request_thread = threading.Thread(target=make_request)
@@ -95,4 +94,4 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
 
         # Wait for request to complete
         request_thread.join()
-        self.assertEqual(response_holder['response'].status_code, 200)
+        self.assertEqual(response_holder["response"].status_code, 200)

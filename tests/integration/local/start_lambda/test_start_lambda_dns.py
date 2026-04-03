@@ -84,9 +84,8 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
         response_holder = {}
 
         def invoke_function():
-            response_holder['response'] = self.lambda_client.invoke(
-                FunctionName="HelloWorldSleepFunction",
-                Payload='{}'
+            response_holder["response"] = self.lambda_client.invoke(
+                FunctionName="HelloWorldSleepFunction", Payload="{}"
             )
 
         invoke_thread = threading.Thread(target=invoke_function)
@@ -132,4 +131,4 @@ class TestStartLambdaWithDNS(StartLambdaIntegBaseClass):
 
         # Wait for invocation to complete
         invoke_thread.join()
-        self.assertEqual(response_holder['response'].get("StatusCode"), 200)
+        self.assertEqual(response_holder["response"].get("StatusCode"), 200)
