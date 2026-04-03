@@ -2,6 +2,8 @@
 Integration tests for DNS option in sam local start-api
 """
 
+import time
+import threading
 import requests
 import pytest
 from tests.integration.local.start_api.start_api_integ_base import StartApiIntegBaseClass
@@ -44,8 +46,19 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
         Test that DNS servers are actually configured in the Docker container.
         This inspects the container configuration to verify DNS was set correctly.
         """
-        response = requests.get(f"http://127.0.0.1:{self.port}/anyandall", timeout=300)
-        self.assertEqual(response.status_code, 200)
+        # Start async request to keep container alive during inspection
+        response_holder = {}
+
+        def make_request():
+            response_holder["response"] = requests.get(
+                f"http://127.0.0.1:{self.port}/sleepfortenseconds/function0", timeout=300
+            )
+
+        request_thread = threading.Thread(target=make_request)
+        request_thread.start()
+
+        # Wait for container to start and be in sleep phase
+        time.sleep(7)
 
         sam_containers = self.docker_client.containers.list(
             all=False, filters={"label": "sam.cli.container.type=lambda"}
@@ -76,5 +89,9 @@ class TestStartApiWithDNS(StartApiIntegBaseClass):
 
         self.assertTrue(
             dns_verified,
-            f"Could not verify DNS configuration in any container. " f"Checked {len(sam_containers)} containers",
+            f"Could not verify DNS configuration in any container. Checked {len(sam_containers)} containers",
         )
+
+        # Wait for request to complete
+        request_thread.join()
+        self.assertEqual(response_holder["response"].status_code, 200)
