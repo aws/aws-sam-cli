@@ -90,7 +90,7 @@ class TestInvokeWithDNS(InvokeIntegBase):
         and executes successfully
         """
         command_list = self.get_command_list(
-            function_to_invoke="HelloWorldServerlessFunction",
+            function_to_invoke="WriteToStdoutFunction",
             template_path=self.template_path,
             no_event=True,
         )
@@ -104,4 +104,4 @@ class TestInvokeWithDNS(InvokeIntegBase):
         self.assertEqual(return_code, 0, f"Command failed with stderr: {stderr}")
 
         output = stdout.decode("utf-8")
-        self.assertIn("Hello World", output)
+        self.assertIn("wrote to stdout", output)
