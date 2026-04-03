@@ -139,6 +139,7 @@ def cli(
     runtime,
     mount_symlinks,
     no_memory_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -174,6 +175,7 @@ def cli(
         runtime,
         mount_symlinks,
         no_memory_limit,
+        container_dns,
         tenant_id,
         durable_execution_name,
     )  # pragma: no cover
@@ -206,6 +208,7 @@ def do_cli(  # pylint: disable=R0914
     runtime,
     mount_symlinks,
     no_mem_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -259,6 +262,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
             no_mem_limit=no_mem_limit,
+            container_dns=container_dns,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(
