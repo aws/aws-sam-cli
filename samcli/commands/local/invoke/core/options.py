@@ -38,6 +38,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "container_host",
     "container_host_interface",
     "add_host",
+    "container_dns",
     "invoke_image",
     "runtime",
     "tenant_id",

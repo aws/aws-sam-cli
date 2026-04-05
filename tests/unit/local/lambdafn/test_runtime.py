@@ -104,6 +104,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -171,6 +172,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -221,6 +223,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -293,6 +296,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=True,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -361,6 +365,7 @@ class LambdaRuntime_run(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            container_dns=None,
         )
         self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
@@ -479,6 +484,7 @@ class LambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -961,6 +967,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -1064,6 +1071,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -1112,6 +1120,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
                 call(
                     self.lang,
@@ -1131,6 +1140,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
             ]
         )
@@ -1214,6 +1224,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
