@@ -121,7 +121,7 @@ class LogsIntegTestCases(LogsIntegBase):
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
         # make couple of requests to warm-up APIGW to write its logs to CW
         for i in range(APIGW_REQUESTS_TO_WARM_UP):
-            apigw_result = requests.get(apigw_url)
+            apigw_result = requests.get(apigw_url, timeout=10.0)
             LOG.info("APIGW result %s", apigw_result)
         cmd_list = self.get_logs_command_list(self.stack_name, name=apigw_name)
         self._check_logs(cmd_list, [f"HTTP Method: GET, Resource Path: /{path}"])
@@ -138,7 +138,7 @@ class LogsIntegTestCases(LogsIntegBase):
         # apigw name in output section doesn't have forward slashes
         apigw_name_from_output = apigw_name.replace("/", "")
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
-        apigw_result = requests.get(apigw_url)
+        apigw_result = requests.get(apigw_url, timeout=10.0)
         LOG.info("APIGW result %s", apigw_result)
         cmd_list = self.get_logs_command_list(self.stack_name)
         self._check_logs(
@@ -154,7 +154,7 @@ class LogsIntegTestCases(LogsIntegBase):
         # apigw name in output section doesn't have forward slashes
         apigw_name_from_output = apigw_name.replace("/", "")
         apigw_url = f"{self._get_output_value(apigw_name_from_output)}{path}"
-        apigw_result = requests.get(apigw_url)
+        apigw_result = requests.get(apigw_url, timeout=10.0)
         LOG.info("APIGW result %s", apigw_result)
         cmd_list = self.get_logs_command_list(self.stack_name)
         self._check_logs(

@@ -3,11 +3,12 @@ from root_layer import layer_method
 
 import requests
 
+
 def lambda_handler(event, context):
     """Sample pure Lambda function that returns a message and a location"""
 
     try:
-        ip = requests.get("http://checkip.amazonaws.com/")
+        ip = requests.get("http://checkip.amazonaws.com/", timeout=10.0)
     except requests.RequestException as e:
         # Send some context about this error to Lambda Logs
         print(e)
@@ -16,8 +17,5 @@ def lambda_handler(event, context):
 
     return {
         "statusCode": 200,
-        "body": json.dumps({
-            "message": f"{layer_method()+6}",
-            "location": ip.text.replace("\n", "")
-        }),
+        "body": json.dumps({"message": f"{layer_method()+6}", "location": ip.text.replace("\n", "")}),
     }

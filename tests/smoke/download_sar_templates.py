@@ -24,6 +24,7 @@ def download(count=100):
                     "pageNumber": current_page,
                     "includeAppsWithCapabilities": "CAPABILITY_IAM,CAPABILITY_NAMED_IAM,CAPABILITY_RESOURCE_POLICY,CAPABILITY_AUTO_EXPAND",
                 },
+                timeout=10.0,
             )
 
             response.raise_for_status()
@@ -53,7 +54,7 @@ def _download_templates(app_id, template_file_path):
     template_url = response["Version"]["TemplateUrl"]
 
     with open(template_file_path, "wb") as fp:
-        r = requests.get(template_url, stream=True)
+        r = requests.get(template_url, stream=True, timeout=10.0)
         for chunk in r.iter_content(chunk_size=128):
             fp.write(chunk)
 

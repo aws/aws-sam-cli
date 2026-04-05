@@ -1626,7 +1626,7 @@ class TestServiceCorsSwaggerRequestsWithRestAPI(StartApiIntegBaseClass):
         """
         This tests that the Cors headers are added to OPTIONS responses
         """
-        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin))
+        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin), timeout=10.0)
         self.assert_cors(response)
 
     @parameterized.expand(["https://abc", None])
@@ -1636,7 +1636,7 @@ class TestServiceCorsSwaggerRequestsWithRestAPI(StartApiIntegBaseClass):
         """
         This tests that the Cors headers are added to _other_ method responses
         """
-        response = requests.get(self.url + "/echobase64eventbody", **_create_request_params(origin))
+        response = requests.get(self.url + "/echobase64eventbody", **_create_request_params(origin), timeout=10.0)
         self.assert_cors(response)
 
 
@@ -1762,7 +1762,7 @@ class TestServiceCorsGlobalRequests(StartApiIntegBaseClass):
         """
         This tests that the Cors headers are added to OPTIONS response when the global property is set
         """
-        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin))
+        response = requests.options(self.url + "/echobase64eventbody", **_create_request_params(origin), timeout=10.0)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("Access-Control-Allow-Origin"), "*")

@@ -72,7 +72,7 @@ class InfraSyncResult:
     _infra_sync_executed: bool
     _code_sync_resources: Set[ResourceIdentifier]
 
-    def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = set()) -> None:
+    def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = None) -> None:
         """
         Constructor
 
@@ -83,6 +83,8 @@ class InfraSyncResult:
         code_sync_resources: Set[ResourceIdentifier]
             Resources that needs a code sync
         """
+        if code_sync_resources is None:
+            code_sync_resources = set()
         self._infra_sync_executed = executed
         self._code_sync_resources = code_sync_resources
 

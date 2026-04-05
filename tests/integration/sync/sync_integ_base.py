@@ -204,7 +204,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
     def get_layer_contents(self, arn, dep_dir):
         layer = self.lambda_client.get_layer_version_by_arn(Arn=arn)
         layer_location = layer.get("Content", {}).get("Location", "")
-        zipped_layer = requests.get(layer_location)
+        zipped_layer = requests.get(layer_location, timeout=10.0)
         return SyncIntegBase._extract_contents_from_layer_zip(dep_dir, zipped_layer)
 
     def get_dependency_layer_contents_from_arn(self, stack_resources, dep_dir, version):
