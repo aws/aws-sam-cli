@@ -244,3 +244,53 @@ class TestNestedStackManager(TestCase):
     @parameterized.expand([("python3.8", True), ("ruby3.2", False)])
     def test_is_runtime_supported(self, runtime, supported):
         self.assertEqual(NestedStackManager.is_runtime_supported(runtime), supported)
+
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.move_template")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.osutils")
+    @patch("samcli.lib.bootstrap.nested_stack.nested_stack_manager.os.path.isdir")
+    def test_with_intrinsic_function_layers_skips_auto_layer(
+        self, patched_isdir, patched_osutils, patched_move_template
+    ):
+        """Test that functions with intrinsic function Layers are skipped with a warning"""
+        resources = {
+            "MyFunction": {
+                "Type": AWS_SERVERLESS_FUNCTION,
+                "Properties": {
+                    "Runtime": "python3.8",
+                    "Handler": "FakeHandler",
+                    "Layers": {"Fn::If": ["HasLayer", [{"Ref": "MyLayer"}], []]},
+                },
+            }
+        }
+        self.stack.resources = resources
+        template = {"Resources": resources}
+
+        # prepare build graph
+        dependencies_dir = Mock()
+        function = Mock()
+        function.name = "MyFunction"
+        functions = [function]
+        build_graph = Mock()
+        function_definition_mock = Mock(dependencies_dir=dependencies_dir, functions=functions)
+        build_graph.get_function_build_definition_with_logical_id.return_value = function_definition_mock
+        app_build_result = ApplicationBuildResult(build_graph, {"MyFunction": "path/to/build/dir"})
+        patched_isdir.return_value = True
+
+        nested_stack_manager = NestedStackManager(
+            self.stack, self.stack_name, self.build_dir, template, app_build_result
+        )
+
+        with patch.object(nested_stack_manager, "_add_layer_readme_info"):
+            result = nested_stack_manager.generate_auto_dependency_layer_stack()
+
+            # Should not create nested stack since function was skipped
+            patched_move_template.assert_not_called()
+
+            # Template should remain unchanged
+            self.assertEqual(template, result)
+
+            # Layers should still be the intrinsic function (not modified)
+            self.assertEqual(
+                result.get("Resources", {}).get("MyFunction", {}).get("Properties", {}).get("Layers"),
+                {"Fn::If": ["HasLayer", [{"Ref": "MyLayer"}], []]},
+            )
