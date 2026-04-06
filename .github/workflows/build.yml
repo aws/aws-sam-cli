@@ -131,7 +131,7 @@ jobs:
           - name: "integ-buildcmd-main"
             params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
-            params: "--reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
+            params: "-n 3 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
           - name: "integ-buildcmd-other"
             params: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py"
           #- "delete"
@@ -165,15 +165,12 @@ jobs:
       - name: Install Python versions
         run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 ${{ matrix.python }}
       - uses: actions/setup-go@v6
-        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
-        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           ruby-version: "3.3"
       - uses: actions/setup-node@v6
-        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           node-version: 24
       - uses: actions/setup-java@v5
@@ -186,12 +183,11 @@ jobs:
             21
             25
       - uses: actions/setup-dotnet@v5
-        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
       - name: Install Rust toolchain and cargo-lambda
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.tests_config.name != 'integ-buildcmd-java' }}
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bash tests/install-rust.sh --uv
       - name: Init samdev
         run: make init
