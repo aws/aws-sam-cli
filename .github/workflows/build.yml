@@ -143,7 +143,7 @@ jobs:
           - name: "integ-local"
             params: "-n 2 --reruns 3 tests/integration/local --ignore=tests/integration/local/invoke/test_invoke_durable.py --ignore=tests/integration/local/start_api/test_start_api_durable.py --ignore=tests/integration/local/start_lambda/test_start_lambda_durable.py"
           - name: "integ-all-other"
-            params: "-n 2 --reruns 3 tests/integration/init tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/docs"
+            params: "--reruns 3 tests/integration/init tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/docs"
           - name: "integ-telemetry"
             params: "--reruns 3 tests/integration/telemetry"
           - name: "durable-functions"
