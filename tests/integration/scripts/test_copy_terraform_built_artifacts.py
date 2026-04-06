@@ -10,6 +10,10 @@ from unittest import TestCase
 TIMEOUT = 3
 
 
+import pytest
+
+
+@pytest.mark.pr_skip
 class TestCopyTerraformBuiltArtifacts(TestCase):
     def setUp(self) -> None:
         self.samcli_root_path = pathlib.Path(__file__).parents[3].joinpath("samcli")

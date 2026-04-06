@@ -673,6 +673,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
         self._test_with_Makefile("provided.al2023", False, None, ARM64)
 
 
+@pytest.mark.pr_skip
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
