@@ -29,6 +29,10 @@ elif SMOKE_TEST_SUBSET == "third-quarter":
     TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[q2:q3]
 elif SMOKE_TEST_SUBSET == "fourth-quarter":
     TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[q3:]
+elif SMOKE_TEST_SUBSET == "first-half":
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[:q2]
+elif SMOKE_TEST_SUBSET == "second-half":
+    TEMPLATE_FILE_NAMES = ALL_TEMPLATE_FILE_NAMES[q2:]
 
 
 class TestAllCommands(TestCase):

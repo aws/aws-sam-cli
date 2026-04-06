@@ -224,10 +224,14 @@ jobs:
           - "3.10"
           - "3.11"
         tests_config:
-          - name: "Smoke & Functional Tests - All"
+          - name: "Smoke Tests - First Half"
+            os: ubuntu-latest
+            params: "-n 4 tests/smoke"
+            env_vars: "first-half"
+          - name: "Smoke Tests - Second Half & Functional Tests"
             os: ubuntu-latest
             params: "-n 4 tests/smoke tests/functional"
-            env_vars: "all"
+            env_vars: "second-half"
           - name: "Smoke Tests - First Quarter"
             os: windows-latest
             params: "-n 4 tests/smoke"
