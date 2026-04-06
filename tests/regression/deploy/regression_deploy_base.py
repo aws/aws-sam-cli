@@ -85,7 +85,9 @@ class DeployRegressionBase(TestCase):
 
         return command_list
 
-    def deploy_regression_check(self, args, sam_return_code=0, aws_return_code=0, commands=[]):
+    def deploy_regression_check(self, args, sam_return_code=0, aws_return_code=0, commands=None):
+        if commands is None:
+            commands = []
         sam_stack_name = args.get("sam_stack_name", None)
         aws_stack_name = args.get("aws_stack_name", None)
         if sam_stack_name:

@@ -143,11 +143,13 @@ class DurableIntegBase(TestCase):
     def assert_invoke_output(
         self,
         stdout: str,
-        input_data: Dict[str, Any] = {},
+        input_data: Dict[str, Any] = None,
         execution_name: Optional[str] = None,
         expected_status: str = "SUCCEEDED",
     ) -> str:
         """Assert invoke output contains expected fields and return execution ARN."""
+        if input_data is None:
+            input_data = {}
         stdout_str = stdout.strip()
 
         self.assertIn("Execution Summary:", stdout_str, f"Expected execution summary in output: {stdout_str}")
