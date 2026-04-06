@@ -117,6 +117,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
 
 @pytest.mark.nodejs
+@pytest.mark.pr_skip
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
     MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
