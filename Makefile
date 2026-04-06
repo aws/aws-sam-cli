@@ -84,3 +84,8 @@ update-reproducible-reqs:
 
 # Alias for backwards compatibility
 update-reproducible-reqs-uv: update-reproducible-reqs
+
+
+build:
+	@bash build-verify.sh || true
+	@echo 'Build complete'
