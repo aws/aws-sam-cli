@@ -131,7 +131,7 @@ jobs:
           - name: "integ-buildcmd-main"
             params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
-            params: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
+            params: "--reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
           - name: "integ-buildcmd-other"
             params: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py"
           #- "delete"
