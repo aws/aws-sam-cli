@@ -165,12 +165,15 @@ jobs:
       - name: Install Python versions
         run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 ${{ matrix.python }}
       - uses: actions/setup-go@v6
+        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@4dc28cf14d77b0afa6832d9765ac422dbf0dfedd # v1
+        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           ruby-version: "3.3"
       - uses: actions/setup-node@v6
+        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           node-version: 24
       - uses: actions/setup-java@v5
@@ -183,11 +186,12 @@ jobs:
             21
             25
       - uses: actions/setup-dotnet@v5
+        if: ${{ matrix.tests_config.name != 'integ-buildcmd-java' }}
         with:
           dotnet-version: '10.0.x'
        # Install and configure Rust & Cargo Lambda
       - name: Install Rust toolchain and cargo-lambda
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.tests_config.name != 'integ-buildcmd-java' }}
         run: bash tests/install-rust.sh --uv
       - name: Init samdev
         run: make init
