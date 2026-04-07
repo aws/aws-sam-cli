@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from parameterized import parameterized
 
 from samcli.commands.docs.command_context import SUCCESS_MESSAGE, ERROR_MESSAGE, DocsCommandContext
@@ -10,6 +12,7 @@ from tests.testing_utils import run_command
 COMMAND_URL_PAIR = [(command, url) for command, url in Documentation.load().items()]
 
 
+@pytest.mark.pr_skip
 class TestDocsCommand(DocsIntegBase):
     @parameterized.expand(COMMAND_URL_PAIR)
     def test_docs_command(self, command, url):

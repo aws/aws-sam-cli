@@ -125,17 +125,19 @@ jobs:
         # folders that is commented below requires credentials, no need to spare time to run them
         tests_config:
           - name: "integ-buildcmd-arm64"
-            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_arm64.py"
+            params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/buildcmd/test_build_cmd_arm64.py"
+          - name: "integ-buildcmd-python"
+            params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/buildcmd/test_build_cmd_python.py"
           - name: "integ-buildcmd-main"
-            params: "-n 2 --reruns 3 tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_python.py tests/integration/buildcmd/test_build_cmd_node.py"
+            params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/buildcmd/test_build_cmd_dotnet.py tests/integration/buildcmd/test_build_cmd_provided.py tests/integration/buildcmd/test_build_cmd_rust.py tests/integration/buildcmd/test_build_cmd_node.py"
           - name: "integ-buildcmd-java"
-            params: "-n 2 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
+            params: "-n 3 --reruns 5 tests/integration/buildcmd/test_build_cmd_java.py"
           - name: "integ-buildcmd-other"
             params: "-n 2 --reruns 3 tests/integration/buildcmd --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py --ignore=tests/integration/buildcmd/test_build_cmd_dotnet.py --ignore=tests/integration/buildcmd/test_build_cmd_provided.py --ignore=tests/integration/buildcmd/test_build_cmd_rust.py --ignore=tests/integration/buildcmd/test_build_cmd_python.py --ignore=tests/integration/buildcmd/test_build_cmd_node.py --ignore=tests/integration/buildcmd/test_build_cmd_java.py"
           #- "delete"
           #- "deploy"
           - name: "integ-all-other"
-            params: "-n 2 --reruns 3 tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs --ignore=tests/integration/local/invoke/test_invoke_durable.py --ignore=tests/integration/local/start_api/test_start_api_durable.py --ignore=tests/integration/local/start_lambda/test_start_lambda_durable.py"
+            params: "-n 2 --reruns 3 -m 'not pr_skip' tests/integration/init tests/integration/local tests/integration/pipeline tests/integration/root tests/integration/scripts tests/integration/telemetry tests/integration/docs --ignore=tests/integration/local/invoke/test_invoke_durable.py --ignore=tests/integration/local/start_api/test_start_api_durable.py --ignore=tests/integration/local/start_lambda/test_start_lambda_durable.py"
           - name: "durable-functions"
             params: "--reruns 3 tests/integration/local/invoke/test_invoke_durable.py tests/integration/local/start_api/test_start_api_durable.py tests/integration/local/start_lambda/test_start_lambda_durable.py"
           #- "list"
@@ -214,22 +216,30 @@ jobs:
           - "3.10"
           - "3.11"
         tests_config:
-          - name: "Smoke & Functional Tests - All"
+          - name: "Smoke Tests - First Half"
+            os: ubuntu-latest
+            params: "-n 4 tests/smoke"
+            env_vars: "first-half"
+          - name: "Smoke Tests - Second Half & Functional Tests"
             os: ubuntu-latest
             params: "-n 4 tests/smoke tests/functional"
-            env_vars: "all"
-          - name: "Smoke Tests - First Third"
+            env_vars: "second-half"
+          - name: "Smoke Tests - First Quarter"
             os: windows-latest
             params: "-n 4 tests/smoke"
-            env_vars: "first-third"
-          - name: "Smoke Tests - Second Third"
+            env_vars: "first-quarter"
+          - name: "Smoke Tests - Second Quarter"
             os: windows-latest
             params: "-n 4 tests/smoke"
-            env_vars: "second-third"
-          - name: "Smoke Tests - Third Third & Functional Tests"
+            env_vars: "second-quarter"
+          - name: "Smoke Tests - Third Quarter"
+            os: windows-latest
+            params: "-n 4 tests/smoke"
+            env_vars: "third-quarter"
+          - name: "Smoke Tests - Fourth Quarter & Functional Tests"
             os: windows-latest
             params: "-n 4 tests/smoke tests/functional"
-            env_vars: "third-third"
+            env_vars: "fourth-quarter"
     steps:
       - uses: actions/checkout@v6
       - name: Set TEMP to D:/Temp

@@ -117,6 +117,7 @@ class TestBuildCommand_EsbuildFunctions_arm64(BuildIntegEsbuildBase):
 
 
 @pytest.mark.nodejs
+@pytest.mark.pr_skip
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest_arm64(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
     MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
@@ -672,6 +673,7 @@ class TestBuildCommand_ProvidedFunctions_With_Specified_Architecture_arm64(Build
         self._test_with_Makefile("provided.al2023", False, None, ARM64)
 
 
+@pytest.mark.pr_skip
 @skipIf(
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
