@@ -72,7 +72,7 @@ class InfraSyncResult:
     _infra_sync_executed: bool
     _code_sync_resources: Set[ResourceIdentifier]
 
-    def __init__(self, executed: bool, code_sync_resources: Set[ResourceIdentifier] = None) -> None:
+    def __init__(self, executed: bool, code_sync_resources: Optional[Set[ResourceIdentifier]] = None) -> None:
         """
         Constructor
 

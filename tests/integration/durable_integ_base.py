@@ -142,7 +142,7 @@ class DurableIntegBase(TestCase):
     def assert_invoke_output(
         self,
         stdout: str,
-        input_data: Dict[str, Any] = None,
+        input_data: Optional[Dict[str, Any]] = None,
         execution_name: Optional[str] = None,
         expected_status: str = "SUCCEEDED",
     ) -> str:
