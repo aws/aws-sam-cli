@@ -1,5 +1,5 @@
 import os
-from subprocess import Popen, PIPE, TimeoutExpired
+from subprocess import PIPE, Popen, TimeoutExpired
 from unittest import TestCase
 
 TIMEOUT = 300

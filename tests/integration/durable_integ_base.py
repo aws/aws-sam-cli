@@ -1,19 +1,18 @@
 import json
-import os
 import re
 import shutil
 import threading
 import time
 from pathlib import Path
-from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
-from typing import Dict, Any, Optional, List
+from subprocess import PIPE, STDOUT, Popen
+from typing import Any, Dict, List, Optional
 from unittest import TestCase
 
 from tests.integration.local.invoke.invoke_integ_base import TIMEOUT
 from tests.testing_utils import (
-    run_command,
-    get_sam_command,
     get_build_command_list,
+    get_sam_command,
+    run_command,
 )
 
 
