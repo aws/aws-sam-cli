@@ -489,9 +489,7 @@ class LambdaRuntime:
             DurableFunctionsEmulatorContainer: The singleton emulator container
         """
         if self._durable_execution_emulator_container is None:
-            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer(
-                skip_pull_image=self._container_manager.skip_pull_image,
-            )
+            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer()
             self._durable_execution_emulator_container.start_or_attach()
             LOG.debug("Created and started durable functions emulator container")
         return self._durable_execution_emulator_container

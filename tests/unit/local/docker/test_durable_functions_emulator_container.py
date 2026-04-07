@@ -3,14 +3,12 @@ Unit tests for DurableFunctionsEmulatorContainer
 """
 
 import os
-import time
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch, mock_open
 from parameterized import parameterized
 
 import docker
-import requests
 from click import ClickException
 
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
@@ -51,13 +49,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
             ("managed_custom_name", {"DURABLE_EXECUTIONS_CONTAINER_NAME": "my-emulator"}, 9014, "my-emulator", False),
             ("external_mode", {"DURABLE_EXECUTIONS_EXTERNAL_EMULATOR_PORT": "8080"}, 8080, None, True),
-            (
-                "pin_image_tag",
-                {"DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG": "v1.1.1"},
-                9014,
-                "sam-durable-execution-emulator",
-                False,
-            ),
         ]
     )
     def test_initialization(self, name, env_vars, expected_port, expected_name, is_external):
@@ -147,47 +138,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         else:
             self.mock_container.remove.assert_not_called()
 
-    def test_stop_sets_container_to_none_after_successful_stop(self):
-        """Test that stop() sets self.container to None in the finally block after success"""
-        container = self._create_container(existing_container=self.mock_container)
-        container._capture_emulator_logs = Mock()
-
-        container.stop()
-
-        self.assertIsNone(container.container)
-
-    def test_stop_handles_not_found_and_sets_container_to_none(self):
-        """Test that stop() handles docker.errors.NotFound when container is already removed"""
-        container = self._create_container(existing_container=self.mock_container)
-        container._capture_emulator_logs = Mock()
-        self.mock_container.stop.side_effect = docker.errors.NotFound("Already removed")
-
-        container.stop()
-
-        self.mock_container.stop.assert_called_once()
-        self.mock_container.remove.assert_not_called()
-        self.assertIsNone(container.container)
-
-    def test_stop_sets_container_to_none_after_generic_exception(self):
-        """Test that stop() sets self.container to None in the finally block even after exception"""
-        container = self._create_container(existing_container=self.mock_container)
-        container._capture_emulator_logs = Mock()
-        self.mock_container.stop.side_effect = Exception("Unexpected error")
-
-        container.stop()
-
-        self.assertIsNone(container.container)
-
-    def test_stop_does_nothing_when_no_container(self):
-        """Test that stop() does nothing when self.container is None"""
-        container = self._create_container(existing_container=None)
-
-        container.stop()
-
-        self.mock_container.stop.assert_not_called()
-        self.mock_container.remove.assert_not_called()
-        self.assertIsNone(container.container)
-
     @parameterized.expand(
         [
             # (name, env_vars, container_exists, container_running, expected_reused, should_create_new)
@@ -247,16 +197,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         if existing:
             self.mock_container.reload.assert_called_once()
 
-    def test_is_running_returns_false_when_reload_raises_exception(self):
-        """Test that is_running() returns False when container.reload() raises an exception"""
-        self.mock_container.reload.side_effect = Exception("Connection error")
-        container = self._create_container(existing_container=self.mock_container)
-
-        result = container.is_running()
-
-        self.assertFalse(result)
-        self.mock_container.reload.assert_called_once()
-
     @parameterized.expand(
         [
             ("with_container", True, "test logs"),
@@ -275,15 +215,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         self.assertEqual(logs, expected_logs)
         if existing:
             self.mock_container.logs.assert_called_once_with(tail=100)
-
-    def test_get_logs_returns_error_message_when_logs_raises_exception(self):
-        """Test that get_logs() returns error message when container.logs() raises an exception"""
-        self.mock_container.logs.side_effect = Exception("Docker API error")
-        container = self._create_container(existing_container=self.mock_container)
-
-        result = container.get_logs()
-
-        self.assertEqual(result, "Could not retrieve logs: Docker API error")
 
     @parameterized.expand(
         [
@@ -318,7 +249,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             ),
         ]
     )
-    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
     @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
     @patch("os.makedirs")
     @patch("os.getcwd")
@@ -334,14 +264,12 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         mock_getcwd,
         mock_makedirs,
         mock_get_host_arch,
-        mock_is_current,
     ):
         """Test container creation with all configuration permutations"""
         mock_get_host_arch.return_value = "x86_64"
         test_dir = "/test/dir"
         mock_getcwd.return_value = test_dir
         mock_path_exists.return_value = True
-        mock_is_current.return_value = True
 
         # Mock image already exists
         mock_image = Mock()
@@ -357,6 +285,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             self.mock_docker_client.containers.create.assert_called_once()
             call_args = self.mock_docker_client.containers.create.call_args
 
+            # Verify built image is used
+            self.assertEqual(
+                call_args.kwargs["image"], "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"
+            )
             self.assertEqual(call_args.kwargs["working_dir"], "/tmp/.durable-executions-local")
 
             # Verify port configuration
@@ -364,7 +296,9 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             # Verify environment variables
             environment = call_args.kwargs["environment"]
-            self.assertEqual(environment["DURABLE_EXECUTION_TIME_SCALE"], expected_scale)
+            self.assertEqual(environment["EXECUTION_STORE_TYPE"], expected_store)
+            self.assertEqual(environment["EXECUTION_TIME_SCALE"], expected_scale)
+            self.assertEqual(environment["PORT"], str(expected_port))
 
             # Verify volumes
             volumes = call_args.kwargs["volumes"]
@@ -383,6 +317,140 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             # Verify container lifecycle
             self.assertEqual(container.container, self.mock_container)
             self.mock_container.start.assert_called_once()
+
+    def test_start_raises_error_when_binary_not_found(self):
+        """Test that start() raises error when emulator binary is missing"""
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path("/nonexistent/path")
+        with self.assertRaises(RuntimeError) as context:
+            container.start()
+        self.assertIn("Durable Functions Emulator binary not found", str(context.exception))
+
+    @parameterized.expand(
+        [
+            (
+                "x86_64",
+                "aws-durable-execution-emulator-x86_64",
+                "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64",
+            ),
+            (
+                "arm64",
+                "aws-durable-execution-emulator-arm64",
+                "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64",
+            ),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("samcli.local.docker.durable_functions_emulator_container.create_tarball")
+    @patch("samcli.local.docker.durable_functions_emulator_container.get_tar_filter_for_windows")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("os.unlink")
+    @patch("pathlib.Path.exists")
+    def test_build_emulator_image_creates_new_image(
+        self,
+        arch,
+        binary_name,
+        expected_tag,
+        mock_path_exists,
+        mock_unlink,
+        mock_file,
+        mock_tar_filter,
+        mock_create_tarball,
+        mock_get_host_arch,
+    ):
+        """Test building emulator image when it doesn't exist, including dockerfile generation and image tag"""
+        mock_get_host_arch.return_value = arch
+        mock_tar_filter.return_value = None
+        mock_tarball = Mock()
+        mock_create_tarball.return_value.__enter__.return_value = mock_tarball
+        mock_path_exists.return_value = True
+
+        # Mock image doesn't exist
+        self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("not found")
+        mock_build_result = Mock()
+        self.mock_docker_client.images.build.return_value = mock_build_result
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+
+        result = container._build_emulator_image()
+
+        # Verify image tag generation
+        self.assertEqual(result, expected_tag)
+        tag = container._get_emulator_image_tag(binary_name)
+        self.assertEqual(tag, expected_tag)
+
+        # Verify dockerfile generation
+        dockerfile = container._generate_emulator_dockerfile(binary_name)
+        self.assertIn(f"FROM {container._EMULATOR_IMAGE}", dockerfile)
+        self.assertIn(f"COPY {binary_name} /usr/local/bin/{binary_name}", dockerfile)
+        self.assertIn(f"RUN chmod +x /usr/local/bin/{binary_name}", dockerfile)
+
+        # Verify image was built
+        self.mock_docker_client.images.build.assert_called_once()
+        build_call = self.mock_docker_client.images.build.call_args
+        self.assertEqual(build_call.kwargs["tag"], expected_tag)
+        self.assertTrue(build_call.kwargs["rm"])
+        self.assertTrue(build_call.kwargs["custom_context"])
+
+        # Verify tarball was created with correct filter
+        mock_create_tarball.assert_called_once()
+
+    @parameterized.expand(
+        [
+            ("x86_64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"),
+            ("arm64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64"),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("pathlib.Path.exists")
+    def test_build_emulator_image_reuses_existing(self, arch, expected_tag, mock_path_exists, mock_get_host_arch):
+        """Test that existing image is reused without rebuilding"""
+        mock_get_host_arch.return_value = arch
+        mock_path_exists.return_value = True
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+
+        result = container._build_emulator_image()
+
+        # Verify image was not built
+        self.mock_docker_client.images.build.assert_not_called()
+        self.assertEqual(result, expected_tag)
+
+    @parameterized.expand(
+        [
+            ("x86_64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-x86_64"),
+            ("arm64", "samcli/durable-execution-emulator:aws-durable-execution-emulator-arm64"),
+        ]
+    )
+    @patch("samcli.local.docker.durable_functions_emulator_container._get_host_architecture")
+    @patch("os.makedirs")
+    @patch("os.getcwd")
+    @patch("pathlib.Path.exists")
+    def test_start_uses_built_image(
+        self, arch, expected_tag, mock_path_exists, mock_getcwd, mock_makedirs, mock_get_host_arch
+    ):
+        """Test that start() uses the built image instead of base image"""
+        mock_get_host_arch.return_value = arch
+        mock_getcwd.return_value = "/test/dir"
+        mock_path_exists.return_value = True
+
+        # Mock image already exists
+        mock_image = Mock()
+        self.mock_docker_client.images.get.return_value = mock_image
+
+        container = self._create_container()
+        container._RAPID_SOURCE_PATH = Path(__file__).parent
+        container._wait_for_ready = Mock()
+
+        container.start()
+
+        # Verify container was created with built image tag
+        call_args = self.mock_docker_client.containers.create.call_args
+        self.assertEqual(call_args.kwargs["image"], expected_tag)
 
     @parameterized.expand(
         [
@@ -421,72 +489,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container._pull_image_if_needed()
         self.assertIn("Failed to pull emulator image", str(context.exception))
 
-    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
-    def test_image_pull_failure_with_existing_local_image_logs_debug_message(self, mock_is_current):
-        """Test that image pull failure with existing local image logs debug message before raising exception"""
-        container = self._create_container()
-        mock_image = Mock()
-        self.mock_docker_client.images.get.return_value = mock_image
-        mock_is_current.return_value = False
-        self.mock_docker_client.images.pull.side_effect = Exception("Network timeout")
-
-        with (self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log,):
-            container._pull_image_if_needed()
-
-        self.assertTrue(any("Using existing local emulator image since we failed to pull" in msg for msg in log.output))
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_start_durable_execution_success(self, mock_requests):
-        """Test that start_durable_execution() posts correct payload and returns response json"""
-        mock_response = Mock()
-        mock_response.json.return_value = {"executionId": "abc-123"}
-        mock_requests.post.return_value = mock_response
-
-        container = self._create_container()
-        durable_config = {"ExecutionTimeout": 300, "RetentionPeriodInDays": 7}
-        result = container.start_durable_execution("my-exec", '{"key": "val"}', "http://host:3001", durable_config)
-
-        self.assertEqual(result, {"executionId": "abc-123"})
-        mock_requests.post.assert_called_once()
-        call_kwargs = mock_requests.post.call_args
-        payload = call_kwargs.kwargs["json"]
-        self.assertEqual(payload["ExecutionName"], "my-exec")
-        self.assertEqual(payload["Input"], '{"key": "val"}')
-        self.assertEqual(payload["LambdaEndpoint"], "http://host:3001")
-        self.assertEqual(payload["ExecutionTimeoutSeconds"], 300)
-        self.assertEqual(payload["ExecutionRetentionPeriodDays"], 7)
-        mock_response.raise_for_status.assert_called_once()
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_start_durable_execution_raises_runtime_error_on_exception(self, mock_requests):
-        """Test that start_durable_execution() raises RuntimeError when request fails"""
-        mock_requests.post.side_effect = Exception("Connection refused")
-
-        container = self._create_container()
-        with self.assertRaises(RuntimeError) as ctx:
-            container.start_durable_execution("exec", "{}", "http://host:3001", {})
-
-        self.assertIn("Failed to start durable execution", str(ctx.exception))
-        self.assertIn("Connection refused", str(ctx.exception))
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_start_durable_execution_includes_response_details_in_error(self, mock_requests):
-        """Test that error message includes status and response text when available"""
-        mock_resp = Mock()
-        mock_resp.status_code = 500
-        mock_resp.text = "Internal Server Error"
-        exc = Exception("HTTP error")
-        exc.response = mock_resp
-        mock_requests.post.side_effect = exc
-
-        container = self._create_container()
-        with self.assertRaises(RuntimeError) as ctx:
-            container.start_durable_execution("exec", "{}", "http://host:3001", {})
-
-        error_msg = str(ctx.exception)
-        self.assertIn("Status: 500", error_msg)
-        self.assertIn("Internal Server Error", error_msg)
-
     @patch("samcli.local.docker.durable_functions_emulator_container.requests")
     def test_wait_for_ready_succeeds_when_healthy(self, mock_requests):
         """Test that _wait_for_ready() succeeds when health check passes"""
@@ -499,102 +501,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         container._wait_for_ready(timeout=1)
         mock_requests.get.assert_called()
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.time")
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_wait_for_ready_retries_on_request_exception_then_times_out(self, mock_requests, mock_time):
-        """Test that RequestException is caught and retried until timeout"""
-        mock_requests.exceptions.RequestException = requests.exceptions.RequestException
-        mock_requests.get.side_effect = requests.exceptions.RequestException("Connection refused")
-        mock_time.time.side_effect = [0, 0.1, 0.6, 1.1]
-        mock_time.strftime = time.strftime
-
-        container = self._create_container(existing_container=self.mock_container)
-        self.mock_container.status = "running"
-        self.mock_container.logs.return_value = b"some logs"
-
-        with self.assertRaises(RuntimeError) as ctx:
-            container._wait_for_ready(timeout=1)
-
-        self.assertIn("failed to become ready", str(ctx.exception))
-        self.assertTrue(mock_requests.get.call_count >= 2)
-        mock_time.sleep.assert_called_with(0.5)
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.time")
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_wait_for_ready_breaks_on_non_request_exception(self, mock_requests, mock_time):
-        """Test that non-RequestException breaks the loop immediately"""
-        mock_requests.exceptions.RequestException = requests.exceptions.RequestException
-        self.mock_container.status = "running"
-        self.mock_container.reload.side_effect = RuntimeError("Docker daemon error")
-        self.mock_container.logs.return_value = b"error logs"
-        mock_time.time.side_effect = [0, 0.1]
-        mock_time.strftime = time.strftime
-
-        container = self._create_container(existing_container=self.mock_container)
-
-        with self.assertRaises(RuntimeError) as ctx:
-            container._wait_for_ready(timeout=30)
-
-        self.assertIn("failed to become ready", str(ctx.exception))
-        self.mock_container.reload.assert_called_once()
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.time")
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_wait_for_ready_raises_when_container_not_running(self, mock_requests, mock_time):
-        """Test that RuntimeError is raised when container status is not running"""
-        mock_requests.exceptions.RequestException = requests.exceptions.RequestException
-        self.mock_container.status = "exited"
-        self.mock_container.logs.return_value = b"crash logs"
-        mock_time.time.side_effect = [0, 0.1]
-        mock_time.strftime = time.strftime
-
-        container = self._create_container(existing_container=self.mock_container)
-
-        with self.assertRaises(RuntimeError) as ctx:
-            container._wait_for_ready(timeout=30)
-
-        self.assertIn("failed to become ready", str(ctx.exception))
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.time")
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_wait_for_ready_logs_container_exited_status(self, mock_requests, mock_time):
-        """Test that the RuntimeError raised on line 390 includes the container exit status"""
-        mock_requests.exceptions.RequestException = requests.exceptions.RequestException
-        self.mock_container.status = "exited"
-        self.mock_container.logs.return_value = b"logs"
-        mock_time.time.side_effect = [0, 0.1]
-        mock_time.strftime = time.strftime
-
-        container = self._create_container(existing_container=self.mock_container)
-
-        with (
-            self.assertRaises(RuntimeError),
-            self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="ERROR") as log,
-        ):
-            container._wait_for_ready(timeout=30)
-
-        self.assertTrue(
-            any("Durable Functions Emulator container exited with status: exited" in msg for msg in log.output)
-        )
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.time")
-    @patch("samcli.local.docker.durable_functions_emulator_container.requests")
-    def test_wait_for_ready_handles_log_retrieval_failure(self, mock_requests, mock_time):
-        """Test that failure to retrieve logs after timeout does not prevent RuntimeError"""
-        mock_requests.exceptions.RequestException = requests.exceptions.RequestException
-        mock_requests.get.side_effect = requests.exceptions.RequestException("refused")
-        mock_time.time.side_effect = [0, 1.1]
-        mock_time.strftime = time.strftime
-        self.mock_container.status = "running"
-        self.mock_container.logs.side_effect = Exception("Cannot get logs")
-
-        container = self._create_container(existing_container=self.mock_container)
-
-        with self.assertRaises(RuntimeError) as ctx:
-            container._wait_for_ready(timeout=1)
-
-        self.assertIn("failed to become ready", str(ctx.exception))
 
     @parameterized.expand(
         [
@@ -648,52 +554,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             container._capture_emulator_logs()  # Should not raise
 
-    @patch("samcli.local.docker.durable_functions_emulator_container.DurableFunctionsClient")
-    def test_start_or_attach_stops_and_removes_non_running_container(self, mock_client_class):
-        """Test that start_or_attach stops/removes a non-running existing container and creates a new one"""
-        container = self._create_container()
-
-        mock_existing = Mock()
-        mock_existing.status = "exited"
-        self.mock_docker_client.containers.get.return_value = mock_existing
-
-        container.start = Mock()
-        result = container.start_or_attach()
-
-        mock_existing.stop.assert_called_once()
-        mock_existing.remove.assert_called_once()
-        container.start.assert_called_once()
-        self.assertFalse(result)
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.DurableFunctionsClient")
-    def test_start_or_attach_handles_stop_remove_failure_gracefully(self, mock_client_class):
-        """Test that start_or_attach handles exceptions when stopping/removing a non-running container"""
-        container = self._create_container()
-
-        mock_existing = Mock()
-        mock_existing.status = "exited"
-        mock_existing.stop.side_effect = Exception("Stop failed")
-        self.mock_docker_client.containers.get.return_value = mock_existing
-
-        container.start = Mock()
-        result = container.start_or_attach()
-
-        mock_existing.stop.assert_called_once()
-        container.start.assert_called_once()
-        self.assertFalse(result)
-
-    def test_stop_skips_container_operations_in_external_mode(self):
-        """Test that stop() returns early without stopping container in external emulator mode"""
-        with patch.dict("os.environ", {"DURABLE_EXECUTIONS_EXTERNAL_EMULATOR_PORT": "8080"}, clear=True):
-            container = self._create_container(existing_container=self.mock_container)
-            container._capture_emulator_logs = Mock()
-
-            container.stop()
-
-            container._capture_emulator_logs.assert_not_called()
-            self.mock_container.stop.assert_not_called()
-            self.mock_container.remove.assert_not_called()
-
     def test_stop_captures_logs_before_stopping(self):
         """Test that stop() captures logs before stopping container"""
         with patch.dict("os.environ", {"DURABLE_EXECUTIONS_CAPTURE_LOGS": "1"}, clear=True):
@@ -704,18 +564,3 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             container._capture_emulator_logs.assert_called_once()
             self.mock_container.stop.assert_called_once()
-
-    @patch("samcli.local.docker.durable_functions_emulator_container.is_image_current")
-    def test_skip_pull_image_with_existing_local_image_logs_debug_and_returns_early(self, mock_is_current):
-        """Test that _skip_pull_image=True with existing local image logs debug message and returns early"""
-        container = self._create_container()
-        container._skip_pull_image = True
-        mock_image = Mock()
-        mock_is_current.return_value = False
-        self.mock_docker_client.images.get.return_value = mock_image
-
-        with self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log:
-            container._pull_image_if_needed()
-
-        self.assertTrue(any("Skipping pulling new emulator image" in msg for msg in log.output))
-        self.mock_docker_client.images.pull.assert_not_called()
