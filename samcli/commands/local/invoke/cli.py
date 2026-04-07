@@ -30,6 +30,14 @@ from samcli.local.docker.exceptions import (
     PortAlreadyInUse,
 )
 
+
+class HiddenChoice(click.Choice):
+    """Custom Choice type that hides the list of choices in help text."""
+
+    def get_metavar(self, param):
+        return "RUNTIME"
+
+
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
@@ -71,7 +79,7 @@ STDIN_FILE_NAME = "-"
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
+    type=HiddenChoice(get_sorted_runtimes(INIT_RUNTIMES), case_sensitive=False),
     help="Lambda runtime used to invoke the function."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
@@ -131,6 +139,7 @@ def cli(
     runtime,
     mount_symlinks,
     no_memory_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -166,6 +175,7 @@ def cli(
         runtime,
         mount_symlinks,
         no_memory_limit,
+        container_dns,
         tenant_id,
         durable_execution_name,
     )  # pragma: no cover
@@ -198,6 +208,7 @@ def do_cli(  # pylint: disable=R0914
     runtime,
     mount_symlinks,
     no_mem_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -251,6 +262,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
             no_mem_limit=no_mem_limit,
+            container_dns=container_dns,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(
