@@ -156,9 +156,10 @@ class TestValidate(TestCase):
     @parameterized.expand(
         [
             ("nodejs",),
-            ("python3.7",),
-            ("nodejs16.x",),
+            ("python3.9",),
             ("nodejs18.x",),
+            ("ruby3.2",),
+            ("dotnet6",),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -205,19 +206,21 @@ class TestValidate(TestCase):
         supported_runtimes = [
             "dotnet10",
             "dotnet8",
+            "java25",
             "java21",
             "java17",
             "java11",
             "java8.al2",
             "nodejs20.x",
             "nodejs22.x",
+            "nodejs24.x",
             "provided.al2",
             "provided.al2023",
             "python3.10",
             "python3.11",
             "python3.12",
             "python3.13",
-            "ruby3.2",
+            "python3.14",
             "ruby3.3",
             "ruby3.4",
         ]

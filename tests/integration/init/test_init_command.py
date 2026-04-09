@@ -568,6 +568,7 @@ You can run 'sam init' without any options for an interactive initialization flo
 
 
 @pytest.mark.xdist_group(name="sam_init")
+@pytest.mark.pr_skip
 class TestInitForParametersCompatibility(TestCase):
     def test_init_command_no_interactive_missing_name(self):
         stderr = None

@@ -85,6 +85,13 @@ def local_common_options(f):
             "--add-host example.com:127.0.0.1",
         ),
         click.option(
+            "--container-dns",
+            multiple=True,
+            help="Set custom DNS servers for the Lambda container. "
+            "This parameter can be passed multiple times to specify multiple DNS servers. "
+            "Example: --container-dns 8.8.8.8 --container-dns 1.1.1.1",
+        ),
+        click.option(
             "--invoke-image",
             "-ii",
             default=None,
@@ -244,15 +251,12 @@ def warm_containers_common_options(f):
             "--warm-containers",
             help="""
             \b
-            Optional. Specifies how AWS SAM CLI manages 
-            containers for each function.
+            Optional. Specifies how AWS SAM CLI manages containers for each function.'            
+            \b
             Two modes are available:
-            EAGER: Containers for all functions are 
-            loaded at startup and persist between 
-            invocations.
-            LAZY:  Containers are only loaded when each 
-            function is first invoked. Those containers 
-            persist for additional invocations.
+            EAGER: Containers for all functions are loaded at startup and persist between invocations.
+            LAZY:  Containers are only loaded when each function is first invoked. 
+                   Those containers persist for additional invocations.
             """,
             type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
         ),
