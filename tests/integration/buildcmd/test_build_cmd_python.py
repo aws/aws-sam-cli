@@ -543,6 +543,7 @@ class TestBuildCommandCDKPythonImageFunctionSharedCode(BuildIntegPythonBase):
         self._verify_invoke_built_function(self.built_template, self.FUNCTION_LOGICAL_ID, {}, expected)
 
 
+@pytest.mark.pr_skip
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 
