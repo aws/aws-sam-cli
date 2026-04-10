@@ -11,8 +11,8 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
-from samcli.lib.providers.provider import LayerVersion
 from samcli.commands.exceptions import UserException
+from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
