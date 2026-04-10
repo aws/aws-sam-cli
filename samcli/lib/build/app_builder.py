@@ -434,6 +434,7 @@ class ApplicationBuilder:
         docker_tag = f"{image_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
+        docker_build_extra_params = metadata.get("DockerBuildExtraParams", None)
 
         if not dockerfile or not docker_context:
             raise DockerBuildFailed("Docker file or Docker context metadata are missed.")
@@ -460,6 +461,8 @@ class ApplicationBuilder:
         }
         if docker_build_target:
             build_args["target"] = cast(str, docker_build_target)
+        if docker_build_extra_params:
+            build_args["extra_params"] = docker_build_extra_params
 
         try:
             if not self._image_build_client:
