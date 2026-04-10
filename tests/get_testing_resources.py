@@ -50,6 +50,11 @@ def get_testing_credentials(skip_role_deletion=False):
             read_timeout=LAMBDA_TIME_OUT + 60,
         ),
         region_name="us-west-2",
+        # Explicitly pass credentials stripped of whitespace to avoid Windows \r\n corruption
+        # from GITHUB_ENV that can cause InvalidSignatureException
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "").strip(),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip(),
+        aws_session_token=os.environ.get("AWS_SESSION_TOKEN", "").strip() or None,
     )
 
     # Prepare payload if skip_role_deletion is True

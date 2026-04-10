@@ -146,6 +146,7 @@ def cli(
     ssl_cert_file,
     ssl_key_file,
     no_memory_limit,
+    container_dns,
 ):
     """
     `sam local start-api` command entry point
@@ -182,6 +183,7 @@ def cli(
         ssl_cert_file,
         ssl_key_file,
         no_memory_limit,
+        container_dns,
     )  # pragma: no cover
 
 
@@ -215,6 +217,7 @@ def do_cli(  # pylint: disable=R0914
     ssl_cert_file,
     ssl_key_file,
     no_mem_limit,
+    container_dns,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -261,6 +264,7 @@ def do_cli(  # pylint: disable=R0914
             invoke_images=processed_invoke_images,
             add_host=add_host,
             no_mem_limit=no_mem_limit,
+            container_dns=container_dns,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(

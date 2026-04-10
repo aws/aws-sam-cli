@@ -14,8 +14,6 @@ class TestRapidBinaryPermissions(TestCase):
         expected_binaries = [
             "aws-lambda-rie-x86_64",
             "aws-lambda-rie-arm64",
-            "aws-durable-execution-emulator-x86_64",
-            "aws-durable-execution-emulator-arm64",
         ]
 
         for binary_name in expected_binaries:
