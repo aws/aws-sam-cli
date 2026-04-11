@@ -33,6 +33,8 @@ from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
+    MissingMappingKeyError,
+    parse_findmap_error,
 )
 from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
@@ -94,6 +96,34 @@ class Deployer:
         self.max_attempts = 3
         self.deploy_color = DeployColor()
         self._colored = Colored()
+
+    @staticmethod
+    def _create_deploy_error(stack_name: str, error_message: str) -> Exception:
+        """
+        Create the appropriate deploy error based on the error message.
+
+        This method checks if the error is a Fn::FindInMap key not found error
+        (which typically occurs when deploying with different parameter values
+        than were used during packaging) and returns a more helpful error message.
+
+        Args:
+            stack_name: The name of the stack being deployed
+            error_message: The error message from CloudFormation
+
+        Returns:
+            MissingMappingKeyError if the error is a FindInMap key not found error,
+            DeployFailedError otherwise.
+        """
+        findmap_error = parse_findmap_error(error_message)
+        if findmap_error:
+            missing_key, mapping_name = findmap_error
+            return MissingMappingKeyError(
+                stack_name=stack_name,
+                missing_key=missing_key,
+                mapping_name=mapping_name,
+                original_error=error_message,
+            )
+        return DeployFailedError(stack_name=stack_name, msg=error_message)
 
     # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
@@ -544,7 +574,9 @@ class Deployer:
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
                 LOG.info(self._colored.color_log(msg=msg, color=Colors.FAILURE), extra=dict(markup=True))
 
-            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         try:
             outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
@@ -676,7 +708,9 @@ class Deployer:
 
             return result
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     @staticmethod
     @pprint_column_names(

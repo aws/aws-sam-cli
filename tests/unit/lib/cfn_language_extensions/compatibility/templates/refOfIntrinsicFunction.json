@@ -1,0 +1,24 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "ParameterA": {
+      "Type": "String",
+      "Default": "ParameterB"
+    },
+    "ParameterB": {
+      "Type": "String",
+      "Default": "FinalValue"
+    }
+  },
+  "Resources": {
+    "MyQueue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Ref": { "Ref":  "ParameterA" }
+        }
+      }
+    }
+  }
+}

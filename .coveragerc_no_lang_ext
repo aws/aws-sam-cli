@@ -1,0 +1,15 @@
+# Coverage config for `make test` which skips cfn_language_extensions tests.
+# Extends the base .coveragerc and also excludes the language extensions source
+# so coverage % isn't penalized when those tests are skipped.
+[run]
+branch = True
+omit =
+    samcli/lib/cfn_language_extensions/*
+    # Inherited from .coveragerc
+    samcli/lib/iac/plugins_interfaces.py
+    samcli/lib/init/templates/*
+    samcli/hook_packages/terraform/copy_terraform_built_artifacts.py
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError.*

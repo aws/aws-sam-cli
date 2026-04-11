@@ -1,0 +1,41 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "ParamName": {
+      "Type": "String",
+      "Default": "ABC"
+    }
+  },
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    },
+    "Topic1": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic1"
+      }
+    },
+    "Topic2": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic2"
+      }
+    }
+  },
+  "Outputs": {
+    "Fn::ForEach::ParamName": [
+      "VariableName",
+      ["1", "2"],
+      {
+        "Output${VariableName}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${VariableName}"}
+        }
+      }
+    ]
+  }
+}

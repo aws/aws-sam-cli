@@ -1,0 +1,23 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      [""],
+      {
+        "Condition${VariableName}": {
+          "Fn::Equals": ["1", {"Ref": "VariableName"}]
+        }
+      }
+    ]
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}

@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for sam package with Fn::ForEach and static CodeUri.
+  This template generates multiple Lambda functions using Fn::ForEach
+  with a shared static CodeUri, which should result in the same S3 URI
+  for all functions in the packaged template.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.12
+    Description: Python runtime version for Lambda functions
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: !Ref Runtime
+
+Resources:
+  # Test Fn::ForEach generating multiple Lambda functions with static CodeUri
+  # This generates AlphaFunction and BetaFunction, both using the same CodeUri
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: src
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}
+
+Outputs:
+  AlphaFunctionArn:
+    Description: ARN of the Alpha function
+    Value: !GetAtt AlphaFunction.Arn
+  BetaFunctionArn:
+    Description: ARN of the Beta function
+    Value: !GetAtt BetaFunction.Arn

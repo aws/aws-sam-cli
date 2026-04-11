@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  TC-008: Nested ForEach depth limit test.
+  6 levels of nesting exceeds the maximum of 5. Should fail validation.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Resources:
+  Fn::ForEach::L1:
+    - V1
+    - [a]
+    - Fn::ForEach::L2:
+        - V2
+        - [b]
+        - Fn::ForEach::L3:
+            - V3
+            - [c]
+            - Fn::ForEach::L4:
+                - V4
+                - [d]
+                - Fn::ForEach::L5:
+                    - V5
+                    - [e]
+                    - Fn::ForEach::L6:
+                        - V6
+                        - [f]
+                        - ${V1}${V2}${V3}${V4}${V5}${V6}Function:
+                            Type: AWS::Serverless::Function
+                            Properties:
+                              Runtime: !Ref Runtime
+                              Handler: main.handler
+                              InlineCode: "def handler(e, c): return {'statusCode': 200}"

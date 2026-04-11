@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "IsIAD": {
+      "Fn::Equals": [
+        "IAD",
+        "IAD"
+      ]
+    },
+    "CorrectRegionAndStage": {
+      "Fn::And": [
+        {"Condition": "Unresolvable"},
+        {"Condition": "IsIAD"}
+      ]
+    }
+  },
+  "Resources": {
+    "waitConditionHandles": {
+      "Condition": "CorrectRegionAndStage",
+      "Type" : "AWS::CloudFormation::WaitConditionHandle",
+      "Properties" : {
+      }
+    }
+  }
+}

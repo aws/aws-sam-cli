@@ -275,3 +275,167 @@ class TestSamDeployCommand(TestCase):
             self.deploy_command_context.deployer.wait_for_execute.assert_called_with(
                 ANY, "CREATE", False, FailureMode.DO_NOTHING, 1000, 60
             )
+
+
+class TestDeployContextLanguageExtensions(TestCase):
+    """Test cases for language extensions support in DeployContext"""
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
+    @patch("samcli.commands.deploy.deploy_context.SamLocalStackProvider.get_stacks")
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    def test_deploy_preserves_foreach_structure(
+        self, patched_get_stacks, patched_auth_required, mock_client, mock_session
+    ):
+        """Test that sam deploy passes the original template with Fn::ForEach intact to CloudFormation"""
+        patched_get_stacks.return_value = (Mock(), [])
+        patched_auth_required.return_value = []
+
+        # Template with Fn::ForEach structure
+        template_content = """
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+Resources:
+  Fn::ForEach::Functions:
+    - Name
+    - [Alpha, Beta]
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          CodeUri: s3://bucket/code.zip
+          Handler: ${Name}.handler
+          Runtime: python3.9
+"""
+
+        deploy_context = DeployContext(
+            template_file="template-file",
+            stack_name="stack-name",
+            s3_bucket="s3-bucket",
+            image_repository=None,
+            image_repositories=None,
+            force_upload=True,
+            no_progressbar=False,
+            s3_prefix="s3-prefix",
+            kms_key_id=None,
+            parameter_overrides={},
+            capabilities="CAPABILITY_IAM",
+            no_execute_changeset=False,
+            role_arn=None,
+            notification_arns=[],
+            fail_on_empty_changeset=False,
+            tags={},
+            region="us-east-1",
+            profile=None,
+            confirm_changeset=False,
+            signing_profiles=None,
+            use_changeset=True,
+            disable_rollback=False,
+            poll_delay=0.5,
+            on_failure=None,
+            max_wait_duration=60,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as template_file:
+            template_file.write(template_content)
+            template_file.flush()
+            deploy_context.template_file = template_file.name
+
+            deploy_context.run()
+
+            # Verify that create_and_wait_for_changeset was called with the original template
+            # containing Fn::ForEach (not expanded)
+            call_args = deploy_context.deployer.create_and_wait_for_changeset.call_args
+            cfn_template = call_args[1]["cfn_template"]
+
+            # The template should contain Fn::ForEach::Functions (not expanded)
+            self.assertIn("Fn::ForEach::Functions", cfn_template)
+            self.assertIn("${Name}Function", cfn_template)
+            self.assertIn("${Name}.handler", cfn_template)
+
+            # The template should NOT contain expanded function names
+            self.assertNotIn("AlphaFunction:", cfn_template)
+            self.assertNotIn("BetaFunction:", cfn_template)
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
+    @patch("samcli.commands.deploy.deploy_context.SamLocalStackProvider.get_stacks")
+    @patch.object(Deployer, "sync", MagicMock())
+    def test_sync_preserves_foreach_structure(
+        self, patched_get_stacks, patched_auth_required, mock_client, mock_session
+    ):
+        """Test that sam sync passes the original template with Fn::ForEach intact to CloudFormation"""
+        patched_get_stacks.return_value = (Mock(), [])
+        patched_auth_required.return_value = []
+
+        # Template with Fn::ForEach structure
+        template_content = """
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+Resources:
+  Fn::ForEach::Functions:
+    - Name
+    - [Alpha, Beta]
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          CodeUri: s3://bucket/code.zip
+          Handler: ${Name}.handler
+          Runtime: python3.9
+"""
+
+        sync_context = DeployContext(
+            template_file="template-file",
+            stack_name="stack-name",
+            s3_bucket="s3-bucket",
+            image_repository=None,
+            image_repositories=None,
+            force_upload=True,
+            no_progressbar=False,
+            s3_prefix="s3-prefix",
+            kms_key_id=None,
+            parameter_overrides={},
+            capabilities="CAPABILITY_IAM",
+            no_execute_changeset=False,
+            role_arn=None,
+            notification_arns=[],
+            fail_on_empty_changeset=False,
+            tags={},
+            region="us-east-1",
+            profile=None,
+            confirm_changeset=False,
+            signing_profiles=None,
+            use_changeset=False,  # Use sync instead of changeset
+            disable_rollback=False,
+            poll_delay=0.5,
+            on_failure=None,
+            max_wait_duration=60,
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix=".yaml") as template_file:
+            template_file.write(template_content)
+            template_file.flush()
+            sync_context.template_file = template_file.name
+
+            sync_context.run()
+
+            # Verify that sync was called with the original template
+            # containing Fn::ForEach (not expanded)
+            call_args = sync_context.deployer.sync.call_args
+            cfn_template = call_args[1]["cfn_template"]
+
+            # The template should contain Fn::ForEach::Functions (not expanded)
+            self.assertIn("Fn::ForEach::Functions", cfn_template)
+            self.assertIn("${Name}Function", cfn_template)
+            self.assertIn("${Name}.handler", cfn_template)
+
+            # The template should NOT contain expanded function names
+            self.assertNotIn("AlphaFunction:", cfn_template)
+            self.assertNotIn("BetaFunction:", cfn_template)
