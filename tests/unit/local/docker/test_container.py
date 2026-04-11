@@ -765,6 +765,60 @@ class TestContainer_start(TestCase):
         with self.assertRaises(APIError):
             self.container.start()
 
+    def test_docker_api_error_port_in_use_with_str_explanation(self):
+        """Test APIError with 'ports are not available' and str explanation (docker-py >= 7.0)"""
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        # Simulate docker-py >= 7.0 where explanation is already a str
+        error_msg = "ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"
+        api_error = APIError(error_msg, response=None, explanation=error_msg)
+        container_mock.start.side_effect = api_error
+
+        with self.assertRaises(PortAlreadyInUse) as context:
+            self.container.start()
+
+        # Verify the error message was preserved
+        self.assertIn("ports are not available", str(context.exception))
+
+    def test_docker_api_error_port_in_use_with_bytes_explanation(self):
+        """Test APIError with 'ports are not available' and bytes explanation (docker-py < 7.0)"""
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        # Simulate docker-py < 7.0 where explanation is bytes
+        error_msg = b"ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"
+        api_error = APIError(error_msg.decode(), response=None, explanation=error_msg)
+        container_mock.start.side_effect = api_error
+
+        with self.assertRaises(PortAlreadyInUse) as context:
+            self.container.start()
+
+        # Verify the error message was preserved
+        self.assertIn("ports are not available", str(context.exception))
+
+    def test_docker_api_error_port_in_use_case_insensitive(self):
+        """Test APIError with 'Ports are not available' (uppercase P) is caught"""
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        # Simulate Docker returning "Ports" with uppercase P
+        error_msg = "Ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"
+        api_error = APIError(error_msg, response=None, explanation=error_msg)
+        container_mock.start.side_effect = api_error
+
+        with self.assertRaises(PortAlreadyInUse) as context:
+            self.container.start()
+
+        # Verify the error message was preserved
+        self.assertIn("Ports are not available", str(context.exception))
+
     def test_must_not_support_input_data(self):
         self.container.is_created.return_value = True
 
