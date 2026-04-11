@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Parent stack for testing nested stack changeset display
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: test-bucket
+
+Resources:
+  # Simple S3 bucket in parent stack
+  ParentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-parent-bucket'
+
+  # Nested stack
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: nested-database.yaml
+      Parameters:
+        StackPrefix: !Ref AWS::StackName
+
+Outputs:
+  ParentBucketName:
+    Description: Name of the parent bucket
+    Value: !Ref ParentBucket
+
+  NestedStackId:
+    Description: Nested stack ID
+    Value: !Ref DatabaseStack
