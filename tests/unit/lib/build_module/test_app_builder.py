@@ -520,6 +520,7 @@ class TestApplicationBuilder_build(TestCase):
             ("nodejs14.x",),
             ("dotnetcore2.1",),
             ("dotnetcore3.1",),
+            ("dotnet6",),
         ]
     )
     def test_deprecated_runtimes(self, runtime):

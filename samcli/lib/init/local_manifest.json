@@ -1,5 +1,15 @@
 {
-    "dotnet6": [
+    "dotnet10": [
+        {
+            "directory": "template/cookiecutter-aws-sam-hello-dotnet",
+            "displayName": "Hello World Example",
+            "dependencyManager": "cli-package",
+            "appTemplate": "hello-world",
+            "packageType": "Zip",
+            "useCaseName": "Hello World Example"
+        }
+    ],
+    "dotnet8": [
         {
             "directory": "template/cookiecutter-aws-sam-hello-dotnet",
             "displayName": "Hello World Example",

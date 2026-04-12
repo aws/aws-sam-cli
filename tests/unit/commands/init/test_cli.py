@@ -2181,7 +2181,8 @@ test-project
 
     def test_must_return_runtime_from_base_image_name(self):
         base_images = [
-            "amazon/dotnet6-base",
+            "amazon/dotnet10-base",
+            "amazon/dotnet8-base",
             "amazon/go1.x-base",
             "amazon/java11-base",
             "amazon/nodejs20.x-base",
@@ -2191,7 +2192,8 @@ test-project
         ]
 
         expected_runtime = [
-            "dotnet6",
+            "dotnet10",
+            "dotnet8",
             "go1.x",
             "java11",
             "nodejs20.x",
@@ -2230,18 +2232,6 @@ test-project
         preprocess_manifest = template.get_preprocessed_manifest()
         expected_result = {
             "Hello World Example": {
-                "dotnet6": {
-                    "Zip": [
-                        {
-                            "directory": "dotnet6/cookiecutter-aws-sam-hello-dotnet",
-                            "displayName": "Hello World Example",
-                            "dependencyManager": "cli-package",
-                            "appTemplate": "hello-world",
-                            "packageType": "Zip",
-                            "useCaseName": "Hello World Example",
-                        }
-                    ]
-                },
                 "go1.x": {
                     "Zip": [
                         {
@@ -2837,12 +2827,12 @@ test-project
 
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 2: Java 11
+        # 4: Java 11 (shifted after dotnet6 removal and dotnet10/dotnet8 addition)
         # test-project: response to name
         user_input = """
 1
 N
-3
+4
 2
 N
 N

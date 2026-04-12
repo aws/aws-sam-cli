@@ -16,8 +16,8 @@ class TestBuildUtils(TestCase):
     def test_must_prompt_for_layer(self, prompt_mock):
         base_dir = "/mybase"
 
-        # dotnet6 need write permissions
-        metadata1 = {"BuildMethod": "dotnet6"}
+        # dotnet8 need write permissions
+        metadata1 = {"BuildMethod": "dotnet8"}
         metadata2 = {"BuildMethod": "python3.8"}
         layer1 = LayerVersion(
             "layer1",
@@ -85,7 +85,7 @@ class TestBuildUtils(TestCase):
             function_id="function_id",
             name="logical_id",
             functionname="function_name",
-            runtime="dotnet6",
+            runtime="dotnet8",
             memory=1234,
             timeout=12,
             handler="handler",
@@ -187,7 +187,7 @@ class TestBuildUtils(TestCase):
             function_id="function_id",
             name="logical_id",
             functionname="function_name",
-            runtime="dotnet6",
+            runtime="dotnet8",
             memory=1234,
             timeout=12,
             handler="handler",

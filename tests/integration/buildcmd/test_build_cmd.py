@@ -1043,13 +1043,6 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnet6",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
-            ),
-            (
-                False,
                 "Java/gradlew/8",
                 "aws.example.Hello::myHandler",
                 "aws.example.SecondFunction::myHandler",
@@ -1173,13 +1166,6 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnet6",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
-            ),
             (
                 False,
                 "Java/gradlew/8",
@@ -1365,13 +1351,6 @@ class TestParallelBuilds(DedupBuildIntegBase):
     @parameterized.expand(
         [
             # in process
-            (
-                False,
-                "Dotnet6",
-                "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
-                "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
-            ),
             (
                 False,
                 "Java/gradlew/8",

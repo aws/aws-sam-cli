@@ -44,7 +44,8 @@ class TestArchitecture(TestCase):
         [
             ("nodejs20.x", X86_64, ZIP),
             ("java8.al2", ARM64, ZIP),
-            ("dotnet6", ARM64, ZIP),
+            ("dotnet8", ARM64, ZIP),
+            ("dotnet10", ARM64, ZIP),
             (None, X86_64, IMAGE),
             (None, ARM64, IMAGE),
             (None, X86_64, IMAGE),

@@ -1,14 +1,4 @@
 {
-    "dotnet6": [
-        {
-            "directory": "dotnet6/cookiecutter-aws-sam-hello-dotnet",
-            "displayName": "Hello World Example",
-            "dependencyManager": "cli-package",
-            "appTemplate": "hello-world",
-            "packageType": "Zip",
-            "useCaseName": "Hello World Example"
-        }
-    ],
     "go1.x": [
         {
             "directory": "go1.x/cookiecutter-aws-sam-hello-golang",

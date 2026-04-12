@@ -107,7 +107,6 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "java17": "java",
         "java21": "java",
         "java25": "java",
-        "dotnet6": "dotnet",
         "dotnet8": "dotnet",
         "dotnet10": "dotnet",
         # User is responsible for creating subfolder in these workflows
@@ -175,7 +174,6 @@ def get_workflow_config(
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
-        "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "go1.x": BasicWorkflowSelector(GO_MOD_CONFIG),

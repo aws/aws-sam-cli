@@ -60,31 +60,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
 
     @parameterized.expand(
         [
-            ("dotnet6", "Dotnet6", None, None),
-            ("dotnet6", "Dotnet6", None, MountMode.WRITE),
-            ("dotnet6", "Dotnet6", "debug", None),
-            ("dotnet6", "Dotnet6", "debug", MountMode.WRITE),
-        ]
-    )
-    def test_dotnet_6(self, runtime, code_uri, mode, mount_mode):
-        if mount_mode and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.validate_build_command(overrides, mode, mount_mode)
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
-
-        if not SKIP_DOCKER_TESTS:
-            self.validate_invoke_command(overrides, runtime)
-
-    @parameterized.expand(
-        [
             ("dotnet8", "Dotnet8", None, None),
             ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
@@ -162,24 +137,6 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
 
     @parameterized.expand(
         [
-            ("dotnet6", "Dotnet6", None),
-            ("dotnet6", "Dotnet6", "debug"),
-        ]
-    )
-    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.validate_build_command(overrides, mode, use_container=True, input="y")
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
-        self.validate_invoke_command(overrides, runtime)
-
-    @parameterized.expand(
-        [
             ("dotnet8", "Dotnet8", None),
             ("dotnet8", "Dotnet8", "debug"),
             ("dotnet10", "Dotnet10", None),
@@ -200,7 +157,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, runtime)
 
-    @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
+    @parameterized.expand([("dotnet8", "Dotnet8")])
     def test_must_fail_in_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
