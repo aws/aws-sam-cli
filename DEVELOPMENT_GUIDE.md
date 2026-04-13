@@ -20,7 +20,7 @@ Gitpod is free for 50 hours per month - make sure to stop your workspace when yo
 ## Environment Setup
 ### 1. Prerequisites (Python Virtual Environment)
 
-AWS SAM CLI is mainly written in Python 3 and we support Python 3.8 and above.
+AWS SAM CLI is mainly written in Python 3 and we support Python 3.10 and above.
 So, having a Python environment with this version is required.
 
 Having a dedicated Python virtual environment ensures it won't "pollute" or get "polluted" 
@@ -64,10 +64,10 @@ exec $SHELL  # restart your shell to enable pyenv-virtualenv
 Next, setup a virtual environment and activate it:
 
 ```sh
-# Assuming you want to develop AWS SAM CLI in Python 3.8.9
-pyenv install 3.8.9  # install Python 3.8.9 using pyenv
-pyenv virtualenv 3.8.9 samcli38  # create a virtual environment using 3.8.9 named "samcli38"
-pyenv activate samcli38  # activate the virtual environment
+# Assuming you want to develop AWS SAM CLI in Python 3.12
+pyenv install 3.12  # install Python 3.12 using pyenv
+pyenv virtualenv 3.12 samcli312  # create a virtual environment using 3.12 named "samcli312"
+pyenv activate samcli312  # activate the virtual environment
 ```
 
 ### 2. Initialize dependencies and create `samdev` available in `$PATH`
@@ -142,7 +142,7 @@ Make sure you are in the same virtual environment as the one you are using with 
 ```sh
 source <sam-cli-directory-path>/.venv/bin/activate  # if you chose to use venv to setup the virtual environment
 # or
-pyenv activate samcli38  # if you chose to use pyenv to setup the virtual environment
+pyenv activate samcli312  # if you chose to use pyenv to setup the virtual environment
 ```
 
 Install the SAM Transformer in editable mode so that 
@@ -173,27 +173,27 @@ contribute to the repository, there are a few more things to consider.
 
 ### Make Sure AWS SAM CLI Work in Multiple Python Versions
 
-We support version 3.8 and above. Our CI/CD pipeline is setup to run
+We support version 3.10 and above. Our CI/CD pipeline is setup to run
 unit tests against all Python versions. So make sure you test it
 with all versions before sending a Pull Request.
 See [Unit testing with multiple Python versions](#unit-testing-with-multiple-python-versions-optional). 
-This is most important if you are developing in a Python version greater than the minimum supported version (currently 3.8), as any new features released in 3.9+ will not work.
+This is most important if you are developing in a Python version greater than the minimum supported version (currently 3.10), as any new features released in 3.11+ will not work.
 
 If you chose to use `pyenv` in the previous session, setting up a 
 different Python version should be easy:
 
-(assuming you are in virtual environment named `samcli39` with Python version 3.9.x)
+(assuming you are in virtual environment named `samcli312` with Python version 3.12.x)
 
 ```sh
-# Your shell now should look like "(samcli39) $"
-pyenv deactivate samcli39  # "(samcli39)" will disappear
-pyenv install 3.8.9  # one time setup
-pyenv virtualenv 3.8.9 samcli38  # one time setup
-pyenv activate samcli38
-# Your shell now should look like "(samcli38) $"
+# Your shell now should look like "(samcli312) $"
+pyenv deactivate samcli312  # "(samcli312)" will disappear
+pyenv install 3.10  # one time setup
+pyenv virtualenv 3.10 samcli310  # one time setup
+pyenv activate samcli310
+# Your shell now should look like "(samcli310) $"
 
 # You can verify the version of Python
-python --version  # Python 3.8.9
+python --version  # Python 3.10.x
 
 make init  # one time setup, this will put a file `samdev` available in $PATH
 ```
@@ -235,11 +235,11 @@ and this will happen:
 pyenv: black: command not found
 
 The `black' command exists in these Python versions:
-  3.8.9/envs/samcli38
-  samcli38
+  3.12/envs/samcli312
+  samcli312
 ``` 
 
-A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli37/bin/black` 
+A simple workaround is to use `/Users/<username>/.pyenv/versions/samcli312/bin/black` 
 instead of `/Users/<username>/.pyenv/shims/black`.
 
 #### (Option 3) Pre-commit
@@ -265,10 +265,10 @@ We also suggest to run `make pr` or `./Make -pr` in all Python versions.
 
 #### Unit Testing with Multiple Python Versions (Optional)
 
-Currently, SAM CLI only supports Python3 versions (see setup.py for exact versions). For the most
-part, code that works in Python3.8 will work in Python3.9. You only run into problems if you are
-trying to use features released in a higher version (for example features introduced into Python3.9
-will not work in Python3.8). If you want to test in many versions, you can create a virtualenv for
+Currently, SAM CLI only supports Python3 versions (see pyproject.toml for exact versions). For the most
+part, code that works in Python3.10 will work in Python3.11. You only run into problems if you are
+trying to use features released in a higher version (for example features introduced into Python3.11
+will not work in Python3.10). If you want to test in many versions, you can create a virtualenv for
 each version and flip between them (sourcing the activate script). Typically, we run all tests in
 one python version locally and then have our ci (appveyor) run all supported versions.
 
