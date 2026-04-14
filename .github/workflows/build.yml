@@ -19,6 +19,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  ai-code-review:
+    name: AI Code Review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: roger-zhangg/sam-pr-reviewer@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
+
   run-workflow:
     name: PR Workflow
     # If any dependent jobs fails, this WF skips which won't block merging PRs
