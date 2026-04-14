@@ -1,0 +1,22 @@
+name: SAM PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: roger-zhangg/sam-pr-reviewer@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
