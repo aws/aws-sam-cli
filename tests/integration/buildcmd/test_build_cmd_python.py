@@ -419,7 +419,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             # ("python3.11", "PythonPyProject", "template_uv.yaml"),
         ]
     )
-    @pytest.mark.tier1
     def test_with_default_requirements_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
@@ -447,6 +446,7 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
         ]
     )
     @pytest.mark.al2023
+    @pytest.mark.tier1
     def test_with_default_requirements_al2023_in_container(self, runtime, codeuri, template="template.yaml"):
         self._test_with_default_requirements(
             runtime,
@@ -543,6 +543,7 @@ class TestBuildCommandCDKPythonImageFunctionSharedCode(BuildIntegPythonBase):
         self._verify_invoke_built_function(self.built_template, self.FUNCTION_LOGICAL_ID, {}, expected)
 
 
+@pytest.mark.pr_skip
 class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPythonBase):
     template = "template_with_architecture.yaml"
 

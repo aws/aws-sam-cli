@@ -225,8 +225,10 @@ class TestCfnParameterOverridesType(TestCase):
         def mock_is_file(file_path):
             return file_path.name in mock_files
 
-        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
-            "pathlib.Path.read_text", new=mock_read_text
+        with (
+            self.assertRaises(BadParameter) as exception,
+            patch("pathlib.Path.is_file", new=mock_is_file),
+            patch("pathlib.Path.read_text", new=mock_read_text),
         ):
             self.param_type.convert("file://A.yaml", None, MagicMock())
 
@@ -246,8 +248,10 @@ class TestCfnParameterOverridesType(TestCase):
         def mock_is_file(file_path):
             return file_path.name in mock_files
 
-        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
-            "pathlib.Path.read_text", new=mock_read_text
+        with (
+            self.assertRaises(BadParameter) as exception,
+            patch("pathlib.Path.is_file", new=mock_is_file),
+            patch("pathlib.Path.read_text", new=mock_read_text),
         ):
             self.param_type.convert("file://A.yaml", None, MagicMock())
 
@@ -303,8 +307,10 @@ class TestCfnParameterOverridesType(TestCase):
         def mock_is_file(file_path):
             return file_path.name in mock_files
 
-        with self.assertRaises(BadParameter) as exception, patch("pathlib.Path.is_file", new=mock_is_file), patch(
-            "pathlib.Path.read_text", new=mock_read_text
+        with (
+            self.assertRaises(BadParameter) as exception,
+            patch("pathlib.Path.is_file", new=mock_is_file),
+            patch("pathlib.Path.read_text", new=mock_read_text),
         ):
             self.param_type.convert("file://invalid.yaml", None, MagicMock())
 

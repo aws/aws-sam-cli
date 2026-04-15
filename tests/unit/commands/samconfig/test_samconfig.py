@@ -164,6 +164,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 True,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -224,6 +225,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -282,6 +284,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 
@@ -342,6 +345,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 
@@ -404,6 +408,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -462,6 +467,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 "READ",
                 False,
+                False,
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -518,6 +524,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 False,
                 "READ",
+                False,
                 False,
             )
 
@@ -587,6 +594,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 True,
                 True,
+                (),
                 None,
                 None,
             )
@@ -657,6 +665,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "python3.11",
                 True,
                 True,
+                (),
                 None,
                 None,
             )
@@ -730,6 +739,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 False,
+                (),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -796,6 +806,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
                 None,
                 False,
+                (),
             )
 
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
@@ -1357,9 +1368,11 @@ class TestSamConfigWithOverrides(TestCase):
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
-        with samconfig_parameters(
-            ["start-lambda"], self.scratch_dir, **config_values
-        ) as config_path, tempfile.NamedTemporaryFile() as key_file, tempfile.NamedTemporaryFile() as cert_file:
+        with (
+            samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path,
+            tempfile.NamedTemporaryFile() as key_file,
+            tempfile.NamedTemporaryFile() as cert_file,
+        ):
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1440,6 +1453,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 False,
+                (),
             )
 
     @patch("samcli.commands.local.start_lambda.cli.do_cli")
@@ -1465,9 +1479,11 @@ class TestSamConfigWithOverrides(TestCase):
         }
 
         # NOTE: Because we don't load the full Click BaseCommand here, this is mounted as top-level command
-        with samconfig_parameters(
-            ["start-lambda"], self.scratch_dir, **config_values
-        ) as config_path, tempfile.NamedTemporaryFile() as key_file, tempfile.NamedTemporaryFile() as cert_file:
+        with (
+            samconfig_parameters(["start-lambda"], self.scratch_dir, **config_values) as config_path,
+            tempfile.NamedTemporaryFile() as key_file,
+            tempfile.NamedTemporaryFile() as cert_file,
+        ):
             from samcli.commands.local.start_lambda.cli import cli
 
             LOG.debug(Path(config_path).read_text())
@@ -1540,6 +1556,7 @@ class TestSamConfigWithOverrides(TestCase):
                 ("image",),
                 None,
                 True,
+                (),
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

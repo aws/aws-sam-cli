@@ -123,6 +123,20 @@ def test_tier1_my_feature_in_container(self):
 
 4. Each runtime should have one non-container and one container tier 1 test.
 
+### Skipping tests in PR workflow (`pr_skip`)
+
+Tests marked with `@pytest.mark.pr_skip` are excluded from the PR workflow (`.github/workflows/build.yml`) but still run in the integration workflow (`.github/workflows/integration-tests.yml`). Use this marker for tests that are redundant with other tests in the same file or low-risk for PR validation.
+
+```python
+@pytest.mark.pr_skip
+class TestMyRedundantFeature(TestBase):
+    ...
+```
+
+The marker is registered in `pytest.ini`. PR workflow jobs filter with `-m "not pr_skip"`.
+
+Before adding `pr_skip`, verify the test is covered by at least one job in `integration-tests.yml`.
+
 
 ## Finding contributions to work on
 Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels ((enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/aws/aws-sam-cli/labels/help%20wanted) issues is a great place to start. 

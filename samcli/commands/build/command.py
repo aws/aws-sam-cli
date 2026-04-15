@@ -29,6 +29,7 @@ from samcli.commands._utils.options import (
     skip_prepare_infra_option,
     template_option_without_build,
     terraform_project_root_path_option,
+    use_buildkit_option,
     use_container_build_option,
 )
 from samcli.commands.build.click_container import ContainerOptions
@@ -82,6 +83,7 @@ DESCRIPTION = """
 )
 @skip_prepare_infra_option
 @use_container_build_option
+@use_buildkit_option
 @build_in_source_option
 @click.option(
     "--container-env-var",
@@ -161,6 +163,7 @@ def cli(
     terraform_project_root_path: Optional[str],
     build_in_source: Optional[bool],
     mount_symlinks: Optional[bool],
+    use_buildkit: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -193,6 +196,7 @@ def cli(
         build_in_source,
         mount_with,
         mount_symlinks,
+        use_buildkit,
     )  # pragma: no cover
 
 
@@ -220,6 +224,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     build_in_source: Optional[bool],
     mount_with: str,
     mount_symlinks: Optional[bool],
+    use_buildkit: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -260,6 +265,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         build_in_source=build_in_source,
         mount_with=mount_with,
         mount_symlinks=mount_symlinks,
+        use_buildkit=use_buildkit,
     ) as ctx:
         ctx.run()
 

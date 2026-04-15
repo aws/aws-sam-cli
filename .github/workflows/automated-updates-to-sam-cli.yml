@@ -97,7 +97,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
 
       - name: Update aws-sam-translator & commit
         run: |
@@ -108,12 +108,12 @@ jobs:
           echo "SAM-T cur version is $SAM_T_CUR_VERSION"
           cd ../aws-sam-cli
           git checkout -b update_sam_transform_version
-          SAM_T_PRE_VERSION=$(grep "aws-sam-translator=" requirements/base.txt)
+          SAM_T_PRE_VERSION=$(grep -oP 'aws-sam-translator==\K[0-9.]+' pyproject.toml)
           echo "SAM-T pre version is $SAM_T_PRE_VERSION"
           git reset --hard develop
-          sed -i "s/$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" requirements/base.txt
+          sed -i "s/aws-sam-translator==$SAM_T_PRE_VERSION/aws-sam-translator==$SAM_T_CUR_VERSION/g" pyproject.toml
           cp -r ../serverless-application-model/tests/translator/input ./tests/functional/commands/validate/lib/models
-          make update-reproducible-reqs-uv
+          make update-reproducible-reqs
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_sam_t=1" >> $GITHUB_ENV # set env variable for next step run decision
@@ -166,7 +166,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
 
       - name: Upgrade aws_lambda_builders & commit
         run: |
@@ -177,11 +177,11 @@ jobs:
           echo "Lambda Builders cur version is $BUILDERS_CUR_VERSION"
           cd ../aws-sam-cli
           git checkout -b update_lambda_builders_version
-          BUILDERS_PRE_VERSION=$(grep "aws_lambda_builders=" requirements/base.txt)
+          BUILDERS_PRE_VERSION=$(grep -oP 'aws_lambda_builders==\K[0-9.]+' pyproject.toml)
           echo "Lambda Builders pre version is $BUILDERS_PRE_VERSION"
           git reset --hard develop
-          sed -i "s/$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" requirements/base.txt
-          make update-reproducible-reqs-uv
+          sed -i "s/aws_lambda_builders==$BUILDERS_PRE_VERSION/aws_lambda_builders==$BUILDERS_CUR_VERSION/g" pyproject.toml
+          make update-reproducible-reqs
           git status
           git diff --quiet && exit 0 # exit if there is no change
           echo "is_new_lambda_builders=1" >> $GITHUB_ENV # set env variable for next step run decision

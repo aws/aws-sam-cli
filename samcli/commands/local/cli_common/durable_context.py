@@ -18,18 +18,24 @@ class DurableContext:
     Automatically reuses existing running containers when possible.
     """
 
-    def __init__(self):
+    def __init__(self, skip_pull_image=False):
         """
         Initialize the durable context.
+
+        Parameters
+        ----------
+        skip_pull_image : bool
+            If True, skip pulling the emulator container image
         """
         self._emulator: Optional[DurableFunctionsEmulatorContainer] = None
         self._reused_container = False
+        self._skip_pull_image = skip_pull_image
 
     def __enter__(self) -> "DurableContext":
         """
         Start the emulator container or attach to an already running one
         """
-        self._emulator = DurableFunctionsEmulatorContainer()
+        self._emulator = DurableFunctionsEmulatorContainer(skip_pull_image=self._skip_pull_image)
         self._reused_container = self._emulator.start_or_attach()
         return self
 

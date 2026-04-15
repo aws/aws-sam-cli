@@ -218,7 +218,7 @@ def cli_exit():
     sys.exit(1)
 
 
-def find_and_copy_assets(directory_path, expression, data_object):
+def find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=False):
     """
     Takes in an expression, directory_path and a json input from the standard input,
     tries to find the appropriate element within the json based on the element. It then takes action to
@@ -264,7 +264,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            unzip(abs_attribute_path, directory_path)
+            unzip(abs_attribute_path, directory_path, mount_symlinks=mount_symlinks)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:
@@ -342,12 +342,19 @@ if __name__ == "__main__":
         required=False,
         help="Terraform output json body. This option is not to be used with --target.",
     )
+    argparser.add_argument(
+        "--mount-symlinks",
+        action="store_true",
+        default=False,
+        help="Allow symlinks pointing outside the extraction directory when unzipping artifacts.",
+    )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
     expression = arguments.expression
     target = arguments.target
     json_str = arguments.json
+    mount_symlinks = arguments.mount_symlinks
 
     # validate environment variables do not contain blocked arguments
     validate_environment_variables()
@@ -384,4 +391,4 @@ if __name__ == "__main__":
         cli_exit()
 
     LOG.info("Find and copy built assets")
-    find_and_copy_assets(directory_path, expression, data_object)
+    find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=mount_symlinks)

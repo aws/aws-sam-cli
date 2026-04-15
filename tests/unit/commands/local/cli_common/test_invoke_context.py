@@ -4,6 +4,7 @@ Tests the InvokeContext class
 
 import errno
 import os
+import tempfile
 
 from parameterized import parameterized
 
@@ -707,6 +708,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -793,6 +795,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -885,6 +888,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -980,6 +984,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                     "prod-na.host": "10.11.12.13",
                     "gamma-na.host": "10.22.23.24",
                 },
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1071,6 +1076,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1254,7 +1260,7 @@ class TestInvokeContext_get_env_vars_value(TestCase):
         result = InvokeContext._get_env_vars_value(filename=None)
         self.assertIsNone(result, "No value must be returned")
 
-    def test_must_read_file_and_parse_as_json(self):
+    def test_must_parse_simple_json_file(self):
         filename = "filename"
         file_data = '{"a": "b"}'
         expected = {"a": "b"}
@@ -1268,20 +1274,57 @@ class TestInvokeContext_get_env_vars_value(TestCase):
 
         m.assert_called_with(filename, "r")
 
-    def test_must_raise_if_failed_to_parse_json(self):
-        filename = "filename"
-        file_data = "invalid json"
+    def test_must_parse_simple_dotenv_file(self):
+        """Test parsing a simple .env file with key=value pairs"""
 
-        m = mock_open(read_data=file_data)
+        file_data = "KEY1=value1\nKEY2=value2"
+        expected = {"Parameters": {"KEY1": "value1", "KEY2": "value2"}}
 
-        with patch("samcli.commands.local.cli_common.invoke_context.open", m):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
+            result = InvokeContext._get_env_vars_value(filename)
+            self.assertEqual(expected, result)
+        finally:
+            os.unlink(filename)
+
+    def test_must_raise_if_failed_to_parse_json_and_dotenv(self):
+        """Test that invalid content (neither JSON nor .env) raises exception"""
+
+        file_data = "invalid content that is neither JSON nor valid .env format"
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
             with self.assertRaises(InvalidEnvironmentVariablesFileException) as ex_ctx:
                 InvokeContext._get_env_vars_value(filename)
 
             msg = str(ex_ctx.exception)
-            self.assertTrue(
-                msg.startswith("Could not read environment variables overrides from file {}".format(filename))
-            )
+            self.assertIn("not in valid JSON or .env format", msg)
+        finally:
+            os.unlink(filename)
+
+    def test_must_raise_if_empty_dotenv_file(self):
+        """Test that empty .env file raises exception"""
+
+        file_data = "# Only comments\n\n"
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=False) as f:
+            f.write(file_data)
+            filename = f.name
+
+        try:
+            with self.assertRaises(InvalidEnvironmentVariablesFileException) as ex_ctx:
+                InvokeContext._get_env_vars_value(filename)
+
+            msg = str(ex_ctx.exception)
+            self.assertIn("not in valid JSON or .env format", msg)
+        finally:
+            os.unlink(filename)
 
 
 class TestInvokeContext_setup_log_file(TestCase):
