@@ -1,0 +1,29 @@
+name: AI Code Review
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout base branch (trusted) — workspace files are never from the fork
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Fetch PR head commit so git diff works, but don't checkout fork files
+      - name: Fetch PR head
+        run: git fetch origin "$PR_HEAD_SHA"
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
+      - uses: roger-zhangg/sam-pr-reviewer@793976165e969a6ccb6ace13d35811c02471f471 # v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          kiro_api_key: ${{ secrets.KIRO_API_KEY }}
