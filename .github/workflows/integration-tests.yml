@@ -243,7 +243,7 @@ jobs:
           echo "SAM_CLI_DEV=" >> $GITHUB_ENV
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
@@ -451,14 +451,14 @@ jobs:
 
       - name: Re-authenticate with OIDC for cleanup
         if: always() && env.SCRIPT_PY != ''
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6
         with:
           role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
           aws-region: us-east-1
 
       - name: Assume test reporting role
         if: always() && env.SCRIPT_PY != ''
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@ec61189d14ec14c8efccab744f656cffd0e33f37 # v6
         with:
           role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
           aws-region: us-east-1

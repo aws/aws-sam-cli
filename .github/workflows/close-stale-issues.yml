@@ -14,7 +14,7 @@ jobs:
     permissions:
       issues: write
     steps:
-    - uses: aws-actions/stale-issue-cleanup@v6
+    - uses: aws-actions/stale-issue-cleanup@7de35968489e4142233d2a6812519a82e68b5c38 # v6
       with:
         issue-types: issues
       
