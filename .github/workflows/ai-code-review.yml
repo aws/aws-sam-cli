@@ -23,7 +23,7 @@ jobs:
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
 
-      - uses: roger-zhangg/sam-pr-reviewer@793976165e969a6ccb6ace13d35811c02471f471 # v1
+      - uses: roger-zhangg/sam-pr-reviewer@55cb69e26f0ac3826420fb678e6c562424b8483f # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           kiro_api_key: ${{ secrets.KIRO_API_KEY }}
