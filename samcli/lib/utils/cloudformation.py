@@ -223,3 +223,47 @@ def list_active_stack_names(boto_client_provider: BotoProviderType, show_nested_
                 continue
             yield stack_summary.get("StackName")
         next_token = list_stacks_result.get("NextToken")
+
+
+# CloudFormation intrinsic function names
+# https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/intrinsic-function-reference.html
+CLOUDFORMATION_INTRINSIC_FUNCTIONS = {
+    "Fn::Base64",
+    "Fn::Cidr",
+    "Fn::FindInMap",
+    "Fn::ForEach",
+    "Fn::GetAtt",
+    "Fn::GetAZs",
+    "Fn::ImportValue",
+    "Fn::Join",
+    "Fn::Length",
+    "Fn::Select",
+    "Fn::Split",
+    "Fn::Sub",
+    "Fn::ToJsonString",
+    "Fn::Transform",
+    "Fn::And",
+    "Fn::Equals",
+    "Fn::If",
+    "Fn::Not",
+    "Fn::Or",
+    "Ref",
+}
+
+
+def is_intrinsic_function(value: Any) -> bool:
+    """
+    Checks if a value is a CloudFormation intrinsic function.
+
+    When YAML templates are parsed, intrinsic functions are represented as OrderedDict
+    with a single key that matches one of the CloudFormation intrinsic function names.
+    """
+
+    if not isinstance(value, dict):
+        return False
+
+    if len(value) != 1:
+        return False
+
+    key = next(iter(value.keys()))
+    return key in CLOUDFORMATION_INTRINSIC_FUNCTIONS
