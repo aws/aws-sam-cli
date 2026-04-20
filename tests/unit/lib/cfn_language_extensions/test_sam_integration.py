@@ -1009,3 +1009,40 @@ class TestExpansionCache:
 
             assert len(_expansion_cache) == _MAX_CACHE_SIZE
             assert first_key not in _expansion_cache
+
+    def test_original_template_is_independent_copy(self):
+        """Mutating the input template after the call should not affect original_template."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._make_template_file(tmp)
+            template = {
+                "Transform": "AWS::LanguageExtensions",
+                "Resources": {
+                    "Fn::ForEach::Loop": [
+                        "Item",
+                        ["A"],
+                        {"Res${Item}": {"Type": "AWS::SNS::Topic"}},
+                    ]
+                },
+            }
+
+            result = expand_language_extensions(template, template_path=path)
+
+            # Mutate the caller's template
+            template["Resources"]["NewResource"] = {"Type": "AWS::SQS::Queue"}
+
+            # original_template should not be affected
+            assert "NewResource" not in result.original_template.get("Resources", {})
+
+    def test_original_template_is_independent_copy_no_extensions(self):
+        """Same independence guarantee when template has no language extensions."""
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self._make_template_file(tmp)
+            template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
+
+            result = expand_language_extensions(template, template_path=path)
+
+            # Mutate the caller's template
+            template["Resources"]["Injected"] = {"Type": "AWS::SQS::Queue"}
+
+            # original_template should not be affected
+            assert "Injected" not in result.original_template.get("Resources", {})
