@@ -36,26 +36,6 @@ class TestResolveIntrinsicNoResolver:
         assert processor._resolve_intrinsic(42, context) == 42
 
 
-class TestResolveCollectionItemNoResolver:
-    """Tests for _resolve_collection_item when no intrinsic_resolver is set."""
-
-    def test_list_item_returned_as_is(self, processor):
-        context = TemplateProcessingContext(
-            fragment={"Resources": {}},
-            parameter_values={},
-        )
-        result = processor._resolve_collection_item([1, "a"], context)
-        assert result == [1, "a"]
-
-    def test_ref_returned_as_is(self, processor):
-        context = TemplateProcessingContext(
-            fragment={"Resources": {}},
-            parameter_values={"Names": "Alpha,Beta,Gamma"},
-        )
-        result = processor._resolve_collection_item({"Ref": "Names"}, context)
-        assert result == {"Ref": "Names"}
-
-
 class TestResolveCollectionNoResolver:
     """Tests for _resolve_collection when no intrinsic_resolver is set."""
 

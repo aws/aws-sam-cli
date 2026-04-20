@@ -163,8 +163,8 @@ class ForEachProcessor:
         for key, value in section.items():
             if is_foreach_key(key):
                 # Top-level ForEach - generates multiple resources
-                identifiers, resolved_collection = self._validate_and_resolve_foreach(key, value, context)
-                expanded = self._expand_foreach(key, value, context, None, identifiers, resolved_collection)
+                identifier, resolved_collection = self._validate_and_resolve_foreach(key, value, context)
+                expanded = self._expand_foreach(key, value, context, None, identifier, resolved_collection)
                 # Process each expanded resource for nested ForEach in Properties
                 processed_expanded = {}
                 for res_key, res_value in expanded.items():
@@ -217,11 +217,11 @@ class ForEachProcessor:
 
         for key, value in section.items():
             if is_foreach_key(key):
-                identifiers, resolved_collection = self._validate_and_resolve_foreach(
+                identifier, resolved_collection = self._validate_and_resolve_foreach(
                     key, value, context, parent_identifiers
                 )
                 expanded = self._expand_foreach(
-                    key, value, context, parent_identifiers, identifiers, resolved_collection
+                    key, value, context, parent_identifiers, identifier, resolved_collection
                 )
                 self._merge_expanded(result, expanded, key)
             else:
@@ -299,21 +299,14 @@ class ForEachProcessor:
 
     def _validate_and_resolve_foreach(
         self, key: str, value: Any, context: TemplateProcessingContext, parent_identifiers: Optional[List[str]] = None
-    ) -> Tuple[List[str], List[Any]]:
+    ) -> Tuple[str, List[Any]]:
         """
         Validate a Fn::ForEach construct.
 
         The ForEach value must be a list with exactly 3 elements:
-        1. identifier: A non-empty string OR a list of non-empty strings (for list-of-lists)
-                       Can contain intrinsics like {"Ref": "ParamName"}
+        1. identifier: A non-empty string
         2. collection: A list of values to iterate over (or an intrinsic that resolves to a list)
-                       For list-of-lists, items can also contain intrinsics
         3. template_body: A dictionary containing the template to expand
-
-        For list-of-lists format:
-        - identifier is a list like ["LogicalId", "TopicId"]
-        - collection is a list of lists like [[1, "1"], [2, "2"]]
-        - Each inner list provides values for the corresponding identifiers
 
         Args:
             key: The ForEach key (e.g., "Fn::ForEach::Topics").
@@ -342,14 +335,12 @@ class ForEachProcessor:
         collection = value[1]
         template_body = value[2]
 
-        # Resolve and validate identifier
-        identifiers = self._resolve_identifiers(identifier, context)
-        if not identifiers:
+        # Identifier must be a non-empty string (CFN does not support list identifiers)
+        if not isinstance(identifier, str) or not identifier:
             raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         # Check for identifier conflicts with parameter names
-        for ident in identifiers:
-            self._check_identifier_conflicts(ident, key, context, parent_identifiers)
+        self._check_identifier_conflicts(identifier, key, context, parent_identifiers)
 
         # Check for loop name conflicts with parameter names
         loop_name = self.get_foreach_loop_name(key)
@@ -368,56 +359,7 @@ class ForEachProcessor:
         if not isinstance(resolved_collection, list):
             raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
-        # For list-of-lists format, resolve each item and validate
-        if len(identifiers) > 1:
-            resolved_items = []
-            for item in resolved_collection:
-                resolved_item = self._resolve_collection_item(item, context)
-                if not isinstance(resolved_item, list) or len(resolved_item) != len(identifiers):
-                    raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
-                resolved_items.append(resolved_item)
-            resolved_collection = resolved_items
-
-        return identifiers, resolved_collection
-
-    def _resolve_identifiers(self, identifier: Any, context: TemplateProcessingContext) -> List[str]:
-        """
-        Resolve and validate identifiers.
-
-        Identifiers can be:
-        - A string: "VariableName"
-        - A list of strings: ["LogicalId", "TopicId"]
-        - A list containing intrinsics: [{"Ref": "ParamName"}, "TopicId"]
-
-        Args:
-            identifier: The identifier value to resolve.
-            context: The template processing context.
-
-        Returns:
-            A list of resolved identifier strings.
-        """
-        if isinstance(identifier, str):
-            if not identifier:
-                return []
-            return [identifier]
-        elif isinstance(identifier, list):
-            resolved = []
-            for item in identifier:
-                if isinstance(item, str):
-                    if not item:
-                        return []
-                    resolved.append(item)
-                elif isinstance(item, dict):
-                    # Try to resolve intrinsic
-                    resolved_item = self._resolve_intrinsic(item, context)
-                    if not isinstance(resolved_item, str) or not resolved_item:
-                        return []
-                    resolved.append(resolved_item)
-                else:
-                    return []
-            return resolved
-        else:
-            return []
+        return identifier, resolved_collection
 
     def _resolve_intrinsic(self, value: Any, context: TemplateProcessingContext) -> Any:
         """
@@ -433,33 +375,6 @@ class ForEachProcessor:
         if self._intrinsic_resolver is not None:
             return self._intrinsic_resolver.resolve_value(value)
         return value
-
-    def _resolve_collection_item(self, item: Any, context: TemplateProcessingContext) -> Any:
-        """
-        Resolve a collection item that may contain intrinsics.
-
-        For list-of-lists format, each item in the collection can be:
-        - A list of values: [1, "1"]
-        - An intrinsic that resolves to a list: {"Ref": "ValueList"}
-
-        Args:
-            item: The collection item to resolve.
-            context: The template processing context.
-
-        Returns:
-            The resolved collection item.
-        """
-        if isinstance(item, list):
-            return item
-
-        if self._intrinsic_resolver is not None:
-            resolved = self._intrinsic_resolver.resolve_value(item)
-            # Handle CommaDelimitedList that was resolved to a string
-            if isinstance(resolved, str) and "," in resolved:
-                return [v.strip() for v in resolved.split(",")]
-            return resolved
-
-        return item
 
     def _check_identifier_conflicts(
         self, identifier: str, key: str, context: TemplateProcessingContext, parent_identifiers: List[str]
@@ -516,7 +431,7 @@ class ForEachProcessor:
         value: List[Any],
         context: TemplateProcessingContext,
         parent_identifiers: Optional[List[str]] = None,
-        identifiers: Optional[List[str]] = None,
+        identifier: Optional[str] = None,
         resolved_collection: Optional[List[Any]] = None,
     ) -> Dict[str, Any]:
         """
@@ -527,7 +442,7 @@ class ForEachProcessor:
             value: The ForEach value (a 3-element list: [identifier, collection, body]).
             context: The template processing context.
             parent_identifiers: List of identifiers from parent ForEach loops.
-            identifiers: Pre-resolved identifiers from _validate_and_resolve_foreach.
+            identifier: Pre-resolved identifier from _validate_and_resolve_foreach.
             resolved_collection: Pre-resolved collection from _validate_and_resolve_foreach.
 
         Returns:
@@ -535,34 +450,25 @@ class ForEachProcessor:
         """
         if parent_identifiers is None:
             parent_identifiers = []
-        if identifiers is None:
-            identifiers = value[0] if isinstance(value[0], list) else [value[0]]
+        if identifier is None:
+            identifier = value[0]
         if resolved_collection is None:
             resolved_collection = value[1]
 
         template_body = value[2]
 
-        is_list_of_lists = len(identifiers) > 1
         LOG.debug("Expanding %s with %d collection items", key, len(resolved_collection))
 
         # Track current identifiers for nested loops
-        current_identifiers = parent_identifiers + identifiers
+        current_identifiers = parent_identifiers + [identifier]
 
         result: Dict[str, Any] = {}
 
         for item in resolved_collection:
-            # Get values for each identifier
-            if is_list_of_lists:
-                # item is a list of values, one for each identifier
-                item_values = [self._to_string(v) for v in item]
-            else:
-                # item is a single value
-                item_values = [self._to_string(item)]
+            item_str = self._to_string(item)
 
-            # Substitute all identifiers in the template body
-            expanded = template_body
-            for ident, item_str in zip(identifiers, item_values):
-                expanded = self._substitute_identifier(expanded, ident, item_str)
+            # Substitute identifier in the template body
+            expanded = self._substitute_identifier(template_body, identifier, item_str)
 
             # Recursively expand any nested ForEach constructs
             if isinstance(expanded, dict):
