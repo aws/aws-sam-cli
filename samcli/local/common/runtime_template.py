@@ -137,6 +137,7 @@ INIT_RUNTIMES = [
     "python3.9",
     "python3.8",
     # ruby runtimes in descending order
+    "ruby4.0",
     "ruby3.4",
     "ruby3.3",
     "ruby3.2",

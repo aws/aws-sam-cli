@@ -102,6 +102,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "ruby3.2": "ruby/lib",
         "ruby3.3": "ruby/lib",
         "ruby3.4": "ruby/lib",
+        "ruby4.0": "ruby/lib",
         "java11": "java",
         "java8.al2": "java",
         "java17": "java",
