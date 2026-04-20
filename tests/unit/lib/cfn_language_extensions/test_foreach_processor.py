@@ -3123,3 +3123,108 @@ class TestForEachProcessorNestingDepthValidation:
         # Should still count this as depth 1 (the ForEach key exists)
         depth = processor._calculate_max_foreach_depth(template, current_depth=0)
         assert depth == 1
+
+
+class TestAmpersandIdentifierSubstitution:
+    """Tests for &{identifier} syntax that strips non-alphanumeric characters."""
+
+    def test_ampersand_substitution_strips_non_alphanumeric_in_keys(self):
+        """&{identifier} in dictionary keys strips dots, slashes, etc. from the value."""
+        processor = ForEachProcessor()
+        context = TemplateProcessingContext(
+            fragment={
+                "Resources": {
+                    "Fn::ForEach::Subnets": [
+                        "CIDR",
+                        ["10.0.2.0/24", "10.0.3.0/24"],
+                        {
+                            "Subnet&{CIDR}": {
+                                "Type": "AWS::EC2::Subnet",
+                                "Properties": {"CidrBlock": {"Ref": "CIDR"}},
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+
+        processor.process_template(context)
+
+        assert "Subnet1002024" in context.fragment["Resources"]
+        assert "Subnet1003024" in context.fragment["Resources"]
+
+    def test_ampersand_substitution_strips_non_alphanumeric_in_values(self):
+        """&{identifier} in string values strips non-alphanumeric characters."""
+        processor = ForEachProcessor()
+        context = TemplateProcessingContext(
+            fragment={
+                "Resources": {
+                    "Fn::ForEach::Items": [
+                        "Name",
+                        ["hello-world", "foo.bar"],
+                        {
+                            "Resource&{Name}": {
+                                "Type": "AWS::SNS::Topic",
+                                "Properties": {"TopicName": "&{Name}"},
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+
+        processor.process_template(context)
+
+        assert "Resourcehelloworld" in context.fragment["Resources"]
+        assert "Resourcefoobar" in context.fragment["Resources"]
+        assert context.fragment["Resources"]["Resourcehelloworld"]["Properties"]["TopicName"] == "helloworld"
+        assert context.fragment["Resources"]["Resourcefoobar"]["Properties"]["TopicName"] == "foobar"
+
+    def test_mixed_dollar_and_ampersand_substitution(self):
+        """${identifier} and &{identifier} can coexist — dollar keeps value as-is, ampersand strips."""
+        processor = ForEachProcessor()
+        context = TemplateProcessingContext(
+            fragment={
+                "Resources": {
+                    "Fn::ForEach::Subnets": [
+                        "CIDR",
+                        ["10.0.2.0/24"],
+                        {
+                            "Subnet&{CIDR}": {
+                                "Type": "AWS::EC2::Subnet",
+                                "Properties": {"CidrBlock": "${CIDR}"},
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+
+        processor.process_template(context)
+
+        assert "Subnet1002024" in context.fragment["Resources"]
+        assert context.fragment["Resources"]["Subnet1002024"]["Properties"]["CidrBlock"] == "10.0.2.0/24"
+
+    def test_ampersand_with_alphanumeric_only_value(self):
+        """&{identifier} with a purely alphanumeric value is identical to ${identifier}."""
+        processor = ForEachProcessor()
+        context = TemplateProcessingContext(
+            fragment={
+                "Resources": {
+                    "Fn::ForEach::Loop": [
+                        "Item",
+                        ["Alpha"],
+                        {
+                            "Res&{Item}": {
+                                "Type": "AWS::SNS::Topic",
+                                "Properties": {},
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+
+        processor.process_template(context)
+
+        assert "ResAlpha" in context.fragment["Resources"]

@@ -27,8 +27,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.cfn_language_extensions.models import (
     DynamicArtifactProperty,
 )
-
-from .local_uri_plugin import SupportLocalUriPlugin
+from samcli.lib.samlib.local_uri_plugin import SupportLocalUriPlugin
 
 LOG = logging.getLogger(__name__)
 

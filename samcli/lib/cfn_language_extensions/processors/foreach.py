@@ -594,28 +594,26 @@ class ForEachProcessor:
 
     def _substitute_identifier(self, template: Any, identifier: str, value: str) -> Any:
         """
-        Substitute ${identifier} and {"Ref": "identifier"} with value throughout the template.
+        Substitute ${identifier}, &{identifier}, and {"Ref": "identifier"} with value.
 
-        This method recursively processes the template structure and replaces
-        all occurrences of ${identifier} and {"Ref": "identifier"} with the
-        provided value. The substitution is performed in:
-        - String values (for ${identifier} syntax)
-        - Dictionary keys (for ${identifier} syntax)
-        - Dictionary values (for both syntaxes)
-        - List items
-        - Ref intrinsic functions referencing the identifier
+        ${identifier} substitutes the value as-is.
+        &{identifier} substitutes the value with non-alphanumeric characters stripped,
+        useful for generating valid logical IDs from values like IP addresses.
 
         Args:
             template: The template structure to process (can be any type).
-            identifier: The identifier to substitute (without ${} wrapper).
-            value: The value to substitute in place of ${identifier}.
+            identifier: The identifier to substitute (without ${} or &{} wrapper).
+            value: The value to substitute in place of the identifier reference.
 
         Returns:
-            The template with all ${identifier} and {"Ref": "identifier"} occurrences replaced.
+            The template with all identifier references replaced.
         """
         if isinstance(template, str):
-            # Replace ${identifier} with value in strings
-            return template.replace(f"${{{identifier}}}", value)
+            # Replace ${identifier} with value as-is
+            result = template.replace(f"${{{identifier}}}", value)
+            # Replace &{identifier} with value stripped of non-alphanumeric characters
+            result = result.replace(f"&{{{identifier}}}", re.sub(r"[^a-zA-Z0-9]", "", value))
+            return result
         elif isinstance(template, dict):
             # Check if this is a Ref to the loop identifier
             if len(template) == 1 and "Ref" in template:
