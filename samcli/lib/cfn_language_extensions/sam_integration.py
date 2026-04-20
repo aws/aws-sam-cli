@@ -568,12 +568,15 @@ def expand_language_extensions(
         )
         if cache_key is not None:
             # Store a deep copy so callers can't poison the cache
-            _cache_put(cache_key, LanguageExtensionResult(
-                expanded_template=copy.deepcopy(result.expanded_template),
-                original_template=copy.deepcopy(result.original_template),
-                dynamic_artifact_properties=list(result.dynamic_artifact_properties),
-                had_language_extensions=result.had_language_extensions,
-            ))
+            _cache_put(
+                cache_key,
+                LanguageExtensionResult(
+                    expanded_template=copy.deepcopy(result.expanded_template),
+                    original_template=copy.deepcopy(result.original_template),
+                    dynamic_artifact_properties=list(result.dynamic_artifact_properties),
+                    had_language_extensions=result.had_language_extensions,
+                ),
+            )
         return result
 
     LOG.debug("Expanding CloudFormation Language Extensions (Phase 1)")
@@ -609,12 +612,15 @@ def expand_language_extensions(
 
         if cache_key is not None:
             # Store a deep copy so callers can't poison the cache
-            _cache_put(cache_key, LanguageExtensionResult(
-                expanded_template=copy.deepcopy(result.expanded_template),
-                original_template=copy.deepcopy(result.original_template),
-                dynamic_artifact_properties=list(result.dynamic_artifact_properties),
-                had_language_extensions=result.had_language_extensions,
-            ))
+            _cache_put(
+                cache_key,
+                LanguageExtensionResult(
+                    expanded_template=copy.deepcopy(result.expanded_template),
+                    original_template=copy.deepcopy(result.original_template),
+                    dynamic_artifact_properties=list(result.dynamic_artifact_properties),
+                    had_language_extensions=result.had_language_extensions,
+                ),
+            )
 
         return result
 

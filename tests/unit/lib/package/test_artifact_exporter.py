@@ -15,6 +15,7 @@ from unittest.mock import call, patch, Mock, MagicMock
 from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ExportFailedError
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.package.artifact_exporter import (
     is_local_folder,
     make_abs_path,
@@ -2515,7 +2516,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             with patch(
                 "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
-                side_effect=Exception("expansion failed"),
+                side_effect=InvalidSamDocumentException("expansion failed"),
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
 
@@ -2524,5 +2525,34 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(TemplateMock.call_count, 1)
             call_kwargs = TemplateMock.call_args
             self.assertNotIn("template_str", call_kwargs.kwargs)
+        finally:
+            os.remove(template_path)
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    def test_export_cloudformation_stack_unexpected_exception_propagates(self, TemplateMock):
+        """
+        When expand_language_extensions raises an unexpected exception (not InvalidSamDocumentException),
+        it should propagate instead of being silently swallowed.
+        """
+        stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+
+        resource_id = "NestedStack"
+        property_name = stack_resource.PROPERTY_NAME
+
+        handle = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False)
+        try:
+            handle.write("Resources: {}")
+            handle.flush()
+            template_path = handle.name
+            handle.close()
+            resource_dict = {property_name: template_path}
+            parent_dir = tempfile.gettempdir()
+
+            with patch(
+                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                side_effect=TypeError("unexpected bug"),
+            ):
+                with self.assertRaises(ExportFailedError):
+                    stack_resource.export(resource_id, resource_dict, parent_dir)
         finally:
             os.remove(template_path)

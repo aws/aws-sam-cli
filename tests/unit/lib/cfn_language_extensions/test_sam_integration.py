@@ -785,6 +785,7 @@ import tempfile
 
 from samcli.lib.cfn_language_extensions.sam_integration import (
     _expansion_cache,
+    _MAX_CACHE_SIZE,
     clear_expansion_cache,
 )
 
@@ -973,3 +974,38 @@ class TestExpansionCache:
             assert len(_expansion_cache) == 1
             # Ensure independence
             assert result1.expanded_template is not result2.expanded_template
+
+    def test_cache_evicts_oldest_when_full(self):
+        """Cache should evict the oldest entry when _MAX_CACHE_SIZE is reached."""
+        clear_expansion_cache()
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Loop": [
+                    "Item",
+                    ["A"],
+                    {"Res${Item}": {"Type": "AWS::SNS::Topic"}},
+                ]
+            },
+        }
+
+        with tempfile.TemporaryDirectory() as tmp:
+            paths = []
+            for i in range(_MAX_CACHE_SIZE + 1):
+                path = os.path.join(tmp, f"template_{i}.yaml")
+                with open(path, "w") as f:
+                    f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
+                paths.append(path)
+
+            # Fill the cache to capacity
+            for i in range(_MAX_CACHE_SIZE):
+                expand_language_extensions(template, template_path=paths[i])
+
+            assert len(_expansion_cache) == _MAX_CACHE_SIZE
+            first_key = next(iter(_expansion_cache))
+
+            # One more should evict the oldest
+            expand_language_extensions(template, template_path=paths[_MAX_CACHE_SIZE])
+
+            assert len(_expansion_cache) == _MAX_CACHE_SIZE
+            assert first_key not in _expansion_cache
