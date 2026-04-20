@@ -13,11 +13,14 @@ The processor handles:
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, is_foreach_key
+
+if TYPE_CHECKING:
+    from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicResolver
 
 LOG = logging.getLogger(__name__)
 
@@ -52,7 +55,7 @@ class ForEachProcessor:
     MAX_FOREACH_NESTING_DEPTH = 5
     _LAYOUT_ERROR_FMT = "{} layout is incorrect"
 
-    def __init__(self, intrinsic_resolver: Optional[Any] = None) -> None:
+    def __init__(self, intrinsic_resolver: Optional["IntrinsicResolver"] = None) -> None:
         """
         Initialize the ForEachProcessor.
 
