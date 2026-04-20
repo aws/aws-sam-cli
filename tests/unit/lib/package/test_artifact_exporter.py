@@ -1492,7 +1492,7 @@ class TestArtifactExporter(unittest.TestCase):
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
 
-            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r", encoding="utf-8")
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
@@ -1543,7 +1543,7 @@ class TestArtifactExporter(unittest.TestCase):
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
 
-            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r", encoding="utf-8")
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
@@ -1620,7 +1620,7 @@ class TestArtifactExporter(unittest.TestCase):
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
 
-            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r", encoding="utf-8")
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
@@ -1683,7 +1683,7 @@ class TestArtifactExporter(unittest.TestCase):
             exported_template = template_exporter.export()
             self.assertEqual(exported_template, template_dict)
 
-            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r", encoding="utf-8")
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
@@ -1752,7 +1752,7 @@ class TestArtifactExporter(unittest.TestCase):
             template_dict["Parameters"]["AssetParameters123"]["Default"] = " "
             self.assertEqual(exported_template, template_dict)
 
-            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r")
+            open_mock.assert_called_once_with(make_abs_path(parent_dir, template_path), "r", encoding="utf-8")
 
             self.assertEqual(1, yaml_parse_mock.call_count)
 
