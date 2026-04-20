@@ -22,6 +22,7 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
@@ -107,7 +108,7 @@ class CloudFormationStackResource(ResourceZip):
 
         try:
             result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
-        except Exception:
+        except InvalidSamDocumentException:
             LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
             result = None
 

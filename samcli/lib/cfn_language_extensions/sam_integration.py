@@ -37,6 +37,7 @@ AWS_LANGUAGE_EXTENSIONS_TRANSFORM = "AWS::LanguageExtensions"
 # Module-level cache for expand_language_extensions() results.
 # Key: (template_path, file_mtime, parameter_values_hash)
 _expansion_cache: Dict[Tuple[str, float, str], "LanguageExtensionResult"] = {}
+_MAX_CACHE_SIZE = 32
 
 
 def _hash_params(parameter_values: Optional[Dict[str, Any]]) -> str:
@@ -59,6 +60,13 @@ def clear_expansion_cache() -> None:
     detection path — e.g. warm-container reloads and sync --watch cycles.
     """
     _expansion_cache.clear()
+
+
+def _cache_put(key: Tuple[str, float, str], value: "LanguageExtensionResult") -> None:
+    """Store a result in the expansion cache, evicting the oldest entry if full."""
+    if len(_expansion_cache) >= _MAX_CACHE_SIZE:
+        _expansion_cache.pop(next(iter(_expansion_cache)))
+    _expansion_cache[key] = value
 
 
 @dataclass(frozen=True)
@@ -560,12 +568,12 @@ def expand_language_extensions(
         )
         if cache_key is not None:
             # Store a deep copy so callers can't poison the cache
-            _expansion_cache[cache_key] = LanguageExtensionResult(
+            _cache_put(cache_key, LanguageExtensionResult(
                 expanded_template=copy.deepcopy(result.expanded_template),
                 original_template=copy.deepcopy(result.original_template),
                 dynamic_artifact_properties=list(result.dynamic_artifact_properties),
                 had_language_extensions=result.had_language_extensions,
-            )
+            ))
         return result
 
     LOG.debug("Expanding CloudFormation Language Extensions (Phase 1)")
@@ -601,12 +609,12 @@ def expand_language_extensions(
 
         if cache_key is not None:
             # Store a deep copy so callers can't poison the cache
-            _expansion_cache[cache_key] = LanguageExtensionResult(
+            _cache_put(cache_key, LanguageExtensionResult(
                 expanded_template=copy.deepcopy(result.expanded_template),
                 original_template=copy.deepcopy(result.original_template),
                 dynamic_artifact_properties=list(result.dynamic_artifact_properties),
                 had_language_extensions=result.had_language_extensions,
-            )
+            ))
 
         return result
 
