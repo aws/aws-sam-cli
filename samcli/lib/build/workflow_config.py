@@ -175,6 +175,7 @@ def get_workflow_config(
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "ruby4.0": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
