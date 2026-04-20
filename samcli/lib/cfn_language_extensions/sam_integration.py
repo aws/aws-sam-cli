@@ -562,7 +562,7 @@ def expand_language_extensions(
     if not check_using_language_extension(template):
         result = LanguageExtensionResult(
             expanded_template=copy.deepcopy(template),
-            original_template=template,
+            original_template=copy.deepcopy(template),
             dynamic_artifact_properties=[],
             had_language_extensions=False,
         )
@@ -600,7 +600,7 @@ def expand_language_extensions(
 
         result = LanguageExtensionResult(
             expanded_template=expanded_template,
-            original_template=template,
+            original_template=copy.deepcopy(template),
             dynamic_artifact_properties=dynamic_properties,
             had_language_extensions=True,
         )
