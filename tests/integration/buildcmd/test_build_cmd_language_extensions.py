@@ -48,6 +48,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         actual_files = all_artifacts.intersection(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.assertEqual(actual_files, self.EXPECTED_FILES_PROJECT_MANIFEST)
 
+    @pytest.mark.tier1_extra
     def test_build_with_foreach_template(self):
         """Test that sam build expands Fn::ForEach and builds each generated function."""
         runtime = self._get_python_version()

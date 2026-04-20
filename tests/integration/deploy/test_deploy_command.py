@@ -1802,19 +1802,20 @@ to create a managed default bucket, or run sam deploy --guided",
         """
         template_path = self.test_data_path.joinpath("language-extensions-dynamic-codeuri", "template.yaml")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".yaml") as output_template_file:
+        output_template_path = os.path.join(tempfile.gettempdir(), "test_lang_ext_deploy_output.yaml")
+        try:
             # Package the template
             package_command_list = self.get_command_list(
                 template=template_path,
                 s3_bucket=self.s3_bucket.name,
                 s3_prefix=self.s3_prefix,
-                output_template_file=output_template_file.name,
+                output_template_file=output_template_path,
             )
             package_process = self.run_command(command_list=package_command_list)
             self.assertEqual(package_process.process.returncode, 0)
 
             # Read and verify the packaged template
-            with open(output_template_file.name, "r") as f:
+            with open(output_template_path, "r") as f:
                 packaged_template = yaml_parse(f.read())
 
             # Verify Fn::ForEach structure is preserved
@@ -1852,7 +1853,7 @@ to create a managed default bucket, or run sam deploy --guided",
             self.stacks.append({"name": stack_name})
 
             deploy_command_list = self.get_deploy_command_list(
-                template_file=output_template_file.name,
+                template_file=output_template_path,
                 stack_name=stack_name,
                 capabilities="CAPABILITY_IAM",
                 s3_prefix=self.s3_prefix,
@@ -1867,3 +1868,6 @@ to create a managed default bucket, or run sam deploy --guided",
 
             deploy_process = self.run_command(deploy_command_list)
             self.assertEqual(deploy_process.process.returncode, 0)
+        finally:
+            if os.path.exists(output_template_path):
+                os.unlink(output_template_path)
