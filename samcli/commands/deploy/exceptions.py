@@ -121,7 +121,7 @@ class DeployStackStatusMissingError(UserException):
         super().__init__(message=message_fmt.format(msg=stack_name))
 
 
-class MissingMappingKeyError(UserException):
+class MissingMappingKeyError(DeployFailedError):
     """
     Error raised when CloudFormation deployment fails due to a missing key in a Mapping.
 
@@ -160,4 +160,4 @@ will not have corresponding artifacts in S3.
 
 Original CloudFormation error: {original_error}"""
 
-        super().__init__(message=message)
+        super().__init__(stack_name=stack_name, msg=message)
