@@ -173,7 +173,7 @@ class PackageContext:
         from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 
         # Read the original template
-        with open(template_path, "r") as f:
+        with open(template_path, "r", encoding="utf-8") as f:
             original_template_dict = yaml_parse(f.read())
 
         # Build combined parameter values for expand_language_extensions

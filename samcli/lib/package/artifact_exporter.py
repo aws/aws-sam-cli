@@ -79,7 +79,10 @@ class CloudFormationStackResource(ResourceZip):
         The S3 URIs are then merged back into the original template
         (preserving the Fn::ForEach structure) before uploading.
         """
-        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.cfn_language_extensions.sam_integration import (
+            check_using_language_extension,
+            expand_language_extensions,
+        )
         from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
         from samcli.lib.package.language_extensions_packaging import (
             generate_and_apply_artifact_mappings,
@@ -99,7 +102,7 @@ class CloudFormationStackResource(ResourceZip):
             )
 
         # Read and attempt language extensions expansion on the child template
-        with open(abs_template_path, "r") as f:
+        with open(abs_template_path, "r", encoding="utf-8") as f:
             child_template_dict = yaml_parse(f.read())
 
         child_template_dir = os.path.dirname(abs_template_path)
@@ -108,8 +111,11 @@ class CloudFormationStackResource(ResourceZip):
 
         try:
             result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
-        except InvalidSamDocumentException:
-            LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
+        except InvalidSamDocumentException as e:
+            if check_using_language_extension(child_template_dict):
+                LOG.warning("Language extensions expansion failed for %s: %s", abs_template_path, e)
+            else:
+                LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
             result = None
 
         if result and result.had_language_extensions:
@@ -260,7 +266,7 @@ class Template:
             abs_template_path = make_abs_path(parent_dir, template_path)
             template_dir = os.path.dirname(abs_template_path)
 
-            with open(abs_template_path, "r") as handle:
+            with open(abs_template_path, "r", encoding="utf-8") as handle:
                 template_str = handle.read()
 
             self.template_dir = template_dir
