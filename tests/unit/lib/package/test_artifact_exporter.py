@@ -2529,15 +2529,25 @@ class TestArtifactExporter(unittest.TestCase):
             os.remove(template_path)
 
     @patch("samcli.lib.package.artifact_exporter.Template")
-    def test_export_cloudformation_stack_unexpected_exception_propagates(self, TemplateMock):
+    def test_export_cloudformation_stack_unexpected_exception_falls_back(self, TemplateMock):
         """
         When expand_language_extensions raises an unexpected exception (not InvalidSamDocumentException),
-        it should propagate instead of being silently swallowed.
+        it should fall back gracefully to the non-extension flow (not abort the parent packaging).
         """
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
+        result_s3_url = "s3://hello/world"
+        result_path_style_s3_url = "http://s3.amazonws.com/hello/world"
+        exported_template_dict = {"Resources": {}}
+
+        template_instance_mock = Mock()
+        TemplateMock.return_value = template_instance_mock
+        template_instance_mock.export.return_value = exported_template_dict
+
+        self.s3_uploader_mock.upload.return_value = result_s3_url
+        self.s3_uploader_mock.to_path_style_s3_url.return_value = result_path_style_s3_url
 
         handle = tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False)
         try:
@@ -2552,7 +2562,9 @@ class TestArtifactExporter(unittest.TestCase):
                 "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
                 side_effect=TypeError("unexpected bug"),
             ):
-                with self.assertRaises(ExportFailedError):
-                    stack_resource.export(resource_id, resource_dict, parent_dir)
+                stack_resource.export(resource_id, resource_dict, parent_dir)
+
+            # Should fall back to non-extension flow successfully
+            self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
         finally:
             os.remove(template_path)

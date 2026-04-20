@@ -117,6 +117,9 @@ class CloudFormationStackResource(ResourceZip):
             else:
                 LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
             result = None
+        except Exception as e:
+            LOG.warning("Unexpected error during language extensions expansion for %s: %s", abs_template_path, e)
+            result = None
 
         if result and result.had_language_extensions:
             LOG.debug("Child template %s uses language extensions, expanding before export", abs_template_path)
