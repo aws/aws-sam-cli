@@ -199,8 +199,8 @@ class ForEachProcessor:
 
         This method iterates through the section, validates any
         Fn::ForEach:: prefixed keys found, and expands them.
-        Used for top-level sections (Resources, Conditions, Outputs),
-        resource Properties, and nested ForEach bodies.
+        Used for Conditions, Outputs, resource Properties, and nested ForEach bodies.
+        Resources are handled separately by _process_resources_section.
 
         Args:
             section: The dictionary to process.
