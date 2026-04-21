@@ -605,7 +605,7 @@ class Deployer:
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def create_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -615,11 +615,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to create stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def update_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -629,11 +629,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to update stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def sync(
         self,

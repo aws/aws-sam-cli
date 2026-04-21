@@ -1565,3 +1565,57 @@ class TestCreateDeployError(TestCase):
         self.assertIsInstance(error, MissingMappingKeyError)
         self.assertEqual(error.original_error, error_message)
         self.assertIn(error_message, str(error))
+
+
+class TestCreateDeployErrorRouting(TestCase):
+    """Verifies create_stack / update_stack / create_and_wait_for_changeset
+    route ClientError through _create_deploy_error so SAM-generated
+    Fn::FindInMap failures surface as MissingMappingKeyError on every
+    deploy path (bot flagged sync was the only wired call site)."""
+
+    def setUp(self):
+        self.session = MagicMock()
+        self.cloudformation_client = self.session.client("cloudformation")
+        self.deployer = Deployer(self.cloudformation_client)
+
+    @staticmethod
+    def _findmap_client_error(op):
+        return ClientError(
+            error_response={
+                "Error": {
+                    "Message": "Fn::FindInMap - Key 'Products' not found in Mapping 'SAMCodeUriServices'",
+                }
+            },
+            operation_name=op,
+        )
+
+    def test_create_stack_wraps_findmap_error(self):
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        self.deployer._client.create_stack = MagicMock(side_effect=self._findmap_client_error("CreateStack"))
+        with self.assertRaises(MissingMappingKeyError) as cm:
+            self.deployer.create_stack(StackName="test-stack")
+        self.assertEqual(cm.exception.missing_key, "Products")
+        self.assertEqual(cm.exception.mapping_name, "SAMCodeUriServices")
+
+    def test_update_stack_wraps_findmap_error(self):
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        self.deployer._client.update_stack = MagicMock(side_effect=self._findmap_client_error("UpdateStack"))
+        with self.assertRaises(MissingMappingKeyError) as cm:
+            self.deployer.update_stack(StackName="test-stack")
+        self.assertEqual(cm.exception.missing_key, "Products")
+        self.assertEqual(cm.exception.mapping_name, "SAMCodeUriServices")
+
+    def test_create_stack_user_findmap_is_not_wrapped(self):
+        """User mappings (RegionMap) still fall through to generic DeployFailedError."""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        err = ClientError(
+            error_response={"Error": {"Message": "Fn::FindInMap - Key 'us-east-2' not found in Mapping 'RegionMap'"}},
+            operation_name="CreateStack",
+        )
+        self.deployer._client.create_stack = MagicMock(side_effect=err)
+        with self.assertRaises(DeployFailedError) as cm:
+            self.deployer.create_stack(StackName="test-stack")
+        self.assertNotIsInstance(cm.exception, MissingMappingKeyError)
