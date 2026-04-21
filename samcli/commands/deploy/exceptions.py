@@ -20,48 +20,6 @@ FINDMAP_KEY_NOT_FOUND_PATTERN = re.compile(
     r"(?:'([^']+)'|\"([^\"]+)\"|(\S+))"
 )
 
-# Mapping-name prefixes that SAM CLI emits for dynamic Fn::ForEach handling:
-#   - SAM + <packageable artifact property> + <nesting path> + [resource suffix]
-#   - SAMLayers + <nesting path> (auto dependency layer references)
-# See language_extensions_packaging._compute_mapping_name and build_context.
-# Customer-authored mappings should never start with one of these exact
-# PascalCase prefixes, so exact-prefix matching avoids the false positives
-# a regex like r"^SAM[A-Z]..." would hit on names like "SAMPLE" / "SAMSUNG".
-_SAM_GENERATED_MAPPING_PREFIXES: Tuple[str, ...] = (
-    "SAMCodeUri",
-    "SAMImageUri",
-    "SAMContentUri",
-    "SAMDefinitionUri",
-    "SAMSchemaUri",
-    "SAMBodyS3Location",
-    "SAMDefinitionS3Location",
-    "SAMTemplateURL",
-    "SAMCode",
-    "SAMContent",
-    "SAMLayers",
-)
-
-
-def _is_sam_generated_mapping(mapping_name: str) -> bool:
-    """Check whether *mapping_name* matches the naming scheme SAM CLI uses for
-    Mappings emitted during sam build / sam package for dynamic Fn::ForEach
-    artifact properties. See language_extensions_packaging._compute_mapping_name.
-    """
-    if not mapping_name:
-        return False
-    for prefix in _SAM_GENERATED_MAPPING_PREFIXES:
-        if mapping_name == prefix:
-            # Bare prefix with no nesting path isn't a real SAM-generated name.
-            return False
-        if mapping_name.startswith(prefix):
-            # The next character must start a new PascalCase segment (upper-case
-            # letter). Digits or lower-case letters here indicate a user name
-            # that happens to share the prefix.
-            nxt = mapping_name[len(prefix)]
-            if "A" <= nxt <= "Z":
-                return True
-    return False
-
 
 def parse_findmap_error(error_message: str) -> Optional[Tuple[str, str]]:
     """

@@ -11,7 +11,11 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
-from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
+from samcli.lib.cfn_language_extensions.utils import (
+    FOREACH_REQUIRED_ELEMENTS,
+    is_foreach_key,
+    is_sam_generated_mapping,
+)
 from samcli.lib.samlib.resource_metadata_normalizer import ASSET_PATH_METADATA_KEY, ResourceMetadataNormalizer
 from samcli.lib.utils import graphql_api
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -303,8 +307,11 @@ def _update_sam_mappings_relative_paths(mappings, original_root, new_root):
         return
 
     for mapping_name, mapping_entries in mappings.items():
-        # Only process SAM-generated Mappings (prefixed with "SAM")
-        if not mapping_name.startswith("SAM"):
+        # Only process SAM-generated Mappings (known PascalCase prefixes like
+        # SAMCodeUri…, SAMImageUri…, SAMLayers…). Skipping with a loose
+        # startswith("SAM") check would corrupt customer mappings that happen
+        # to share the prefix as a substring (SAMPLE, SAMSUNG, etc.).
+        if not is_sam_generated_mapping(mapping_name):
             continue
 
         if not isinstance(mapping_entries, dict):

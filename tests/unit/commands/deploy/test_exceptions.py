@@ -160,7 +160,7 @@ class TestMissingMappingKeyError(TestCase):
 
 
 class TestIsSamGeneratedMapping(TestCase):
-    """Tests for the _is_sam_generated_mapping classifier.
+    """Tests for the is_sam_generated_mapping classifier.
 
     The classifier gates whether Deployer wraps a CloudFormation
     Fn::FindInMap failure as MissingMappingKeyError (which emits
@@ -170,7 +170,7 @@ class TestIsSamGeneratedMapping(TestCase):
     """
 
     def test_sam_generated_names_match(self):
-        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+        from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 
         for name in (
             "SAMCodeUriServices",
@@ -179,10 +179,10 @@ class TestIsSamGeneratedMapping(TestCase):
             "SAMImageUriFunctionsApi",
         ):
             with self.subTest(name=name):
-                self.assertTrue(_is_sam_generated_mapping(name))
+                self.assertTrue(is_sam_generated_mapping(name))
 
     def test_user_mapping_names_do_not_match(self):
-        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+        from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 
         for name in (
             "RegionMap",
@@ -200,9 +200,9 @@ class TestIsSamGeneratedMapping(TestCase):
             "",
         ):
             with self.subTest(name=name):
-                self.assertFalse(_is_sam_generated_mapping(name))
+                self.assertFalse(is_sam_generated_mapping(name))
 
     def test_none_input_is_false(self):
-        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+        from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 
-        self.assertFalse(_is_sam_generated_mapping(None))
+        self.assertFalse(is_sam_generated_mapping(None))

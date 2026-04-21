@@ -17,6 +17,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.telemetry.event import EventTracker
@@ -284,7 +285,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         # The recursive template check for Nested stacks
         for resource_logical_id in current_template.get("Resources", {}):
-            if resource_logical_id.startswith("Fn::ForEach::"):
+            if is_foreach_key(resource_logical_id):
                 continue
 
             resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
@@ -397,7 +398,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         built_resource_dict = None
 
         for resource_logical_id in resources:
-            if resource_logical_id.startswith("Fn::ForEach::"):
+            if is_foreach_key(resource_logical_id):
                 continue
 
             resource_dict = resources.get(resource_logical_id, {})

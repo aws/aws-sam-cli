@@ -34,9 +34,9 @@ from samcli.commands.deploy.exceptions import (
     DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
     MissingMappingKeyError,
-    _is_sam_generated_mapping,
     parse_findmap_error,
 )
+from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -123,7 +123,7 @@ class Deployer:
             # failures (e.g. a RegionMap lookup) must pass through with the
             # raw CloudFormation message — the SAM-specific re-package guidance
             # would be misleading otherwise.
-            if _is_sam_generated_mapping(mapping_name):
+            if is_sam_generated_mapping(mapping_name):
                 return MissingMappingKeyError(
                     stack_name=stack_name,
                     missing_key=missing_key,

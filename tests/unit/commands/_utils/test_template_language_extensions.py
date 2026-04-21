@@ -118,6 +118,18 @@ class TestUpdateSamMappingsRelativePaths(TestCase):
         # Should be unchanged
         self.assertEqual(mappings["RegionMap"]["us-east-1"]["AMI"], "ami-12345")
 
+    def test_skips_sam_prefix_substring_mappings(self):
+        """User-authored mappings like SAMPLE / SAMSUNG must not be treated as SAM-generated."""
+        mappings = {
+            "SAMPLE": {"key1": {"CodeUri": "services/users"}},
+            "SAMSUNG": {"key2": {"CodeUri": "services/orders"}},
+            "SAMCustomMapping": {"key3": {"CodeUri": "services/products"}},
+        }
+        _update_sam_mappings_relative_paths(mappings, "/old", "/new")
+        self.assertEqual(mappings["SAMPLE"]["key1"]["CodeUri"], "services/users")
+        self.assertEqual(mappings["SAMSUNG"]["key2"]["CodeUri"], "services/orders")
+        self.assertEqual(mappings["SAMCustomMapping"]["key3"]["CodeUri"], "services/products")
+
     def test_skips_non_dict_mapping_entries(self):
         mappings = {"SAMCodeUriFunctions": "not a dict"}
         _update_sam_mappings_relative_paths(mappings, "/old", "/new")

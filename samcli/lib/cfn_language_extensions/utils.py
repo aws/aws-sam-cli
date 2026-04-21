@@ -48,6 +48,50 @@ def is_foreach_key(key: str) -> bool:
     return isinstance(key, str) and key.startswith(FOREACH_PREFIX)
 
 
+# Mapping-name prefixes that SAM CLI emits for dynamic Fn::ForEach handling:
+#   - SAM + <packageable artifact property> + <nesting path> + [resource suffix]
+#     (see language_extensions_packaging._compute_mapping_name)
+#   - SAMLayers + <nesting path>  (see build_context — auto dependency layer refs)
+# Customer-authored mappings should never start with one of these exact
+# PascalCase prefixes, so exact-prefix matching avoids the false positives
+# a regex like r"^SAM[A-Z]..." would hit on names like SAMPLE / SAMSUNG.
+_SAM_GENERATED_MAPPING_PREFIXES: Tuple[str, ...] = (
+    "SAMCodeUri",
+    "SAMImageUri",
+    "SAMContentUri",
+    "SAMDefinitionUri",
+    "SAMSchemaUri",
+    "SAMBodyS3Location",
+    "SAMDefinitionS3Location",
+    "SAMTemplateURL",
+    "SAMCode",
+    "SAMContent",
+    "SAMLayers",
+)
+
+
+def is_sam_generated_mapping(mapping_name: str) -> bool:
+    """Return True if *mapping_name* matches the naming scheme SAM CLI uses
+    for Mappings emitted during sam build / sam package for dynamic
+    Fn::ForEach artifact properties.
+
+    Customer-authored mappings that happen to start with "SAM" as a substring
+    (e.g. SAMPLE, SAMSUNG) will NOT match because the next character after the
+    prefix must begin a new PascalCase segment (upper-case letter).
+    """
+    if not mapping_name:
+        return False
+    for prefix in _SAM_GENERATED_MAPPING_PREFIXES:
+        if mapping_name == prefix:
+            # Bare prefix with no nesting path isn't a real SAM-generated name.
+            return False
+        if mapping_name.startswith(prefix):
+            nxt = mapping_name[len(prefix)]
+            if "A" <= nxt <= "Z":
+                return True
+    return False
+
+
 def iter_regular_resources(template_dict: Dict) -> Iterator[Tuple[str, Dict]]:
     """
     Yield (logical_id, resource_dict) pairs from a template's Resources section,
