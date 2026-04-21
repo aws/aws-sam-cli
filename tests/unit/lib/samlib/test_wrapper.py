@@ -143,7 +143,9 @@ class TestProcessLanguageExtensions(TestCase):
         result = expand_language_extensions(input_template, parameter_values={"AWS::Region": "us-east-1"})
 
         self.assertTrue(result.had_language_extensions)
-        self.assertEqual(result.expanded_template, expected_output)
+        from samcli.lib.cfn_language_extensions.utils import deep_thaw
+
+        self.assertEqual(deep_thaw(result.expanded_template), expected_output)
         mock_process.assert_called_once()
 
     @patch("samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli")

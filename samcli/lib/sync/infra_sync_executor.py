@@ -2,7 +2,6 @@
 InfraSyncExecutor class which runs build, package and deploy contexts
 """
 
-import copy
 import logging
 import re
 from datetime import datetime, timezone
@@ -17,7 +16,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
-from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+from samcli.lib.cfn_language_extensions.utils import deep_thaw, is_foreach_key
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.telemetry.event import EventTracker
@@ -268,8 +267,8 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         last_deployed_template_dict = yaml_parse(last_deployed_template_str)
 
-        sanitized_current_template = copy.deepcopy(current_template)
-        sanitized_last_template = copy.deepcopy(last_deployed_template_dict)
+        sanitized_current_template = deep_thaw(current_template)
+        sanitized_last_template = deep_thaw(last_deployed_template_dict)
 
         sanitized_resources = self._sanitize_template(
             sanitized_current_template, built_template_dict=current_built_template

@@ -624,16 +624,21 @@ class TestExpandLanguageExtensionsEdgeCases:
         result = expand_language_extensions(template, template_path="/nonexistent/path/template.yaml")
         assert result.had_language_extensions is False
 
-    def test_non_language_extension_template_returns_independent_copies(self):
+    def test_non_language_extension_template_returns_frozen_result(self):
         template = {"Resources": {}}
         result = expand_language_extensions(template)
         assert result.had_language_extensions is False
-        # expanded_template should be an independent copy so mutations don't leak
-        assert result.expanded_template is not result.original_template
-        assert result.expanded_template == template
+        # Both fields point to the same frozen object (no-LE path optimization)
+        assert result.expanded_template is result.original_template
+        assert dict(result.expanded_template) == template
+        # Frozen — mutation raises TypeError
+        with pytest.raises(TypeError):
+            result.expanded_template["Resources"] = {}
 
     def test_mutation_does_not_affect_subsequent_calls(self):
-        """Mutating a returned result must not affect subsequent calls."""
+        """Frozen results prevent mutation; callers must deep_thaw first."""
+        from samcli.lib.cfn_language_extensions.utils import deep_thaw
+
         template = {
             "Resources": {
                 "MyStack": {
@@ -643,10 +648,11 @@ class TestExpandLanguageExtensionsEdgeCases:
             }
         }
         result1 = expand_language_extensions(template)
-        # Simulate what update_template does: mutate Location in-place
-        result1.expanded_template["Resources"]["MyStack"]["Properties"]["Location"] = "SomeOther/template.yaml"
+        # Must deep_thaw before mutating (matches the documented contract)
+        mutable = deep_thaw(result1.expanded_template)
+        mutable["Resources"]["MyStack"]["Properties"]["Location"] = "SomeOther/template.yaml"
 
-        # A fresh template dict should not be affected
+        # A fresh call should not be affected
         template2 = {
             "Resources": {
                 "MyStack": {
@@ -922,7 +928,7 @@ class TestExpansionCache:
             assert mock_process.call_count == 2
 
     def test_cache_returns_independent_copies(self):
-        """Mutating a cached result must not affect subsequent cache hits."""
+        """Cached results are frozen — mutation raises TypeError."""
         with tempfile.TemporaryDirectory() as tmp:
             path = self._make_template_file(tmp)
             template = self._lang_ext_template()
@@ -939,11 +945,13 @@ class TestExpansionCache:
                 return_value=expanded,
             ):
                 result1 = expand_language_extensions(template, template_path=path)
-                # Mutate the first result
-                result1.expanded_template["Resources"]["TopicA"]["Properties"]["DisplayName"] = "mutated"
+                # Frozen — mutation raises TypeError
+                with pytest.raises(TypeError):
+                    result1.expanded_template["Resources"]["TopicA"]["Properties"]["DisplayName"] = "mutated"
 
+                # Cache hit returns the same frozen object
                 result2 = expand_language_extensions(template, template_path=path)
-                # Second result should have the original value
+                assert result2 is result1
                 assert result2.expanded_template["Resources"]["TopicA"]["Properties"]["DisplayName"] == "original"
 
     def test_nonexistent_template_path_skips_cache(self):
@@ -972,8 +980,8 @@ class TestExpansionCache:
             assert result1.had_language_extensions is False
             assert result2.had_language_extensions is False
             assert len(_expansion_cache) == 1
-            # Ensure independence
-            assert result1.expanded_template is not result2.expanded_template
+            # Cache returns the same frozen object
+            assert result1 is result2
 
     def test_cache_evicts_oldest_when_full(self):
         """Cache should evict the oldest entry when _MAX_CACHE_SIZE is reached."""

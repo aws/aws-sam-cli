@@ -844,10 +844,11 @@ class TestProperty11PhaseSeparationResultEquivalence:
         assert foreach_key in result.original_template["Resources"]
 
         original_foreach = result.original_template["Resources"][foreach_key]
-        assert isinstance(original_foreach, list)
+        assert isinstance(original_foreach, (list, tuple))
         assert len(original_foreach) == 3
         assert original_foreach[0] == loop_var
-        assert original_foreach[1] == collection
+        # Collection may be a tuple (frozen) or list
+        assert list(original_foreach[1]) == list(collection)
 
     @pytest.mark.parametrize(
         "loop_name, loop_var, collection",

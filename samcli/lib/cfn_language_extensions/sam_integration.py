@@ -27,7 +27,12 @@ from samcli.lib.cfn_language_extensions.models import (
     ResolutionMode,
     TemplateProcessingContext,
 )
-from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, FOREACH_REQUIRED_ELEMENTS, is_foreach_key
+from samcli.lib.cfn_language_extensions.utils import (
+    FOREACH_PREFIX,
+    FOREACH_REQUIRED_ELEMENTS,
+    deep_freeze,
+    is_foreach_key,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -76,6 +81,11 @@ class LanguageExtensionResult:
 
     This dataclass carries all Phase 1 outputs so that callers don't need
     to re-derive them.
+
+    All template fields are deeply frozen (dicts as ``MappingProxyType``,
+    lists as ``tuple``).  Callers that need to mutate must use
+    ``deep_thaw()`` from ``samcli.lib.cfn_language_extensions.utils``
+    (not ``copy.deepcopy`` which cannot pickle ``MappingProxyType``).
 
     Attributes
     ----------
@@ -552,31 +562,18 @@ def expand_language_extensions(
         cached = _expansion_cache.get(cache_key)
         if cached is not None:
             LOG.debug("Cache hit for template expansion: %s", template_path)
-            return LanguageExtensionResult(
-                expanded_template=copy.deepcopy(cached.expanded_template),
-                original_template=copy.deepcopy(cached.original_template),
-                dynamic_artifact_properties=list(cached.dynamic_artifact_properties),
-                had_language_extensions=cached.had_language_extensions,
-            )
+            return cached
 
     if not check_using_language_extension(template):
+        frozen = deep_freeze(template)
         result = LanguageExtensionResult(
-            expanded_template=copy.deepcopy(template),
-            original_template=copy.deepcopy(template),
+            expanded_template=frozen,
+            original_template=frozen,
             dynamic_artifact_properties=[],
             had_language_extensions=False,
         )
         if cache_key is not None:
-            # Store a deep copy so callers can't poison the cache
-            _cache_put(
-                cache_key,
-                LanguageExtensionResult(
-                    expanded_template=copy.deepcopy(result.expanded_template),
-                    original_template=copy.deepcopy(result.original_template),
-                    dynamic_artifact_properties=list(result.dynamic_artifact_properties),
-                    had_language_extensions=result.had_language_extensions,
-                ),
-            )
+            _cache_put(cache_key, result)
         return result
 
     LOG.debug("Expanding CloudFormation Language Extensions (Phase 1)")
@@ -599,8 +596,8 @@ def expand_language_extensions(
         LOG.debug("Successfully expanded CloudFormation Language Extensions")
 
         result = LanguageExtensionResult(
-            expanded_template=expanded_template,
-            original_template=copy.deepcopy(template),
+            expanded_template=deep_freeze(expanded_template),
+            original_template=deep_freeze(template),
             dynamic_artifact_properties=dynamic_properties,
             had_language_extensions=True,
         )
@@ -611,16 +608,7 @@ def expand_language_extensions(
         EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CFN_LANGUAGE_EXTENSIONS.value)
 
         if cache_key is not None:
-            # Store a deep copy so callers can't poison the cache
-            _cache_put(
-                cache_key,
-                LanguageExtensionResult(
-                    expanded_template=copy.deepcopy(result.expanded_template),
-                    original_template=copy.deepcopy(result.original_template),
-                    dynamic_artifact_properties=list(result.dynamic_artifact_properties),
-                    had_language_extensions=result.had_language_extensions,
-                ),
-            )
+            _cache_put(cache_key, result)
 
         return result
 
