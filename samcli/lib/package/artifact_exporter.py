@@ -73,6 +73,10 @@ def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_value
         return {}
     # Local imports to preserve existing import ordering and avoid a cycle at load time.
     from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+    from samcli.lib.cfn_language_extensions.exceptions import (
+        InvalidTemplateException,
+        UnresolvableReferenceError,
+    )
     from samcli.lib.cfn_language_extensions.models import (
         ResolutionMode,
         TemplateProcessingContext,
@@ -89,7 +93,14 @@ def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_value
     for name, value in nested_params.items():
         try:
             resolved_value = resolver.resolve_value(value)
-        except Exception:  # pragma: no cover - resolver raises only on malformed intrinsics
+        except (UnresolvableReferenceError, InvalidTemplateException):
+            # Expected: the nested-stack parameter references something the
+            # resolver can't see at package time (e.g. a sibling resource).
+            continue
+        except Exception:  # pylint: disable=broad-except
+            # Unexpected — likely a SAM CLI bug. Log at debug with traceback so
+            # --debug surfaces it; drop the value so packaging still proceeds.
+            LOG.debug("Unexpected error resolving nested stack parameter %r; skipping", name, exc_info=True)
             continue
         # Drop values that still contain intrinsics (unresolvable at package time).
         if isinstance(resolved_value, dict) and len(resolved_value) == 1:
