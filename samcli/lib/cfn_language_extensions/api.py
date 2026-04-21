@@ -231,6 +231,11 @@ class IntrinsicResolverProcessor:
                     try:
                         return self._resolver.resolve_value(value)
                     except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
+                        LOG.debug(
+                            "Partial-resolve: substituting AWS::NoValue for unresolvable Ref %r",
+                            inner_value,
+                            exc_info=True,
+                        )
                         return {"Ref": "AWS::NoValue"}
 
                 elif key.startswith("Fn::") or key == "Condition":
@@ -238,6 +243,11 @@ class IntrinsicResolverProcessor:
                     try:
                         return self._resolver.resolve_value(value)
                     except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
+                        LOG.debug(
+                            "Partial-resolve: could not resolve %s; falling back to partial args",
+                            key,
+                            exc_info=True,
+                        )
                         # Can't resolve - replace unresolvable parts with AWS::NoValue
                         if key == "Fn::FindInMap":
                             # FindInMap - try to partially resolve arguments
@@ -310,6 +320,12 @@ class IntrinsicResolverProcessor:
                 raise
             except Exception:
                 # Other errors - return with partially resolved args
+                LOG.debug(
+                    "Partial-resolve Fn::FindInMap: unexpected error resolving %r; "
+                    "returning partially-resolved args",
+                    resolved_args,
+                    exc_info=True,
+                )
                 return {"Fn::FindInMap": resolved_args}
 
         # Some args are not strings - return with partially resolved args
