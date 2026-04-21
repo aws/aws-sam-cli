@@ -770,7 +770,7 @@ class TestLanguageExtensionResultDataclass:
             expanded_template={},
             original_template={},
         )
-        assert result.dynamic_artifact_properties == []
+        assert result.dynamic_artifact_properties == ()
         assert result.had_language_extensions is False
 
     def test_frozen(self):

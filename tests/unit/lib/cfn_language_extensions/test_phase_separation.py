@@ -90,7 +90,7 @@ class TestLanguageExtensionResultDataclass(TestCase):
             original_template=template,
         )
 
-        self.assertEqual(result.dynamic_artifact_properties, [])
+        self.assertEqual(result.dynamic_artifact_properties, ())
         self.assertFalse(result.had_language_extensions)
 
     def test_frozen_immutable_behavior(self):

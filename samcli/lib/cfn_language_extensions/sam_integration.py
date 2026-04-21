@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -101,7 +101,7 @@ class LanguageExtensionResult:
 
     expanded_template: Dict[str, Any]
     original_template: Dict[str, Any]
-    dynamic_artifact_properties: List = field(default_factory=list)
+    dynamic_artifact_properties: Tuple = ()
     had_language_extensions: bool = False
 
 
@@ -569,7 +569,7 @@ def expand_language_extensions(
         result = LanguageExtensionResult(
             expanded_template=frozen,
             original_template=frozen,
-            dynamic_artifact_properties=[],
+            dynamic_artifact_properties=(),
             had_language_extensions=False,
         )
         if cache_key is not None:
@@ -598,7 +598,7 @@ def expand_language_extensions(
         result = LanguageExtensionResult(
             expanded_template=deep_freeze(expanded_template),
             original_template=deep_freeze(template),
-            dynamic_artifact_properties=dynamic_properties,
+            dynamic_artifact_properties=tuple(dynamic_properties),
             had_language_extensions=True,
         )
 

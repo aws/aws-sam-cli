@@ -153,7 +153,7 @@ PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES: Dict[str, List[str]] = {
 }
 
 
-@dataclass
+@dataclass(frozen=True)
 class DynamicArtifactProperty:
     """
     Represents a dynamic artifact property found in a Fn::ForEach block.
