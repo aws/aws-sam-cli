@@ -58,6 +58,48 @@ LOG = logging.getLogger(__name__)
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
 
+def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_values: Dict) -> Dict:
+    """
+    Resolve intrinsics in the nested stack resource's Parameters property using
+    the parent's parameter context.
+
+    Values that cannot be resolved locally (e.g. Fn::GetAtt, Fn::ImportValue,
+    Ref to a parent resource) are dropped — the child's own Parameter.Default
+    or a later processing step will handle them. This keeps package-time
+    expansion best-effort without raising on templates that cross-reference
+    runtime-only values.
+    """
+    if not nested_params:
+        return {}
+    # Local imports to preserve existing import ordering and avoid a cycle at load time.
+    from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+    from samcli.lib.cfn_language_extensions.models import (
+        ResolutionMode,
+        TemplateProcessingContext,
+    )
+
+    ctx = TemplateProcessingContext(
+        fragment={},
+        parameter_values=parent_parameter_values or {},
+        resolution_mode=ResolutionMode.PARTIAL,
+    )
+    resolver = create_default_intrinsic_resolver(ctx)
+
+    resolved: Dict = {}
+    for name, value in nested_params.items():
+        try:
+            resolved_value = resolver.resolve_value(value)
+        except Exception:  # pragma: no cover - resolver raises only on malformed intrinsics
+            continue
+        # Drop values that still contain intrinsics (unresolvable at package time).
+        if isinstance(resolved_value, dict) and len(resolved_value) == 1:
+            only_key = next(iter(resolved_value))
+            if only_key == "Ref" or only_key.startswith("Fn::"):
+                continue
+        resolved[name] = resolved_value
+    return resolved
+
+
 class CloudFormationStackResource(ResourceZip):
     """
     Represents CloudFormation::Stack resource that can refer to a nested
@@ -107,7 +149,23 @@ class CloudFormationStackResource(ResourceZip):
 
         child_template_dir = os.path.dirname(abs_template_path)
 
+        # Merge pseudo-parameters with:
+        #  1) values propagated from the parent Template (parent stack's own params
+        #     + CLI --parameter-overrides + pseudo-params), used to resolve intrinsics
+        #     in the nested stack's Parameters property;
+        #  2) the nested stack's Parameters property on the parent resource, which is
+        #     the authoritative source for the child's parameter values at deploy time.
+        # Child-local values override parent-propagated ones on key conflict, which
+        # matches CloudFormation's behavior (a child parameter shadows a same-named
+        # parent parameter unless explicitly wired).
+        parent_parameter_values = dict(getattr(self, "parent_parameter_values", None) or {})
+
+        nested_params = resource_dict.get("Parameters", {}) or {}
+        resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
+
         parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(parent_parameter_values)
+        parameter_values.update(resolved_nested_params)
 
         try:
             result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
@@ -134,6 +192,7 @@ class CloudFormationStackResource(ResourceZip):
                 normalize_parameters=True,
                 parent_stack_id=resource_id,
                 template_str=yaml_dump(result.expanded_template),
+                parameter_values=parameter_values,
             )
             template.template_dir = child_template_dir
             template.code_signer = self.code_signer
@@ -168,6 +227,7 @@ class CloudFormationStackResource(ResourceZip):
                 normalize_template=True,
                 normalize_parameters=True,
                 parent_stack_id=resource_id,
+                parameter_values=parameter_values,
             ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
@@ -258,6 +318,7 @@ class Template:
         normalize_template: bool = False,
         normalize_parameters: bool = False,
         parent_stack_id: str = "",
+        parameter_values: Optional[Dict] = None,
     ):
         """
         Reads the template and makes it ready for export
@@ -281,6 +342,9 @@ class Template:
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
         self.parent_stack_id = parent_stack_id
+        # Parameter values to pass down to child-template expansion (e.g. Fn::ForEach
+        # collections that Ref a parameter). None preserves pre-existing behavior.
+        self.parameter_values = parameter_values
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -372,6 +436,7 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer, cache)
+                exporter.parent_parameter_values = self.parameter_values
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict

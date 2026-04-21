@@ -1204,6 +1204,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_parameters=True,
                 normalize_template=True,
                 parent_stack_id="id",
+                parameter_values=mock.ANY,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1384,6 +1385,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_parameters=True,
                 normalize_template=True,
                 parent_stack_id="id",
+                parameter_values=mock.ANY,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -2568,3 +2570,127 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
         finally:
             os.remove(template_path)
+
+
+class TestResolveNestedStackParameters(unittest.TestCase):
+    """Unit tests for _resolve_nested_stack_parameters helper.
+
+    This covers the fix for issue #1: child stack Fn::ForEach over a Ref to
+    a parameter the parent passed down via Properties.Parameters. The helper
+    is the seam that turns the parent's nested-stack Parameters property
+    into a concrete parameter_values map usable by expand_language_extensions.
+    """
+
+    def test_literal_values_pass_through(self):
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        resolved = _resolve_nested_stack_parameters(
+            {"ServiceNames": "Users,Orders,Products"}, parent_parameter_values={}
+        )
+        self.assertEqual(resolved, {"ServiceNames": "Users,Orders,Products"})
+
+    def test_ref_to_parent_parameter_resolves(self):
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        resolved = _resolve_nested_stack_parameters(
+            {"ServiceNames": {"Ref": "TopLevelServices"}},
+            parent_parameter_values={"TopLevelServices": "Users,Orders"},
+        )
+        self.assertEqual(resolved, {"ServiceNames": "Users,Orders"})
+
+    def test_unresolvable_getatt_is_dropped(self):
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        resolved = _resolve_nested_stack_parameters(
+            {"TopicArn": {"Fn::GetAtt": ["SomeResource", "Arn"]}}, parent_parameter_values={}
+        )
+        # Can't resolve at package time; the key is dropped so it doesn't
+        # poison expand_language_extensions with a dict value.
+        self.assertEqual(resolved, {})
+
+    def test_empty_input(self):
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        self.assertEqual(_resolve_nested_stack_parameters({}, {}), {})
+        self.assertEqual(_resolve_nested_stack_parameters(None, {}), {})
+
+
+class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
+    """End-to-end test for threading parent params into child template expansion.
+
+    Verifies that when CloudFormationStackResource.do_export is invoked with a
+    parent_parameter_values attribute set, and the nested-stack resource has
+    a Parameters property, those parameters reach the child-template
+    language-extensions expansion (so Fn::ForEach over a child parameter
+    resolves correctly).
+    """
+
+    def _make_stack_resource(self):
+        uploaders_mock = Mock()
+        uploaders_mock.get.return_value = Mock()
+        uploaders_mock.get.return_value.upload.return_value = "s3://bucket/key"
+        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = "http://s3.amazonaws.com/bucket/key"
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+        return CloudFormationStackResource(uploaders_mock, code_signer_mock), uploaders_mock
+
+    def test_child_template_receives_parent_parameters(self):
+        stack_resource, _ = self._make_stack_resource()
+
+        # Child template: Fn::ForEach driven by a child parameter.
+        child_template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"ServiceNames": {"Type": "CommaDelimitedList"}},
+            "Resources": {
+                "Fn::ForEach::Services": [
+                    "Name",
+                    {"Ref": "ServiceNames"},
+                    {"${Name}Topic": {"Type": "AWS::SNS::Topic", "Properties": {}}},
+                ]
+            },
+        }
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = os.path.join(tmpdir, "child.yaml")
+            from samcli.yamlhelper import yaml_dump
+
+            with open(child_path, "w", encoding="utf-8") as f:
+                f.write(yaml_dump(child_template))
+
+            # Parent-propagated values (what PackageContext._export would send)
+            stack_resource.parent_parameter_values = {
+                "AWS::Region": "us-east-1",
+                "AWS::AccountId": "123456789012",
+            }
+
+            # Parent's nested-stack resource: Parameters literal list
+            resource_dict = {
+                "TemplateURL": child_path,
+                "Parameters": {"ServiceNames": "Users,Orders,Products"},
+            }
+
+            with patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock:
+                # Short-circuit: make expand return a "no-LE" result so do_export
+                # proceeds via the non-extension path (which doesn't upload since
+                # we'll intercept the inner Template).
+                expand_mock.return_value = Mock(had_language_extensions=False)
+                with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+                    inner_template = Mock()
+                    inner_template.export.return_value = {"Resources": {}}
+                    TemplateMock.return_value = inner_template
+                    stack_resource.do_export("ChildStack", resource_dict, tmpdir)
+
+            # Verify the parameter_values threaded into expand_language_extensions
+            # contains the nested-stack Parameters values.
+            call_args = expand_mock.call_args[0]
+            call_kwargs = expand_mock.call_args[1]
+            passed_params = call_args[1] if len(call_args) > 1 else call_kwargs.get("parameter_values", {})
+            self.assertEqual(passed_params.get("ServiceNames"), "Users,Orders,Products")
+            # And still carries propagated parent/pseudo values:
+            self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)

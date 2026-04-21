@@ -203,6 +203,7 @@ class PackageContext:
             normalize_template=True,
             normalize_parameters=True,
             template_str=yaml_dump(template_dict_for_export),
+            parameter_values=parameter_values,
         )
         # Set template_dir since we're using template_str
         template.template_dir = os.path.dirname(os.path.abspath(template_path))
