@@ -111,6 +111,3 @@ Resources:
       - Unknown
     - 'SnsTopic${TopicName}':
         Type: 'AWS::SNS::Topic'
-        Properties:
-          TopicName: !Sub "SnsTopic${TopicName}.fifo"
-          FifoTopic: true
