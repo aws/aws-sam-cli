@@ -168,7 +168,7 @@ class CloudFormationStackResource(ResourceZip):
         # Child-local values override parent-propagated ones on key conflict, which
         # matches CloudFormation's behavior (a child parameter shadows a same-named
         # parent parameter unless explicitly wired).
-        parent_parameter_values = dict(getattr(self, "parent_parameter_values", None) or {})
+        parent_parameter_values = dict(self.parent_parameter_values or {})
 
         nested_params = resource_dict.get("Parameters", {}) or {}
         resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
