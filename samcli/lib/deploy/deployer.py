@@ -34,6 +34,7 @@ from samcli.commands.deploy.exceptions import (
     DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
     MissingMappingKeyError,
+    _is_sam_generated_mapping,
     parse_findmap_error,
 )
 from samcli.lib.deploy.utils import DeployColor, FailureMode
@@ -117,12 +118,18 @@ class Deployer:
         findmap_error = parse_findmap_error(error_message)
         if findmap_error:
             missing_key, mapping_name = findmap_error
-            return MissingMappingKeyError(
-                stack_name=stack_name,
-                missing_key=missing_key,
-                mapping_name=mapping_name,
-                original_error=error_message,
-            )
+            # Only wrap as MissingMappingKeyError when the Mapping name matches
+            # SAM CLI's own naming scheme. Customer-authored Fn::FindInMap
+            # failures (e.g. a RegionMap lookup) must pass through with the
+            # raw CloudFormation message — the SAM-specific re-package guidance
+            # would be misleading otherwise.
+            if _is_sam_generated_mapping(mapping_name):
+                return MissingMappingKeyError(
+                    stack_name=stack_name,
+                    missing_key=missing_key,
+                    mapping_name=mapping_name,
+                    original_error=error_message,
+                )
         return DeployFailedError(stack_name=stack_name, msg=error_message)
 
     # pylint: disable=inconsistent-return-statements

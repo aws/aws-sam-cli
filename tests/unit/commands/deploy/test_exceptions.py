@@ -157,3 +157,52 @@ class TestMissingMappingKeyError(TestCase):
         message = str(error)
         self.assertIn("Fn::ForEach", message)
         self.assertIn("package time", message)
+
+
+class TestIsSamGeneratedMapping(TestCase):
+    """Tests for the _is_sam_generated_mapping classifier.
+
+    The classifier gates whether Deployer wraps a CloudFormation
+    Fn::FindInMap failure as MissingMappingKeyError (which emits
+    SAM-specific guidance). False positives mis-direct users whose
+    own Mappings happen to start with SAM; false negatives fall
+    through to generic DeployFailedError, which is still safe.
+    """
+
+    def test_sam_generated_names_match(self):
+        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+
+        for name in (
+            "SAMCodeUriServices",
+            "SAMContentUriLayers",
+            "SAMDefinitionUriEnvsFunctions",
+            "SAMImageUriFunctionsApi",
+        ):
+            with self.subTest(name=name):
+                self.assertTrue(_is_sam_generated_mapping(name))
+
+    def test_user_mapping_names_do_not_match(self):
+        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+
+        for name in (
+            "RegionMap",
+            "EnvironmentConfig",
+            "AmiMap",
+            # Accidental SAM prefix
+            "SAMPLE",
+            "SAMSUNG",
+            # Bare prefix with no property segment
+            "SAM",
+            # Lower-case prefix is not ours
+            "sam_CodeUri",
+            "SamCodeUri",
+            # Empty and None
+            "",
+        ):
+            with self.subTest(name=name):
+                self.assertFalse(_is_sam_generated_mapping(name))
+
+    def test_none_input_is_false(self):
+        from samcli.commands.deploy.exceptions import _is_sam_generated_mapping
+
+        self.assertFalse(_is_sam_generated_mapping(None))
