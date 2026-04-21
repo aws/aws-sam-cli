@@ -2694,3 +2694,83 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
             import shutil
 
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
+    """Error-path behavior for language-extensions expansion in do_export.
+
+    Issue #2 in the review: the broad `except Exception` was downgrading
+    SAM CLI bugs to warnings, silently masking defects. The new behavior:
+    - InvalidSamDocumentException: warn (expected user-facing failure)
+    - Other exceptions: log ERROR with traceback (bug, not user input)
+    Both still fall back to the non-expanded path so the rest of sam
+    package keeps going.
+    """
+
+    def _make_stack_resource(self):
+        uploaders_mock = Mock()
+        uploaders_mock.get.return_value = Mock()
+        uploaders_mock.get.return_value.upload.return_value = "s3://bucket/key"
+        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = "http://s3.amazonaws.com/bucket/key"
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+        return CloudFormationStackResource(uploaders_mock, code_signer_mock)
+
+    def _write_child(self, tmpdir):
+        child = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {"Dummy": {"Type": "AWS::SNS::Topic", "Properties": {}}},
+        }
+        from samcli.yamlhelper import yaml_dump
+
+        path = os.path.join(tmpdir, "child.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(yaml_dump(child))
+        return path
+
+    def test_invalid_sam_document_exception_logs_warning_and_falls_back(self):
+        stack_resource = self._make_stack_resource()
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = self._write_child(tmpdir)
+            with (
+                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
+                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+                self.assertLogs("samcli.lib.package.artifact_exporter", level="WARNING") as log_ctx,
+            ):
+                expand_mock.side_effect = InvalidSamDocumentException("bad template")
+                TemplateMock.return_value.export.return_value = {"Resources": {}}
+                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
+
+            # Warning emitted (not error) and fallback path taken.
+            self.assertTrue(any("Language extensions expansion failed" in m for m in log_ctx.output))
+            TemplateMock.assert_called_once()  # non-extension fallback constructor
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_unexpected_exception_logs_error_and_falls_back(self):
+        stack_resource = self._make_stack_resource()
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = self._write_child(tmpdir)
+            with (
+                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
+                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+                self.assertLogs("samcli.lib.package.artifact_exporter", level="ERROR") as log_ctx,
+            ):
+                expand_mock.side_effect = AttributeError("unexpected bug")
+                TemplateMock.return_value.export.return_value = {"Resources": {}}
+                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
+
+            # ERROR-level log containing the bug-report pointer; fallback still taken.
+            joined = "\n".join(log_ctx.output)
+            self.assertIn("Internal error expanding language extensions", joined)
+            self.assertIn("github.com/aws/aws-sam-cli/issues", joined)
+            TemplateMock.assert_called_once()
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)

@@ -122,7 +122,6 @@ class CloudFormationStackResource(ResourceZip):
         (preserving the Fn::ForEach structure) before uploading.
         """
         from samcli.lib.cfn_language_extensions.sam_integration import (
-            check_using_language_extension,
             expand_language_extensions,
         )
         from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -170,13 +169,34 @@ class CloudFormationStackResource(ResourceZip):
         try:
             result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
         except InvalidSamDocumentException as e:
-            if check_using_language_extension(child_template_dict):
-                LOG.warning("Language extensions expansion failed for %s: %s", abs_template_path, e)
-            else:
-                LOG.debug("Language extensions expansion failed for %s, using original template", abs_template_path)
+            # Expected failure path: the child template triggered the
+            # AWS::LanguageExtensions transform but SAM CLI could not expand it
+            # locally. Defer to CloudFormation's server-side transform. Note: any
+            # artifact paths inside Fn::ForEach bodies will NOT be uploaded, so
+            # child stacks with dynamic artifact properties (e.g. CodeUri using a
+            # loop variable) will fail at deploy time.
+            LOG.warning(
+                "Language extensions expansion failed for %s. "
+                "CloudFormation will process the AWS::LanguageExtensions transform "
+                "server-side; artifact URIs inside Fn::ForEach blocks will NOT be "
+                "uploaded. Error: %s",
+                abs_template_path,
+                e,
+            )
             result = None
-        except Exception as e:
-            LOG.warning("Unexpected error during language extensions expansion for %s: %s", abs_template_path, e)
+        except Exception as e:  # pylint: disable=broad-except
+            # Unexpected failure: a bug in SAM CLI rather than a malformed template.
+            # Surface at ERROR with a traceback so users running --debug (and SAM
+            # telemetry) see it, but don't abort the rest of the package run.
+            LOG.error(
+                "Internal error expanding language extensions for %s. This is a "
+                "SAM CLI bug; please report at "
+                "https://github.com/aws/aws-sam-cli/issues with the template. "
+                "Falling back to server-side transform. Error: %s",
+                abs_template_path,
+                e,
+                exc_info=True,
+            )
             result = None
 
         if result and result.had_language_extensions:
