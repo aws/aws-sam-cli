@@ -27,6 +27,7 @@ init-latest-release:
 
 test:
 	# Run unit tests (excluding cfn_language_extensions) and fail if coverage falls below 94%
+	@echo "NOTE: Excluding cfn_language_extensions tests. Use 'make test-all' for full coverage."
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore=tests/unit/lib/cfn_language_extensions --cov-config=.coveragerc_no_lang_ext
 
 test-lang-ext:
