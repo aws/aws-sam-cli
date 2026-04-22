@@ -14,6 +14,7 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import copy
 import json
 import logging
 import os
@@ -171,7 +172,6 @@ class PackageContext:
     def _export(self, template_path, use_json):
         from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
         from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
-        from samcli.lib.cfn_language_extensions.utils import deep_thaw
 
         # Read the original template
         with open(template_path, "r", encoding="utf-8") as f:
@@ -193,7 +193,7 @@ class PackageContext:
 
         uses_language_extensions = result.had_language_extensions
         dynamic_properties = result.dynamic_artifact_properties
-        template_dict_for_export = deep_thaw(result.expanded_template)
+        template_dict_for_export = copy.deepcopy(result.expanded_template)
 
         # Create Template with the (possibly expanded) template
         template = Template(

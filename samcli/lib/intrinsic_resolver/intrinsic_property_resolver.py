@@ -3,12 +3,12 @@ Process and simplifies CloudFormation intrinsic properties such as FN::* and Ref
 """
 
 import base64
+import copy
 import logging
 import re
 from collections import OrderedDict
 
 from samcli.commands._utils.template import get_template_data
-from samcli.lib.cfn_language_extensions.utils import deep_thaw
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_validation import (
     verify_all_list_intrinsic_type,
@@ -88,7 +88,7 @@ class IntrinsicResolver:
         self.conditional_key_function_map = self.default_conditional_key_map()
 
     def init_template(self, template):
-        self._template = deep_thaw(template) if template else {}
+        self._template = copy.deepcopy(template or {})
         self._resources = self._template.get("Resources", {})
         self._mapping = self._template.get("Mappings", {})
         self._parameters = self._template.get("Parameters", {})

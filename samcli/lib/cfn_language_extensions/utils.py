@@ -5,8 +5,7 @@ This module provides shared helpers used across the SAM CLI codebase
 for working with templates that may contain Fn::ForEach blocks.
 """
 
-from types import MappingProxyType
-from typing import Any, Dict, Iterator, Tuple
+from typing import Dict, Iterator, Tuple
 
 FOREACH_PREFIX = "Fn::ForEach::"
 
@@ -111,42 +110,3 @@ def iter_regular_resources(template_dict: Dict) -> Iterator[Tuple[str, Dict]]:
     for key, value in template_dict.get("Resources", {}).items():
         if not is_foreach_key(key) and isinstance(value, dict):
             yield key, value
-
-
-def deep_freeze(obj: Any) -> Any:
-    """Recursively make a template structure immutable.
-
-    - dicts become ``MappingProxyType`` (read-only view)
-    - lists become ``tuple`` (immutable sequence)
-    - primitives (str, int, float, bool, None) pass through unchanged
-
-    Any caller that tries to mutate a frozen template gets an immediate
-    ``TypeError`` instead of silently corrupting shared state.  Callers
-    that need a mutable copy should use ``deep_thaw()`` (not
-    ``copy.deepcopy`` which cannot pickle ``MappingProxyType``).
-
-    Cost is O(n) — same as one ``copy.deepcopy`` — but you pay it once
-    at creation time and then never need defensive copies again.
-    """
-    if isinstance(obj, MappingProxyType):
-        return obj  # already frozen
-    if isinstance(obj, dict):
-        return MappingProxyType({k: deep_freeze(v) for k, v in obj.items()})
-    if isinstance(obj, list):
-        return tuple(deep_freeze(item) for item in obj)
-    return obj
-
-
-def deep_thaw(obj: Any) -> Any:
-    """Recursively convert a frozen template back to mutable dicts and lists.
-
-    Inverse of ``deep_freeze``.  Use this instead of ``copy.deepcopy``
-    on frozen templates (``MappingProxyType`` is not picklable).
-    """
-    if isinstance(obj, MappingProxyType):
-        return {k: deep_thaw(v) for k, v in obj.items()}
-    if isinstance(obj, dict):
-        return {k: deep_thaw(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [deep_thaw(item) for item in obj]
-    return obj

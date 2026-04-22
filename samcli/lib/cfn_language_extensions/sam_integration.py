@@ -13,7 +13,7 @@ SAM transforms are applied.
 import copy
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
@@ -27,7 +27,6 @@ from samcli.lib.cfn_language_extensions.models import (
 from samcli.lib.cfn_language_extensions.utils import (
     FOREACH_PREFIX,
     FOREACH_REQUIRED_ELEMENTS,
-    deep_freeze,
     is_foreach_key,
 )
 
@@ -45,10 +44,8 @@ class LanguageExtensionResult:
     This dataclass carries all Phase 1 outputs so that callers don't need
     to re-derive them.
 
-    All template fields are deeply frozen (dicts as ``MappingProxyType``,
-    lists as ``tuple``).  Callers that need to mutate must use
-    ``deep_thaw()`` from ``samcli.lib.cfn_language_extensions.utils``
-    (not ``copy.deepcopy`` which cannot pickle ``MappingProxyType``).
+    All template fields are independent deep copies.  Callers may mutate
+    them freely without affecting the original input or other callers.
 
     Attributes
     ----------
@@ -64,7 +61,7 @@ class LanguageExtensionResult:
 
     expanded_template: Dict[str, Any]
     original_template: Dict[str, Any]
-    dynamic_artifact_properties: Tuple = ()
+    dynamic_artifact_properties: List = field(default_factory=list)
     had_language_extensions: bool = False
 
 
@@ -513,7 +510,7 @@ def expand_language_extensions(
         return LanguageExtensionResult(
             expanded_template=template,
             original_template=template,
-            dynamic_artifact_properties=(),
+            dynamic_artifact_properties=[],
             had_language_extensions=False,
         )
 
@@ -537,9 +534,9 @@ def expand_language_extensions(
         LOG.debug("Successfully expanded CloudFormation Language Extensions")
 
         result = LanguageExtensionResult(
-            expanded_template=deep_freeze(expanded_template),
-            original_template=deep_freeze(template),
-            dynamic_artifact_properties=tuple(dynamic_properties),
+            expanded_template=copy.deepcopy(expanded_template),
+            original_template=copy.deepcopy(template),
+            dynamic_artifact_properties=dynamic_properties,
             had_language_extensions=True,
         )
 

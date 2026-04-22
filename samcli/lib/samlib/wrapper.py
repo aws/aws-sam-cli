@@ -7,6 +7,7 @@ a tech debt that we have decided to take on. This will be eventually thrown away
 rich public interface.
 """
 
+import copy
 import functools
 import logging
 from typing import Any, Dict, List
@@ -26,7 +27,6 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.cfn_language_extensions.models import (
     DynamicArtifactProperty,
 )
-from samcli.lib.cfn_language_extensions.utils import deep_thaw
 from samcli.lib.samlib.local_uri_plugin import SupportLocalUriPlugin
 
 LOG = logging.getLogger(__name__)
@@ -69,7 +69,7 @@ class SamTranslatorWrapper:
         else:
             # Preserve the original template with a deep copy for CloudFormation deployment
             # This ensures Fn::ForEach and other language extensions remain intact
-            self._original_template = deep_thaw(sam_template)
+            self._original_template = copy.deepcopy(sam_template)
             # Dynamic artifact properties detected in Fn::ForEach blocks
             # These will be handled via Mappings transformation during sam package
             self._dynamic_artifact_properties: List[DynamicArtifactProperty] = []
@@ -105,7 +105,7 @@ class SamTranslatorWrapper:
 
     @property
     def template(self):
-        return deep_thaw(self._sam_template)
+        return copy.deepcopy(self._sam_template)
 
     def get_original_template(self) -> Dict[str, Any]:
         """
@@ -122,7 +122,7 @@ class SamTranslatorWrapper:
         dict
             A deep copy of the original template with language extensions preserved
         """
-        result: Dict[str, Any] = deep_thaw(self._original_template)
+        result: Dict[str, Any] = copy.deepcopy(self._original_template)
         return result
 
     def get_dynamic_artifact_properties(self) -> List[DynamicArtifactProperty]:

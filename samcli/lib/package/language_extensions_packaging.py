@@ -6,6 +6,7 @@ CloudFormationStackResource.do_export() for nested stack packaging.
 None of the functions use instance state — they are pure functions.
 """
 
+import copy
 import itertools
 import logging
 import re
@@ -23,7 +24,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
-from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, deep_thaw, is_foreach_key
+from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 
 LOG = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def merge_language_extensions_s3_uris(
     dict
         The original template with updated S3 URIs
     """
-    result: Dict[str, Any] = deep_thaw(original_template)
+    result: Dict[str, Any] = copy.deepcopy(original_template)
 
     # Build a set of (foreach_key, property_name) tuples for dynamic properties
     dynamic_prop_keys: set = set()

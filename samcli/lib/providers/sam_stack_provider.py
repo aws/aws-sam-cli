@@ -9,7 +9,6 @@ from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_data
 from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult, expand_language_extensions
-from samcli.lib.cfn_language_extensions.utils import deep_thaw
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
@@ -273,7 +272,7 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_values.update(merged_params or {})
 
         lang_ext_result = expand_language_extensions(template_dict, parameter_values=parameter_values)
-        processed_template_dict = deep_thaw(lang_ext_result.expanded_template)
+        processed_template_dict = lang_ext_result.expanded_template
 
         # Store the original template (before language extensions processing) for CloudFormation deployment
         # This preserves Fn::ForEach and other language extension constructs

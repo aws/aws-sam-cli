@@ -90,7 +90,7 @@ class TestLanguageExtensionResultDataclass(TestCase):
             original_template=template,
         )
 
-        self.assertEqual(result.dynamic_artifact_properties, ())
+        self.assertEqual(result.dynamic_artifact_properties, [])
         self.assertFalse(result.had_language_extensions)
 
     def test_frozen_immutable_behavior(self):
@@ -844,11 +844,10 @@ class TestProperty11PhaseSeparationResultEquivalence:
         assert foreach_key in result.original_template["Resources"]
 
         original_foreach = result.original_template["Resources"][foreach_key]
-        assert isinstance(original_foreach, (list, tuple))
+        assert isinstance(original_foreach, list)
         assert len(original_foreach) == 3
         assert original_foreach[0] == loop_var
-        # Collection may be a tuple (frozen) or list
-        assert list(original_foreach[1]) == list(collection)
+        assert original_foreach[1] == collection
 
     @pytest.mark.parametrize(
         "loop_name, loop_var, collection",

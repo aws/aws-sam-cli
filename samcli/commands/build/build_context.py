@@ -2,12 +2,12 @@
 Context object used by build command
 """
 
+import copy
 import logging
 import os
 import pathlib
 import shutil
 from collections import Counter
-from collections.abc import Mapping
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
@@ -41,7 +41,6 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
-from samcli.lib.cfn_language_extensions.utils import deep_thaw
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
@@ -448,12 +447,12 @@ class BuildContext:
         # If no original template, use the modified (expanded) template
         # Check if original_template_dict exists and is a dict (not a Mock or other type)
         original_template_dict = getattr(stack, "original_template_dict", None)
-        if not isinstance(original_template_dict, (dict, Mapping)):
+        if not isinstance(original_template_dict, dict):
             return modified_template
 
         # Use the original template (with Fn::ForEach intact)
         # We need to update artifact paths in the Fn::ForEach constructs
-        original_template: Dict = deep_thaw(original_template_dict)
+        original_template: Dict = copy.deepcopy(original_template_dict)
 
         # Update artifact paths in the original template
         self._update_original_template_paths(original_template, modified_template, stack)

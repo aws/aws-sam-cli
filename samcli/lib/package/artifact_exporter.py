@@ -14,6 +14,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import copy
 import logging
 import os
 from typing import Dict, List, Optional
@@ -23,7 +24,7 @@ from botocore.utils import set_value_from_jmespath
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-from samcli.lib.cfn_language_extensions.utils import deep_thaw, iter_regular_resources
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -222,7 +223,7 @@ class CloudFormationStackResource(ResourceZip):
                 normalize_template=True,
                 normalize_parameters=True,
                 parent_stack_id=resource_id,
-                template_str=yaml_dump(deep_thaw(result.expanded_template)),
+                template_str=yaml_dump(copy.deepcopy(result.expanded_template)),
                 parameter_values=parameter_values,
             )
             template.template_dir = child_template_dir

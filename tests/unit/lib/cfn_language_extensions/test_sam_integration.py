@@ -633,9 +633,7 @@ class TestExpandLanguageExtensionsEdgeCases:
         assert result.original_template is template
 
     def test_mutation_does_not_affect_subsequent_calls(self):
-        """Frozen results prevent mutation; callers must deep_thaw first."""
-        from samcli.lib.cfn_language_extensions.utils import deep_thaw
-
+        """Returned result is a deep copy; mutations don't leak."""
         template = {
             "Resources": {
                 "MyStack": {
@@ -645,9 +643,7 @@ class TestExpandLanguageExtensionsEdgeCases:
             }
         }
         result1 = expand_language_extensions(template)
-        # Must deep_thaw before mutating (matches the documented contract)
-        mutable = deep_thaw(result1.expanded_template)
-        mutable["Resources"]["MyStack"]["Properties"]["Location"] = "SomeOther/template.yaml"
+        result1.expanded_template["Resources"]["MyStack"]["Properties"]["Location"] = "SomeOther/template.yaml"
 
         # A fresh call should not be affected
         template2 = {
@@ -767,7 +763,7 @@ class TestLanguageExtensionResultDataclass:
             expanded_template={},
             original_template={},
         )
-        assert result.dynamic_artifact_properties == ()
+        assert result.dynamic_artifact_properties == []
         assert result.had_language_extensions is False
 
     def test_frozen(self):
@@ -787,7 +783,7 @@ import os
 
 
 class TestExpandLanguageExtensionsImmutability:
-    """Tests for frozen template behavior after cache removal."""
+    """Tests for deep-copy isolation of returned templates."""
 
     def test_original_template_is_independent_copy(self):
         """Mutating the input template after the call should not affect original_template."""
@@ -807,7 +803,7 @@ class TestExpandLanguageExtensionsImmutability:
         # Mutate the caller's template
         template["Resources"]["NewResource"] = {"Type": "AWS::SQS::Queue"}
 
-        # original_template is frozen — not affected by caller mutation
+        # original_template is a deep copy — not affected by caller mutation
         assert "NewResource" not in result.original_template.get("Resources", {})
 
     def test_no_extensions_result_aliases_input(self):
