@@ -41,6 +41,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_api_provider import SamApiProvider
@@ -493,7 +494,7 @@ class BuildContext:
         # Process each resource in the original template
         for resource_key, resource_value in original_resources.items():
             # Check if this is a Fn::ForEach construct
-            if resource_key.startswith("Fn::ForEach::"):
+            if is_foreach_key(resource_key):
                 generated_mappings = self._update_foreach_artifact_paths(
                     resource_key,
                     resource_value,
@@ -579,7 +580,7 @@ class BuildContext:
         dynamic_props_count = self._count_dynamic_properties(body, loop_variable, collection_values)
 
         for resource_template_key, resource_template in body.items():
-            if isinstance(resource_template_key, str) and resource_template_key.startswith("Fn::ForEach::"):
+            if is_foreach_key(resource_template_key):
                 nested_mappings = self._update_foreach_artifact_paths(
                     resource_template_key,
                     resource_template,
@@ -711,7 +712,7 @@ class BuildContext:
 
         count: Counter = Counter()
         for rtk, rt in body.items():
-            if isinstance(rtk, str) and rtk.startswith("Fn::ForEach::"):
+            if is_foreach_key(rtk):
                 continue
             if not isinstance(rt, dict):
                 continue
