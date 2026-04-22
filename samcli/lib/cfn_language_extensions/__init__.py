@@ -55,7 +55,6 @@ _LAZY_IMPORTS = {
     "AWS_LANGUAGE_EXTENSIONS_TRANSFORM": "samcli.lib.cfn_language_extensions.sam_integration",
     "LanguageExtensionResult": "samcli.lib.cfn_language_extensions.sam_integration",
     "check_using_language_extension": "samcli.lib.cfn_language_extensions.sam_integration",
-    "clear_expansion_cache": "samcli.lib.cfn_language_extensions.sam_integration",
     "contains_loop_variable": "samcli.lib.cfn_language_extensions.sam_integration",
     "detect_dynamic_artifact_properties": "samcli.lib.cfn_language_extensions.sam_integration",
     "detect_foreach_dynamic_properties": "samcli.lib.cfn_language_extensions.sam_integration",
@@ -112,7 +111,6 @@ __all__ = [
     # SAM Integration
     "LanguageExtensionResult",
     "check_using_language_extension",
-    "clear_expansion_cache",
     "expand_language_extensions",
     "process_template_for_sam_cli",
     "AWS_LANGUAGE_EXTENSIONS_TRANSFORM",

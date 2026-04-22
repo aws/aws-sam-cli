@@ -272,9 +272,7 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(merged_params or {})
 
-        lang_ext_result = expand_language_extensions(
-            template_dict, parameter_values=parameter_values, template_path=template_file or None
-        )
+        lang_ext_result = expand_language_extensions(template_dict, parameter_values=parameter_values)
         processed_template_dict = deep_thaw(lang_ext_result.expanded_template)
 
         # Store the original template (before language extensions processing) for CloudFormation deployment

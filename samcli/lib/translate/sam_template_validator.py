@@ -87,9 +87,7 @@ class SamTemplateValidator:
         )
 
         # Process language extensions before validation if AWS::LanguageExtensions transform is present
-        result = expand_language_extensions(
-            self.sam_template, parameter_values=self.parameter_overrides, template_path=self.template_path
-        )
+        result = expand_language_extensions(self.sam_template, parameter_values=self.parameter_overrides)
         if result.had_language_extensions:
             self.sam_template = result.expanded_template
 

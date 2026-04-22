@@ -619,9 +619,9 @@ class TestDetectDynamicArtifactProperties:
 class TestExpandLanguageExtensionsEdgeCases:
     """Tests for expand_language_extensions edge cases."""
 
-    def test_nonexistent_template_path_does_not_error(self):
+    def test_non_le_template_returns_result(self):
         template = {"Transform": "AWS::Serverless-2016-10-31", "Resources": {}}
-        result = expand_language_extensions(template, template_path="/nonexistent/path/template.yaml")
+        result = expand_language_extensions(template)
         assert result.had_language_extensions is False
 
     def test_non_language_extension_template_returns_original_dict(self):
@@ -784,201 +784,13 @@ class TestLanguageExtensionResultDataclass:
 # =============================================================================
 
 import os
-import tempfile
-
-from samcli.lib.cfn_language_extensions.sam_integration import (
-    _expansion_cache,
-    _MAX_CACHE_SIZE,
-    clear_expansion_cache,
-)
 
 
-class TestExpansionCache:
-    """Tests for template-level caching in expand_language_extensions."""
+class TestExpandLanguageExtensionsImmutability:
+    """Tests for frozen template behavior after cache removal."""
 
-    def setup_method(self):
-        """Clear cache before each test to avoid cross-test pollution."""
-        clear_expansion_cache()
-
-    def teardown_method(self):
-        clear_expansion_cache()
-
-    def _make_template_file(self, tmp_path, content="Transform: AWS::LanguageExtensions\nResources: {}"):
-        """Write a dummy file so os.path.isfile / getmtime work."""
-        path = os.path.join(tmp_path, "template.yaml")
-        with open(path, "w") as f:
-            f.write(content)
-        return path
-
-    def _lang_ext_template(self):
-        return {
-            "Transform": "AWS::LanguageExtensions",
-            "Resources": {
-                "Fn::ForEach::Items": [
-                    "Name",
-                    ["A", "B"],
-                    {"Topic${Name}": {"Type": "AWS::SNS::Topic"}},
-                ]
-            },
-        }
-
-    def test_cache_hit_avoids_reprocessing(self):
-        """Second call with same path/mtime/params should be a cache hit."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = self._lang_ext_template()
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value={
-                    "Resources": {"TopicA": {"Type": "AWS::SNS::Topic"}, "TopicB": {"Type": "AWS::SNS::Topic"}}
-                },
-            ) as mock_process:
-                expand_language_extensions(template, template_path=path)
-                expand_language_extensions(template, template_path=path)
-
-                assert mock_process.call_count == 1
-
-    def test_cache_miss_on_different_path(self):
-        """Different template_path should miss the cache."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path1 = os.path.join(tmp, "t1.yaml")
-            path2 = os.path.join(tmp, "t2.yaml")
-            for p in (path1, path2):
-                with open(p, "w") as f:
-                    f.write("x")
-            template = self._lang_ext_template()
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value={"Resources": {}},
-            ) as mock_process:
-                expand_language_extensions(template, template_path=path1)
-                expand_language_extensions(template, template_path=path2)
-
-                assert mock_process.call_count == 2
-
-    def test_cache_miss_on_different_mtime(self):
-        """Changed file mtime should miss the cache."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = self._lang_ext_template()
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value={"Resources": {}},
-            ) as mock_process:
-                expand_language_extensions(template, template_path=path)
-
-                # Touch the file to change its mtime
-                import time
-
-                time.sleep(0.05)
-                os.utime(path, None)
-
-                expand_language_extensions(template, template_path=path)
-
-                assert mock_process.call_count == 2
-
-    def test_cache_miss_on_different_params(self):
-        """Different parameter_values should miss the cache."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = self._lang_ext_template()
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value={"Resources": {}},
-            ) as mock_process:
-                expand_language_extensions(template, parameter_values={"Env": "dev"}, template_path=path)
-                expand_language_extensions(template, parameter_values={"Env": "prod"}, template_path=path)
-
-                assert mock_process.call_count == 2
-
-    def test_clear_expansion_cache(self):
-        """clear_expansion_cache() should force re-expansion."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = self._lang_ext_template()
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value={"Resources": {}},
-            ) as mock_process:
-                expand_language_extensions(template, template_path=path)
-                clear_expansion_cache()
-                expand_language_extensions(template, template_path=path)
-
-                assert mock_process.call_count == 2
-
-    def test_no_template_path_skips_cache(self):
-        """Without template_path, every call should process."""
-        template = self._lang_ext_template()
-
-        with patch(
-            "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-            return_value={"Resources": {}},
-        ) as mock_process:
-            expand_language_extensions(template)
-            expand_language_extensions(template)
-
-            assert mock_process.call_count == 2
-
-    def test_cache_returns_independent_copies(self):
-        """Cached results are frozen — mutation raises TypeError."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = self._lang_ext_template()
-
-            expanded = {
-                "Resources": {
-                    "TopicA": {"Type": "AWS::SNS::Topic", "Properties": {"DisplayName": "original"}},
-                    "TopicB": {"Type": "AWS::SNS::Topic"},
-                }
-            }
-
-            with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-                return_value=expanded,
-            ):
-                result1 = expand_language_extensions(template, template_path=path)
-                # Frozen — mutation raises TypeError
-                with pytest.raises(TypeError):
-                    result1.expanded_template["Resources"]["TopicA"]["Properties"]["DisplayName"] = "mutated"
-
-                # Cache hit returns the same frozen object
-                result2 = expand_language_extensions(template, template_path=path)
-                assert result2 is result1
-                assert result2.expanded_template["Resources"]["TopicA"]["Properties"]["DisplayName"] == "original"
-
-    def test_nonexistent_template_path_skips_cache(self):
-        """A template_path that doesn't exist should skip caching."""
-        template = self._lang_ext_template()
-
-        with patch(
-            "samcli.lib.cfn_language_extensions.sam_integration.process_template_for_sam_cli",
-            return_value={"Resources": {}},
-        ) as mock_process:
-            expand_language_extensions(template, template_path="/no/such/file.yaml")
-            expand_language_extensions(template, template_path="/no/such/file.yaml")
-
-            assert mock_process.call_count == 2
-            assert len(_expansion_cache) == 0
-
-    def test_non_language_ext_template_not_cached(self):
-        """Templates without language extensions skip the cache entirely."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
-
-            expand_language_extensions(template, template_path=path)
-            expand_language_extensions(template, template_path=path)
-
-            assert len(_expansion_cache) == 0
-
-    def test_cache_evicts_oldest_when_full(self):
-        """Cache should evict the oldest entry when _MAX_CACHE_SIZE is reached."""
-        clear_expansion_cache()
+    def test_original_template_is_independent_copy(self):
+        """Mutating the input template after the call should not affect original_template."""
         template = {
             "Transform": "AWS::LanguageExtensions",
             "Resources": {
@@ -990,58 +802,19 @@ class TestExpansionCache:
             },
         }
 
-        with tempfile.TemporaryDirectory() as tmp:
-            paths = []
-            for i in range(_MAX_CACHE_SIZE + 1):
-                path = os.path.join(tmp, f"template_{i}.yaml")
-                with open(path, "w") as f:
-                    f.write("AWSTemplateFormatVersion: '2010-09-09'\n")
-                paths.append(path)
+        result = expand_language_extensions(template)
 
-            # Fill the cache to capacity
-            for i in range(_MAX_CACHE_SIZE):
-                expand_language_extensions(template, template_path=paths[i])
+        # Mutate the caller's template
+        template["Resources"]["NewResource"] = {"Type": "AWS::SQS::Queue"}
 
-            assert len(_expansion_cache) == _MAX_CACHE_SIZE
-            first_key = next(iter(_expansion_cache))
-
-            # One more should evict the oldest
-            expand_language_extensions(template, template_path=paths[_MAX_CACHE_SIZE])
-
-            assert len(_expansion_cache) == _MAX_CACHE_SIZE
-            assert first_key not in _expansion_cache
-
-    def test_original_template_is_independent_copy(self):
-        """Mutating the input template after the call should not affect original_template."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = {
-                "Transform": "AWS::LanguageExtensions",
-                "Resources": {
-                    "Fn::ForEach::Loop": [
-                        "Item",
-                        ["A"],
-                        {"Res${Item}": {"Type": "AWS::SNS::Topic"}},
-                    ]
-                },
-            }
-
-            result = expand_language_extensions(template, template_path=path)
-
-            # Mutate the caller's template
-            template["Resources"]["NewResource"] = {"Type": "AWS::SQS::Queue"}
-
-            # original_template should not be affected
-            assert "NewResource" not in result.original_template.get("Resources", {})
+        # original_template is frozen — not affected by caller mutation
+        assert "NewResource" not in result.original_template.get("Resources", {})
 
     def test_no_extensions_result_aliases_input(self):
         """No-LE path returns the caller's dict directly — no copy overhead."""
-        with tempfile.TemporaryDirectory() as tmp:
-            path = self._make_template_file(tmp)
-            template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
+        template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
 
-            result = expand_language_extensions(template, template_path=path)
+        result = expand_language_extensions(template)
 
-            # Result aliases the input (no freeze, no copy)
-            assert result.original_template is template
-            assert result.expanded_template is template
+        assert result.original_template is template
+        assert result.expanded_template is template

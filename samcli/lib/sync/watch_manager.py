@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Set
 
 from watchdog.events import EVENT_TYPE_MODIFIED, EVENT_TYPE_OPENED, FileSystemEvent
 
-from samcli.lib.cfn_language_extensions.sam_integration import clear_expansion_cache
 from samcli.lib.providers.exceptions import InvalidTemplateFile, MissingCodeUri, MissingLocalDefinition
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_all_resource_ids
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -121,7 +120,6 @@ class WatchManager:
         Update all other member that also depends on the stacks.
         This should be called whenever there is a change to the template.
         """
-        clear_expansion_cache()
         self._stacks = SamLocalStackProvider.get_stacks(self._template, use_sam_transform=False)[0]
         self._sync_flow_factory = SyncFlowFactory(
             self._build_context,

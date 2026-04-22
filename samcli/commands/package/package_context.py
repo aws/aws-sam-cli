@@ -187,7 +187,7 @@ class PackageContext:
 
         # Use the canonical expand_language_extensions() entry point (Phase 1)
         try:
-            result = expand_language_extensions(original_template_dict, parameter_values, template_path=template_path)
+            result = expand_language_extensions(original_template_dict, parameter_values)
         except InvalidSamDocumentException as e:
             raise PackageFailedError(template_file=self.template_file, ex=str(e)) from e
 

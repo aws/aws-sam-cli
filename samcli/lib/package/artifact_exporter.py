@@ -178,7 +178,7 @@ class CloudFormationStackResource(ResourceZip):
         parameter_values.update(resolved_nested_params)
 
         try:
-            result = expand_language_extensions(child_template_dict, parameter_values, template_path=abs_template_path)
+            result = expand_language_extensions(child_template_dict, parameter_values)
         except InvalidSamDocumentException as e:
             # Expected failure path: the child template triggered the
             # AWS::LanguageExtensions transform but SAM CLI could not expand it

@@ -11,10 +11,7 @@ SAM transforms are applied.
 """
 
 import copy
-import hashlib
-import json
 import logging
-import os
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -38,40 +35,6 @@ LOG = logging.getLogger(__name__)
 
 # Transform name for AWS Language Extensions
 AWS_LANGUAGE_EXTENSIONS_TRANSFORM = "AWS::LanguageExtensions"
-
-# Module-level cache for expand_language_extensions() results.
-# Key: (template_path, file_mtime, parameter_values_hash)
-_expansion_cache: Dict[Tuple[str, float, str], "LanguageExtensionResult"] = {}
-_MAX_CACHE_SIZE = 32
-
-
-def _hash_params(parameter_values: Optional[Dict[str, Any]]) -> str:
-    """Hash parameter_values dict for use as a cache key component.
-
-    Uses JSON serialization with a fallback to repr() for non-serializable
-    values, ensuring this works with any parameter value type (strings, lists,
-    dicts, etc.) and produces a deterministic result across calls.
-    """
-    if not parameter_values:
-        return ""
-    serialized = json.dumps(parameter_values, sort_keys=True, default=str)
-    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
-
-
-def clear_expansion_cache() -> None:
-    """Clear the template expansion cache.
-
-    Call this when templates may have changed outside the normal file-mtime
-    detection path — e.g. warm-container reloads and sync --watch cycles.
-    """
-    _expansion_cache.clear()
-
-
-def _cache_put(key: Tuple[str, float, str], value: "LanguageExtensionResult") -> None:
-    """Store a result in the expansion cache, evicting the oldest entry if full."""
-    if len(_expansion_cache) >= _MAX_CACHE_SIZE:
-        _expansion_cache.pop(next(iter(_expansion_cache)))
-    _expansion_cache[key] = value
 
 
 @dataclass(frozen=True)
@@ -508,7 +471,6 @@ def detect_dynamic_artifact_properties(
 def expand_language_extensions(
     template: Dict[str, Any],
     parameter_values: Optional[Dict[str, Any]] = None,
-    template_path: Optional[str] = None,
 ) -> LanguageExtensionResult:
     """
     Canonical Phase 1 entry point for expanding CloudFormation Language Extensions.
@@ -535,9 +497,6 @@ def expand_language_extensions(
         The raw template dictionary
     parameter_values : dict, optional
         Template parameter values (may include pseudo-parameters like AWS::Region)
-    template_path : str, optional
-        Path to the template file on disk.  When provided and the file exists,
-        results are cached keyed on (path, mtime, parameter_values hash).
 
     Returns
     -------
@@ -550,20 +509,6 @@ def expand_language_extensions(
     InvalidSamDocumentException
         If the template contains invalid language extension syntax
     """
-    # --- cache lookup ---
-    cache_key: Optional[Tuple[str, float, str]] = None
-    if template_path:
-        try:
-            mtime = os.path.getmtime(template_path)
-            cache_key = (template_path, mtime, _hash_params(parameter_values))
-        except OSError:
-            pass
-    if cache_key is not None:
-        cached = _expansion_cache.get(cache_key)
-        if cached is not None:
-            LOG.debug("Cache hit for template expansion: %s", template_path)
-            return cached
-
     if not check_using_language_extension(template):
         return LanguageExtensionResult(
             expanded_template=template,
@@ -602,9 +547,6 @@ def expand_language_extensions(
         from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 
         EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CFN_LANGUAGE_EXTENSIONS.value)
-
-        if cache_key is not None:
-            _cache_put(cache_key, result)
 
         return result
 
