@@ -15,6 +15,7 @@ from samtranslator.translator.translator import Translator
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
@@ -87,7 +88,9 @@ class SamTemplateValidator:
         )
 
         # Process language extensions before validation if AWS::LanguageExtensions transform is present
-        result = expand_language_extensions(self.sam_template, parameter_values=self.parameter_overrides)
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(self.parameter_overrides)
+        result = expand_language_extensions(self.sam_template, parameter_values=parameter_values)
         if result.had_language_extensions:
             self.sam_template = result.expanded_template
 
