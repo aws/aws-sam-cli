@@ -2424,7 +2424,7 @@ class TestArtifactExporter(unittest.TestCase):
             # Template should have been called with the expanded template_str
             TemplateMock.assert_called_once()
             call_kwargs = TemplateMock.call_args
-            self.assertIn("template_str", call_kwargs.kwargs)
+            self.assertIn("template_dict", call_kwargs.kwargs)
 
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)

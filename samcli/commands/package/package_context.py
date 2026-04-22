@@ -193,9 +193,9 @@ class PackageContext:
 
         uses_language_extensions = result.had_language_extensions
         dynamic_properties = result.dynamic_artifact_properties
-        template_dict_for_export = copy.deepcopy(result.expanded_template)
 
-        # Create Template with the (possibly expanded) template
+        # Create Template with the (possibly expanded) template dict directly,
+        # avoiding a yaml_dump → yaml_parse round-trip.
         template = Template(
             template_path,
             os.getcwd(),
@@ -203,7 +203,7 @@ class PackageContext:
             self.code_signer,
             normalize_template=True,
             normalize_parameters=True,
-            template_str=yaml_dump(template_dict_for_export),
+            template_dict=copy.deepcopy(result.expanded_template),
             parameter_values=parameter_values,
         )
         # Set template_dir since we're using template_str

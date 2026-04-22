@@ -223,7 +223,7 @@ class CloudFormationStackResource(ResourceZip):
                 normalize_template=True,
                 normalize_parameters=True,
                 parent_stack_id=resource_id,
-                template_str=yaml_dump(copy.deepcopy(result.expanded_template)),
+                template_dict=copy.deepcopy(result.expanded_template),
                 parameter_values=parameter_values,
             )
             template.template_dir = child_template_dir
@@ -351,11 +351,17 @@ class Template:
         normalize_parameters: bool = False,
         parent_stack_id: str = "",
         parameter_values: Optional[Dict] = None,
+        template_dict: Optional[Dict] = None,
     ):
         """
         Reads the template and makes it ready for export
         """
-        if not template_str:
+        if template_dict is not None:
+            # Pre-parsed dict provided — skip file reading and YAML parsing
+            self.template_dict = template_dict
+        elif template_str:
+            self.template_dict = yaml_parse(template_str)
+        else:
             if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
                 raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
@@ -367,7 +373,7 @@ class Template:
 
             self.template_dir = template_dir
             self.code_signer = code_signer
-        self.template_dict = yaml_parse(template_str)
+            self.template_dict = yaml_parse(template_str)
         if normalize_template:
             ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
         self.resources_to_export = resources_to_export
