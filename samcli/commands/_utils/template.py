@@ -11,6 +11,7 @@ import yaml
 from botocore.utils import set_value_from_jmespath
 
 from samcli.commands.exceptions import UserException
+from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 from samcli.lib.cfn_language_extensions.utils import (
     FOREACH_REQUIRED_ELEMENTS,
     is_foreach_key,
@@ -29,20 +30,12 @@ from samcli.lib.utils.resources import (
 )
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
-# Artifact path property names that represent local file paths in SAM-generated Mappings.
-# These need relative path adjustment when templates are moved between directories.
-_ARTIFACT_PATH_PROPERTIES = {
-    "CodeUri",
-    "ImageUri",
-    "ContentUri",
-    "Content",
-    "DefinitionUri",
-    "BodyS3Location",
-    "DefinitionS3Location",
-    "SchemaUri",
-    "TemplateURL",
-    "Location",
-}
+# Artifact path property names derived from PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+# so the two lists cannot drift. Used by _update_sam_mappings_relative_paths to
+# identify which SAM-generated Mapping values are local paths needing adjustment.
+_ARTIFACT_PATH_PROPERTIES = frozenset(
+    prop for props in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.values() for prop in props
+)
 
 
 class TemplateNotFoundException(UserException):

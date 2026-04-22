@@ -87,7 +87,10 @@ class SamTemplateValidator:
             boto_session=self.boto3_session,
         )
 
-        # Process language extensions before validation if AWS::LanguageExtensions transform is present
+        # Process language extensions before validation if AWS::LanguageExtensions transform is present.
+        # Note: this mutates self.sam_template when LE is present. The assignment is idempotent
+        # (expand_language_extensions returns a deepcopy, and re-expanding an already-expanded
+        # template is a no-op since the transform is still present but ForEach is already resolved).
         parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(self.parameter_overrides)
         result = expand_language_extensions(self.sam_template, parameter_values=parameter_values)

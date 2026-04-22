@@ -107,6 +107,10 @@ class SamTranslatorWrapper:
     def template(self):
         return copy.deepcopy(self._sam_template)
 
+    # TODO: get_original_template and get_dynamic_artifact_properties are only
+    # called in tests. Callers now consume LanguageExtensionResult directly.
+    # Consider removing these methods and their backing fields
+    # (_original_template, _dynamic_artifact_properties) in a follow-up.
     def get_original_template(self) -> Dict[str, Any]:
         """
         Get the original unexpanded template for CloudFormation deployment.
