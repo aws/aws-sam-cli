@@ -226,8 +226,6 @@ class CloudFormationStackResource(ResourceZip):
                 template_dict=copy.deepcopy(result.expanded_template),
                 parameter_values=parameter_values,
             )
-            template.template_dir = child_template_dir
-            template.code_signer = self.code_signer
 
             exported_template = template.export()
 
@@ -357,8 +355,11 @@ class Template:
         Reads the template and makes it ready for export
         """
         if template_dict is not None:
-            # Pre-parsed dict provided — skip file reading and YAML parsing
+            # Pre-parsed dict provided — skip file reading and YAML parsing.
+            # Derive template_dir from template_path so the object is fully initialized.
             self.template_dict = template_dict
+            self.template_dir = os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+            self.code_signer = code_signer
         elif template_str:
             self.template_dict = yaml_parse(template_str)
         else:

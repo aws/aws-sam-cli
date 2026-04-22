@@ -70,15 +70,14 @@ class Resource:
     # Parameter values propagated from the enclosing Template (parent stack's
     # own params + CLI --parameter-overrides + pseudo-params). Used by
     # CloudFormationStackResource.do_export to resolve Fn::ForEach collections
-    # in nested-stack templates. Declared on the base class so static analysis
-    # and IDEs catch typos on either the write or read side; remains None for
-    # exporter classes that don't consume it.
+    # in nested-stack templates.
     parent_parameter_values: Optional[Dict] = None
 
     def __init__(self, uploaders: Uploaders, code_signer, cache: Optional[Dict] = None):
         self.uploaders = uploaders
         self.code_signer = code_signer
         self.cache = cache
+        self.parent_parameter_values: Optional[Dict] = None
 
     @property
     def uploader(self) -> Union[S3Uploader, ECRUploader]:

@@ -206,9 +206,6 @@ class PackageContext:
             template_dict=copy.deepcopy(result.expanded_template),
             parameter_values=parameter_values,
         )
-        # Set template_dir since we're using template_str
-        template.template_dir = os.path.dirname(os.path.abspath(template_path))
-        template.code_signer = self.code_signer
 
         exported_template = template.export()
 
