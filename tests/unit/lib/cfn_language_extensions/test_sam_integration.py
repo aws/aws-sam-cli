@@ -624,16 +624,13 @@ class TestExpandLanguageExtensionsEdgeCases:
         result = expand_language_extensions(template, template_path="/nonexistent/path/template.yaml")
         assert result.had_language_extensions is False
 
-    def test_non_language_extension_template_returns_frozen_result(self):
+    def test_non_language_extension_template_returns_original_dict(self):
         template = {"Resources": {}}
         result = expand_language_extensions(template)
         assert result.had_language_extensions is False
-        # Both fields point to the same frozen object (no-LE path optimization)
-        assert result.expanded_template is result.original_template
-        assert dict(result.expanded_template) == template
-        # Frozen — mutation raises TypeError
-        with pytest.raises(TypeError):
-            result.expanded_template["Resources"] = {}
+        # No-LE path returns the caller's dict directly (no freeze, no cache)
+        assert result.expanded_template is template
+        assert result.original_template is template
 
     def test_mutation_does_not_affect_subsequent_calls(self):
         """Frozen results prevent mutation; callers must deep_thaw first."""
@@ -968,20 +965,16 @@ class TestExpansionCache:
             assert mock_process.call_count == 2
             assert len(_expansion_cache) == 0
 
-    def test_non_language_ext_template_cached(self):
-        """Templates without language extensions should also be cached when path is given."""
+    def test_non_language_ext_template_not_cached(self):
+        """Templates without language extensions skip the cache entirely."""
         with tempfile.TemporaryDirectory() as tmp:
             path = self._make_template_file(tmp)
             template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
 
-            result1 = expand_language_extensions(template, template_path=path)
-            result2 = expand_language_extensions(template, template_path=path)
+            expand_language_extensions(template, template_path=path)
+            expand_language_extensions(template, template_path=path)
 
-            assert result1.had_language_extensions is False
-            assert result2.had_language_extensions is False
-            assert len(_expansion_cache) == 1
-            # Cache returns the same frozen object
-            assert result1 is result2
+            assert len(_expansion_cache) == 0
 
     def test_cache_evicts_oldest_when_full(self):
         """Cache should evict the oldest entry when _MAX_CACHE_SIZE is reached."""
@@ -1041,16 +1034,14 @@ class TestExpansionCache:
             # original_template should not be affected
             assert "NewResource" not in result.original_template.get("Resources", {})
 
-    def test_original_template_is_independent_copy_no_extensions(self):
-        """Same independence guarantee when template has no language extensions."""
+    def test_no_extensions_result_aliases_input(self):
+        """No-LE path returns the caller's dict directly — no copy overhead."""
         with tempfile.TemporaryDirectory() as tmp:
             path = self._make_template_file(tmp)
             template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
 
             result = expand_language_extensions(template, template_path=path)
 
-            # Mutate the caller's template
-            template["Resources"]["Injected"] = {"Type": "AWS::SQS::Queue"}
-
-            # original_template should not be affected
-            assert "Injected" not in result.original_template.get("Resources", {})
+            # Result aliases the input (no freeze, no copy)
+            assert result.original_template is template
+            assert result.expanded_template is template

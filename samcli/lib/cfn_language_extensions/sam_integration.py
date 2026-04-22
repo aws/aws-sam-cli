@@ -565,16 +565,12 @@ def expand_language_extensions(
             return cached
 
     if not check_using_language_extension(template):
-        frozen = deep_freeze(template)
-        result = LanguageExtensionResult(
-            expanded_template=frozen,
-            original_template=frozen,
+        return LanguageExtensionResult(
+            expanded_template=template,
+            original_template=template,
             dynamic_artifact_properties=(),
             had_language_extensions=False,
         )
-        if cache_key is not None:
-            _cache_put(cache_key, result)
-        return result
 
     LOG.debug("Expanding CloudFormation Language Extensions (Phase 1)")
 
