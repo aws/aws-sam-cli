@@ -356,9 +356,12 @@ class Template:
         """
         if template_dict is not None:
             # Pre-parsed dict provided — skip file reading and YAML parsing.
-            # Derive template_dir from template_path so the object is fully initialized.
             self.template_dict = template_dict
-            self.template_dir = os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+            self.template_dir = (
+                os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+                if parent_dir
+                else os.getcwd()
+            )
             self.code_signer = code_signer
         elif template_str:
             self.template_dict = yaml_parse(template_str)

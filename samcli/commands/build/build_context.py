@@ -446,14 +446,12 @@ class BuildContext:
         """
 
         # If no original template, use the modified (expanded) template
-        # Check if original_template_dict exists and is a dict (not a Mock or other type)
-        original_template_dict = getattr(stack, "original_template_dict", None)
-        if not isinstance(original_template_dict, dict):
+        if not isinstance(stack.original_template_dict, dict):
             return modified_template
 
         # Use the original template (with Fn::ForEach intact)
         # We need to update artifact paths in the Fn::ForEach constructs
-        original_template: Dict = copy.deepcopy(original_template_dict)
+        original_template: Dict = copy.deepcopy(stack.original_template_dict)
 
         # Update artifact paths in the original template
         self._update_original_template_paths(original_template, modified_template, stack)
