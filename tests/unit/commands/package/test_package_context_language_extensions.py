@@ -8,6 +8,7 @@ These functions now live in samcli.lib.package.language_extensions_packaging.
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
+from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.package.language_extensions_packaging import (
     _compute_mapping_name,
     _copy_artifact_uris_for_type,
@@ -1170,8 +1171,8 @@ class TestMappingNameCollision(TestCase):
         self.assertNotIn("SAMCodeUriServicesFunction", mappings)
         self.assertNotIn("SAMDefinitionUriServicesApi", mappings)
 
-    def test_empty_suffix_raises_value_error(self):
-        """Resource keys with no static alphanumeric component raise ValueError when collision exists."""
+    def test_empty_suffix_raises_invalid_template(self):
+        """Resource keys with no static alphanumeric component raise InvalidTemplateException when collision exists."""
         from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
 
         prop_a = DynamicArtifactProperty(
@@ -1204,7 +1205,7 @@ class TestMappingNameCollision(TestCase):
                 "Properties": {"CodeUri": "s3://bucket/orders.zip"},
             },
         }
-        with self.assertRaises(ValueError) as ctx:
+        with self.assertRaises(InvalidTemplateException) as ctx:
             _generate_artifact_mappings([prop_a, prop_b], "/tmp", exported_resources)
         self.assertIn("empty suffix", str(ctx.exception))
 

@@ -31,7 +31,6 @@ class SamTemplateValidator:
         profile: Optional[str] = None,
         region: Optional[str] = None,
         parameter_overrides: Optional[dict] = None,
-        template_path: Optional[str] = None,
     ):
         """
         Construct a SamTemplateValidator
@@ -58,16 +57,12 @@ class SamTemplateValidator:
             Optional AWS region name
         parameter_overrides: Optional[dict]
             Template parameter overrides
-        template_path: Optional[str]
-            Optional path to the template file on disk. When provided, enables
-            caching of language extension expansion results.
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
         self.parameter_overrides = parameter_overrides or {}
-        self.template_path = template_path
 
     def get_translated_template_if_valid(self):
         """

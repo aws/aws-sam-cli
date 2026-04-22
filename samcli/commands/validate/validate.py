@@ -92,7 +92,6 @@ def do_cli(ctx, template, lint):
             ManagedPolicyLoader(iam_client),
             profile=ctx.profile,
             region=ctx.region,
-            template_path=template,
         )
 
         try:

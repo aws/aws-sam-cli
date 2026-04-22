@@ -218,7 +218,9 @@ def sanitize_resource_key_for_mapping(resource_key: str) -> str:
     # Keep only alphanumeric characters
     cleaned = re.sub(r"[^a-zA-Z0-9]", "", cleaned)
     if not cleaned:
-        raise ValueError(
+        from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+
+        raise InvalidTemplateException(
             f"Resource key '{resource_key}' produces an empty suffix after sanitization. "
             "Multiple resources in the same Fn::ForEach body share the same packageable "
             "property name, and each resource logical ID template must contain a static "
