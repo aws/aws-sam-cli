@@ -87,7 +87,9 @@ def is_sam_generated_mapping(mapping_name: str) -> bool:
             return False
         if mapping_name.startswith(prefix):
             nxt = mapping_name[len(prefix)]
-            if "A" <= nxt <= "Z":
+            # Accept uppercase letter (PascalCase nesting path) or digit
+            # (loop names like "1stBatch" produce SAMCodeUri1stBatch).
+            if ("A" <= nxt <= "Z") or ("0" <= nxt <= "9"):
                 return True
     return False
 

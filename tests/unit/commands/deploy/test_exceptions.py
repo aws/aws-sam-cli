@@ -177,6 +177,8 @@ class TestIsSamGeneratedMapping(TestCase):
             "SAMContentUriLayers",
             "SAMDefinitionUriEnvsFunctions",
             "SAMImageUriFunctionsApi",
+            # Digit-leading loop name: Fn::ForEach::1stBatch
+            "SAMCodeUri1stBatch",
         ):
             with self.subTest(name=name):
                 self.assertTrue(is_sam_generated_mapping(name))
