@@ -2614,6 +2614,59 @@ class TestResolveNestedStackParameters(unittest.TestCase):
         self.assertEqual(_resolve_nested_stack_parameters({}, {}), {})
         self.assertEqual(_resolve_nested_stack_parameters(None, {}), {})
 
+    def test_unresolvable_ref_to_resource_is_dropped(self):
+        """Ref to a resource (not a parameter) raises UnresolvableReferenceError and is dropped."""
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        # Ref to "MyBucket" — not in parameter_values, not a pseudo-param → resource ref → preserved
+        # as {"Ref": "MyBucket"} by partial resolver → dropped by the intrinsic-detection heuristic
+        resolved = _resolve_nested_stack_parameters({"BucketName": {"Ref": "MyBucket"}}, parent_parameter_values={})
+        self.assertEqual(resolved, {})
+
+    def test_fn_sub_partially_resolves(self):
+        """Fn::Sub with resolvable parts produces a string (not dropped)."""
+        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
+
+        resolved = _resolve_nested_stack_parameters(
+            {"Endpoint": {"Fn::Sub": "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com"}},
+            parent_parameter_values={"AWS::Region": "us-east-1"},
+        )
+        # Fn::Sub resolves AWS::Region but preserves ${MyApi} as literal placeholder
+        self.assertEqual(resolved, {"Endpoint": "https://${MyApi}.execute-api.us-east-1.amazonaws.com"})
+
+
+class TestTemplateInitWithTemplateDict(unittest.TestCase):
+    """Tests for Template.__init__ with the template_dict parameter."""
+
+    def test_template_dict_sets_template_dir_and_code_signer(self):
+        template_dict = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
+        uploaders = Mock()
+        code_signer = Mock()
+        t = Template(
+            "template.yaml",
+            os.path.abspath(os.getcwd()),
+            uploaders,
+            code_signer,
+            template_dict=template_dict,
+        )
+        self.assertEqual(t.template_dict, template_dict)
+        self.assertTrue(os.path.isabs(t.template_dir))
+        self.assertIs(t.code_signer, code_signer)
+
+    def test_template_str_path_parses_yaml(self):
+        template_str = "Resources:\n  MyTopic:\n    Type: AWS::SNS::Topic\n"
+        uploaders = Mock()
+        code_signer = Mock()
+        t = Template(
+            "template.yaml",
+            os.path.abspath(os.getcwd()),
+            uploaders,
+            code_signer,
+            template_str=template_str,
+        )
+        self.assertIn("Resources", t.template_dict)
+        self.assertEqual(t.template_dict["Resources"]["MyTopic"]["Type"], "AWS::SNS::Topic")
+
 
 class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
     """End-to-end test for threading parent params into child template expansion.
