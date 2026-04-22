@@ -315,14 +315,12 @@ class IntrinsicResolverProcessor:
             try:
                 result = self._resolver.resolve_value({"Fn::FindInMap": resolved_args})
                 return result
-            except InvalidTemplateException:
-                # Re-raise - string literals that don't exist should error
-                raise
-            except Exception:
-                # Other errors - return with partially resolved args
+            except (InvalidTemplateException, Exception):
+                # For false-condition resources, CloudFormation skips validation
+                # entirely — including FindInMap lookups. Don't error on missing
+                # keys; return the partially-resolved form instead.
                 LOG.debug(
-                    "Partial-resolve Fn::FindInMap: unexpected error resolving %r; "
-                    "returning partially-resolved args",
+                    "Partial-resolve Fn::FindInMap: could not resolve %r; " "returning partially-resolved args",
                     resolved_args,
                     exc_info=True,
                 )

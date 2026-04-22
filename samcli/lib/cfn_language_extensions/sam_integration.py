@@ -47,6 +47,10 @@ class LanguageExtensionResult:
     All template fields are independent deep copies.  Callers may mutate
     them freely without affecting the original input or other callers.
 
+    Exception: when ``had_language_extensions`` is False, both fields
+    alias the caller's input dict (no copy overhead).  Callers that need
+    to mutate should ``copy.deepcopy()`` first in that case.
+
     Attributes
     ----------
     expanded_template : Dict[str, Any]

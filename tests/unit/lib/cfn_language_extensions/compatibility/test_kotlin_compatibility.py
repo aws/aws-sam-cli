@@ -192,7 +192,6 @@ ERROR_TEMPLATES_PASSING = [
     "fnFindInMapWithUnsupportedFunctionFnGetAtt",
     "fnFindInMapWithUnsupportedFunctionFnRef",
     "fnFindInMapWithUnsupportedFunctionInMapName",
-    "templateFnInMapInWhenFalseConditionInResourceWithInvalidStringPath",
 ]
 
 # Templates that should error but have compatibility issues
@@ -311,6 +310,9 @@ SUCCESS_TEMPLATES_PASSING = [
     "toJsonStringWithSimpleTags",
     "toJsonStringWithSplitThatResolves",
     "toJsonStringWithStackNamePseudoParam",
+    # False-condition resources: CloudFormation skips validation, so invalid
+    # FindInMap keys are preserved rather than erroring.
+    "templateFnInMapInWhenFalseConditionInResourceWithInvalidStringPath",
 ]
 
 # Templates with known compatibility issues
