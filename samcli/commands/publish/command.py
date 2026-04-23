@@ -32,9 +32,7 @@ AWS::ServerlessRepo::Application section with application metadata
 for publishing. For more details on this metadata section, see
 {}
 \b
-""".format(
-    SAM_PUBLISH_DOC
-)
+""".format(SAM_PUBLISH_DOC)
 SHORT_HELP = "Publish a packaged AWS SAM template to the AWS Serverless Application Repository."
 SERVERLESSREPO_CONSOLE_URL = "https://console.aws.amazon.com/serverlessrepo/home?region={}#/published-applications/{}"
 SEMANTIC_VERSION_HELP = "Optional. The value provided here overrides SemanticVersion in the template metadata."
