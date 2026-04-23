@@ -4,7 +4,7 @@ SAM CLI now supports templates that use the `AWS::LanguageExtensions` transform,
 
 ## How it works
 
-When SAM CLI detects `AWS::LanguageExtensions` in a template's `Transform` section, it expands language extension constructs locally before running SAM transforms. This enables `sam build`, `sam package`, `sam deploy`, `sam validate`, `sam local invoke`, and `sam local start-api` to work with templates that use these constructs.
+When SAM CLI detects `AWS::LanguageExtensions` in a template's `Transform` section, it expands language extension constructs locally before running SAM transforms. This enables `sam build`, `sam package`, `sam deploy`, `sam sync`, `sam validate`, `sam local invoke`, and `sam local start-api` to work with templates that use these constructs.
 
 The expansion happens in two phases:
 

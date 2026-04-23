@@ -133,11 +133,13 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {
+            "TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
                 }
-            }"""}
+            }"""
+        }
 
         self.assertTrue(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
         self.assertEqual(infra_sync_executor.code_sync_resources, {ResourceIdentifier("ServerlessFunction")})
@@ -231,7 +233,8 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {
+            "TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {
                         "Type": "AWS::Serverless::Function",
@@ -269,7 +272,8 @@ class TestInfraSyncExecutor(TestCase):
                         "Properties": {"DefinitionS3Location": "s3://location"},
                     },
                 }
-            }"""}
+            }"""
+        }
 
         self.assertTrue(infra_sync_executor._auto_skip_infra_sync("path", "path2", "stack_name"))
         self.assertEqual(
@@ -332,20 +336,24 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {"TemplateBody": f"""{{
+            {
+                "TemplateBody": f"""{{
                     "Resources": {{
                         "ServerlessApplication": {{
                             "Type": "AWS::Serverless::Application", 
                             "Properties": {{"Location": "{str(Path("local") / "template.yaml")}"}} }}
                     }}
-                }}"""},
-            {"TemplateBody": """{
+                }}"""
+            },
+            {
+                "TemplateBody": """{
                     "Resources": {
                         "ServerlessFunction": {
                             "Type": "AWS::Serverless::Function", 
                             "Properties": {"CodeUri": "function/"}}
                     }
-                }"""},
+                }"""
+            },
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -406,14 +414,16 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {"TemplateBody": """{
+            {
+                "TemplateBody": """{
                     "Resources": {
                         "ServerlessApplication": {
                             "Type": "AWS::Serverless::Application",
                             "Properties": {"Location": {"ApplicationId": "sar_id", "SemanticVersion": "version"}},
                         }
                     }
-                }"""},
+                }"""
+            },
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -456,19 +466,23 @@ class TestInfraSyncExecutor(TestCase):
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
         infra_sync_executor._cfn_client.get_template.side_effect = [
-            {"TemplateBody": """{
+            {
+                "TemplateBody": """{
                     Resources: {
                         "NestedStack": {
                             "Type": "AWS::CloudFormation::Stack",
                             "Properties": {"TemplateURL": "https://s3.com/bucket/key"}
                         }
                     }
-                }"""},
-            {"TemplateBody": """{
+                }"""
+            },
+            {
+                "TemplateBody": """{
                     "Resources": {
                         "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "local/"}}
                     }
-                }"""},
+                }"""
+            },
         ]
 
         infra_sync_executor._cfn_client.describe_stack_resource.return_value = {
@@ -540,11 +554,13 @@ class TestInfraSyncExecutor(TestCase):
         infra_sync_executor = InfraSyncExecutor(
             self.build_context, self.package_context, self.deploy_context, self.sync_context
         )
-        infra_sync_executor._cfn_client.get_template.return_value = {"TemplateBody": """{
+        infra_sync_executor._cfn_client.get_template.return_value = {
+            "TemplateBody": """{
                 "Resources": {
                     "ServerlessFunction": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "https://s3"}}
                 }
-            }"""}
+            }"""
+        }
 
         infra_sync_executor._get_stack_parameters = MagicMock()
 
@@ -1399,3 +1415,585 @@ class TestSanitizeTemplatePreservation(TestCase):
             expected_sanitized_template,
             f"Sanitized template mismatch for {test_name}",
         )
+
+
+class TestSanitizeForEachBody(TestCase):
+    """Tests for _sanitize_foreach_body — sanitizing artifact properties inside ForEach blocks."""
+
+    def setUp(self):
+        self.build_context = MagicMock()
+        self.package_context = MagicMock()
+        self.deploy_context = MagicMock()
+        self.sync_context = MagicMock()
+        EventTracker.clear_trackers()
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_serverless_function(self, session_mock):
+        """ForEach body with Serverless functions — CodeUri and ImageUri should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Users", "Orders"],
+            {
+                "${Name}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Handler": "index.handler",
+                        "Runtime": "python3.12",
+                        "CodeUri": "s3://bucket/code.zip",
+                    },
+                    "Metadata": {"SamResourceId": "${Name}Function"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        body = foreach_value[2]
+        self.assertNotIn("CodeUri", body["${Name}Function"]["Properties"])
+        self.assertNotIn("SamResourceId", body["${Name}Function"].get("Metadata", {}))
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_api(self, session_mock):
+        """ForEach body with APIs — DefinitionUri should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Users", "Orders"],
+            {
+                "${Name}Api": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {"StageName": "prod", "DefinitionUri": "s3://bucket/swagger.yaml"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("DefinitionUri", foreach_value[2]["${Name}Api"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_layer(self, session_mock):
+        """ForEach body with layers — ContentUri should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Common", "Auth"],
+            {
+                "${Name}Layer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {"ContentUri": "s3://bucket/layer.zip"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("ContentUri", foreach_value[2]["${Name}Layer"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_state_machine(self, session_mock):
+        """ForEach body with state machines — DefinitionUri should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Process", "Notify"],
+            {
+                "${Name}StateMachine": {
+                    "Type": "AWS::Serverless::StateMachine",
+                    "Properties": {"DefinitionUri": "s3://bucket/sfn.json"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("DefinitionUri", foreach_value[2]["${Name}StateMachine"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_cfn_api(self, session_mock):
+        """ForEach body with CFN RestApi — BodyS3Location should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Users", "Orders"],
+            {
+                "${Name}RestApi": {
+                    "Type": "AWS::ApiGateway::RestApi",
+                    "Properties": {"BodyS3Location": "s3://bucket/swagger.yaml"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("BodyS3Location", foreach_value[2]["${Name}RestApi"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_cfn_step_functions(self, session_mock):
+        """ForEach body with CFN StepFunctions — DefinitionS3Location should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["Process", "Notify"],
+            {
+                "${Name}SM": {
+                    "Type": "AWS::StepFunctions::StateMachine",
+                    "Properties": {"DefinitionS3Location": "s3://bucket/sfn.json"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("DefinitionS3Location", foreach_value[2]["${Name}SM"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_nested_stack(self, session_mock):
+        """ForEach body with nested stacks — TemplateURL should be removed."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["A", "B"],
+            {
+                "${Name}Stack": {
+                    "Type": "AWS::CloudFormation::Stack",
+                    "Properties": {"TemplateURL": "s3://bucket/nested.yaml"},
+                }
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        self.assertNotIn("TemplateURL", foreach_value[2]["${Name}Stack"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_nested_foreach(self, session_mock):
+        """Nested ForEach — inner body resources should also be sanitized."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Env",
+            ["Dev", "Prod"],
+            {
+                "Fn::ForEach::Services": [
+                    "Svc",
+                    ["Users", "Orders"],
+                    {
+                        "${Env}${Svc}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/code.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        inner_body = foreach_value[2]["Fn::ForEach::Services"][2]
+        self.assertNotIn("CodeUri", inner_body["${Env}${Svc}Function"]["Properties"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_invalid_value(self, session_mock):
+        """Invalid ForEach value (not a list or too short) — should not raise."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        infra_sync_executor._sanitize_foreach_body("not a list")
+        infra_sync_executor._sanitize_foreach_body([])
+        infra_sync_executor._sanitize_foreach_body(["only_one"])
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_sanitize_foreach_body_mixed_resources(self, session_mock):
+        """ForEach body with mixed resource types — all should be sanitized."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        foreach_value = [
+            "Name",
+            ["A", "B"],
+            {
+                "${Name}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": "s3://bucket/code.zip", "Runtime": "python3.12"},
+                },
+                "${Name}Api": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {"DefinitionUri": "s3://bucket/swagger.yaml", "StageName": "prod"},
+                },
+                "${Name}Layer": {
+                    "Type": "AWS::Serverless::LayerVersion",
+                    "Properties": {"ContentUri": "s3://bucket/layer.zip"},
+                },
+                "${Name}Table": {
+                    "Type": "AWS::DynamoDB::Table",
+                    "Properties": {"TableName": "table"},
+                },
+            },
+        ]
+        infra_sync_executor._sanitize_foreach_body(foreach_value)
+        body = foreach_value[2]
+        self.assertNotIn("CodeUri", body["${Name}Function"]["Properties"])
+        self.assertNotIn("DefinitionUri", body["${Name}Api"]["Properties"])
+        self.assertNotIn("ContentUri", body["${Name}Layer"]["Properties"])
+        # Non-syncable resource should be untouched
+        self.assertEqual(body["${Name}Table"]["Properties"]["TableName"], "table")
+
+
+class TestDetectForEachCodeChanges(TestCase):
+    """Tests for _detect_foreach_code_changes — detecting code changes in expanded ForEach resources."""
+
+    def setUp(self):
+        self.build_context = MagicMock()
+        self.package_context = MagicMock()
+        self.deploy_context = MagicMock()
+        self.sync_context = MagicMock()
+        EventTracker.clear_trackers()
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_no_language_extensions(self, session_mock):
+        """Template without LE — should not add any code sync resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        template = {"Resources": {"Func": {"Type": "AWS::Serverless::Function"}}}
+        infra_sync_executor._detect_foreach_code_changes(template, template)
+        self.assertEqual(infra_sync_executor._code_sync_resources, set())
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_function_code_change_detected(self, session_mock):
+        """ForEach function with code change — should be added to _code_sync_resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Users,Orders"}},
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/new-code.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Users,Orders"}},
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/old-code.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("UsersFunction", resource_ids)
+        self.assertIn("OrdersFunction", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_no_changes(self, session_mock):
+        """ForEach with identical templates — no code sync resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/same.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(template, template)
+        self.assertEqual(infra_sync_executor._code_sync_resources, set())
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_api_definition_change_detected(self, session_mock):
+        """ForEach API with definition change — should be added to _code_sync_resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::APIs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Api": {
+                            "Type": "AWS::Serverless::Api",
+                            "Properties": {"DefinitionUri": "s3://bucket/new-swagger.yaml", "StageName": "prod"},
+                        }
+                    },
+                ]
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::APIs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Api": {
+                            "Type": "AWS::Serverless::Api",
+                            "Properties": {"DefinitionUri": "s3://bucket/old-swagger.yaml", "StageName": "prod"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("UsersApi", resource_ids)
+        self.assertIn("OrdersApi", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_layer_content_change_detected(self, session_mock):
+        """ForEach layer with content change — should be added to _code_sync_resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Layers": [
+                    "Name",
+                    ["Common", "Auth"],
+                    {
+                        "${Name}Layer": {
+                            "Type": "AWS::Serverless::LayerVersion",
+                            "Properties": {"ContentUri": "s3://bucket/new-layer.zip"},
+                        }
+                    },
+                ]
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Layers": [
+                    "Name",
+                    ["Common", "Auth"],
+                    {
+                        "${Name}Layer": {
+                            "Type": "AWS::Serverless::LayerVersion",
+                            "Properties": {"ContentUri": "s3://bucket/old-layer.zip"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("CommonLayer", resource_ids)
+        self.assertIn("AuthLayer", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_state_machine_definition_change_detected(self, session_mock):
+        """ForEach state machine with definition change — should be added to _code_sync_resources."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::SMs": [
+                    "Name",
+                    ["Process", "Notify"],
+                    {
+                        "${Name}SM": {
+                            "Type": "AWS::Serverless::StateMachine",
+                            "Properties": {"DefinitionUri": "s3://bucket/new-sfn.json"},
+                        }
+                    },
+                ]
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::SMs": [
+                    "Name",
+                    ["Process", "Notify"],
+                    {
+                        "${Name}SM": {
+                            "Type": "AWS::Serverless::StateMachine",
+                            "Properties": {"DefinitionUri": "s3://bucket/old-sfn.json"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("ProcessSM", resource_ids)
+        self.assertIn("NotifySM", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_skips_regular_resources(self, session_mock):
+        """Regular (non-ForEach) resources should be skipped — they're handled by the main loop."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "RegularFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": "s3://bucket/new.zip", "Runtime": "python3.12"},
+                },
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["A"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/new.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ],
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "RegularFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": "s3://bucket/old.zip", "Runtime": "python3.12"},
+                },
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["A"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/same.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ],
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        # RegularFunction should NOT be in the set — it's a regular resource
+        self.assertNotIn("RegularFunction", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_nested_prefix(self, session_mock):
+        """ForEach code changes with nested prefix — resource IDs should include prefix."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/new.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"CodeUri": "s3://bucket/old.zip", "Runtime": "python3.12"},
+                        }
+                    },
+                ]
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed, nested_prefix="ChildStack/")
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("ChildStack/UsersFunction", resource_ids)
+
+    @patch("samcli.lib.sync.infra_sync_executor.Session")
+    def test_partial_change_only_changed_resource(self, session_mock):
+        """Only the changed ForEach resource should be added, not all of them."""
+        infra_sync_executor = InfraSyncExecutor(
+            self.build_context, self.package_context, self.deploy_context, self.sync_context
+        )
+        current = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": {"Fn::FindInMap": ["SAMCodeUriFuncs", {"Ref": "Name"}, "CodeUri"]},
+                                "Runtime": "python3.12",
+                            },
+                        }
+                    },
+                ]
+            },
+            "Mappings": {
+                "SAMCodeUriFuncs": {
+                    "Users": {"CodeUri": "s3://bucket/users-new.zip"},
+                    "Orders": {"CodeUri": "s3://bucket/orders-same.zip"},
+                }
+            },
+        }
+        deployed = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Funcs": [
+                    "Name",
+                    ["Users", "Orders"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": {"Fn::FindInMap": ["SAMCodeUriFuncs", {"Ref": "Name"}, "CodeUri"]},
+                                "Runtime": "python3.12",
+                            },
+                        }
+                    },
+                ]
+            },
+            "Mappings": {
+                "SAMCodeUriFuncs": {
+                    "Users": {"CodeUri": "s3://bucket/users-old.zip"},
+                    "Orders": {"CodeUri": "s3://bucket/orders-same.zip"},
+                }
+            },
+        }
+        infra_sync_executor._detect_foreach_code_changes(current, deployed)
+        resource_ids = {str(r) for r in infra_sync_executor._code_sync_resources}
+        self.assertIn("UsersFunction", resource_ids)
+        self.assertNotIn("OrdersFunction", resource_ids)
