@@ -55,7 +55,8 @@ class TestTemplateModifier(TestCase):
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_must_add_new_function_field_to_template(self, get_template_patch):
-        get_template_patch.return_value = YAML().load("""
+        get_template_patch.return_value = YAML().load(
+            """
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Api:
@@ -66,9 +67,11 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
-        expected_template_data = YAML().load("""
+        expected_template_data = YAML().load(
+            """
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Api:
@@ -82,7 +85,8 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
@@ -92,7 +96,8 @@ Resources:
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_must_add_new_api_function_field_to_template(self, get_template_patch):
-        get_template_patch.return_value = YAML().load("""
+        get_template_patch.return_value = YAML().load(
+            """
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   HttpApi:
@@ -103,9 +108,11 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
-        expected_template_data = YAML().load("""
+        expected_template_data = YAML().load(
+            """
 # More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   HttpApi:
@@ -120,7 +127,8 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
@@ -130,7 +138,8 @@ Resources:
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_must_replace_new_field_to_template(self, get_template_patch):
-        get_template_patch.return_value = YAML().load("""
+        get_template_patch.return_value = YAML().load(
+            """
 #More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Api:
@@ -145,9 +154,11 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
-        expected_template_data = YAML().load("""
+        expected_template_data = YAML().load(
+            """
 #More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
 Globals:
   Api:
@@ -162,7 +173,8 @@ Resources:
     Properties:
       CodeUri: hello_world
       Handler: app.lambda_handler
-        """)
+        """
+        )
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
@@ -173,7 +185,8 @@ Resources:
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_must_add_new_tracing_field_to_template(self, get_template_patch):
-        get_template_patch.return_value = YAML().load("""
+        get_template_patch.return_value = YAML().load(
+            """
         Globals:
           Function:
             Timeout: 3
@@ -183,9 +196,11 @@ Resources:
             Properties:
               CodeUri: hello_world
               Handler: app.lambda_handler
-        """)
+        """
+        )
 
-        expected_template_data = YAML().load("""
+        expected_template_data = YAML().load(
+            """
         #More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
         Globals:
           Function:
@@ -199,7 +214,8 @@ Resources:
             Properties:
               CodeUri: hello_world
               Handler: app.lambda_handler
-        """)
+        """
+        )
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
@@ -209,14 +225,16 @@ Resources:
         "samcli.lib.init.template_modifiers.xray_tracing_template_modifier.XRayTracingTemplateModifier._get_template"
     )
     def test_comments_are_added(self, get_template_patch):
-        get_template_patch.return_value = YAML().load("""
+        get_template_patch.return_value = YAML().load(
+            """
         Resources:
           HelloWorldFunction:
             Type: AWS::Serverless::Function
             Properties:
               CodeUri: hello_world
               Handler: app.lambda_handler
-        """)
+        """
+        )
 
         template_modifier = XRayTracingTemplateModifier(self.location)
         template_modifier._update_template_fields()
