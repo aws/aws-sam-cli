@@ -124,6 +124,7 @@ class CloudFormationStackResource(ResourceZip):
 
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    parent_parameter_values: Optional[Dict] = None
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -369,6 +370,12 @@ class Template:
             self.code_signer = code_signer
         elif template_str:
             self.template_dict = yaml_parse(template_str)
+            self.template_dir = (
+                os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+                if parent_dir
+                else os.getcwd()
+            )
+            self.code_signer = code_signer
         else:
             if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
                 raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
