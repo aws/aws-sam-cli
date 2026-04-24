@@ -586,18 +586,24 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 
         try:
-            # Extract parameter default values from the template so Ref-based
-            # ForEach collections (e.g. {"Ref": "ServiceNames"}) can be resolved.
-            param_values = {}
+            # Extract parameter default values from each template independently
+            # so Ref-based ForEach collections can be resolved correctly even if
+            # parameter definitions changed between deployments.
+            current_params = {}
             for param_name, param_def in current_template.get("Parameters", {}).items():
                 if isinstance(param_def, dict) and "Default" in param_def:
-                    param_values[param_name] = param_def["Default"]
+                    current_params[param_name] = param_def["Default"]
+
+            deployed_params = {}
+            for param_name, param_def in last_deployed_template.get("Parameters", {}).items():
+                if isinstance(param_def, dict) and "Default" in param_def:
+                    deployed_params[param_name] = param_def["Default"]
 
             current_expanded = expand_language_extensions(
-                current_template, parameter_values=param_values
+                current_template, parameter_values=current_params
             ).expanded_template
             deployed_expanded = expand_language_extensions(
-                last_deployed_template, parameter_values=param_values
+                last_deployed_template, parameter_values=deployed_params
             ).expanded_template
         except Exception as e:
             LOG.warning(
