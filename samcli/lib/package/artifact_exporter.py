@@ -98,12 +98,14 @@ def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_value
             # Expected: the nested-stack parameter references something the
             # resolver can't see at package time (e.g. a sibling resource).
             continue
-        except Exception:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
             # Unexpected — likely a SAM CLI bug. Log with traceback so
             # --debug surfaces it; drop the value so packaging still proceeds.
             LOG.warning(
-                "Unexpected error resolving nested stack parameter %r; skipping. " "Run with --debug for details.",
+                "Unexpected error resolving nested stack parameter %r; skipping: %s. "
+                "Run with --debug for the full traceback.",
                 name,
+                e,
             )
             LOG.debug("Traceback for parameter %r resolution failure:", name, exc_info=True)
             continue
