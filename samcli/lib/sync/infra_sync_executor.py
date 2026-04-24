@@ -586,8 +586,19 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 
         try:
-            current_expanded = expand_language_extensions(current_template).expanded_template
-            deployed_expanded = expand_language_extensions(last_deployed_template).expanded_template
+            # Extract parameter default values from the template so Ref-based
+            # ForEach collections (e.g. {"Ref": "ServiceNames"}) can be resolved.
+            param_values = {}
+            for param_name, param_def in current_template.get("Parameters", {}).items():
+                if isinstance(param_def, dict) and "Default" in param_def:
+                    param_values[param_name] = param_def["Default"]
+
+            current_expanded = expand_language_extensions(
+                current_template, parameter_values=param_values
+            ).expanded_template
+            deployed_expanded = expand_language_extensions(
+                last_deployed_template, parameter_values=param_values
+            ).expanded_template
         except Exception as e:
             LOG.warning(
                 "Failed to expand language extensions for code change detection: %s. "
