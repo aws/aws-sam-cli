@@ -4,10 +4,12 @@ Class that provides all nested stacks from a given SAM template
 
 import logging
 import os
-from typing import Dict, Iterator, List, Optional, Tuple, Union, cast
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_data
+from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult, expand_language_extensions
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
@@ -31,6 +33,7 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_overrides: Optional[Dict] = None,
         global_parameter_overrides: Optional[Dict] = None,
         use_sam_transform: bool = True,
+        language_extension_result: Optional[LanguageExtensionResult] = None,
     ):
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -55,6 +58,9 @@ class SamLocalStackProvider(SamBaseProvider):
             the template and all its child templates
         use_sam_transform: bool
             Whether to transform the given template with Serverless Application Model. Default is True
+        language_extension_result : LanguageExtensionResult, optional
+            Pre-computed result from expand_language_extensions(). When provided,
+            avoids redundant deep-copy in SamTranslatorWrapper.
         """
 
         self._template_file = template_file
@@ -63,6 +69,7 @@ class SamLocalStackProvider(SamBaseProvider):
             template_dict,
             SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
             use_sam_transform=use_sam_transform,
+            language_extension_result=language_extension_result,
         )
         self._resources = self._template_dict.get("Resources", {})
         self._global_parameter_overrides = global_parameter_overrides
@@ -255,14 +262,31 @@ class SamLocalStackProvider(SamBaseProvider):
                 message="A template file or a template dict is required but both are missing."
             )
 
+        # Process language extensions BEFORE creating Stack objects
+        # This ensures Fn::ForEach and other language extensions are expanded early,
+        # so that the Stack's template_dict contains expanded resources
+        merged_params = SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides)
+
+        parameter_values: Dict[str, Any] = {}
+        parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(merged_params or {})
+
+        lang_ext_result = expand_language_extensions(template_dict, parameter_values=parameter_values)
+        processed_template_dict = lang_ext_result.expanded_template
+
+        # Store the original template (before language extensions processing) for CloudFormation deployment
+        # This preserves Fn::ForEach and other language extension constructs
+        original_template = lang_ext_result.original_template if lang_ext_result.had_language_extensions else None
+
         stacks = [
             Stack(
                 stack_path,
                 name,
                 template_file,
-                SamLocalStackProvider.merge_parameter_overrides(parameter_overrides, global_parameter_overrides),
-                template_dict,
+                merged_params,
+                processed_template_dict,
                 metadata,
+                original_template_dict=original_template,
             )
         ]
         remote_stack_full_paths: List[str] = []
@@ -270,10 +294,11 @@ class SamLocalStackProvider(SamBaseProvider):
         current = SamLocalStackProvider(
             template_file,
             stack_path,
-            template_dict,
+            processed_template_dict,  # Use processed template with expanded language extensions
             parameter_overrides,
             global_parameter_overrides,
             use_sam_transform=use_sam_transform,
+            language_extension_result=lang_ext_result if lang_ext_result.had_language_extensions else None,
         )
         remote_stack_full_paths.extend(current.remote_stack_full_paths)
 

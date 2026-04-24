@@ -88,7 +88,10 @@ def do_cli(ctx, template, lint):
     else:
         iam_client = boto3.client("iam")
         validator = SamTemplateValidator(
-            sam_template.deserialized, ManagedPolicyLoader(iam_client), profile=ctx.profile, region=ctx.region
+            sam_template.deserialized,
+            ManagedPolicyLoader(iam_client),
+            profile=ctx.profile,
+            region=ctx.region,
         )
 
         try:

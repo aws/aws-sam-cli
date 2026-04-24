@@ -7,7 +7,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, cast
 from uuid import uuid4
 
 from boto3 import Session
@@ -17,6 +17,7 @@ from samcli.commands._utils.template import get_template_data
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.package.package_context import PackageContext
+from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.providers.sam_stack_provider import is_local_path
 from samcli.lib.telemetry.event import EventTracker
@@ -284,6 +285,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
 
         # The recursive template check for Nested stacks
         for resource_logical_id in current_template.get("Resources", {}):
+            if is_foreach_key(resource_logical_id):
+                continue
+
             resource_dict = current_template.get("Resources", {}).get(resource_logical_id, {})
             resource_type = resource_dict.get("Type")
 
@@ -344,6 +348,9 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                 ):
                     return False
 
+        # Detect code changes in ForEach-generated resources by comparing expanded templates
+        self._detect_foreach_code_changes(current_template, last_deployed_template_dict, nested_prefix)
+
         LOG.debug("There are no changes from the previously deployed template for %s", packaged_template_path)
         return True
 
@@ -394,6 +401,11 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         built_resource_dict = None
 
         for resource_logical_id in resources:
+            if is_foreach_key(resource_logical_id):
+                foreach_value = resources.get(resource_logical_id)
+                self._sanitize_foreach_body(foreach_value, linked_resources, built_template_dict)
+                continue
+
             resource_dict = resources.get(resource_logical_id, {})
 
             # Built resource dict helps with determining if a field is a local path
@@ -489,6 +501,151 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     processed_logical_id = resource_logical_id
 
         return processed_logical_id
+
+    def _sanitize_foreach_body(
+        self,
+        foreach_value: Any,
+        linked_resources: Optional[Set[str]] = None,
+        built_template_dict: Optional[Dict] = None,
+    ) -> None:
+        """
+        Sanitize code-syncable properties inside a Fn::ForEach body.
+
+        Recurses into the body dict (element [2] of the ForEach list) and removes
+        artifact properties (CodeUri, ImageUri, DefinitionUri, ContentUri, etc.)
+        from each resource definition, using the same removal maps as regular resources.
+        Also handles nested Fn::ForEach blocks by recursing further.
+
+        Parameters
+        ----------
+        foreach_value : Any
+            The Fn::ForEach value (should be a list with 3 elements: [loop_var, collection, body])
+        linked_resources : Optional[Set[str]]
+            The corresponding resources in the other template that got processed
+        built_template_dict : Optional[Dict]
+            The built template dict (not used for ForEach body since paths are dynamic)
+        """
+        if not isinstance(foreach_value, list) or len(foreach_value) < FOREACH_REQUIRED_ELEMENTS:
+            return
+
+        body = foreach_value[2]
+        if not isinstance(body, dict):
+            return
+
+        for key, resource_def in body.items():
+            if is_foreach_key(key):
+                self._sanitize_foreach_body(resource_def, linked_resources, built_template_dict)
+                continue
+
+            if not isinstance(resource_def, dict):
+                continue
+
+            resource_type = resource_def.get("Type")
+            if not resource_type:
+                continue
+
+            if resource_type in CODE_SYNCABLE_RESOURCES or resource_type in SYNCABLE_STACK_RESOURCES:
+                # For ForEach body resources, we always sanitize because the artifact paths
+                # are dynamic (contain loop variables or Fn::FindInMap after packaging) and
+                # will always differ between packaged and deployed templates.
+                # Pass the key as a linked resource so _remove_resource_field unconditionally removes fields.
+                self._remove_resource_field(key, resource_type, resource_def, {key}, None)
+
+            # Remove SamResourceId metadata
+            resource_def.get("Metadata", {}).pop("SamResourceId", None)
+            if not resource_def.get("Metadata"):
+                resource_def.pop("Metadata", None)
+
+    def _detect_foreach_code_changes(
+        self,
+        current_template: Dict,
+        last_deployed_template: Dict,
+        nested_prefix: Optional[str] = None,
+    ) -> None:
+        """
+        Detect code changes in ForEach-generated resources by expanding both the current
+        and last deployed templates, then comparing the expanded resources.
+
+        Only processes resources that were generated from Fn::ForEach blocks (i.e., resources
+        present in the expanded template but not in the original template as regular resources).
+
+        Parameters
+        ----------
+        current_template : Dict
+            The current packaged template (with Fn::ForEach intact)
+        last_deployed_template : Dict
+            The last deployed template (with Fn::ForEach intact)
+        nested_prefix : Optional[str]
+            The nested stack prefix for resource identifiers
+        """
+        from samcli.lib.cfn_language_extensions.sam_integration import check_using_language_extension
+
+        if not check_using_language_extension(current_template):
+            return
+
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+
+        try:
+            # Extract parameter default values from each template independently
+            # so Ref-based ForEach collections can be resolved correctly even if
+            # parameter definitions changed between deployments.
+            current_params = {}
+            for param_name, param_def in current_template.get("Parameters", {}).items():
+                if isinstance(param_def, dict) and "Default" in param_def:
+                    current_params[param_name] = param_def["Default"]
+
+            deployed_params = {}
+            for param_name, param_def in last_deployed_template.get("Parameters", {}).items():
+                if isinstance(param_def, dict) and "Default" in param_def:
+                    deployed_params[param_name] = param_def["Default"]
+
+            current_expanded = expand_language_extensions(
+                current_template, parameter_values=current_params
+            ).expanded_template
+            deployed_expanded = expand_language_extensions(
+                last_deployed_template, parameter_values=deployed_params
+            ).expanded_template
+        except Exception as e:
+            LOG.warning(
+                "Failed to expand language extensions for code change detection: %s. "
+                "ForEach-generated resources will not be checked for code changes. "
+                "Run with --debug for details.",
+                e,
+            )
+            LOG.debug("Language extension expansion failure details:", exc_info=True)
+            return
+
+        current_resources = current_expanded.get("Resources", {})
+        deployed_resources = deployed_expanded.get("Resources", {})
+
+        # Only check resources that exist in the expanded template — these include
+        # both regular resources and ForEach-generated ones. The regular resources
+        # were already checked in the main loop, so we skip them by checking if
+        # the resource key exists as a non-ForEach key in the original template.
+        original_regular_keys = {k for k in current_template.get("Resources", {}) if not is_foreach_key(k)}
+
+        for resource_id, resource_dict in current_resources.items():
+            if resource_id in original_regular_keys:
+                continue  # Already handled in the main loop
+
+            resource_type = resource_dict.get("Type")
+            if resource_type not in CODE_SYNCABLE_RESOURCES:
+                continue
+
+            last_resource_dict = deployed_resources.get(resource_id, {})
+            resolved_id = nested_prefix + resource_id if nested_prefix else resource_id
+
+            if resource_type == AWS_LAMBDA_FUNCTION:
+                if resource_dict.get("Properties", {}).get("Code") != last_resource_dict.get("Properties", {}).get(
+                    "Code"
+                ):
+                    self._code_sync_resources.add(ResourceIdentifier(resolved_id))
+            else:
+                for field in GENERAL_REMOVAL_MAP.get(resource_type, []):
+                    if resource_dict.get("Properties", {}).get(field) != last_resource_dict.get("Properties", {}).get(
+                        field
+                    ):
+                        self._code_sync_resources.add(ResourceIdentifier(resolved_id))
 
     def get_template(self, template_path: str) -> Optional[Dict]:
         """

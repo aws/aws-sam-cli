@@ -1,0 +1,14 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Conditions": {
+    "FailingCondition": {
+      "Fn::Equals": [{"key": [1, 2]}, 0]
+    }
+  },
+  "Resources": {
+    "TestResource": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}
