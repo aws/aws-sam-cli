@@ -80,6 +80,7 @@ class TestResourceMetadataNormalizer(TestCase):
 
     def test_replace_all_resources_that_contain_image_metadata(self):
         docker_build_args = {"arg1": "val1", "arg2": "val2"}
+        docker_build_extra_params = ["--param1", "value1"]
         asset_path = pathlib.Path("/path", "to", "asset")
         dockerfile_path = pathlib.Path("path", "to", "Dockerfile")
         template_data = {
@@ -97,6 +98,7 @@ class TestResourceMetadataNormalizer(TestCase):
                         "aws:asset:property": "Code.ImageUri",
                         "aws:asset:dockerfile-path": dockerfile_path,
                         "aws:asset:docker-build-args": docker_build_args,
+                        "aws:asset:docker-build-extra-params": docker_build_extra_params,
                     },
                 },
             }
@@ -112,6 +114,9 @@ class TestResourceMetadataNormalizer(TestCase):
         expected_dockerfile_path = str(pathlib.Path("path", "to", "Dockerfile").as_posix())
         self.assertEqual(expected_dockerfile_path, template_data["Resources"]["Function1"]["Metadata"]["Dockerfile"])
         self.assertEqual(docker_build_args, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildArgs"])
+        self.assertEqual(
+            docker_build_extra_params, template_data["Resources"]["Function1"]["Metadata"]["DockerBuildExtraParams"]
+        )
         self.assertEqual("Function1", template_data["Resources"]["Function1"]["Metadata"]["SamResourceId"])
 
     def test_replace_all_resources_that_contain_image_metadata_dockerfile_extensions(self):
