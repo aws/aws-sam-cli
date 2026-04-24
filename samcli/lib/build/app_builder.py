@@ -442,8 +442,11 @@ class ApplicationBuilder:
         if not isinstance(docker_build_args, dict):
             raise DockerBuildFailed("DockerBuildArgs needs to be a dictionary!")
 
-        if docker_build_extra_params is not None and not isinstance(docker_build_extra_params, list):
-            raise DockerBuildFailed("DockerBuildExtraParams needs to be a list!")
+        if docker_build_extra_params is not None and (
+            not isinstance(docker_build_extra_params, list)
+            or not all(isinstance(p, str) for p in docker_build_extra_params)
+        ):
+            raise DockerBuildFailed("DockerBuildExtraParams must be a list of strings!")
 
         docker_context_dir = pathlib.Path(self._base_dir, docker_context).resolve()
 
