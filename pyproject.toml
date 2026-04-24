@@ -48,7 +48,7 @@ dependencies = [
     "aws_lambda_builders==1.64.0",
     "tomlkit==0.14.0",
     "watchdog==4.0.2",
-    "rich~=14.3.3",
+    "rich>=14.3.3,<15.1.0",
     "pyopenssl>=25.3,<26.1",
     # Pin to <4.27 until SAM-T no longer uses RefResolver
     "jsonschema<4.27",
