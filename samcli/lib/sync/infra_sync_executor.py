@@ -588,11 +588,12 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         try:
             current_expanded = expand_language_extensions(current_template).expanded_template
             deployed_expanded = expand_language_extensions(last_deployed_template).expanded_template
-        except Exception:
+        except Exception as e:
             LOG.warning(
-                "Failed to expand language extensions for code change detection. "
+                "Failed to expand language extensions for code change detection: %s. "
                 "ForEach-generated resources will not be checked for code changes. "
-                "Run with --debug for details."
+                "Run with --debug for details.",
+                e,
             )
             LOG.debug("Language extension expansion failure details:", exc_info=True)
             return
