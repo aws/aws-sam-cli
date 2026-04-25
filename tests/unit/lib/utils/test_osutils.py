@@ -3,7 +3,9 @@ Tests OSUtils file
 """
 
 import os
+import shutil
 import sys
+import tempfile
 
 from unittest import TestCase
 from unittest.mock import patch, Mock
@@ -91,66 +93,74 @@ class Test_rmtree_if_exists(TestCase):
 
 
 class Test_copytree(TestCase):
-    @patch("samcli.lib.utils.osutils.Path")
-    @patch("samcli.lib.utils.osutils.os")
-    @patch("samcli.lib.utils.osutils.shutil.copy2")
-    def test_must_copytree(self, patched_copy2, patched_os, patched_path):
+    @patch("samcli.lib.utils.osutils.shutil.copytree")
+    def test_must_copytree(self, patched_copytree):
         source_path = "mock-source/path"
         destination_path = "mock-destination/path"
-        mock_path_obj = Mock()
-        patched_path.exists.return_value = True
-        patched_os.path.return_value = mock_path_obj
 
-        patched_os.path.join.side_effect = [source_path, destination_path]
-        patched_os.path.isdir.return_value = False
-        patched_os.listdir.return_value = ["mock-source-file1"]
         osutils.copytree(source_path, destination_path)
 
-        patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
+        patched_copytree.assert_called_once_with(
+            source_path, destination_path, symlinks=True, ignore=None, dirs_exist_ok=True
+        )
 
-    @patch("samcli.lib.utils.osutils.Path")
-    @patch("samcli.lib.utils.osutils.os")
-    @patch("samcli.lib.utils.osutils.shutil.copy2")
-    def test_copytree_throws_oserror_path_exists(self, patched_copy2, patched_os, patched_path):
+    @patch("samcli.lib.utils.osutils.shutil.copytree")
+    def test_copytree_with_ignore(self, patched_copytree):
         source_path = "mock-source/path"
         destination_path = "mock-destination/path"
-        mock_path_obj = Mock()
-        patched_path.exists.return_value = True
-        patched_os.path.return_value = mock_path_obj
-        patched_copy2.side_effect = OSError("mock-os-error")
+        mock_ignore = Mock()
 
-        patched_os.path.join.side_effect = [source_path, destination_path]
-        patched_os.path.isdir.return_value = False
-        patched_os.listdir.return_value = ["mock-source-file1"]
+        osutils.copytree(source_path, destination_path, ignore=mock_ignore)
+
+        patched_copytree.assert_called_once_with(
+            source_path, destination_path, symlinks=True, ignore=mock_ignore, dirs_exist_ok=True
+        )
+
+    @patch("samcli.lib.utils.osutils.shutil.copytree")
+    def test_copytree_throws_oserror(self, patched_copytree):
+        patched_copytree.side_effect = OSError("mock-os-error")
+
         with self.assertRaises(OSError):
-            osutils.copytree(source_path, destination_path)
+            osutils.copytree("mock-source/path", "mock-destination/path")
 
-        patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
 
-    @patch("samcli.lib.utils.osutils.create_symlink_or_copy")
-    @patch("samcli.lib.utils.osutils.Path")
-    @patch("samcli.lib.utils.osutils.os")
-    @patch("samcli.lib.utils.osutils.shutil.copy2")
-    def test_copytree_symlink_copy_error_handling(
-        self, patched_copy2, patched_os, patched_path, patched_create_symlink_or_copy
-    ):
-        source_path = "mock-source/path"
-        destination_path = "mock-destination/path"
-        mock_path_obj = Mock()
-        patched_path.exists.return_value = True
-        patched_os.path.return_value = mock_path_obj
-        patched_copy2.side_effect = OSError(22, "mock-os-error")
+class Test_copytree_symlinks(TestCase):
+    """Integration-style tests verifying symlinks=True preserves symlinks on disk."""
 
-        patched_os.path.join.side_effect = [source_path, destination_path]
-        patched_os.path.isdir.return_value = False
-        patched_os.listdir.return_value = ["mock-source-file1"]
-        osutils.copytree(source_path, destination_path)
+    def setUp(self):
+        self.src = tempfile.mkdtemp()
+        self.dst = tempfile.mkdtemp()
+        # clean dst so copytree creates it
+        shutil.rmtree(self.dst)
 
-        patched_os.path.join.assert_called()
-        patched_copy2.assert_called_with(source_path, destination_path, follow_symlinks=False)
-        patched_create_symlink_or_copy.assert_called_with(source_path, destination_path)
+    def tearDown(self):
+        shutil.rmtree(self.src, ignore_errors=True)
+        shutil.rmtree(self.dst, ignore_errors=True)
+
+    def test_preserves_file_symlink(self):
+        real_file = os.path.join(self.src, "real.txt")
+        with open(real_file, "w") as f:
+            f.write("content")
+        os.symlink("real.txt", os.path.join(self.src, "link.txt"))
+
+        osutils.copytree(self.src, self.dst)
+
+        link = os.path.join(self.dst, "link.txt")
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(os.readlink(link), "real.txt")
+
+    def test_preserves_directory_symlink(self):
+        subdir = os.path.join(self.src, "subdir")
+        os.makedirs(subdir)
+        with open(os.path.join(subdir, "file.txt"), "w") as f:
+            f.write("content")
+        os.symlink("subdir", os.path.join(self.src, "link_dir"))
+
+        osutils.copytree(self.src, self.dst)
+
+        link = os.path.join(self.dst, "link_dir")
+        self.assertTrue(os.path.islink(link))
+        self.assertEqual(os.readlink(link), "subdir")
 
 
 class Test_create_symlink_or_copy(TestCase):
