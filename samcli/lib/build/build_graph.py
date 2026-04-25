@@ -23,6 +23,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_RESOURCE_ID_KEY,
 )
 from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.packagetype import ZIP
 
 LOG = logging.getLogger(__name__)
@@ -501,7 +502,22 @@ class AbstractBuildDefinition:
 
     @property
     def dependencies_dir(self) -> str:
-        return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
+        """
+        Returns the dependencies directory path.
+        Uses a deterministic hash-based key when manifest_hash is available,
+        allowing functions with the same manifest to share dependencies.
+        Falls back to UUID for backward compatibility.
+        """
+        deps_key = self._get_dependencies_key() if self.manifest_hash else self.uuid
+        return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, deps_key))
+
+    @abstractmethod
+    def _get_dependencies_key(self) -> str:
+        """
+        Returns a deterministic key for the dependencies directory based on
+        manifest_hash, runtime/build_method, and architecture.
+        This allows functions/layers with identical manifests to share dependencies.
+        """
 
     @property
     def env_vars(self) -> Dict:
@@ -536,6 +552,14 @@ class LayerBuildDefinition(AbstractBuildDefinition):
         # Note(xinhol): In our code, we assume "layer" is never None. We should refactor
         # this and move "layer" out of LayerBuildDefinition to take advantage of type check.
         self.layer: LayerVersion = None  # type: ignore
+
+    def _get_dependencies_key(self) -> str:
+        """
+        Returns a deterministic key for the dependencies directory based on
+        manifest_hash, build_method, and architecture.
+        """
+        key_string = f"{self.manifest_hash}:{self.build_method or ''}:{self.architecture}"
+        return str_checksum(key_string)[:16]
 
     def get_resource_full_paths(self) -> str:
         if not self.layer:
@@ -608,6 +632,14 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.metadata = metadata_copied
 
         self.functions: List[Function] = []
+
+    def _get_dependencies_key(self) -> str:
+        """
+        Returns a deterministic key for the dependencies directory based on
+        manifest_hash, runtime, and architecture.
+        """
+        key_string = f"{self.manifest_hash}:{self.runtime or ''}:{self.architecture}"
+        return str_checksum(key_string)[:16]
 
     def add_function(self, function: Function) -> None:
         self.functions.append(function)
