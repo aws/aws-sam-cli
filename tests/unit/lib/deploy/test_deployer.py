@@ -1,25 +1,24 @@
-from typing import Container, Iterable, Union
-import uuid
-import time
 import math
 import os
+import time
+import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Container, Iterable, Union
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, ANY, call
+from unittest.mock import ANY, MagicMock, call, patch
 
-from botocore.exceptions import ClientError, WaiterError, BotoCoreError
+from botocore.exceptions import BotoCoreError, ClientError, WaiterError
 
 from samcli.commands.deploy.exceptions import (
-    DeployFailedError,
     ChangeSetError,
-    DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
-    DeployStackStatusMissingError,
+    DeployFailedError,
+    DeployStackOutPutFailedError,
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.utils.time import utc_to_timestamp, to_datetime
+from samcli.lib.utils.time import to_datetime, utc_to_timestamp
 
 
 class MockPaginator:
@@ -37,7 +36,6 @@ class MockChangesetWaiter:
     def wait(self, ChangeSetName, StackName, WaiterConfig):
         if self.ex:
             raise self.ex
-        return
 
 
 class MockCreateUpdateWaiter:
@@ -47,7 +45,6 @@ class MockCreateUpdateWaiter:
     def wait(self, StackName, WaiterConfig):
         if self.ex:
             raise self.ex
-        return
 
 
 class CustomTestCase(TestCase):
@@ -142,6 +139,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="CREATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             NotificationARNs=[],
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             RoleARN="role-arn",
@@ -172,6 +170,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="UPDATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             NotificationARNs=[],
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             RoleARN="role-arn",
@@ -271,6 +270,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="CREATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
@@ -294,6 +294,7 @@ class TestDeployer(CustomTestCase):
             ChangeSetName=ANY,
             ChangeSetType="CREATE",
             Description=ANY,
+            IncludeNestedStacks=True,
             Parameters=[{"ParameterKey": "a", "ParameterValue": "b"}],
             StackName="test",
             Tags={"unit": "true"},
@@ -333,10 +334,165 @@ class TestDeployer(CustomTestCase):
             },
         )
 
+    def test_describe_changeset_with_nested_stacks(self):
+        """Test that nested stack changes are detected and recursively displayed"""
+        # Parent stack response includes a nested stack resource with ChangeSetId
+        parent_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "MyFunction",
+                            "ResourceType": "AWS::Lambda::Function",
+                            "Action": "Modify",
+                            "Replacement": "False",
+                        }
+                    },
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "NestedStack",
+                            "ResourceType": "AWS::CloudFormation::Stack",
+                            "Action": "Modify",
+                            "Replacement": "False",
+                            "ChangeSetId": "arn:aws:cloudformation:us-east-1:123456789:changeSet/nested-cs/uuid",
+                        }
+                    },
+                ]
+            }
+        ]
+        # Nested stack response
+        nested_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "NestedTable",
+                            "ResourceType": "AWS::DynamoDB::Table",
+                            "Action": "Add",
+                        }
+                    }
+                ]
+            }
+        ]
+
+        # Mock paginator to return parent response first, then nested response
+        parent_paginator = MockPaginator(resp=parent_response)
+        nested_paginator = MockPaginator(resp=nested_response)
+        self.deployer._client.get_paginator = MagicMock(side_effect=[parent_paginator, nested_paginator])
+
+        # Mock describe_change_set for the nested changeset to get stack name
+        self.deployer._client.describe_change_set = MagicMock(return_value={"StackName": "nested-stack-name"})
+
+        changes = self.deployer.describe_changeset("change_id", "test")
+        self.assertEqual(len(changes["Modify"]), 2)  # MyFunction + NestedStack
+        self.assertEqual(len(changes["Add"]), 0)  # NestedTable is in nested call
+
+        # Verify describe_change_set was called for the nested changeset
+        self.deployer._client.describe_change_set.assert_called_once_with(
+            ChangeSetName="arn:aws:cloudformation:us-east-1:123456789:changeSet/nested-cs/uuid"
+        )
+
+    def test_describe_changeset_nested_stack_error(self):
+        """Test that errors in nested stack display are handled gracefully"""
+        parent_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "NestedStack",
+                            "ResourceType": "AWS::CloudFormation::Stack",
+                            "Action": "Modify",
+                            "Replacement": "False",
+                            "ChangeSetId": "arn:aws:cloudformation:us-east-1:123456789:changeSet/nested-cs/uuid",
+                        }
+                    },
+                ]
+            }
+        ]
+
+        self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=parent_response))
+        # Simulate error when describing nested changeset
+        self.deployer._client.describe_change_set = MagicMock(side_effect=Exception("Access Denied"))
+
+        # Should not raise - error is handled gracefully
+        changes = self.deployer.describe_changeset("change_id", "test")
+        self.assertEqual(len(changes["Modify"]), 1)
+
+    def test_describe_changeset_deeply_nested_stacks(self):
+        """Test 3+ levels of nested stacks are processed recursively"""
+        # Level 1 (parent)
+        parent_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "Level1Nested",
+                            "ResourceType": "AWS::CloudFormation::Stack",
+                            "Action": "Modify",
+                            "ChangeSetId": "arn:level1",
+                        }
+                    },
+                ]
+            }
+        ]
+        # Level 2 (nested) - contains another nested stack
+        level2_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "Level2Nested",
+                            "ResourceType": "AWS::CloudFormation::Stack",
+                            "Action": "Add",
+                            "ChangeSetId": "arn:level2",
+                        }
+                    },
+                ]
+            }
+        ]
+        # Level 3 (deeply nested)
+        level3_response = [
+            {
+                "Changes": [
+                    {
+                        "ResourceChange": {
+                            "LogicalResourceId": "DeepResource",
+                            "ResourceType": "AWS::S3::Bucket",
+                            "Action": "Add",
+                        }
+                    }
+                ]
+            }
+        ]
+
+        parent_paginator = MockPaginator(resp=parent_response)
+        level2_paginator = MockPaginator(resp=level2_response)
+        level3_paginator = MockPaginator(resp=level3_response)
+        self.deployer._client.get_paginator = MagicMock(
+            side_effect=[parent_paginator, level2_paginator, level3_paginator]
+        )
+
+        # describe_change_set returns stack names for each level
+        self.deployer._client.describe_change_set = MagicMock(
+            side_effect=[
+                {"StackName": "level1-stack"},
+                {"StackName": "level2-stack"},
+            ]
+        )
+
+        changes = self.deployer.describe_changeset("change_id", "test")
+        # Parent only sees its direct changes
+        self.assertEqual(len(changes["Modify"]), 1)
+
+        # Verify recursive calls happened - describe_change_set called for level1 and level2
+        self.assertEqual(self.deployer._client.describe_change_set.call_count, 2)
+
     def test_describe_changeset_with_no_changes(self):
         response = [{"Changes": []}]
         self.deployer._client.get_paginator = MagicMock(return_value=MockPaginator(resp=response))
         changes = self.deployer.describe_changeset("change_id", "test")
+        # With the new implementation (Optional[Dict]), when no changes are found,
+        # it returns an empty dict instead of False
         self.assertEqual(changes, {"Add": [], "Modify": [], "Remove": []})
 
     def test_wait_for_changeset(self):
@@ -379,6 +535,113 @@ class TestDeployer(CustomTestCase):
         )
         with self.assertRaises(ChangeSetError):
             self.deployer.wait_for_changeset("test-id", "test-stack")
+
+    def test_wait_for_changeset_nested_changeset_error(self):
+        """Test that nested changeset errors are detected and detailed error is fetched"""
+        nested_arn = (
+            "arn:aws:cloudformation:us-east-1:123456789012:changeSet/nested-cs/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        )
+        status_reason = f"Nested change set {nested_arn} was not successfully created: Currently in FAILED."
+
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=MockChangesetWaiter(
+                ex=WaiterError(
+                    name="wait_for_changeset",
+                    reason="unit-test",
+                    last_response={"Status": "FAILED", "StatusReason": status_reason},
+                )
+            )
+        )
+        # Mock describe_change_set to return nested error details
+        self.deployer._client.describe_change_set = MagicMock(
+            return_value={
+                "StackName": "my-nested-stack",
+                "Status": "FAILED",
+                "StatusReason": "Template error: invalid resource type",
+            }
+        )
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        # Verify the error message contains the nested stack details
+        self.assertIn("my-nested-stack", str(ctx.exception))
+
+    def test_wait_for_changeset_nested_changeset_error_fetch_fails(self):
+        """Test graceful handling when fetching nested changeset details fails"""
+        nested_arn = (
+            "arn:aws:cloudformation:us-east-1:123456789012:changeSet/nested-cs/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        )
+        status_reason = f"Nested change set {nested_arn} was not successfully created: Currently in FAILED."
+
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=MockChangesetWaiter(
+                ex=WaiterError(
+                    name="wait_for_changeset",
+                    reason="unit-test",
+                    last_response={"Status": "FAILED", "StatusReason": status_reason},
+                )
+            )
+        )
+        # Simulate failure to fetch nested changeset details
+        self.deployer._client.describe_change_set = MagicMock(side_effect=Exception("Access denied"))
+
+        with self.assertRaises(ChangeSetError):
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+    def test_get_nested_changeset_error_with_valid_arn(self):
+        """Test _get_nested_changeset_error extracts error from nested changeset ARN"""
+        nested_arn = (
+            "arn:aws:cloudformation:us-east-1:123456789012:changeSet/nested-cs/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        )
+        status_reason = f"Nested change set {nested_arn} was not successfully created: Currently in FAILED."
+
+        self.deployer._client.describe_change_set = MagicMock(
+            return_value={
+                "StackName": "nested-stack",
+                "Status": "FAILED",
+                "StatusReason": "Template format error",
+            }
+        )
+
+        result = self.deployer._get_nested_changeset_error(status_reason)
+        self.assertIn("nested-stack", result)
+        self.assertIn("Template format error", result)
+
+    def test_get_nested_changeset_error_with_china_partition(self):
+        """Test _get_nested_changeset_error works with aws-cn partition"""
+        nested_arn = (
+            "arn:aws-cn:cloudformation:cn-north-1:123456789012:changeSet/nested-cs/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        )
+        status_reason = f"Nested change set {nested_arn} was not successfully created: Currently in FAILED."
+
+        self.deployer._client.describe_change_set = MagicMock(
+            return_value={
+                "StackName": "nested-stack-cn",
+                "Status": "FAILED",
+                "StatusReason": "Parameter error",
+            }
+        )
+
+        result = self.deployer._get_nested_changeset_error(status_reason)
+        self.assertIn("nested-stack-cn", result)
+
+    def test_get_nested_changeset_error_no_arn(self):
+        """Test _get_nested_changeset_error returns None when no ARN in reason"""
+        result = self.deployer._get_nested_changeset_error("Some other error without ARN")
+        self.assertIsNone(result)
+
+    def test_get_nested_changeset_error_describe_fails(self):
+        """Test _get_nested_changeset_error returns None when describe fails"""
+        nested_arn = (
+            "arn:aws:cloudformation:us-east-1:123456789012:changeSet/nested-cs/a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        )
+        status_reason = f"Nested change set {nested_arn} was not successfully created: Currently in FAILED."
+
+        self.deployer._client.describe_change_set = MagicMock(side_effect=Exception("API error"))
+
+        result = self.deployer._get_nested_changeset_error(status_reason)
+        self.assertIsNone(result)
 
     def test_wait_for_changeset_exception_NonChangeSetError(self):
         self.deployer._client.get_waiter = MagicMock(
