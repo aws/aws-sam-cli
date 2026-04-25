@@ -1,19 +1,18 @@
 import json
-import os
 import re
 import shutil
 import threading
 import time
 from pathlib import Path
-from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
-from typing import Dict, Any, Optional, List
+from subprocess import PIPE, STDOUT, Popen
+from typing import Any, Dict, List, Optional
 from unittest import TestCase
 
 from tests.integration.local.invoke.invoke_integ_base import TIMEOUT
 from tests.testing_utils import (
-    run_command,
-    get_sam_command,
     get_build_command_list,
+    get_sam_command,
+    run_command,
 )
 
 
@@ -143,11 +142,13 @@ class DurableIntegBase(TestCase):
     def assert_invoke_output(
         self,
         stdout: str,
-        input_data: Dict[str, Any] = {},
+        input_data: Optional[Dict[str, Any]] = None,
         execution_name: Optional[str] = None,
         expected_status: str = "SUCCEEDED",
     ) -> str:
         """Assert invoke output contains expected fields and return execution ARN."""
+        if input_data is None:
+            input_data = {}
         stdout_str = stdout.strip()
 
         self.assertIn("Execution Summary:", stdout_str, f"Expected execution summary in output: {stdout_str}")
