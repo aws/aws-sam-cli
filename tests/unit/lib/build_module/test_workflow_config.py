@@ -121,7 +121,7 @@ class Test_get_workflow_config(TestCase):
         with self.assertRaises(UnsupportedBuilderException):
             get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="Wrong")
 
-    @parameterized.expand([("ruby3.2",), ("ruby3.3",), ("ruby3.4",)])
+    @parameterized.expand([("ruby3.2",), ("ruby3.3",), ("ruby3.4",), ("ruby4.0",)])
     def test_must_work_for_ruby(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "ruby")

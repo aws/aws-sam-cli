@@ -25,12 +25,14 @@ ASSET_PROPERTY_METADATA_KEY = "aws:asset:property"
 IMAGE_ASSET_PROPERTY = "Code.ImageUri"
 ASSET_DOCKERFILE_PATH_KEY = "aws:asset:dockerfile-path"
 ASSET_DOCKERFILE_BUILD_ARGS_KEY = "aws:asset:docker-build-args"
+ASSET_DOCKER_BUILD_EXTRA_PARAMS_KEY = "aws:asset:docker-build-extra-params"
 
 SAM_RESOURCE_ID_KEY = "SamResourceId"
 SAM_IS_NORMALIZED = "SamNormalized"
 SAM_METADATA_DOCKERFILE_KEY = "Dockerfile"
 SAM_METADATA_DOCKER_CONTEXT_KEY = "DockerContext"
 SAM_METADATA_DOCKER_BUILD_ARGS_KEY = "DockerBuildArgs"
+SAM_METADATA_DOCKER_BUILD_EXTRA_PARAMS_KEY = "DockerBuildExtraParams"
 
 ASSET_BUNDLED_METADATA_KEY = "aws:asset:is-bundled"
 SAM_METADATA_SKIP_BUILD_KEY = "SkipBuild"
@@ -189,6 +191,7 @@ class ResourceMetadataNormalizer:
             SAM_METADATA_DOCKERFILE_KEY: str(dockerfile_path.as_posix()),
             SAM_METADATA_DOCKER_CONTEXT_KEY: str(asset_path),
             SAM_METADATA_DOCKER_BUILD_ARGS_KEY: metadata.get(ASSET_DOCKERFILE_BUILD_ARGS_KEY, {}),
+            SAM_METADATA_DOCKER_BUILD_EXTRA_PARAMS_KEY: metadata.get(ASSET_DOCKER_BUILD_EXTRA_PARAMS_KEY, []),
         }
 
     @staticmethod
