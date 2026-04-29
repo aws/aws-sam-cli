@@ -109,6 +109,15 @@ LOG = logging.getLogger(__name__)
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
 @click.option(
+    "--include-nested-stacks/--no-include-nested-stacks",
+    default=True,
+    required=False,
+    is_flag=True,
+    help="Display changes for nested stacks in the changeset. "
+    "For large nested stack hierarchies, use --no-include-nested-stacks to reduce output verbosity. "
+    "Defaults to displaying nested stack changes.",
+)
+@click.option(
     "--disable-rollback/--no-disable-rollback",
     default=False,
     required=False,
@@ -191,6 +200,7 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    include_nested_stacks,
     signing_profiles,
     resolve_s3,
     resolve_image_repos,
@@ -226,6 +236,7 @@ def cli(
         metadata,
         guided,
         confirm_changeset,
+        include_nested_stacks,
         ctx.region,
         ctx.profile,
         signing_profiles,
@@ -260,6 +271,7 @@ def do_cli(
     metadata,
     guided,
     confirm_changeset,
+    include_nested_stacks,
     region,
     profile,
     signing_profiles,
@@ -300,6 +312,7 @@ def do_cli(
             config_env=config_env,
             config_file=config_file,
             disable_rollback=disable_rollback,
+            include_nested_stacks=include_nested_stacks,
         )
         guided_context.run()
     else:
@@ -370,6 +383,7 @@ def do_cli(
             region=guided_context.guided_region if guided else region,
             profile=profile,
             confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+            include_nested_stacks=include_nested_stacks,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             use_changeset=True,
             disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
