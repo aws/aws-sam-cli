@@ -47,6 +47,8 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::Sub"]
 
+    _LONG_FORM_ARGS = 2
+
     def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::Sub intrinsic function.
@@ -96,7 +98,7 @@ class FnSubResolver(IntrinsicFunctionResolver):
 
         # Long form: [string, variable_map]
         if isinstance(args, list):
-            if len(args) != 2:
+            if len(args) != self._LONG_FORM_ARGS:
                 raise InvalidTemplateException("Fn::Sub layout is incorrect")
 
             template_string = args[0]

@@ -40,6 +40,8 @@ class FnIfResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::If"]
 
+    _EXPECTED_ARGS = 3
+
     def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::If intrinsic function.
@@ -68,7 +70,7 @@ class FnIfResolver(IntrinsicFunctionResolver):
 
         # Validate the layout: must be a list with exactly 3 elements
         # [condition_name, value_if_true, value_if_false]
-        if not isinstance(args, list) or len(args) != 3:
+        if not isinstance(args, list) or len(args) != self._EXPECTED_ARGS:
             raise InvalidTemplateException("Fn::If layout is incorrect")
 
         condition_name = args[0]

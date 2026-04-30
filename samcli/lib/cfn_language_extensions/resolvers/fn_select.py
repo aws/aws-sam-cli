@@ -36,6 +36,8 @@ class FnSelectResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::Select"]
 
+    _EXPECTED_ARGS = 2
+
     def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::Select intrinsic function.
@@ -61,7 +63,7 @@ class FnSelectResolver(IntrinsicFunctionResolver):
         args = self.get_function_args(value)
 
         # Validate the layout: must be a list with exactly 2 elements
-        if not isinstance(args, list) or len(args) != 2:
+        if not isinstance(args, list) or len(args) != self._EXPECTED_ARGS:
             raise InvalidTemplateException("Fn::Select layout is incorrect")
 
         index = args[0]

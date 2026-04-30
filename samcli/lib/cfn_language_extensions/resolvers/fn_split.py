@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Union
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_intrinsic_key
 
 
 class FnSplitResolver(IntrinsicFunctionResolver):
@@ -35,6 +36,8 @@ class FnSplitResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::Split"]
 
+    _EXPECTED_ARGS = 2
+
     def resolve(self, value: Dict[str, Any]) -> Union[List[str], Dict[str, Any]]:
         """
         Resolve the Fn::Split intrinsic function.
@@ -58,7 +61,7 @@ class FnSplitResolver(IntrinsicFunctionResolver):
         args = self.get_function_args(value)
 
         # Validate the layout: must be a list with exactly 2 elements
-        if not isinstance(args, list) or len(args) != 2:
+        if not isinstance(args, list) or len(args) != self._EXPECTED_ARGS:
             raise InvalidTemplateException("Fn::Split layout is incorrect")
 
         delimiter = args[0]
@@ -85,7 +88,7 @@ class FnSplitResolver(IntrinsicFunctionResolver):
             # Check if it's an intrinsic function (single key starting with Fn:: or Ref)
             if len(source_string) == 1:
                 key = next(iter(source_string.keys()))
-                if key.startswith("Fn::") or key == "Ref" or key == "Condition":
+                if is_intrinsic_key(key):
                     # Return the original Fn::Split with resolved delimiter
                     return {"Fn::Split": [delimiter, source_string]}
             raise InvalidTemplateException("Fn::Split layout is incorrect")

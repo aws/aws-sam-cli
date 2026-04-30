@@ -131,7 +131,7 @@ max-statements = 80
 "__init__.py" = ["F401", "E501"]
 "integration_uri.py" = ["E501"] # ARNs are long.
 "app.py" = ["E501"] # Doc links are long.
-"samcli/lib/cfn_language_extensions/**/*.py" = ["PLR2004", "PLR0911", "PLR1714"]  # Magic values and return statements are acceptable in intrinsic resolvers
+
 
 [tool.black]
 line-length = 120

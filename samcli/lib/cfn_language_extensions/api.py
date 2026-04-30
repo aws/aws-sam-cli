@@ -49,6 +49,10 @@ from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
 
 LOG = logging.getLogger(__name__)
 
+# Sentinel object used by _partial_resolve_intrinsic to signal that a key
+# is not an intrinsic function and the caller should fall through.
+_NOT_INTRINSIC = object()
+
 
 def create_default_intrinsic_resolver(context: TemplateProcessingContext) -> IntrinsicResolver:
     """
@@ -200,6 +204,8 @@ class IntrinsicResolverProcessor:
             result[logical_id] = self._resolver.resolve_value(entry)
         return result
 
+    _FIND_IN_MAP_MIN_ARGS = 3
+
     def _partial_resolve(self, value: Any) -> Any:
         """
         Partially resolve a value, replacing unresolvable intrinsics with AWS::NoValue.
@@ -219,46 +225,9 @@ class IntrinsicResolverProcessor:
         if isinstance(value, dict):
             if len(value) == 1:
                 key = next(iter(value.keys()))
-                inner_value = value[key]
-
-                # Check if this is an intrinsic function
-                if key == "Ref":
-                    # For false-condition resources, replace Refs to parameters with AWS::NoValue
-                    # Only keep Refs to pseudo-parameters that are always available
-                    if isinstance(inner_value, str) and inner_value not in PSEUDO_PARAMETERS:
-                        return {"Ref": "AWS::NoValue"}
-                    # Try to resolve pseudo-parameters
-                    try:
-                        return self._resolver.resolve_value(value)
-                    except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
-                        LOG.debug(
-                            "Partial-resolve: substituting AWS::NoValue for unresolvable Ref %r",
-                            inner_value,
-                            exc_info=True,
-                        )
-                        return {"Ref": "AWS::NoValue"}
-
-                elif key.startswith("Fn::") or key == "Condition":
-                    # Try to resolve it
-                    try:
-                        return self._resolver.resolve_value(value)
-                    except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
-                        LOG.debug(
-                            "Partial-resolve: could not resolve %s; falling back to partial args",
-                            key,
-                            exc_info=True,
-                        )
-                        # Can't resolve - replace unresolvable parts with AWS::NoValue
-                        if key == "Fn::FindInMap":
-                            # FindInMap - try to partially resolve arguments
-                            return self._partial_resolve_find_in_map(value)
-                        elif key == "Fn::ToJsonString":
-                            # ToJsonString - replace with AWS::NoValue if can't resolve
-                            return {"Ref": "AWS::NoValue"}
-                        else:
-                            # Other intrinsics - try to partially resolve arguments
-                            resolved_inner = self._partial_resolve(inner_value)
-                            return {key: resolved_inner}
+                result = self._partial_resolve_intrinsic(key, value)
+                if result is not _NOT_INTRINSIC:
+                    return result
 
             # Regular dict - recursively resolve values
             return {k: self._partial_resolve(v) for k, v in value.items()}
@@ -268,6 +237,66 @@ class IntrinsicResolverProcessor:
 
         # Primitive value - return as-is
         return value
+
+    def _partial_resolve_intrinsic(self, key: str, value: Dict[str, Any]) -> Any:
+        """
+        Try to partially resolve a single-key dict that may be an intrinsic function.
+
+        Returns _NOT_INTRINSIC sentinel if the key is not an intrinsic function,
+        signalling the caller to fall through to regular dict handling.
+
+        Args:
+            key: The single key of the dict.
+            value: The full single-key dict.
+
+        Returns:
+            The partially resolved value, or _NOT_INTRINSIC if not an intrinsic.
+        """
+        inner_value = value[key]
+
+        if key == "Ref":
+            return self._partial_resolve_ref(inner_value)
+
+        if key.startswith("Fn::") or key == "Condition":
+            return self._partial_resolve_fn(key, inner_value, value)
+
+        return _NOT_INTRINSIC
+
+    def _partial_resolve_ref(self, inner_value: Any) -> Any:
+        """Partially resolve a Ref intrinsic for false-condition resources."""
+        # For false-condition resources, replace Refs to parameters with AWS::NoValue
+        # Only keep Refs to pseudo-parameters that are always available
+        if isinstance(inner_value, str) and inner_value not in PSEUDO_PARAMETERS:
+            return {"Ref": "AWS::NoValue"}
+        # Try to resolve pseudo-parameters
+        try:
+            return self._resolver.resolve_value({"Ref": inner_value})
+        except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
+            LOG.debug(
+                "Partial-resolve: substituting AWS::NoValue for unresolvable Ref %r",
+                inner_value,
+                exc_info=True,
+            )
+            return {"Ref": "AWS::NoValue"}
+
+    def _partial_resolve_fn(self, key: str, inner_value: Any, value: Dict[str, Any]) -> Any:
+        """Partially resolve an Fn:: or Condition intrinsic for false-condition resources."""
+        try:
+            return self._resolver.resolve_value(value)
+        except (InvalidTemplateException, UnresolvableReferenceError, KeyError, ValueError, TypeError):
+            LOG.debug(
+                "Partial-resolve: could not resolve %s; falling back to partial args",
+                key,
+                exc_info=True,
+            )
+            # Can't resolve - replace unresolvable parts with AWS::NoValue
+            if key == "Fn::FindInMap":
+                return self._partial_resolve_find_in_map(value)
+            elif key == "Fn::ToJsonString":
+                return {"Ref": "AWS::NoValue"}
+            else:
+                resolved_inner = self._partial_resolve(inner_value)
+                return {key: resolved_inner}
 
     def _partial_resolve_find_in_map(self, value: Dict[str, Any]) -> Any:
         """
@@ -284,7 +313,7 @@ class IntrinsicResolverProcessor:
             The partially resolved FindInMap or the resolved value.
         """
         args = value.get("Fn::FindInMap", [])
-        if not isinstance(args, list) or len(args) < 3:
+        if not isinstance(args, list) or len(args) < self._FIND_IN_MAP_MIN_ARGS:
             return value
 
         # Partially resolve each argument (this will replace Refs to params with AWS::NoValue)

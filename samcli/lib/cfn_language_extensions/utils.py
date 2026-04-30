@@ -48,6 +48,19 @@ def is_foreach_key(key: str) -> bool:
     return isinstance(key, str) and key.startswith(FOREACH_PREFIX)
 
 
+# Keys that identify CloudFormation intrinsic functions (besides the Fn:: prefix).
+_INTRINSIC_SINGLE_KEYS = {"Ref", "Condition"}
+
+
+def is_intrinsic_key(key: str) -> bool:
+    """Return True if *key* is a CloudFormation intrinsic function name.
+
+    Intrinsic function keys either start with ``Fn::`` or are one of the
+    special single-word keys (``Ref``, ``Condition``).
+    """
+    return key.startswith("Fn::") or key in _INTRINSIC_SINGLE_KEYS
+
+
 # Mapping-name prefixes that SAM CLI emits for dynamic Fn::ForEach handling:
 #   - SAM + <packageable artifact property> + <nesting path> + [resource suffix]
 #     (see language_extensions_packaging._compute_mapping_name)

@@ -35,6 +35,8 @@ class FnJoinResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::Join"]
 
+    _EXPECTED_ARGS = 2
+
     def resolve(self, value: Dict[str, Any]) -> str:
         """
         Resolve the Fn::Join intrinsic function.
@@ -58,7 +60,7 @@ class FnJoinResolver(IntrinsicFunctionResolver):
         args = self.get_function_args(value)
 
         # Validate the layout: must be a list with exactly 2 elements
-        if not isinstance(args, list) or len(args) != 2:
+        if not isinstance(args, list) or len(args) != self._EXPECTED_ARGS:
             raise InvalidTemplateException("Fn::Join layout is incorrect")
 
         delimiter = args[0]

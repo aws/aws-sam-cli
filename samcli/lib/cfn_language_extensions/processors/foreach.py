@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
-from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, is_foreach_key
+from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 
 if TYPE_CHECKING:
     from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicResolver
@@ -280,7 +280,7 @@ class ForEachProcessor:
                 if is_foreach_key(key):
                     # Found a ForEach - increment depth and check its body
                     # The body is the third element of the ForEach array
-                    if isinstance(value, list) and len(value) >= 3:
+                    if isinstance(value, list) and len(value) >= FOREACH_REQUIRED_ELEMENTS:
                         foreach_body = value[2]
                         child_depth = self._calculate_max_foreach_depth(foreach_body, current_depth + 1)
                         max_child_depth = max(max_child_depth, child_depth)
@@ -331,7 +331,7 @@ class ForEachProcessor:
             raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         # Must have exactly 3 elements
-        if len(value) != 3:
+        if len(value) != FOREACH_REQUIRED_ELEMENTS:
             raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         identifier = value[0]

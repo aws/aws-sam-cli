@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_intrinsic_key
 
 if TYPE_CHECKING:
     from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
@@ -42,6 +43,10 @@ class ConditionResolver(IntrinsicFunctionResolver):
     """
 
     FUNCTION_NAMES = ["Fn::Equals", "Fn::And", "Fn::Or", "Fn::Not", "Condition"]
+
+    _EQUALS_ARGS = 2
+    _AND_OR_MIN_ARGS = 2
+    _AND_OR_MAX_ARGS = 10
 
     def __init__(
         self, context: "TemplateProcessingContext", parent_resolver: Optional["IntrinsicResolver"] = None
@@ -108,7 +113,7 @@ class ConditionResolver(IntrinsicFunctionResolver):
                                       or if the values are not comparable types.
 
         """
-        if not isinstance(args, list) or len(args) != 2:
+        if not isinstance(args, list) or len(args) != self._EQUALS_ARGS:
             raise InvalidTemplateException("Fn::Equals layout is incorrect")
 
         # Resolve nested intrinsics in both values
@@ -150,7 +155,7 @@ class ConditionResolver(IntrinsicFunctionResolver):
         # Check if it's an intrinsic function (single key starting with Fn:: or Ref or Condition)
         if len(value) == 1:
             key = next(iter(value.keys()))
-            if key.startswith("Fn::") or key == "Ref" or key == "Condition":
+            if is_intrinsic_key(key):
                 return False  # Valid - it's an unresolved intrinsic
 
         # It's a dict but not an intrinsic function - invalid
@@ -173,7 +178,7 @@ class ConditionResolver(IntrinsicFunctionResolver):
                                       or if any element is not a valid condition.
 
         """
-        if not isinstance(args, list) or len(args) < 2 or len(args) > 10:
+        if not isinstance(args, list) or len(args) < self._AND_OR_MIN_ARGS or len(args) > self._AND_OR_MAX_ARGS:
             raise InvalidTemplateException("Fn::And layout is incorrect")
 
         # Evaluate all conditions
@@ -204,7 +209,7 @@ class ConditionResolver(IntrinsicFunctionResolver):
                                       or if any element is not a valid condition.
 
         """
-        if not isinstance(args, list) or len(args) < 2 or len(args) > 10:
+        if not isinstance(args, list) or len(args) < self._AND_OR_MIN_ARGS or len(args) > self._AND_OR_MAX_ARGS:
             raise InvalidTemplateException("Fn::Or layout is incorrect")
 
         # Evaluate all conditions

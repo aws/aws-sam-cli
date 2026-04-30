@@ -44,6 +44,9 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::FindInMap"]
 
+    _MIN_ARGS = 3
+    _ARGS_WITH_DEFAULT = 4
+
     def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::FindInMap intrinsic function.
@@ -72,7 +75,7 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
         args = self.get_function_args(value)
 
         # Validate basic layout - must be a list with at least 3 elements
-        if not isinstance(args, list) or len(args) < 3:
+        if not isinstance(args, list) or len(args) < self._MIN_ARGS:
             raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
 
         # Extract the map name, top-level key, and second-level key
@@ -103,7 +106,7 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
         # Check for DefaultValue option (4th argument)
         default_value: Any = None
         has_default = False
-        if len(args) >= 4:
+        if len(args) >= self._ARGS_WITH_DEFAULT:
             options = args[3]
             if isinstance(options, dict) and "DefaultValue" in options:
                 has_default = True
