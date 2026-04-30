@@ -31,6 +31,10 @@ def derive_partition(region: str) -> str:
         return "aws-cn"
     elif region.startswith("us-gov-"):
         return "aws-us-gov"
+    elif region.startswith("us-isob-"):
+        return "aws-iso-b"
+    elif region.startswith("us-iso-"):
+        return "aws-iso"
     else:
         return "aws"
 
@@ -39,6 +43,10 @@ def derive_url_suffix(region: str) -> str:
     """Derive the AWS URL suffix from the region."""
     if region.startswith("cn-"):
         return "amazonaws.com.cn"
+    elif region.startswith("us-isob-"):
+        return "sc2s.sgov.gov"
+    elif region.startswith("us-iso-"):
+        return "c2s.ic.gov"
     else:
         return "amazonaws.com"
 

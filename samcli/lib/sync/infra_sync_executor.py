@@ -569,6 +569,13 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         Only processes resources that were generated from Fn::ForEach blocks (i.e., resources
         present in the expanded template but not in the original template as regular resources).
 
+        Note: expansion uses only parameter *defaults* from each template's Parameters
+        section.  If the user deployed with ``--parameter-overrides`` that differ from
+        the defaults, the expanded resource names may not match what is actually deployed,
+        which can cause false positives or missed code-change detections.  Retrieving
+        the actual deployed parameter values would require a ``DescribeStacks`` API call,
+        which is not available in this context.
+
         Parameters
         ----------
         current_template : Dict

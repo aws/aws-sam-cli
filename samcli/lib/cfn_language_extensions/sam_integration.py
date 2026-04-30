@@ -2,7 +2,7 @@
 SAM CLI integration for CloudFormation Language Extensions.
 
 This module provides integration points for the AWS SAM ecosystem:
-1. expand_language_extensions - Canonical Phase 1 entry point with template-level caching
+1. expand_language_extensions - Canonical Phase 1 entry point
 2. process_template_for_sam_cli - Function for SAM CLI commands
 
 The integration enables processing of language extensions (Fn::ForEach,
@@ -480,15 +480,10 @@ def expand_language_extensions(
 
     This function performs all Phase 1 work:
     1. Checks for AWS::LanguageExtensions transform
-    2. Deep copies the original template before expansion
-    3. Detects dynamic artifact properties in Fn::ForEach blocks
-    4. Extracts pseudo-parameters from parameter_values
-    5. Calls process_template_for_sam_cli() for expansion
-    6. Returns a LanguageExtensionResult with all outputs
-
-    Results are cached per ``(template_path, file_mtime, parameter_values_hash)``
-    when *template_path* points to an existing file.  Cache hits return deep
-    copies of the mutable fields so callers can freely mutate the result.
+    2. Detects dynamic artifact properties in Fn::ForEach blocks
+    3. Extracts pseudo-parameters from parameter_values
+    4. Calls process_template_for_sam_cli() for expansion
+    5. Returns a LanguageExtensionResult with all outputs
 
     If the template does not contain the AWS::LanguageExtensions transform,
     returns early with had_language_extensions=False and the original template
@@ -530,7 +525,7 @@ def expand_language_extensions(
 
     try:
         # process_template_for_sam_cli deep-copies internally,
-        # so template is not mutated and can serve as the original.
+        # so template is not mutated by the expansion pipeline.
         expanded_template = process_template_for_sam_cli(
             template,
             parameter_values=parameter_values,
@@ -540,7 +535,9 @@ def expand_language_extensions(
         LOG.debug("Successfully expanded CloudFormation Language Extensions")
 
         result = LanguageExtensionResult(
-            expanded_template=copy.deepcopy(expanded_template),
+            expanded_template=expanded_template,
+            # Deep-copy template so the result is fully independent of the
+            # caller's dict, even if the caller mutates it after this call.
             original_template=copy.deepcopy(template),
             dynamic_artifact_properties=dynamic_properties,
             had_language_extensions=True,
@@ -553,11 +550,9 @@ def expand_language_extensions(
 
         return result
 
-    except Exception as e:
-        if isinstance(e, LangExtInvalidTemplateException):
-            LOG.error("Failed to expand CloudFormation Language Extensions: %s", str(e))
-            raise InvalidSamDocumentException(str(e)) from e
-        raise
+    except LangExtInvalidTemplateException as e:
+        LOG.error("Failed to expand CloudFormation Language Extensions: %s", str(e))
+        raise InvalidSamDocumentException(str(e)) from e
 
 
 def process_template_for_sam_cli(
