@@ -1,0 +1,44 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Mappings": {
+    "InstanceA": {
+      "Properties": {
+        "ImageId": "ami-id1",
+        "InstanceType": "m5.xlarge"
+      }
+    },
+    "InstanceB": {
+      "Properties": {
+        "ImageId": "ami-id2"
+      }
+    },
+    "InstanceC": {
+      "Properties": {
+        "ImageId": "ami-id3",
+        "InstanceType": "m5.2xlarge",
+        "AvailabilityZone": "us-east-1a"
+      }
+    }
+  },
+  "Resources": {
+    "InstanceC": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": true
+      }
+    },
+    "InstanceA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": true
+      }
+    },
+    "InstanceB": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": true
+      }
+    }
+  },
+  "Transform": "AWS::LanguageExtensions"
+}

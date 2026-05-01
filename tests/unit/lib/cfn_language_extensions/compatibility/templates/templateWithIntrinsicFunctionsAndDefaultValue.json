@@ -1,0 +1,32 @@
+{
+  "accountId":"123456789012",
+  "fragment": {
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Description":"AWS CloudFormation Template to create a security group",
+    "Parameters": {
+      "PassedVPCId": {
+        "Description":"VPCID for the endpoints",
+        "Default":"",
+        "Type":"String"
+      }
+    },
+    "Resources": {
+      "DefaultSecurityGroup": {
+        "Type":"AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription":"Test SG",
+          "VpcId": {
+            "Ref":"PassedVPCId"
+          }
+        }
+      }
+    }
+  },
+  "transformId":"AWS::LanguageExtensions",
+  "requestId":"123",
+  "region":"us-east-1",
+  "templateParameterValues": {
+    "PassedVPCId":"{{IntrinsicFunction:test/TestVPC/Ref}}"
+  }
+}
+

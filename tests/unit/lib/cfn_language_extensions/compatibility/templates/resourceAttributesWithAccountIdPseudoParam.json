@@ -1,0 +1,19 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "IsInternalAccount": {
+      "Fn::Or": [
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "unit-test-account-id" ] },
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "456" ] },
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "789" ] }
+      ]
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": { "Fn::If": ["IsInternalAccount", "Delete", "Retain" ] }
+    }
+  }
+}

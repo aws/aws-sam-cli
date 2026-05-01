@@ -132,6 +132,7 @@ max-statements = 80
 "integration_uri.py" = ["E501"] # ARNs are long.
 "app.py" = ["E501"] # Doc links are long.
 
+
 [tool.black]
 line-length = 120
 target_version = ['py310', 'py311', 'py312', 'py313']

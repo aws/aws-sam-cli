@@ -163,3 +163,39 @@ class PackageResolveS3AndS3NotSetError(UserException):
         message_fmt = "Cannot skip both --resolve-s3 and --s3-bucket parameters. Please provide one of these arguments."
 
         super().__init__(message=message_fmt)
+
+
+class InvalidMappingKeyError(UserException):
+    """
+    Exception raised when collection values contain invalid characters for CloudFormation Mapping keys.
+
+    CloudFormation Mapping keys must contain only alphanumeric characters (a-z, A-Z, 0-9),
+    hyphens (-), and underscores (_).
+    """
+
+    def __init__(self, foreach_key, loop_name, invalid_values):
+        self.foreach_key = foreach_key
+        self.loop_name = loop_name
+        self.invalid_values = invalid_values
+
+        # Format the invalid values for display
+        invalid_values_str = ", ".join(f'"{v}"' for v in invalid_values)
+
+        message_fmt = (
+            "Invalid collection values for CloudFormation Mapping keys in Fn::ForEach '{loop_name}'.\n"
+            "\n"
+            "The following collection values contain invalid characters: {invalid_values}\n"
+            "\n"
+            "CloudFormation Mapping keys can only contain alphanumeric characters (a-z, A-Z, 0-9), "
+            "hyphens (-), and underscores (_).\n"
+            "\n"
+            "Please update your collection values to use only valid characters.\n"
+            "For example, use 'user-service' instead of 'user.service' or 'user/service'."
+        )
+
+        super().__init__(
+            message=message_fmt.format(
+                loop_name=self.loop_name,
+                invalid_values=invalid_values_str,
+            )
+        )

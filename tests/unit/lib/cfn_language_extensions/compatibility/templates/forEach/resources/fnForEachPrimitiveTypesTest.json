@@ -1,0 +1,25 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Resources": {
+    "Fn::ForEach::Instances": [
+      "VariableName",
+      [
+        1,
+        true
+      ],
+      {
+        "Instance${VariableName}": {
+          "Type": "AWS::EC2::Instance",
+          "Properties": {
+            "DisableApiTermination": {
+              "Ref": "VariableName"
+            },
+            "ImageId": "ami-0ff8a91507f77f867",
+            "InstanceType": "m5.2xlarge"
+          }
+        }
+      }
+    ]
+  }
+}

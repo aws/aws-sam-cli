@@ -33,7 +33,10 @@ from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
+    MissingMappingKeyError,
+    parse_findmap_error,
 )
+from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -94,6 +97,40 @@ class Deployer:
         self.max_attempts = 3
         self.deploy_color = DeployColor()
         self._colored = Colored()
+
+    @staticmethod
+    def _create_deploy_error(stack_name: str, error_message: str) -> Exception:
+        """
+        Create the appropriate deploy error based on the error message.
+
+        This method checks if the error is a Fn::FindInMap key not found error
+        (which typically occurs when deploying with different parameter values
+        than were used during packaging) and returns a more helpful error message.
+
+        Args:
+            stack_name: The name of the stack being deployed
+            error_message: The error message from CloudFormation
+
+        Returns:
+            MissingMappingKeyError if the error is a FindInMap key not found error,
+            DeployFailedError otherwise.
+        """
+        findmap_error = parse_findmap_error(error_message)
+        if findmap_error:
+            missing_key, mapping_name = findmap_error
+            # Only wrap as MissingMappingKeyError when the Mapping name matches
+            # SAM CLI's own naming scheme. Customer-authored Fn::FindInMap
+            # failures (e.g. a RegionMap lookup) must pass through with the
+            # raw CloudFormation message — the SAM-specific re-package guidance
+            # would be misleading otherwise.
+            if is_sam_generated_mapping(mapping_name):
+                return MissingMappingKeyError(
+                    stack_name=stack_name,
+                    missing_key=missing_key,
+                    mapping_name=mapping_name,
+                    original_error=error_message,
+                )
+        return DeployFailedError(stack_name=stack_name, msg=error_message)
 
     # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
@@ -544,7 +581,9 @@ class Deployer:
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
                 LOG.info(self._colored.color_log(msg=msg, color=Colors.FAILURE), extra=dict(markup=True))
 
-            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         try:
             outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
@@ -566,7 +605,7 @@ class Deployer:
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def create_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -576,11 +615,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to create stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def update_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -590,11 +629,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to update stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def sync(
         self,
@@ -676,7 +715,9 @@ class Deployer:
 
             return result
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     @staticmethod
     @pprint_column_names(
