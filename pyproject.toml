@@ -76,7 +76,7 @@ dev = [
     "types-psutil==7.2.2.20260130",
     "types-setuptools==82.0.0.20260210",
     "types-Pygments==2.19.0.20251121",
-    "types-colorama==0.4.15.20250801",
+    "types-colorama==0.4.15.20260408",
     "types-dateparser==1.4.0.20260328",
     "types-docutils==0.22.3.20260322",
     "types-jsonschema==4.26.0.20260202",
