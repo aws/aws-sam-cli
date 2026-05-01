@@ -728,7 +728,6 @@ class Stack:
                 and self.stack_id == other.stack_id
                 and self.stack_path == other.stack_path
                 and self.template_dict == other.template_dict
-                and self.original_template_dict == other.original_template_dict
             )
         return False
 
