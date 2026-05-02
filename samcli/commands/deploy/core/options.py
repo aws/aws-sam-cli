@@ -35,6 +35,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "fail_on_empty_changeset",
     "confirm_changeset",
     "disable_rollback",
+    "import_existing_resources",
     "on_failure",
     "force_upload",
     "max_wait_duration",
