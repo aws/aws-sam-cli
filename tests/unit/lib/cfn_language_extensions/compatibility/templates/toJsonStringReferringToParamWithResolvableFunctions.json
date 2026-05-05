@@ -1,0 +1,84 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "PasswordParameter": {
+      "Type": "String",
+      "Default": "SecretPa$$"
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-west-1"
+    },
+    "Stage": {
+      "Type": "String",
+      "Default": "prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "Key": "Value"
+      },
+      "us-west-1" : {
+        "Key": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "test-bucket"
+      }
+    },
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": {
+            "string": "123",
+            "param": { "Ref": "PasswordParameter" },
+            "partition": { "Ref": "AWS::Partition" },
+            "accountId": { "Ref": "AWS::AccountId" },
+            "region": { "Ref": "AWS::Region" },
+            "map": {
+              "Fn::FindInMap" : [
+                "RegionMap",
+                { "Ref" :  "Region" },
+                "Key"
+              ]
+            },
+            "if": { "Fn::If": ["IsProd", "Retain", "Delete" ] },
+            "noValue": { "Ref": "AWS::NoValue" },
+            "sub": {
+              "Fn::Sub" : [
+                "${Policy}",
+                {
+                  "Policy": {
+                    "Ref": "PasswordParameter"
+                  }
+                }
+              ]
+            },
+            "join": { "Fn::Join": [ ":", [ "a", { "Ref": "PasswordParameter" }, "c" ] ] },
+            "select": { "Fn::Select" : [ "1", [ "apples", "grapes", "oranges", "mangoes" ] ] },
+            "length": { "Fn::Length" : [ "1", [ "apples", "grapes", "oranges", "mangoes" ] ] },
+            "toJsonString": {
+              "Fn::ToJsonString": {
+                "string": "123",
+                "param": { "Ref": "PasswordParameter" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

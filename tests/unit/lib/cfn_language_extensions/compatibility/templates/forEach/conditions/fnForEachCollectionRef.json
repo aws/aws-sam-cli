@@ -1,0 +1,32 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "MyQueueList": {
+      "Type": "CommaDelimitedList",
+      "Default": "1,2"
+    }
+  },
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      {"Ref": "MyQueueList"},
+      {
+        "Condition${VariableName}": {
+          "Fn::Equals": ["1", {"Ref": "VariableName"}]
+        }
+      }
+    ],
+    "Condition0": {
+      "Fn::Equals": ["1", "0"]
+    }
+  },
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  }
+}

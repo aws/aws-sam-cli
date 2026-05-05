@@ -395,7 +395,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         └── template.yaml
         """
         # copy .ruby-version to the root of the project
-        ruby_runtime_path = runtime.replace(".", "").title()  # ruby3.X to Ruby3X
+        ruby_runtime_path = runtime.replace(".", "").title()  # rubyX.Y to RubyXY
         shutil.copyfile(
             Path(self.template_path).parent.joinpath(ruby_runtime_path, ".ruby-version"),
             Path(self.working_dir).joinpath(".ruby-version"),

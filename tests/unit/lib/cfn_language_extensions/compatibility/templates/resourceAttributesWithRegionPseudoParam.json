@@ -1,0 +1,15 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "IsUsEast1": {
+      "Fn::Equals": [ { "Ref": "AWS::Region" }, "us-east-1" ]
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": { "Fn::If": ["IsUsEast1", "Retain", "Delete" ] }
+    }
+  }
+}

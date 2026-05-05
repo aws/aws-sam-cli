@@ -56,6 +56,19 @@ class TestSDKBuildClient(TestCase):
             rm=True,
         )
 
+    @patch("samcli.local.docker.image_build_client.LOG")
+    def test_build_image_extra_params_logs_warning(self, mock_log):
+        """Test that extra_params triggers a warning and is not passed to SDK"""
+        mock_image = Mock()
+        mock_logs = iter([])
+
+        self.mock_container_client.images.build.return_value = (mock_image, mock_logs)
+        self.client.build_image(**self.base_build_args, extra_params=["--ssh", "default"])
+        mock_log.warning.assert_called_once()
+        self.assertIn("DockerBuildExtraParams", mock_log.warning.call_args[0][0])
+
+        self.mock_container_client.images.build.assert_called_once_with(**self.base_build_args, rm=True)
+
     def test_is_available_returns_true(self):
         """Test that is_available always returns True for SDK"""
         result = SDKBuildClient.is_available("docker")
@@ -201,6 +214,28 @@ class TestCLIBuildClient(TestCase):
 
         self.assertIn("Build failed with exit code 1", str(context.exception))
         self.assertEqual(context.exception.build_log, [{"stream": "Step 1/5\n"}, {"stream": "Error: build failed\n"}])
+
+    @patch("samcli.local.docker.image_build_client.subprocess.Popen")
+    def test_build_image_docker_with_extra_params(self, mock_popen):
+        """Test that extra_params are appended to the docker command"""
+        mock_process = Mock()
+        mock_process.stdout = iter(["Done\n"])
+        mock_process.returncode = 0
+        mock_popen.return_value = mock_process
+
+        list(
+            self.docker_client.build_image(
+                **self.base_build_args,
+                extra_params=["--ssh", "default", "--secret", "id=mysecret,src=secret.txt"],
+            )
+        )
+
+        actual_cmd = mock_popen.call_args[0][0]
+        self.assertEqual(actual_cmd[-1], self.base_build_args["path"])
+        self.assertIn("--ssh", actual_cmd)
+        self.assertIn("default", actual_cmd)
+        self.assertIn("--secret", actual_cmd)
+        self.assertIn("id=mysecret,src=secret.txt", actual_cmd)
 
     @patch("samcli.local.docker.image_build_client.shutil.which")
     @patch("samcli.local.docker.image_build_client.subprocess.run")
