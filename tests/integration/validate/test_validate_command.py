@@ -211,7 +211,6 @@ class TestValidate(TestCase):
             "java17",
             "java11",
             "java8.al2",
-            "nodejs20.x",
             "nodejs22.x",
             "nodejs24.x",
             "provided.al2",

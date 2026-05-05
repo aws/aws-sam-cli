@@ -31,6 +31,13 @@ rustup default stable
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
   # On Windows, add Windows-native targets
   rustup target add x86_64-pc-windows-msvc --toolchain stable || true
+  # Also pre-install the Linux cross-compile targets used by cargo-lambda.
+  # If cargo-lambda has to install these on demand during parallel test runs
+  # (pytest -n 2), concurrent rustup invocations can produce a partial/corrupt
+  # target install (e.g., "can't find crate for `adler2`"). Pre-installing here
+  # avoids that race.
+  rustup target add x86_64-unknown-linux-gnu --toolchain stable
+  rustup target add aarch64-unknown-linux-gnu --toolchain stable
 else
   rustup target add x86_64-unknown-linux-gnu --toolchain stable
   rustup target add aarch64-unknown-linux-gnu --toolchain stable
