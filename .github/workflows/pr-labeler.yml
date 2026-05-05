@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Apply internal/external label
         id: label_step
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |

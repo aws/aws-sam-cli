@@ -1,0 +1,21 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "Stage": {
+      "Type": "String",
+      "Default": "gamma"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": { "Fn::If": ["IsProd", "Retain", "Delete" ] }
+    }
+  }
+}
