@@ -1,0 +1,30 @@
+{
+  "Mappings": {
+    "MapName": {
+      "TopKey": {
+        "Queue": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": "Queue"
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey",
+            "NoKey",
+            {"DefaultValue": {"Fn::GetAtt": ["Queue", "QueueName"]}}
+          ]
+        }
+      }
+    }
+  }
+}

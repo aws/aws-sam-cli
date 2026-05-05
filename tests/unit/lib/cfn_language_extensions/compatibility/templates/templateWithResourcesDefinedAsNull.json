@@ -1,0 +1,11 @@
+{
+  "Resources": {
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": "cluster"
+      }
+    },
+    "Queue": null
+  }
+}
