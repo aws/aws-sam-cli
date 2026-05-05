@@ -1,0 +1,14 @@
+{
+  "Resources": {
+    "EksNodeLaunchTemplate": {
+      "Type": "AWS::EC2::LaunchTemplate",
+      "Properties": {
+        "LaunchTemplateData": {
+          "UserData": {
+            "Fn::Base64": "echo 'Hello World'"
+          }
+        }
+      }
+    }
+  }
+}
