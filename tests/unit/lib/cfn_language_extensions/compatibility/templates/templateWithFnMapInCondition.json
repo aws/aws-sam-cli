@@ -1,0 +1,13 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Conditions": {
+    "StatusVersion": {
+      "Fn::FindInMap": ["ServiceVersionsMap","status","dev"]
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}

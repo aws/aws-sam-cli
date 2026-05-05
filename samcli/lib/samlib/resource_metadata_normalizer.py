@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Dict
 
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.iac.cdk.utils import is_cdk_project
 from samcli.lib.utils.resources import AWS_CLOUDFORMATION_STACK
 
@@ -63,7 +64,8 @@ class ResourceMetadataNormalizer:
         """
         resources = template_dict.get(RESOURCES_KEY, {})
 
-        for logical_id, resource in resources.items():
+        for logical_id, resource in iter_regular_resources(template_dict):
+
             # copy metadata to another variable, change its values and assign it back in the end
             resource_metadata = deepcopy(resource.get(METADATA_KEY)) or {}
 
@@ -191,7 +193,7 @@ class ResourceMetadataNormalizer:
             SAM_METADATA_DOCKERFILE_KEY: str(dockerfile_path.as_posix()),
             SAM_METADATA_DOCKER_CONTEXT_KEY: str(asset_path),
             SAM_METADATA_DOCKER_BUILD_ARGS_KEY: metadata.get(ASSET_DOCKERFILE_BUILD_ARGS_KEY, {}),
-            SAM_METADATA_DOCKER_BUILD_EXTRA_PARAMS_KEY: metadata.get(ASSET_DOCKER_BUILD_EXTRA_PARAMS_KEY, None),
+            SAM_METADATA_DOCKER_BUILD_EXTRA_PARAMS_KEY: metadata.get(ASSET_DOCKER_BUILD_EXTRA_PARAMS_KEY, []),
         }
 
     @staticmethod

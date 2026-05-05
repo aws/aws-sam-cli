@@ -1011,6 +1011,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         Applies the same function filter during refresh.
         """
         LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+
         self._stacks = []
 
         for template_file in self.parent_templates_paths:

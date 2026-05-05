@@ -378,7 +378,7 @@ class ApplicationBuilder:
 
             if has_build_artifact:
                 ApplicationBuilder._update_built_resource(
-                    built_artifacts[full_path], properties, resource_type, store_path
+                    built_artifacts[full_path], properties, resource_type or "", store_path
                 )
 
             if is_stack:
@@ -434,7 +434,7 @@ class ApplicationBuilder:
         docker_tag = f"{image_name.lower()}:{tag}"
         docker_build_target = metadata.get("DockerBuildTarget", None)
         docker_build_args = metadata.get("DockerBuildArgs", {})
-        docker_build_extra_params = metadata.get("DockerBuildExtraParams", None)
+        docker_build_extra_params = metadata.get("DockerBuildExtraParams", [])
 
         if not dockerfile or not docker_context:
             raise DockerBuildFailed("Docker file or Docker context metadata are missed.")
