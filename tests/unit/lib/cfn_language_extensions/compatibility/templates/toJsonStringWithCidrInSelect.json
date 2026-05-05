@@ -1,0 +1,17 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": {
+            "cidr": { "Fn::Select" : [ "1", { "Fn::Cidr": [ "192.168.0.0/24", "6", "5" ] } ] }
+          }
+        }
+      }
+    }
+  }
+}
