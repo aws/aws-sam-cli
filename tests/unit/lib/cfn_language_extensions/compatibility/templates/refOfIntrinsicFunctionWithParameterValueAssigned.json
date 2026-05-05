@@ -1,0 +1,22 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "Param": {
+      "Type": "String",
+      "Default": ""
+    }
+  },
+  "Resources": {
+    "MyQueue": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "QueueName": {
+          "Ref": {
+            "Fn::Sub": "Param"
+          }
+        }
+      }
+    }
+  }
+}

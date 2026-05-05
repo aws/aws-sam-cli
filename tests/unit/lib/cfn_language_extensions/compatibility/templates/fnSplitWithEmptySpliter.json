@@ -1,0 +1,15 @@
+{
+  "Resources": {
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::Split": [
+            "",
+            "a,b,c"
+          ]
+        }
+      }
+    }
+  }
+}

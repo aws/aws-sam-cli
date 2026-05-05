@@ -1774,6 +1774,44 @@ class TestApplicationBuilder_build_lambda_image_function(TestCase):
         with self.assertRaises(DockerBuildFailed):
             self.builder._build_lambda_image("Name", metadata, X86_64)
 
+    def test_can_build_image_function_with_extra_params(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildArgs": {"a": "b"},
+            "DockerBuildExtraParams": ["--ssh", "default"],
+        }
+
+        mock_build_client = Mock()
+        mock_build_client.build_image.return_value = iter([])
+        self.builder._image_build_client = mock_build_client
+
+        self.builder._build_lambda_image("Name", metadata, X86_64)
+
+        call_kwargs = mock_build_client.build_image.call_args[1]
+        self.assertEqual(call_kwargs["extra_params"], ["--ssh", "default"])
+
+    def test_build_lambda_image_raises_for_non_list_docker_build_extra_params(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildExtraParams": "--ssh default",
+        }
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
+
+    def test_build_lambda_image_raises_for_non_string_docker_build_extra_params_element(self):
+        metadata = {
+            "Dockerfile": "Dockerfile",
+            "DockerContext": "context",
+            "DockerTag": "Tag",
+            "DockerBuildExtraParams": ["--build-arg", 42],
+        }
+        with self.assertRaises(DockerBuildFailed):
+            self.builder._build_lambda_image("Name", metadata, X86_64)
+
     def test_build_lambda_image_uses_latest_tag_when_not_specified(self):
         metadata = {
             "Dockerfile": "Dockerfile",

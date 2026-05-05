@@ -1,5 +1,5 @@
 from parameterized import parameterized
-from .integ_base import IntegBase, EXPECTED_TELEMETRY_PROMPT
+from tests.integration.telemetry.integ_base import IntegBase, EXPECTED_TELEMETRY_PROMPT
 
 
 class TestTelemetryPrompt(IntegBase):
