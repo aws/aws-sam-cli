@@ -49,7 +49,7 @@ dependencies = [
     "tomlkit==0.14.0",
     "watchdog==4.0.2",
     "rich~=14.3.3",
-    "pyopenssl>=25.3,<26.1",
+    "pyopenssl>=25.3,<26.2",
     # Pin to <4.27 until SAM-T no longer uses RefResolver
     "jsonschema<4.27",
     "typing_extensions>=4.4.0,<5",
@@ -74,7 +74,7 @@ dev = [
     "types-PyYAML==6.0.12.20250915",
     "types-chevron==0.14.2.20250103",
     "types-psutil==7.2.2.20260130",
-    "types-setuptools==82.0.0.20260210",
+    "types-setuptools==82.0.0.20260408",
     "types-Pygments==2.19.0.20251121",
     "types-colorama==0.4.15.20260408",
     "types-dateparser==1.4.0.20260328",
