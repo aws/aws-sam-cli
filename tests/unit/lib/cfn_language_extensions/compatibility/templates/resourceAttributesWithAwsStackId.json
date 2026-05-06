@@ -1,0 +1,45 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "IsInternalAccount": {
+      "Fn::Or": [
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "unit-test-account-id" ] },
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "456" ] },
+        { "Fn::Equals": [ { "Ref": "AWS::AccountId" }, "789" ] }
+      ]
+    }
+  },
+  "Mappings" : {
+    "StackIdMap" : {
+      "arn:aws:cloudformation:us-west-2:123456789012:stack/teststack/51af3dc0-da77-11e4-872e-1234567db123" : {
+        "$RESOURCE_ATTRIBUTE": "Retain"
+      },
+      "arn:aws:cloudformation:us-west-2:123456789012:stack/teststack/51af3dc0-da77-11e4-872e-1234567db124" : {
+        "$RESOURCE_ATTRIBUTE": "Delete"
+      }
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Ref" :  "AWS::StackId" }
+      }
+    },
+    "WaitHandle1": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": {
+        "Fn::FindInMap" : [
+          "StackIdMap",
+          { "Ref" :  "AWS::StackId" },
+          "$RESOURCE_ATTRIBUTE"
+        ]
+      }
+    },
+    "WaitHandle2": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": { "Fn::If": ["IsInternalAccount", "Delete", { "Ref" :  "AWS::StackId" } ] }
+    }
+  }
+}

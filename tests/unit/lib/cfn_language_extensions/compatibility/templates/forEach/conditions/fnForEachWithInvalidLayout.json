@@ -1,0 +1,14 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": []
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}

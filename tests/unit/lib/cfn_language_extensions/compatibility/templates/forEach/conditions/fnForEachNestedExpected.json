@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  },
+  "Conditions": {
+    "Condition0": {
+      "Fn::Equals": [
+        "1",
+        "0"
+      ]
+    },
+    "Condition1": {
+      "Fn::Equals": [
+        "1",
+        "1"
+      ]
+    },
+    "Condition12": {
+      "Fn::Equals": [
+        "1",
+        "2"
+      ]
+    },
+    "Condition123": {
+      "Fn::Equals": [
+        "1",
+        "3"
+      ]
+    },
+    "Condition1234": {
+      "Fn::Equals": [
+        "1",
+        "4"
+      ]
+    },
+    "Condition12345": {
+      "Fn::Equals": [
+        "1",
+        "5"
+      ]
+    }
+  }
+}

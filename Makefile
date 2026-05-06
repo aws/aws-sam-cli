@@ -26,11 +26,20 @@ init-latest-release:
 	bash tests/install-sam-cli-binary.sh
 
 test:
-	# Run unit tests and fail if coverage falls below 94%
+	# Run unit tests (excluding cfn_language_extensions) and fail if coverage falls below 94%
+	@echo "NOTE: Excluding cfn_language_extensions tests. Use 'make test-all' for full coverage."
+	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore=tests/unit/lib/cfn_language_extensions --cov-config=.coveragerc_no_lang_ext
+
+test-lang-ext:
+	# Run cfn_language_extensions unit tests with coverage
+	pytest --cov samcli.lib.cfn_language_extensions --cov-report term-missing --cov-fail-under 94 tests/unit/lib/cfn_language_extensions
+
+test-all:
+	# Run all unit tests including cfn_language_extensions
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
-	# Run unit tests with html coverage report
+	# Run all unit tests with html coverage report
 	pytest --cov samcli --cov schema --cov-report html --cov-fail-under 94 tests/unit
 
 integ-test:
@@ -58,7 +67,17 @@ lint:
 	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests schema
 
 # Command to run everytime you make changes to verify everything works
-dev: lint test
+# Runs test-all if cfn_language_extensions files changed, otherwise test
+dev: lint
+	@if git diff --name-only origin/develop... 2>/dev/null | grep -qE 'cfn_language_extensions/'; then \
+		echo "Detected cfn_language_extensions changes — running all tests"; \
+		$(MAKE) test-all; \
+	else \
+		$(MAKE) test; \
+	fi
+
+# Run full verification including language extensions tests
+dev-all: lint test-all
 
 black:
 	black setup.py samcli tests schema
@@ -72,8 +91,8 @@ format: black
 schema:
 	python -m schema.make_schema
 
-# Verifications to run before sending a pull request
-pr: init schema black-check dev
+# Verifications to run before sending a pull request — runs ALL tests
+pr: init schema black-check lint test-all
 
 # Update all reproducible requirements using uv (can run from any platform)
 update-reproducible-reqs:

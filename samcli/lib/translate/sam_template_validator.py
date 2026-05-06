@@ -13,6 +13,9 @@ from samtranslator.translator.managed_policy_translator import ManagedPolicyLoad
 from samtranslator.translator.translator import Translator
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 from samcli.yamlhelper import yaml_dump
@@ -79,6 +82,16 @@ class SamTemplateValidator:
             boto_session=self.boto3_session,
         )
 
+        # Process language extensions before validation if AWS::LanguageExtensions transform is present.
+        # Note: this mutates self.sam_template when LE is present. The assignment is idempotent
+        # (expand_language_extensions returns a deepcopy, and re-expanding an already-expanded
+        # template is a no-op since the transform is still present but ForEach is already resolved).
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(self.parameter_overrides)
+        result = expand_language_extensions(self.sam_template, parameter_values=parameter_values)
+        if result.had_language_extensions:
+            self.sam_template = result.expanded_template
+
         self._replace_local_codeuri()
         self._replace_local_image()
 
@@ -124,13 +137,17 @@ class SamTemplateValidator:
                 if all(
                     [
                         _properties.get("Properties", {}).get("PackageType", ZIP) == ZIP
-                        for _, _properties in all_resources.items()
+                        for resource_key, _properties in all_resources.items()
+                        if not is_foreach_key(resource_key) and isinstance(_properties, dict)
                     ]
                     + [_properties.get("PackageType", ZIP) == ZIP for _, _properties in global_settings.items()]
                 ):
                     SamTemplateValidator._update_to_s3_uri("CodeUri", properties)
 
-        for _, resource in all_resources.items():
+        for resource_key, resource in all_resources.items():
+            if is_foreach_key(resource_key) or not isinstance(resource, dict):
+                continue
+
             resource_type = resource.get("Type")
             resource_dict = resource.get("Properties", {})
 
@@ -158,7 +175,10 @@ class SamTemplateValidator:
         This ensures sam validate works without having to package the app or use ImageUri.
         """
         resources = self.sam_template.get("Resources", {})
-        for _, resource in resources.items():
+        for resource_key, resource in resources.items():
+            if is_foreach_key(resource_key) or not isinstance(resource, dict):
+                continue
+
             resource_type = resource.get("Type")
             properties = resource.get("Properties", {})
 
