@@ -8,13 +8,14 @@ from pathlib import Path
 
 import requests
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.utils.progressbar import progressbar
 from samcli.local.lambdafn.zip import unzip
 
 LOG = logging.getLogger(__name__)
 
 
-def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
+def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label, mount_symlinks=False):
     """
     Download the LayerVersion Zip to the Layer Pkg Cache
 
@@ -44,7 +45,9 @@ def unzip_from_uri(uri, layer_zip_path, unzip_output_dir, progressbar_label):
 
         # Forcefully set the permissions to 700 on files and directories. This is to ensure the owner
         # of the files is the only one that can read, write, or execute the files.
-        unzip(layer_zip_path, unzip_output_dir, permission=0o700)
+        unzip(layer_zip_path, unzip_output_dir, permission=0o700, mount_symlinks=mount_symlinks)
+    except ValueError as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     finally:
         # Remove the downloaded zip file

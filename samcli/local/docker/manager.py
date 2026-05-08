@@ -9,7 +9,6 @@ from typing import Union, cast
 
 import docker
 
-from samcli.lib.constants import DOCKER_MIN_API_VERSION
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
 from samcli.local.docker.container import Container, ContainerContext
@@ -25,35 +24,24 @@ class ContainerManager:
     serve requests faster. It is also thread-safe.
     """
 
-    def __init__(self, docker_network_id=None, docker_client=None, skip_pull_image=False, do_shutdown_event=False):
+    def __init__(self, docker_network_id=None, skip_pull_image=False, do_shutdown_event=False):
         """
         Instantiate the container manager
 
         :param docker_network_id: Optional Docker network to run this container in.
-        :param docker_client: Optional docker client object
         :param bool skip_pull_image: Should we pull new Docker container image?
         :param bool do_shutdown_event: Optional. If True, send a SHUTDOWN event to the container before final teardown.
         """
 
         self.skip_pull_image = skip_pull_image
         self.docker_network_id = docker_network_id
-        self.docker_client = docker_client or docker.from_env(version=DOCKER_MIN_API_VERSION)
         self.do_shutdown_event = do_shutdown_event
 
         self._lock = threading.Lock()
         self._lock_per_image = {}
 
-    @property
-    def is_docker_reachable(self):
-        """
-        Checks if Docker daemon is running. This is required for us to invoke the function locally
-
-        Returns
-        -------
-        bool
-            True, if Docker is available, False otherwise
-        """
-        return utils.is_docker_reachable(self.docker_client)
+        # Get validated container client (handles all administrator preference logic and container selection)
+        self.container_client = utils.get_validated_container_client()
 
     def create(self, container, context):
         """
@@ -166,7 +154,7 @@ class ContainerManager:
             stream_writer = stream or StreamWriter(sys.stderr)
 
             try:
-                result_itr = self.docker_client.api.pull(image_name, tag=tag, stream=True, decode=True)
+                result_itr = self.container_client.api.pull(image_name, tag=tag, stream=True, decode=True)
             except docker.errors.APIError as ex:
                 LOG.debug("Failed to download image with name %s", image_name)
                 raise DockerImagePullFailedException(str(ex)) from ex
@@ -192,7 +180,7 @@ class ContainerManager:
         """
 
         try:
-            self.docker_client.images.get(image_name)
+            self.container_client.images.get(image_name)
             return True
         except docker.errors.ImageNotFound:
             return False
@@ -212,7 +200,7 @@ class ContainerManager:
             Container inspection state if successful, False otherwise
         """
         try:
-            return cast(dict, self.docker_client.api.inspect_container(container))
+            return cast(dict, self.container_client.api.inspect_container(container))
         except (docker.errors.APIError, docker.errors.NullResource) as ex:
             LOG.debug("Failed to call Docker inspect: %s", str(ex))
             return False

@@ -8,9 +8,8 @@ import shutil
 
 from cookiecutter import config, exceptions, repository
 
+from samcli.lib.init.exceptions import ArbitraryProjectDownloadFailed
 from samcli.lib.utils import osutils
-
-from .exceptions import ArbitraryProjectDownloadFailed
 
 LOG = logging.getLogger(__name__)
 

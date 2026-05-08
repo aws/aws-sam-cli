@@ -11,25 +11,25 @@ Resources:
   JavaStsExample:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: java8
+      CodeUri: java25
       Handler: sts.App::handleRequest
-      Runtime: java8.al2
+      Runtime: java25
       MemorySize: 1024
   PythonStsExample:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: python
       Handler: app.lambda_handler
-      Runtime: python3.9
+      Runtime: python3.13
   RubyStsExample:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: ruby
       Handler: app.lambda_handler
-      Runtime: ruby3.2
+      Runtime: ruby3.4
   NodeStsExample:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: nodejs
       Handler: app.lambdaHandler
-      Runtime: nodejs18.x
+      Runtime: nodejs22.x

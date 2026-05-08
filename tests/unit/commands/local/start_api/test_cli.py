@@ -58,6 +58,7 @@ class TestCli(TestCase):
         self.invoke_image = ()
         self.no_mem_limit = False
         self.no_watch = False
+        self.container_dns = None
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_api_service.LocalApiService")
@@ -101,6 +102,7 @@ class TestCli(TestCase):
             invoke_images={},
             no_mem_limit=self.no_mem_limit,
             no_watch=self.no_watch,
+            container_dns=self.container_dns,
         )
 
         local_api_service_mock.assert_called_with(
@@ -159,6 +161,7 @@ class TestCli(TestCase):
             invoke_images={},
             no_mem_limit=self.no_mem_limit,
             no_watch=True,  # Verify this is True
+            container_dns=self.container_dns,
         )
 
         service_mock.start.assert_called_with()
@@ -283,4 +286,5 @@ class TestCli(TestCase):
             add_host=self.add_host,
             no_mem_limit=self.no_mem_limit,
             no_watch=self.no_watch,
+            container_dns=self.container_dns,
         )

@@ -3,17 +3,54 @@ import uuid
 import base64
 import time
 import math
+import os
 
 from parameterized import parameterized
-from unittest import skip
+from unittest import skipIf, SkipTest
 
 from tests.integration.remote.invoke.remote_invoke_integ_base import RemoteInvokeIntegBase
-from tests.testing_utils import run_command
+from tests.testing_utils import SKIP_LMI_TESTS, run_command
 
 from pathlib import Path
 import pytest
 
 SQS_WAIT_TIME_SECONDS = 20
+
+
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
+class TestingInvokeWithCapacityProvider(RemoteInvokeIntegBase):
+    template = Path("template-single-lambda-capacity-provider.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
+
+        # Read LMI infrastructure from environment variables
+        cls.parameter_overrides = {
+            "SubnetId": os.environ.get("LMI_SUBNET_ID", ""),
+            "SecurityGroupId": os.environ.get("LMI_SECURITY_GROUP_ID", ""),
+        }
+        cls.create_resources_and_boto_clients()
+
+    def test_invoke_with_event_provided(self):
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            event='{"key1": "Hello", "key2": "World", "key3": "CapacityProvider"}',
+        )
+
+        remote_invoke_result = run_command(command_list)
+
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        remote_invoke_result_stdout = json.loads(remote_invoke_result.stdout.strip().decode())
+        expected_response = {
+            "statusCode": 200,
+            "body": '{"message": "Hello World CapacityProvider", "max_concurrency": "10"}',
+        }
+        self.assertEqual(remote_invoke_result_stdout, expected_response)
 
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_single_lambda_resource")
@@ -119,6 +156,35 @@ class TestSingleLambdaInvoke(RemoteInvokeIntegBase):
         response_payload = json.loads(remote_invoke_result_stdout["Payload"])
         self.assertEqual(response_payload, {"message": "Hello world"})
         self.assertEqual(remote_invoke_result_stdout["StatusCode"], 200)
+
+
+@pytest.mark.xdist_group(name="sam_remote_invoke_multi_tenant")
+class TestMultiTenantRemoteInvoke(RemoteInvokeIntegBase):
+    template = Path("template-multi-tenant.yaml")
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
+        cls.create_resources_and_boto_clients()
+
+    def test_multi_tenant_function_with_tenant_id(self):
+        command_list = self.get_command_list(
+            stack_name=self.stack_name,
+            resource_id="MultiTenantFunction",
+            event='{"test": "data"}',
+            tenant_id="tenant-123",
+        )
+
+        remote_invoke_result = run_command(command_list)
+
+        self.assertEqual(0, remote_invoke_result.process.returncode)
+        response_payload = json.loads(remote_invoke_result.stdout.strip().decode())
+
+        # Parse the Lambda response
+        body = json.loads(response_payload.get("body", "{}"))
+        self.assertEqual(body.get("tenant_id"), "tenant-123")
+        self.assertEqual(body.get("message"), "Hello from remote multi-tenant function")
 
 
 @pytest.mark.xdist_group(name="sam_remote_invoke_sfn_resource_priority")

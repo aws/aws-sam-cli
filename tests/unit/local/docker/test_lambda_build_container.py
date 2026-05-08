@@ -7,7 +7,7 @@ import json
 import pathlib
 
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 from parameterized import parameterized
 
@@ -16,11 +16,18 @@ from samcli.local.docker.lambda_build_container import LambdaBuildContainer, Inv
 
 
 class TestLambdaBuildContainer_init(TestCase):
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaBuildContainer, "_make_request")
     @patch.object(LambdaBuildContainer, "_get_image")
     @patch.object(LambdaBuildContainer, "_get_entrypoint")
     @patch.object(LambdaBuildContainer, "get_container_dirs")
-    def test_must_init_class(self, get_container_dirs_mock, get_entrypoint_mock, get_image_mock, make_request_mock):
+    def test_must_init_class(
+        self, get_container_dirs_mock, get_entrypoint_mock, get_image_mock, make_request_mock, mock_get_validated_client
+    ):
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
+
         request = make_request_mock.return_value = "somerequest"
         entry = get_entrypoint_mock.return_value = "entrypoint"
         image = get_image_mock.return_value = "imagename"
@@ -188,11 +195,18 @@ class TestLambdaBuildContainer_get_image(TestCase):
     def test_must_get_image_name(self, runtime, architecture, expected_image_name):
         self.assertEqual(expected_image_name, LambdaBuildContainer._get_image(runtime, architecture))
 
+    @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch("samcli.lib.build.workflow_config.supports_specified_workflow")
     @patch.object(LambdaBuildContainer, "_get_image")
-    def test_get_image_by_specified_workflow_if_supported(self, get_image_mock, supports_specified_workflow_mock):
+    def test_get_image_by_specified_workflow_if_supported(
+        self, get_image_mock, supports_specified_workflow_mock, mock_get_validated_client
+    ):
         architecture = "arm64"
         specified_workflow = "specified_workflow"
+
+        # Mock the docker client
+        docker_client_mock = Mock()
+        mock_get_validated_client.return_value = docker_client_mock
 
         supports_specified_workflow_mock.return_value = True
 

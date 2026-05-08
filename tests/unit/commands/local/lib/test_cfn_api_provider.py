@@ -1141,11 +1141,100 @@ class TestApiGatewayMethodCorsSettings(TestCase):
                             ]
                         },
                     },
-                }
+                },
             }
         }
         provider = ApiProvider(make_mock_stacks_from_template(template))
-        self.assertEqual(expected_cors, provider.api.cors)
+        # CORS should now be on the route, not globally on the API
+        self.assertEqual(len(provider.routes), 1)
+        route = provider.routes[0]
+        self.assertEqual(expected_cors, route.cors)
+
+    def test_multiple_options_methods_with_different_cors(self):
+        """Test that multiple OPTIONS methods with different CORS configurations are handled correctly per-route"""
+        template = {
+            "Resources": {
+                "PostResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "post",
+                    },
+                },
+                "PutResource": {
+                    "Type": "AWS::ApiGateway::Resource",
+                    "Properties": {
+                        "PathPart": "put",
+                    },
+                },
+                "ApiGatewayMethodPostOptions": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "OPTIONS",
+                        "ResourceId": "PostResource",
+                        "Integration": {
+                            "IntegrationResponses": [
+                                {
+                                    "StatusCode": "200",
+                                    "ResponseParameters": {
+                                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization'",
+                                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                                    },
+                                }
+                            ],
+                        },
+                    },
+                },
+                "ApiGatewayMethodPutOptions": {
+                    "Type": "AWS::ApiGateway::Method",
+                    "Properties": {
+                        "HttpMethod": "OPTIONS",
+                        "ResourceId": "PutResource",
+                        "Integration": {
+                            "IntegrationResponses": [
+                                {
+                                    "StatusCode": "200",
+                                    "ResponseParameters": {
+                                        "method.response.header.Access-Control-Allow-Origin": "'*'",
+                                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization'",
+                                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,PUT'",
+                                    },
+                                }
+                            ],
+                        },
+                    },
+                },
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        # Find the routes
+        post_route = None
+        put_route = None
+        for route in provider.routes:
+            if route.path == "/post":
+                post_route = route
+            elif route.path == "/put":
+                put_route = route
+
+        # Verify both routes exist
+        self.assertIsNotNone(post_route, "Post route should exist")
+        self.assertIsNotNone(put_route, "Put route should exist")
+
+        # Verify each route has its own CORS configuration
+        self.assertIsNotNone(post_route.cors, "Post route should have CORS")
+        self.assertIsNotNone(put_route.cors, "Put route should have CORS")
+
+        # Verify the CORS methods are different
+        self.assertEqual(post_route.cors.allow_methods, "OPTIONS,POST", "Post route should allow OPTIONS,POST")
+        self.assertEqual(put_route.cors.allow_methods, "OPTIONS,PUT", "Put route should allow OPTIONS,PUT")
+
+        # Verify other CORS properties are the same
+        self.assertEqual(post_route.cors.allow_origin, "*")
+        self.assertEqual(put_route.cors.allow_origin, "*")
+        self.assertEqual(post_route.cors.allow_headers, "Content-Type,X-Amz-Date,Authorization")
+        self.assertEqual(put_route.cors.allow_headers, "Content-Type,X-Amz-Date,Authorization")
 
     def test_cors_not_set_for_other_integration_responses(self):
         template = {

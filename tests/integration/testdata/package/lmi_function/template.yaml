@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: LMI integration test template - BEFORE version
+
+Parameters:
+  SubnetId:
+    Type: String
+    Description: Subnet ID from infrastructure stack
+  SecurityGroupId:
+    Type: String
+    Description: Security Group ID from infrastructure stack
+  Team:
+    Type: String
+    Default: lambda-tooling-team
+  MemoryGiBPerVCpu:
+    Type: Number
+    Default: 2
+  MaxConcurrency:
+    Type: Number
+    Default: 10
+
+Globals:
+  CapacityProvider:
+    VpcConfig:
+      SecurityGroupIds:
+        - !Ref SecurityGroupId
+      SubnetIds:
+        - !Ref SubnetId
+    ScalingConfig:
+      AverageCPUUtilization: 50
+    Tags:
+      Team: !Ref Team
+      ManagedBy: SAM
+    InstanceRequirements:
+      ExcludedTypes:
+        - t2.micro
+        - t2.small
+
+  Function:
+    CodeUri: .
+    Runtime: python3.13
+    MemorySize: 10240
+    CapacityProviderConfig:
+      ExecutionEnvironmentMemoryGiBPerVCpu: !Ref MemoryGiBPerVCpu
+      PerExecutionEnvironmentMaxConcurrency: !Ref MaxConcurrency
+    FunctionScalingConfig:
+      MinExecutionEnvironments: 3
+      MaxExecutionEnvironments: 12
+    Tags:
+      Team: !Ref Team
+      ManagedBy: SAM
+    PublishToLatestPublished: True
+
+Resources:
+  # Global Capacity Provider with reduced properties since globals handle common ones
+  LMICapacityProviderOne:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      InstanceRequirements:
+        Architectures:
+          - x86_64
+      ScalingConfig:
+        MaxVCpuCount: 100
+
+  LMICapacityProviderTwo:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      InstanceRequirements:
+        Architectures:
+          - arm64
+      ScalingConfig:
+
+  LMIFunctionOne:
+    Type: AWS::Serverless::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Handler: app.lambda_handler_one
+      CapacityProviderConfig:
+        Arn: !GetAtt LMICapacityProviderOne.Arn
+
+  LMIFunctionTwo:
+    Type: AWS::Serverless::Function
+    Properties:
+      CapacityProviderConfig:
+        Arn: !GetAtt LMICapacityProviderTwo.Arn
+        ExecutionEnvironmentMemoryGiBPerVCpu: 4 
+      Handler: app.lambda_handler_two
+      FunctionScalingConfig:
+        MinExecutionEnvironments: 1 
+      Architectures:
+        - arm64

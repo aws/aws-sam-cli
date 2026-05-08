@@ -61,11 +61,13 @@ class TestRemoteInvokeExecutorFactory(TestCase):
         self.assertIsNone(executor)
 
     @parameterized.expand(
-        itertools.product([True, False], [RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT])
+        itertools.product([True, False], [True, False], [RemoteInvokeOutputFormat.JSON, RemoteInvokeOutputFormat.TEXT])
     )
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory._is_durable_function")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaInvokeExecutor")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaInvokeWithResponseStreamExecutor")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.DefaultConvertToJSON")
+    @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.DurableFunctionQualifierMapper")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaResponseConverter")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.LambdaStreamResponseConverter")
     @patch("samcli.lib.remote_invoke.remote_invoke_executor_factory.ResponseObjectToJsonStringMapper")
@@ -74,17 +76,24 @@ class TestRemoteInvokeExecutorFactory(TestCase):
     def test_create_lambda_test_executor(
         self,
         is_function_invoke_mode_response_stream,
+        is_durable_function,
         remote_invoke_output_format,
         patched_is_function_invoke_mode_response_stream,
         patched_remote_invoke_executor,
         patched_object_to_json_converter,
         patched_stream_response_converter,
         patched_response_converter,
+        patched_durable_function_qualifier_mapper,
         patched_convert_to_default_json,
         patched_lambda_invoke_with_response_stream_executor,
         patched_lambda_invoke_executor,
+        patched_is_durable_function,
     ):
+        # Reset mock call counts for parameterized tests
+        patched_durable_function_qualifier_mapper.reset_mock()
+
         patched_is_function_invoke_mode_response_stream.return_value = is_function_invoke_mode_response_stream
+        patched_is_durable_function.return_value = is_durable_function
         given_physical_resource_id = "physical_resource_id"
         given_cfn_resource_summary = Mock(physical_resource_id=given_physical_resource_id)
 
@@ -104,6 +113,13 @@ class TestRemoteInvokeExecutorFactory(TestCase):
         self.boto_client_provider_mock.assert_called_with("lambda")
         patched_convert_to_default_json.assert_called_once()
 
+        # Check if durable function qualifier mapper is added
+        expected_request_mappers = [patched_convert_to_default_json()]
+        if is_durable_function:
+            expected_request_mappers.append(patched_durable_function_qualifier_mapper())
+        else:
+            patched_durable_function_qualifier_mapper.assert_not_called()
+
         if is_function_invoke_mode_response_stream:
             expected_mappers = []
             if remote_invoke_output_format == RemoteInvokeOutputFormat.JSON:
@@ -117,7 +133,7 @@ class TestRemoteInvokeExecutorFactory(TestCase):
                     patched_object_to_json_converter(),
                 ]
             patched_remote_invoke_executor.assert_called_with(
-                request_mappers=[patched_convert_to_default_json()],
+                request_mappers=expected_request_mappers,
                 response_mappers=expected_mappers,
                 boto_action_executor=patched_lambda_invoke_with_response_stream_executor(),
                 response_consumer=given_response_consumer,
@@ -136,7 +152,7 @@ class TestRemoteInvokeExecutorFactory(TestCase):
                     patched_object_to_json_converter(),
                 ]
             patched_remote_invoke_executor.assert_called_with(
-                request_mappers=[patched_convert_to_default_json()],
+                request_mappers=expected_request_mappers,
                 response_mappers=expected_mappers,
                 boto_action_executor=patched_lambda_invoke_executor(),
                 response_consumer=given_response_consumer,

@@ -1,0 +1,40 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  },
+  "Outputs": {
+    "Output0": {
+      "Description": "MyDescription",
+      "Value": {
+        "Ref": "Topic0"
+      }
+    },
+    "Output1": {
+      "Description": "MyDescription",
+      "Value": "Topic1"
+    },
+    "Output1A": {
+      "Description": "MyDescription",
+      "Value": "Topic1A"
+    },
+    "Output1A2": {
+      "Description": "MyDescription",
+      "Value": "Topic1A2"
+    },
+    "Output1A2B": {
+      "Description": "MyDescription",
+      "Value": "Topic1A2B"
+    },
+    "Output1A2B3": {
+      "Description": "MyDescription",
+      "Value": "Topic1A2B3"
+    }
+  }
+}

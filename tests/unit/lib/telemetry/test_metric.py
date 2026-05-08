@@ -424,10 +424,23 @@ class TestSendCommandMetrics(TestCase):
             ("some-random-value", "unknown"),
         ]
     )
-    def test_get_container_host(self, docker_host, expected):
-        metric = Metric("")
-        metric._gc.docker_host = docker_host
-        self.assertEqual(metric._get_container_host(), expected)
+    @patch("samcli.cli.context.Context.get_current_context")
+    @patch.dict("os.environ", {}, clear=True)
+    def test_get_container_host(self, docker_host, expected, mock_get_context):
+        # Mock context to return None for actual_container_runtime (fallback to env detection)
+        mock_ctx = Mock()
+        del mock_ctx.actual_container_runtime  # No context runtime, should fallback
+        mock_get_context.return_value = mock_ctx
+
+        # Set DOCKER_HOST environment variable for the test
+        if docker_host:
+            with patch.dict("os.environ", {"DOCKER_HOST": docker_host}):
+                metric = Metric("", should_add_common_attributes=False)
+                self.assertEqual(metric._get_container_host(), expected)
+        else:
+            # Test with no DOCKER_HOST set
+            metric = Metric("", should_add_common_attributes=False)
+            self.assertEqual(metric._get_container_host(), expected)
 
 
 class TestParameterCapture(TestCase):

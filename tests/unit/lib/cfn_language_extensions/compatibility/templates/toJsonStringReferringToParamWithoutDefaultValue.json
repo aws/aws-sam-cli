@@ -1,0 +1,29 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "PasswordParameter": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": {
+            "password": { "Ref": "PasswordParameter" },
+            "secretToken": "123",
+            "additional": [
+              "item1",
+              { "Ref": "PasswordParameter" },
+              "item3",
+              { "Ref": "AWS::NoValue" }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

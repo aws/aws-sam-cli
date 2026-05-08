@@ -2,6 +2,7 @@ import time
 import os
 import sys
 import subprocess
+import json
 
 print ("Loading function")
 
@@ -15,8 +16,37 @@ def handler(event, context):
 
     return "Hello world"
 
+def cap_pro_handler(event, context):
+    print ("value1 = " + event["key1"])
+    print ("value2 = " + event["key2"])
+    print ("value3 = " + event["key3"])
+
+    max_concurrency = os.environ.get('AWS_LAMBDA_MAX_CONCURRENCY', 'not set')
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello world capacity provider',
+            'max_concurrency': max_concurrency
+        })
+    }
+
 def intrinsics_handler(event, context):
     return os.environ.get("ApplicationId")
+
+def multi_tenant_handler(event, context):
+    import json
+    # Get tenant_id from Lambda context
+    tenant_id = getattr(context, 'tenant_id', None)
+    
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello from multi-tenant function',
+            'tenant_id': tenant_id,
+            'function_name': context.function_name
+        })
+    }
 
 def sleep_handler(event, context):
     time.sleep(10)

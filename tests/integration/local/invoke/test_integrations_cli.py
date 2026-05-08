@@ -11,17 +11,47 @@ from timeit import default_timer as timer
 import pytest
 import docker
 
+from pathlib import Path
+
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
+from samcli.local.docker.utils import get_validated_container_client
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
 # This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
 SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-from pathlib import Path
-
 TIMEOUT = 300
+
+
+@parameterized_class(
+    ("template",),
+    [
+        (Path("template-capacity-provider.yml"),),
+    ],
+)
+class TestSamPythonHelloWorldCapacityProviderIntegration(IntegrationCliIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_capacity_provider_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldCapacityProviderFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(body["message"], "Hello world capacity provider")
+        self.assertIn("max_concurrency", body)
 
 
 @parameterized_class(
@@ -33,6 +63,7 @@ TIMEOUT = 300
 )
 class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     @pytest.mark.flaky(reruns=3)
+    @pytest.mark.tier1
     def test_invoke_returncode_is_zero(self):
         command_list = InvokeIntegBase.get_command_list(
             "HelloWorldServerlessFunction", template_path=self.template_path, event_path=self.event_path
@@ -363,6 +394,29 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertEqual(environ["EmptyDefaultParameter"], "")
 
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_multi_tenant_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "MultiTenantFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            tenant_id="test-tenant-123",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        body = json.loads(response["body"])
+
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(body["tenant_id"], "test-tenant-123")
+
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_with_env_using_parameters_with_custom_region(self):
         custom_region = "us-west-2"
 
@@ -479,7 +533,7 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=TIMEOUT, method="thread")
     def test_skip_pull_image_in_env_var(self):
-        docker.from_env().api.pull("public.ecr.aws/lambda/python:3.11-x86_64")
+        get_validated_container_client().api.pull("public.ecr.aws/lambda/python:3.11-x86_64")
 
         command_list = InvokeIntegBase.get_command_list(
             "HelloWorldLambdaFunction", template_path=self.template_path, event_path=self.event_path
@@ -500,10 +554,13 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
 
     # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function(self):
         command_list = InvokeIntegBase.get_command_list(
-            "GitLayerFunction", template_path=self.template_path, event_path=self.event_path
+            "GitLayerFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            mount_symlinks=True,
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -518,13 +575,14 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
 
     # For Windows, this test must run with administrator privilege
     @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
         command_list = InvokeIntegBase.get_command_list(
             "GitLayerFunctionParameters",
             template_path=self.template_path,
             event_path=self.event_path,
             parameter_overrides={"LayerVersion": "5"},
+            mount_symlinks=True,
         )
 
         process = Popen(command_list, stdout=PIPE)
@@ -734,15 +792,33 @@ class TestUsingConfigFiles(InvokeIntegBase):
 
     def _create_cred_file(self, profile):
         cred_file_content = "[{}]\naws_access_key_id = someaccesskeyid\naws_secret_access_key = shhhhhthisisasecret \
-        \naws_session_token = sessiontoken".format(
-            profile
-        )
+        \naws_session_token = sessiontoken".format(profile)
         custom_cred = os.path.join(self.config_dir, "customcred")
         with open(custom_cred, "w") as file:
             file.write(cred_file_content)
         return custom_cred
 
 
+def cleanup_samcli_images():
+    """Remove all samcli/lambda-* images.
+
+    Docker's images.list(name="samcli/lambda") does exact repository matching
+    and won't match repositories like "samcli/lambda-python". We list all images
+    and filter by tag prefix instead.
+    """
+    try:
+        docker_client = get_validated_container_client()
+        all_images = docker_client.images.list()
+        for image in all_images:
+            for tag in image.tags:
+                if tag.startswith("samcli/lambda-"):
+                    docker_client.remove_image_safely(image.id, force=True)
+                    break
+    except Exception:
+        pass
+
+
+# These tests require to remove all sam cli images and can't be run in parallel
 class TestLayerVersionBase(InvokeIntegBase):
     region = "us-west-2"
     layer_utils = LayerUtils(region=region)
@@ -751,27 +827,21 @@ class TestLayerVersionBase(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            docker_client.images.remove(image.id)
-
+        cleanup_samcli_images()
         shutil.rmtree(str(self.layer_cache), ignore_errors=True)
 
     @classmethod
     def setUpClass(cls):
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
         cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerTwoArn", "layer2.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerAArn", "layer_a.zip")
+        cls.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerBArn", "layer_b.zip")
         super(TestLayerVersionBase, cls).setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         cls.layer_utils.delete_layers()
-        # Added to handle the case where ^C failed the test due to invalid cleanup of layers
-        docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            docker_client.images.remove(image.id)
+        cleanup_samcli_images()
         integ_layer_cache_dir = Path().home().joinpath("integ_layer_cache")
         if integ_layer_cache_dir.exists():
             shutil.rmtree(str(integ_layer_cache_dir))
@@ -788,6 +858,9 @@ class TestLayerVersionBase(InvokeIntegBase):
     ],
 )
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
+@pytest.mark.flaky(reruns=3)
+@pytest.mark.xdist_group(name="lambda_layers")
 class TestLayerVersion(TestLayerVersionBase):
     @parameterized.expand(
         [
@@ -914,7 +987,6 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(process_stdout, expected_output)
 
     @parameterized.expand([("TwoLayerVersionServerlessFunction"), ("TwoLayerVersionLambdaFunction")])
-    @pytest.mark.flaky(reruns=3)
     def test_download_two_layers(self, function_logical_id):
         command_list = InvokeIntegBase.get_command_list(
             function_logical_id,
@@ -939,6 +1011,31 @@ class TestLayerVersion(TestLayerVersionBase):
 
         self.assertEqual(process_stdout, expected_output)
 
+    def test_two_independent_layers(self):
+        """Test that two layers providing different modules both work in a single function."""
+        command_list = InvokeIntegBase.get_command_list(
+            "TwoIndependentLayersFunction",
+            template_path=self.template_path,
+            no_event=True,
+            region=self.region,
+            layer_cache=str(self.layer_cache),
+            parameter_overrides=self.layer_utils.parameters_overrides,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        process_stdout = stdout.decode("utf-8").strip().split(os.linesep)[-1]
+        import json
+
+        result = json.loads(process_stdout)
+        self.assertEqual(result["a"], "hello from layer A")
+        self.assertEqual(result["b"], "goodbye from layer B")
+
     def test_caching_two_layers(self):
         command_list = InvokeIntegBase.get_command_list(
             "TwoLayerVersionServerlessFunction",
@@ -956,7 +1053,9 @@ class TestLayerVersion(TestLayerVersionBase):
             process.kill()
             raise
 
-        self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
+        # Count only layer directories, excluding the .locks directory
+        cache_contents = [item for item in os.listdir(str(self.layer_cache)) if not item.startswith(".")]
+        self.assertEqual(2, len(cache_contents))
 
     def test_caching_two_layers_with_layer_cache_env_set(self):
         command_list = InvokeIntegBase.get_command_list(
@@ -977,13 +1076,17 @@ class TestLayerVersion(TestLayerVersionBase):
             process.kill()
             raise
 
-        self.assertEqual(2, len(os.listdir(str(self.layer_cache))))
+        # Count only layer directories, excluding the .locks directory
+        cache_contents = [item for item in os.listdir(str(self.layer_cache)) if not item.startswith(".")]
+        self.assertEqual(2, len(cache_contents))
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.xdist_group(name="lambda_layers")
 class TestLocalZipLayerVersion(InvokeIntegBase):
     template = Path("layers", "local-zip-layer-template.yml")
 
+    @pytest.mark.tier1
     def test_local_zip_layers(
         self,
     ):
@@ -999,6 +1102,8 @@ class TestLocalZipLayerVersion(InvokeIntegBase):
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
+@pytest.mark.xdist_group(name="lambda_layers")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
     template = Path("layers", "layer-template.yml")
     region = "us-west-2"
@@ -1008,10 +1113,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.layer_cache = Path().home().joinpath("integ_layer_cache")
 
     def tearDown(self):
-        docker_client = docker.from_env()
-        samcli_images = docker_client.images.list(name="samcli/lambda")
-        for image in samcli_images:
-            docker_client.images.remove(image.id)
+        cleanup_samcli_images()
 
     def test_layer_does_not_exist(self):
         self.layer_utils.upsert_layer(LayerUtils.generate_layer_name(), "LayerOneArn", "layer1.zip")
@@ -1069,6 +1171,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.xdist_group(name="lambda_layers")
 class TestBadLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-bad-template.yaml")
     region = "us-west-2"
@@ -1243,7 +1346,7 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         stack_trace_lines = [
             "[ERROR] Exception: Lambda is raising an exception",
             "Traceback (most recent call last):",
-            '\xa0\xa0File "/var/task/main.py", line 51, in raise_exception',
+            '\xa0\xa0File "/var/task/main.py", line 81, in raise_exception',
             '\xa0\xa0\xa0\xa0raise Exception("Lambda is raising an exception")',
         ]
 

@@ -99,6 +99,7 @@ class PackageIntegBase(TestCase):
         image_repository=None,
         image_repositories=None,
         resolve_s3=False,
+        resolve_image_repos=False,
     ):
         command_list = [get_sam_command(), "package"]
 
@@ -130,6 +131,8 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--image-repositories", str(image_repositories)]
         if resolve_s3:
             command_list = command_list + ["--resolve-s3"]
+        if resolve_image_repos:
+            command_list = command_list + ["--resolve-image-repos"]
         return command_list
 
     def _method_to_stack_name(self, method_name):

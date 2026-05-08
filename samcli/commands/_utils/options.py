@@ -862,6 +862,20 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
+def use_buildkit_click_option():
+    return click.option(
+        "--use-buildkit/--no-use-buildkit",
+        required=False,
+        default=False,
+        is_flag=True,
+        help="Enable buildkit for container image builds. Requires Docker with buildx plugin or Finch CLI.",
+    )
+
+
+def use_buildkit_option(f):
+    return use_buildkit_click_option()(f)
+
+
 def mount_symlinks_click_option():
     return click.option(
         "--mount-symlinks/--no-mount-symlinks",

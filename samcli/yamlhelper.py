@@ -15,6 +15,7 @@ YAML helper, sourced from the AWS CLI
 
 https://github.com/aws/aws-cli/blob/develop/awscli/customizations/cloudformation/yamlhelper.py
 """
+
 # pylint: disable=too-many-ancestors
 
 import json

@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Durable Functions Test Template
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Timeout: 30
+    DurableConfig:
+      ExecutionTimeout: 300
+      RetentionPeriodInDays: 7
+
+Resources:
+  HelloWorld:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: hello_world.hello_world.handler
+      Events:
+        HelloWorldApi:
+          Type: Api
+          Properties:
+            Path: /hello
+            Method: get
+
+  NamedStep:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: step.step_with_name.handler
+
+  NamedWait:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: wait.wait_with_name.handler
+
+  MapOperations:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: map.map_operations.handler
+
+  Parallel:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: parallel.parallel.handler
+
+  WaitForCallback:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: wait_for_callback.wait_for_callback.handler
+
+  ExecutionTimeout:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: wait.wait_with_name.handler
+      DurableConfig:
+        ExecutionTimeout: 5
+        RetentionPeriodInDays: 7

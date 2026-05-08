@@ -1,0 +1,19 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "$RESOURCE_ATTRIBUTE": {"Ref":  "AWS::NoValue"}
+      }
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": {
+        "Fn::FindInMap" : [ "RegionMap", "us-east-1", "$RESOURCE_ATTRIBUTE" ]
+      }
+    }
+  }
+}

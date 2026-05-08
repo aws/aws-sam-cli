@@ -3,7 +3,7 @@ Utils for gathering system related info, mainly for use in `sam --info`
 """
 
 import json
-from typing import Dict, cast
+from typing import Dict
 
 
 def gather_system_info() -> Dict[str, str]:
@@ -34,32 +34,38 @@ def gather_additional_dependencies_info() -> Dict[str, str]:
         and value being the version number
     """
     info = {
-        "docker_engine": _gather_docker_info(),
+        "container_engine": _gather_container_engine_info(),
         "aws_cdk": _gather_cdk_info(),
         "terraform": _gather_terraform_info(),
     }
     return info
 
 
-def _gather_docker_info() -> str:
+def _gather_container_engine_info() -> str:
     """
-    Get Docker Engine version
+    Get container engine version and type (Docker or Finch)
 
     Returns
     -------
     str
-        Version number of Docker Engine if available. Otherwise "Not available"
+        Container engine type and version if available. Otherwise "Not available"
     """
-    import contextlib
+    try:
+        from samcli.local.docker.container_client_factory import ContainerClientFactory
 
-    import docker
+        client = ContainerClientFactory.create_client()
+        version = client.version().get("Version", "Not available")
 
-    from samcli.lib.constants import DOCKER_MIN_API_VERSION
-    from samcli.local.docker.utils import is_docker_reachable
+        # If version is not available, return early
+        if version == "Not available":
+            return "Not available"
 
-    with contextlib.closing(docker.from_env(version=DOCKER_MIN_API_VERSION)) as client:
-        if is_docker_reachable(client):
-            return cast(str, client.version().get("Version", "Not available"))
+        # Check if we're using Finch by looking at the runtime type
+        if hasattr(client, "get_runtime_type") and client.get_runtime_type() == "finch":
+            return f"Finch({version})"
+        else:
+            return f"Docker(v{version})"
+    except Exception:
         return "Not available"
 
 

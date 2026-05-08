@@ -1,0 +1,53 @@
+[
+  {
+    "EventId": 1,
+    "EventType": "ExecutionStarted",
+    "Name": "namedstep-integration-test",
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 300
+    }
+  },
+  {
+    "EventId": 2,
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "Name": "custom_step",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventId": 3,
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "Name": "custom_step",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "\"Step with explicit name\"",
+        "Truncated": false
+      },
+      "RetryDetails": {
+        "CurrentAttempt": 1,
+        "NextAttemptDelaySeconds": 0
+      }
+    }
+  },
+  {
+    "EventId": 4,
+    "EventType": "InvocationCompleted",
+    "InvocationCompletedDetails": {}
+  },
+  {
+    "EventId": 5,
+    "EventType": "ExecutionSucceeded",
+    "Name": "namedstep-integration-test",
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "\"Result: Step with explicit name\"",
+        "Truncated": false
+      }
+    }
+  }
+]

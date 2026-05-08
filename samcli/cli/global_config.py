@@ -65,6 +65,9 @@ class GlobalConfig(metaclass=Singleton):
     # Env var used by docker client to specify which socket to use
     DOCKER_HOST_ENV_VAR: str = "DOCKER_HOST"
 
+    # Env var used to override docker API version to use
+    DOCKER_API_ENV_VAR: str = "SAM_DOCKER_API_VERSION"
+
     # Static singleton instance
 
     _access_lock: threading.RLock
@@ -255,7 +258,7 @@ class GlobalConfig(metaclass=Singleton):
             )
             return default
 
-        return value  # type:ignore
+        return value  # type: ignore
 
     def set_value(self, config_entry: ConfigEntry, value: Any, is_flag: bool = False, flush: bool = True) -> None:
         """Set the value of a configuration. The associated env var will be updated as well.

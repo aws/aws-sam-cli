@@ -33,7 +33,9 @@ class TestContainerAnalyzer(TestCase):
         )
 
     @patch("samcli.local.docker.container_analyzer.LOG")
-    def test_inspect_returns_container_state(self, mock_log):
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    def test_inspect_returns_container_state(self, mock_get_client, mock_log):
+        mock_get_client.return_value = Mock()
         self.container.id = "id"
         manager = ContainerManager()
         manager.inspect = Mock()
@@ -46,7 +48,9 @@ class TestContainerAnalyzer(TestCase):
         mock_log.debug.assert_called_once_with("[Container state] OOMKilled %s", True)
         self.assertEqual(state, ContainerState(out_of_memory=True))
 
-    def test_inspect_no_container_id(self):
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    def test_inspect_no_container_id(self, mock_get_client):
+        mock_get_client.return_value = Mock()
         manager = ContainerManager()
         manager.inspect = Mock()
 
@@ -56,7 +60,9 @@ class TestContainerAnalyzer(TestCase):
         manager.inspect.assert_not_called()
         self.assertEqual(state, ContainerState(out_of_memory=False))
 
-    def test_inspect_docker_call_fails(self):
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    def test_inspect_docker_call_fails(self, mock_get_client):
+        mock_get_client.return_value = Mock()
         self.container.id = "id"
         manager = ContainerManager()
         manager.inspect = Mock()

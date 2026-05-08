@@ -14,6 +14,8 @@ Exporting resources defined in the cloudformation template to the cloud.
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import copy
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -21,6 +23,8 @@ from botocore.utils import set_value_from_jmespath
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -50,7 +54,68 @@ from samcli.lib.utils.resources import (
 from samcli.lib.utils.s3 import parse_s3_url
 from samcli.yamlhelper import yaml_dump, yaml_parse
 
+LOG = logging.getLogger(__name__)
+
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
+
+
+def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_values: Dict) -> Dict:
+    """
+    Resolve intrinsics in the nested stack resource's Parameters property using
+    the parent's parameter context.
+
+    Values that cannot be resolved locally (e.g. Fn::GetAtt, Fn::ImportValue,
+    Ref to a parent resource) are dropped — the child's own Parameter.Default
+    or a later processing step will handle them. This keeps package-time
+    expansion best-effort without raising on templates that cross-reference
+    runtime-only values.
+    """
+    if not nested_params:
+        return {}
+    # Local imports to preserve existing import ordering and avoid a cycle at load time.
+    from samcli.lib.cfn_language_extensions.api import create_default_intrinsic_resolver
+    from samcli.lib.cfn_language_extensions.exceptions import (
+        InvalidTemplateException,
+        UnresolvableReferenceError,
+    )
+    from samcli.lib.cfn_language_extensions.models import (
+        ResolutionMode,
+        TemplateProcessingContext,
+    )
+
+    ctx = TemplateProcessingContext(
+        fragment={},
+        parameter_values=parent_parameter_values or {},
+        resolution_mode=ResolutionMode.PARTIAL,
+    )
+    resolver = create_default_intrinsic_resolver(ctx)
+
+    resolved: Dict = {}
+    for name, value in nested_params.items():
+        try:
+            resolved_value = resolver.resolve_value(value)
+        except (UnresolvableReferenceError, InvalidTemplateException):
+            # Expected: the nested-stack parameter references something the
+            # resolver can't see at package time (e.g. a sibling resource).
+            continue
+        except Exception as e:  # pylint: disable=broad-except
+            # Unexpected — likely a SAM CLI bug. Log with traceback so
+            # --debug surfaces it; drop the value so packaging still proceeds.
+            LOG.warning(
+                "Unexpected error resolving nested stack parameter %r; skipping: %s. "
+                "Run with --debug for the full traceback.",
+                name,
+                e,
+            )
+            LOG.debug("Traceback for parameter %r resolution failure:", name, exc_info=True)
+            continue
+        # Drop values that still contain intrinsics (unresolvable at package time).
+        if isinstance(resolved_value, dict) and len(resolved_value) == 1:
+            only_key = next(iter(resolved_value))
+            if only_key == "Ref" or only_key.startswith("Fn::"):
+                continue
+        resolved[name] = resolved_value
+    return resolved
 
 
 class CloudFormationStackResource(ResourceZip):
@@ -61,13 +126,28 @@ class CloudFormationStackResource(ResourceZip):
 
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    parent_parameter_values: Optional[Dict] = None
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
         If the nested stack template is valid, this method will
         export on the nested template, upload the exported template to S3
-        and set property to URL of the uploaded S3 template
+        and set property to URL of the uploaded S3 template.
+
+        When the child template uses CloudFormation Language Extensions
+        (e.g. Fn::ForEach), the template is first expanded so that
+        Template.export() can discover and upload all generated artifacts.
+        The S3 URIs are then merged back into the original template
+        (preserving the Fn::ForEach structure) before uploading.
         """
+        from samcli.lib.cfn_language_extensions.sam_integration import (
+            expand_language_extensions,
+        )
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        from samcli.lib.package.language_extensions_packaging import (
+            generate_and_apply_artifact_mappings,
+            merge_language_extensions_s3_uris,
+        )
 
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
@@ -81,15 +161,111 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        exported_template_dict = Template(
-            template_path,
-            parent_dir,
-            self.uploaders,
-            self.code_signer,
-            normalize_template=True,
-            normalize_parameters=True,
-            parent_stack_id=resource_id,
-        ).export()
+        # Read and attempt language extensions expansion on the child template
+        with open(abs_template_path, "r", encoding="utf-8") as f:
+            child_template_dict = yaml_parse(f.read())
+
+        child_template_dir = os.path.dirname(abs_template_path)
+
+        # Merge pseudo-parameters with:
+        #  1) values propagated from the parent Template (parent stack's own params
+        #     + CLI --parameter-overrides + pseudo-params), used to resolve intrinsics
+        #     in the nested stack's Parameters property;
+        #  2) the nested stack's Parameters property on the parent resource, which is
+        #     the authoritative source for the child's parameter values at deploy time.
+        # Child-local values override parent-propagated ones on key conflict, which
+        # matches CloudFormation's behavior (a child parameter shadows a same-named
+        # parent parameter unless explicitly wired).
+        parent_parameter_values = dict(self.parent_parameter_values or {})
+
+        nested_params = resource_dict.get("Parameters", {}) or {}
+        resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
+
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+        parameter_values.update(parent_parameter_values)
+        parameter_values.update(resolved_nested_params)
+
+        try:
+            result = expand_language_extensions(child_template_dict, parameter_values)
+        except InvalidSamDocumentException as e:
+            # Expected failure path: the child template triggered the
+            # AWS::LanguageExtensions transform but SAM CLI could not expand it
+            # locally. Defer to CloudFormation's server-side transform. Note: any
+            # artifact paths inside Fn::ForEach bodies will NOT be uploaded, so
+            # child stacks with dynamic artifact properties (e.g. CodeUri using a
+            # loop variable) will fail at deploy time.
+            LOG.warning(
+                "Language extensions expansion failed for %s. "
+                "CloudFormation will process the AWS::LanguageExtensions transform "
+                "server-side; artifact URIs inside Fn::ForEach blocks will NOT be "
+                "uploaded. Error: %s",
+                abs_template_path,
+                e,
+            )
+            result = None
+        except Exception as e:  # pylint: disable=broad-except
+            # Unexpected failure: a bug in SAM CLI rather than a malformed template.
+            # Surface at ERROR with a traceback so users running --debug (and SAM
+            # telemetry) see it, but don't abort the rest of the package run.
+            LOG.error(
+                "Internal error expanding language extensions for %s. This is a "
+                "SAM CLI bug; please report at "
+                "https://github.com/aws/aws-sam-cli/issues with the template. "
+                "Falling back to server-side transform. Error: %s",
+                abs_template_path,
+                e,
+                exc_info=True,
+            )
+            result = None
+
+        if result and result.had_language_extensions:
+            LOG.debug("Child template %s uses language extensions, expanding before export", abs_template_path)
+
+            # Create Template from the expanded template string
+            template = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+                template_dict=copy.deepcopy(result.expanded_template),
+                parameter_values=parameter_values,
+            )
+
+            exported_template = template.export()
+
+            # Merge S3 URIs back into the original template (preserving Fn::ForEach)
+            exported_template_dict = merge_language_extensions_s3_uris(
+                result.original_template, exported_template, result.dynamic_artifact_properties
+            )
+
+            # Generate and apply Mappings for dynamic artifact properties
+            if result.dynamic_artifact_properties:
+                LOG.debug(
+                    "Generating Mappings for %d dynamic artifact properties in child template",
+                    len(result.dynamic_artifact_properties),
+                )
+                exported_resources = exported_template.get("Resources", {})
+                exported_template_dict = generate_and_apply_artifact_mappings(
+                    exported_template_dict,
+                    result.dynamic_artifact_properties,
+                    exported_resources,
+                    child_template_dir,
+                )
+        else:
+            # No language extensions — use existing flow
+            exported_template_dict = Template(
+                template_path,
+                parent_dir,
+                self.uploaders,
+                self.code_signer,
+                normalize_template=True,
+                normalize_parameters=True,
+                parent_stack_id=resource_id,
+                parameter_values=parameter_values,
+            ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -179,29 +355,51 @@ class Template:
         normalize_template: bool = False,
         normalize_parameters: bool = False,
         parent_stack_id: str = "",
+        parameter_values: Optional[Dict] = None,
+        template_dict: Optional[Dict] = None,
     ):
         """
         Reads the template and makes it ready for export
         """
-        if not template_str:
+        if template_dict is not None:
+            # Pre-parsed dict provided — skip file reading and YAML parsing.
+            self.template_dict = template_dict
+            self.template_dir = (
+                os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+                if parent_dir
+                else os.getcwd()
+            )
+            self.code_signer = code_signer
+        elif template_str:
+            self.template_dict = yaml_parse(template_str)
+            self.template_dir = (
+                os.path.dirname(os.path.abspath(make_abs_path(parent_dir, template_path)))
+                if parent_dir
+                else os.getcwd()
+            )
+            self.code_signer = code_signer
+        else:
             if not (is_local_folder(parent_dir) and os.path.isabs(parent_dir)):
                 raise ValueError("parent_dir parameter must be an absolute path to a folder {0}".format(parent_dir))
 
             abs_template_path = make_abs_path(parent_dir, template_path)
             template_dir = os.path.dirname(abs_template_path)
 
-            with open(abs_template_path, "r") as handle:
+            with open(abs_template_path, "r", encoding="utf-8") as handle:
                 template_str = handle.read()
 
             self.template_dir = template_dir
             self.code_signer = code_signer
-        self.template_dict = yaml_parse(template_str)
+            self.template_dict = yaml_parse(template_str)
         if normalize_template:
             ResourceMetadataNormalizer.normalize(self.template_dict, normalize_parameters)
         self.resources_to_export = resources_to_export
         self.metadata_to_export = metadata_to_export
         self.uploaders = uploaders
         self.parent_stack_id = parent_stack_id
+        # Parameter values to pass down to child-template expansion (e.g. Fn::ForEach
+        # collections that Ref a parameter). None preserves pre-existing behavior.
+        self.parameter_values = parameter_values
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -250,7 +448,7 @@ class Template:
 
         Intentionally not dealing with Api:DefinitionUri at this point.
         """
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", None)
 
@@ -280,7 +478,7 @@ class Template:
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
 
-        for resource_logical_id, resource in self.template_dict["Resources"].items():
+        for resource_logical_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_id = ResourceMetadataNormalizer.get_resource_id(resource, resource_logical_id)
@@ -293,6 +491,7 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer, cache)
+                exporter.parent_parameter_values = self.parameter_values
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
@@ -306,7 +505,7 @@ class Template:
 
         self._apply_global_values()
 
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -331,7 +530,7 @@ class Template:
             return ecr_repos
 
         self._apply_global_values()
-        for resource_id, resource in self.template_dict["Resources"].items():
+        for resource_id, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
             resource_deletion_policy = resource.get("DeletionPolicy", None)
@@ -357,7 +556,7 @@ class Template:
 
         self._apply_global_values()
 
-        for _, resource in self.template_dict["Resources"].items():
+        for resource_key, resource in iter_regular_resources(self.template_dict):
             resource_type = resource.get("Type", None)
             resource_dict = resource.get("Properties", {})
 

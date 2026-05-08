@@ -176,7 +176,7 @@ class LogsIntegTestCases(LogsIntegBase):
         self._check_logs(cmd_list, [expected_log_output], output=output)
 
     def _test_start_end(self, function_name, start_end_time_params):
-        (start_time, end_time, should_succeed) = start_end_time_params
+        start_time, end_time, should_succeed = start_end_time_params
         expected_log_output = f"Hello world from {function_name} function"  # Hello world from ApiGwFunction function
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=self._get_physical_id(function_name))

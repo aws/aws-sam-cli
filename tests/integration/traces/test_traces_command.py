@@ -20,7 +20,7 @@ from tests.testing_utils import (
     start_persistent_process,
     read_until,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 from parameterized import parameterized
 
@@ -92,13 +92,13 @@ class TestTracesCommand(TracesIntegBase):
         function_id = self._get_physical_id(function_name)
         expected_trace_output = [function_id]
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)
 
         for _ in range(RETRY_COUNT):
-            end_time = datetime.utcnow()
+            end_time = datetime.now(timezone.utc)
             kwargs = {"TimeRangeType": "TraceId", "StartTime": start_time, "EndTime": end_time}
             trace_summaries_response = self.xray_client.get_trace_summaries(**kwargs)
             trace_summaries = trace_summaries_response.get("TraceSummaries", [])
@@ -120,7 +120,7 @@ class TestTracesCommand(TracesIntegBase):
         function_id = self._get_physical_id(function_name)
         expected_trace_output = [function_id]
 
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         LOG.info("Invoking function %s", function_name)
         lambda_invoke_result = self.lambda_client.invoke(FunctionName=function_id)
         LOG.info("Lambda invoke result %s", lambda_invoke_result)

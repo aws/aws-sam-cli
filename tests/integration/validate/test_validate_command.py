@@ -13,6 +13,7 @@ from typing import List, Optional
 from unittest import TestCase, skip
 from unittest.case import skipIf
 
+import pytest
 from parameterized import parameterized
 from tests.testing_utils import (
     RUN_BY_CANARY,
@@ -108,6 +109,7 @@ class TestValidate(TestCase):
             ),  # project with template.json and standard build directory .aws-sam/build/template.yaml
         ]
     )
+    @pytest.mark.tier1
     def test_default_template_file_choice(self, relative_folder: str, expected_file: TemplateFileTypes):
         test_data_path = Path(__file__).resolve().parents[2] / "integration" / "testdata" / "validate"
         process_dir = test_data_path / relative_folder
@@ -154,9 +156,11 @@ class TestValidate(TestCase):
     @parameterized.expand(
         [
             ("nodejs",),
-            ("python3.7",),
-            ("nodejs16.x",),
+            ("python3.9",),
             ("nodejs18.x",),
+            ("ruby3.2",),
+            ("dotnet6",),
+            ("nodejs20.x"),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -201,21 +205,22 @@ class TestValidate(TestCase):
             "Resources": {},
         }
         supported_runtimes = [
+            "dotnet10",
             "dotnet8",
+            "java25",
             "java21",
             "java17",
             "java11",
             "java8.al2",
-            "nodejs20.x",
             "nodejs22.x",
+            "nodejs24.x",
             "provided.al2",
             "provided.al2023",
-            "python3.9",
             "python3.10",
             "python3.11",
             "python3.12",
             "python3.13",
-            "ruby3.2",
+            "python3.14",
             "ruby3.3",
             "ruby3.4",
         ]

@@ -8,8 +8,8 @@ from rich.table import Table
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.package.core.formatters import PackageCommandHelpTextFormatter
-from samcli.commands.package.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.package.core.options import ALL_OPTIONS, OPTIONS_INFO
 from samcli.lib.utils.resources import resources_generator
 
 COL_SIZE_MODIFIER = 38
@@ -24,45 +24,39 @@ class PackageCommand(CoreCommand):
     """
 
     class CustomFormatterContext(Context):
-        formatter_class = PackageCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: PackageCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            with formatter.indented_section(name="Automatic resolution of S3 buckets", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Automatic resolution of S3 buckets:", extra_indents=1):
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
-            with formatter.indented_section(name="Get packaged template", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Get packaged template:", extra_indents=1):
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} --resolve-s3 --output-template-file packaged.yaml"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
-            with formatter.indented_section(name="Customized location for uploading artifacts", extra_indents=1):
-                formatter.write_rd(
+            with formatter.indented_section(name="Customized location for uploading artifacts:", extra_indents=1):
+                formatter.write_text_rows(
                     [
-                        RowDefinition(
-                            text="\n",
-                        ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --s3-bucket S3_BUCKET --output-template-file packaged.yaml"
@@ -70,11 +64,10 @@ class PackageCommand(CoreCommand):
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                     ],
-                    col_max=COL_SIZE_MODIFIER,
                 )
 
     @staticmethod
-    def format_table(formatter: PackageCommandHelpTextFormatter):
+    def format_table(formatter: CommandHelpTextFormatter):
         with formatter.section(name="Supported Resources"):
             pass
         ctx = click.get_current_context()
@@ -94,13 +87,10 @@ class PackageCommand(CoreCommand):
         )
 
     @staticmethod
-    def format_acronyms(formatter: PackageCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
-                    RowDefinition(
-                        text="\n",
-                    ),
                     RowDefinition(
                         name="S3",
                         text="Simple Storage Service",
@@ -120,7 +110,7 @@ class PackageCommand(CoreCommand):
                 col_max=COL_SIZE_MODIFIER,
             )
 
-    def format_options(self, ctx: Context, formatter: PackageCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         # `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

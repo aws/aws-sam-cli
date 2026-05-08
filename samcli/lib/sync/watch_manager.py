@@ -22,7 +22,7 @@ from samcli.lib.utils.code_trigger_factory import CodeTriggerFactory
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.path_observer import HandlerObserver
 from samcli.lib.utils.resource_trigger import OnChangeCallback, TemplateTrigger
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
 if TYPE_CHECKING:  # pragma: no cover
     from samcli.commands.build.build_context import BuildContext
@@ -152,10 +152,10 @@ class WatchManager:
                     extra=dict(markup=True),
                 )
                 continue
-            except ResourceNotFound:
+            except (ResourceNotFound, FunctionNotFound):
                 LOG.warning(
                     self._color.color_log(
-                        msg="CodeTrigger not created as %s is not found or is with a S3 Location.",
+                        msg="CodeTrigger not created as %s is not found or is with a remote location (S3/ECR).",
                         color=Colors.WARNING,
                     ),
                     str(resource_id),
@@ -277,7 +277,13 @@ class WatchManager:
             )
             # Unschedule all triggers and only add back the template one as infra sync is incorrect.
             self._observer.unschedule_all()
-            self._add_template_triggers()
+            try:
+                self._add_template_triggers()
+            except Exception as trigger_err:
+                LOG.warning(
+                    "Failed to re-add template triggers, will retry on next change: %s",
+                    trigger_err,
+                )
         else:
             # Update stacks and repopulate triggers
             # Trigger are not removed until infra sync is finished as there

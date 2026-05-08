@@ -85,6 +85,13 @@ def local_common_options(f):
             "--add-host example.com:127.0.0.1",
         ),
         click.option(
+            "--container-dns",
+            multiple=True,
+            help="Set custom DNS servers for the Lambda container. "
+            "This parameter can be passed multiple times to specify multiple DNS servers. "
+            "Example: --container-dns 8.8.8.8 --container-dns 1.1.1.1",
+        ),
+        click.option(
             "--invoke-image",
             "-ii",
             default=None,
@@ -244,15 +251,12 @@ def warm_containers_common_options(f):
             "--warm-containers",
             help="""
             \b
-            Optional. Specifies how AWS SAM CLI manages 
-            containers for each function.
+            Optional. Specifies how AWS SAM CLI manages containers for each function.'            
+            \b
             Two modes are available:
-            EAGER: Containers for all functions are 
-            loaded at startup and persist between 
-            invocations.
-            LAZY:  Containers are only loaded when each 
-            function is first invoked. Those containers 
-            persist for additional invocations.
+            EAGER: Containers for all functions are loaded at startup and persist between invocations.
+            LAZY:  Containers are only loaded when each function is first invoked. 
+                   Those containers persist for additional invocations.
             """,
             type=click.Choice(ContainersInitializationMode.__members__, case_sensitive=False),
         ),
@@ -268,8 +272,11 @@ def warm_containers_common_options(f):
             "--no-watch",
             is_flag=True,
             default=False,
-            help="Disable file watching when --warm-containers is set. "
-            "Local code changes will not reset running docker container.",
+            help="Disable file watching for hot reload. Only applies when --warm-containers is set. "
+            "When enabled, local code or template changes will not restart the running container; "
+            "stop and rerun the command to pick up changes. Useful when file watching causes "
+            "high CPU/IO (e.g. Microsoft Defender on Windows, large monorepos, or projects "
+            "using auto-generated directories like .sandbox).",
         ),
     ]
 

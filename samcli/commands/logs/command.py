@@ -154,7 +154,7 @@ def do_cli(
     Implementation of the ``cli`` method
     """
 
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     from samcli.commands.logs.logs_context import ResourcePhysicalIdResolver, parse_time
     from samcli.commands.logs.puller_factory import generate_puller
@@ -168,7 +168,7 @@ def do_cli(
         )
 
     sanitized_start_time = parse_time(start_time, "start-time")
-    sanitized_end_time = parse_time(end_time, "end-time") or datetime.utcnow()
+    sanitized_end_time = parse_time(end_time, "end-time") or datetime.now(timezone.utc)
 
     boto_client_provider = get_boto_client_provider_with_config(region=region, profile=profile)
     boto_resource_provider = get_boto_resource_provider_with_config(region=region, profile=profile)

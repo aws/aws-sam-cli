@@ -7,11 +7,10 @@ import os
 from typing import List
 
 from samcli.lib.utils.packagetype import IMAGE
+from samcli.local.docker.container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
 from samcli.local.docker.exceptions import InvalidRuntimeException
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
-
-from .container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
-from .lambda_image import LambdaImage, Runtime
+from samcli.local.docker.lambda_image import LambdaImage, Runtime
 
 LOG = logging.getLogger(__name__)
 
@@ -57,6 +56,7 @@ class LambdaContainer(Container):
         extra_hosts=None,
         function_full_path=None,
         mount_symlinks=False,
+        container_dns=None,
     ):
         """
         Initializes the class
@@ -99,6 +99,8 @@ class LambdaContainer(Container):
             Optional. The function full path, unique in all stacks
         mount_symlinks bool
             Optional. True is symlinks should be mounted in the container
+        container_dns tuple
+            Optional. Tuple of DNS server IP addresses for the container
         """
         if not Runtime.has_value(runtime) and not packagetype == IMAGE:
             raise InvalidRuntimeException(INVALID_RUNTIME_MESSAGE.format(runtime=runtime))
@@ -135,6 +137,16 @@ class LambdaContainer(Container):
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
 
         env_vars = {**env_vars, **container_env_vars}
+
+        # Prepare container labels with SAM CLI defaults
+        container_labels = {
+            "sam.cli.container.type": "lambda",
+            "sam.cli.function.name": function_full_path or "unknown",
+            "sam.cli.runtime": runtime or "unknown",
+        }
+
+        # Only use SAM CLI default labels
+
         super().__init__(
             image,
             _command if _command else [],
@@ -150,6 +162,9 @@ class LambdaContainer(Container):
             container_host_interface=container_host_interface,
             extra_hosts=extra_hosts,
             mount_symlinks=mount_symlinks,
+            labels=container_labels,
+            container_dns=container_dns,
+            debug_options=debug_options,
         )
 
     @staticmethod
@@ -300,3 +315,7 @@ class LambdaContainer(Container):
             runtime=runtime,
             options=LambdaContainer._DEBUG_ENTRYPOINT_OPTIONS,
         )
+
+    def get_port(self):
+        """Get the host port that the Lambda container is bound to."""
+        return self.rapid_port_host

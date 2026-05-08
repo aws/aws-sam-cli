@@ -1,5 +1,5 @@
 import copy
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest import TestCase
 from unittest.mock import Mock, call, patch, ANY
 
@@ -26,7 +26,7 @@ class TestCWLogPuller_load_time_period(TestCWLogPullerBase):
     def setUp(self):
         self.log_group_name = "name"
         self.stream_name = "stream name"
-        self.timestamp = to_timestamp(datetime.utcnow())
+        self.timestamp = to_timestamp(datetime.now(timezone.utc))
 
         self.consumer = Mock()
         self.fetcher = CWLogPuller(self.real_client, self.consumer, self.log_group_name)
@@ -89,8 +89,8 @@ class TestCWLogPuller_load_time_period(TestCWLogPullerBase):
 
     def test_must_fetch_logs_with_all_params(self):
         pattern = "foobar"
-        start = datetime.utcnow()
-        end = datetime.utcnow()
+        start = datetime.now(timezone.utc)
+        end = datetime.now(timezone.utc)
 
         expected_params = {
             "logGroupName": self.log_group_name,
@@ -112,8 +112,8 @@ class TestCWLogPuller_load_time_period(TestCWLogPullerBase):
     @patch("samcli.lib.observability.cw_logs.cw_log_puller.LOG")
     def test_must_print_resource_not_found_only_once(self, patched_log):
         pattern = "foobar"
-        start = datetime.utcnow()
-        end = datetime.utcnow()
+        start = datetime.now(timezone.utc)
+        end = datetime.now(timezone.utc)
 
         expected_params = {
             "logGroupName": self.log_group_name,

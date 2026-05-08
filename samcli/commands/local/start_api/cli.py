@@ -48,6 +48,10 @@ DESCRIPTION = """
   a interpreted language, local changes will be available immediately in Docker container on every invoke. For more
   compiled languages or projects requiring complex packing support, it is recommended to run custom building solution
   and point AWS SAM CLI to the directory or file containing build artifacts.
+
+  For testing multi-tenant functions, pass tenant-id via X-Amz-Tenant-Id header. By default, each request uses a new 
+  container providing tenant isolation. When using --warm-containers, containers are reused and do not 
+  provide tenant isolation like production Lambda.
 """
 
 
@@ -143,6 +147,7 @@ def cli(
     ssl_key_file,
     no_watch,
     no_memory_limit,
+    container_dns,
 ):
     """
     `sam local start-api` command entry point
@@ -180,6 +185,7 @@ def cli(
         ssl_key_file,
         no_memory_limit,
         no_watch,
+        container_dns,
     )  # pragma: no cover
 
 
@@ -214,6 +220,7 @@ def do_cli(  # pylint: disable=R0914
     ssl_key_file,
     no_mem_limit,
     no_watch,
+    container_dns,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -261,6 +268,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             no_mem_limit=no_mem_limit,
             no_watch=no_watch,
+            container_dns=container_dns,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(

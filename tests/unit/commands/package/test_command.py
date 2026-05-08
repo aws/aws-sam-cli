@@ -1,7 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
-from samcli.commands.package.command import do_cli
+from samcli.commands.package.command import do_cli, resources_and_properties_help_string
+from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
 
 
 class TestPackageCliCommand(TestCase):
@@ -20,6 +21,7 @@ class TestPackageCliCommand(TestCase):
         self.region = None
         self.profile = None
         self.resolve_s3 = False
+        self.resolve_image_repos = False
         self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
 
     @patch("samcli.commands.package.command.click")
@@ -43,6 +45,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=self.resolve_s3,
+            resolve_image_repos=self.resolve_image_repos,
             signing_profiles=self.signing_profiles,
         )
 
@@ -61,6 +64,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=self.resolve_image_repos,
         )
 
         context_mock.run.assert_called_with()
@@ -89,6 +93,7 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             resolve_s3=True,
+            resolve_image_repos=False,
             signing_profiles=self.signing_profiles,
         )
 
@@ -107,7 +112,84 @@ class TestPackageCliCommand(TestCase):
             region=self.region,
             profile=self.profile,
             signing_profiles=self.signing_profiles,
+            resolve_image_repos=False,
         )
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_resolve_image_repos_without_s3_bucket_raises_error(self, package_command_context, click_mock):
+        with self.assertRaises(PackageResolveS3AndS3NotSetError):
+            do_cli(
+                template_file=self.template_file,
+                s3_bucket=None,
+                s3_prefix=self.s3_prefix,
+                image_repository=None,
+                image_repositories=None,
+                kms_key_id=self.kms_key_id,
+                output_template_file=self.output_template_file,
+                use_json=self.use_json,
+                force_upload=self.force_upload,
+                no_progressbar=self.no_progressbar,
+                metadata=self.metadata,
+                region=self.region,
+                profile=self.profile,
+                resolve_s3=False,
+                resolve_image_repos=True,
+                signing_profiles=self.signing_profiles,
+            )
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_all_args_with_resolve_image_repos(self, package_command_context, click_mock):
+        context_mock = Mock()
+        package_command_context.return_value.__enter__.return_value = context_mock
+
+        do_cli(
+            template_file=self.template_file,
+            s3_bucket=self.s3_bucket,
+            s3_prefix=self.s3_prefix,
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=self.kms_key_id,
+            output_template_file=self.output_template_file,
+            use_json=self.use_json,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            metadata=self.metadata,
+            region=self.region,
+            profile=self.profile,
+            resolve_s3=False,
+            resolve_image_repos=True,
+            signing_profiles=self.signing_profiles,
+        )
+
+        package_command_context.assert_called_with(
+            template_file=self.template_file,
+            s3_bucket=self.s3_bucket,
+            s3_prefix=self.s3_prefix,
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=self.kms_key_id,
+            output_template_file=self.output_template_file,
+            use_json=self.use_json,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            metadata=self.metadata,
+            region=self.region,
+            profile=self.profile,
+            signing_profiles=self.signing_profiles,
+            resolve_image_repos=True,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)
+
+    def test_resources_and_properties_help_string(self):
+        # Test that the help string generator works
+        help_string = resources_and_properties_help_string()
+        self.assertIsInstance(help_string, str)
+        # Should contain resource and location information
+        self.assertTrue(len(help_string) > 0)

@@ -6,7 +6,7 @@ from samcli.lib.utils.system_info import (
     gather_system_info,
     gather_additional_dependencies_info,
     _gather_cdk_info,
-    _gather_docker_info,
+    _gather_container_engine_info,
     _gather_terraform_info,
 )
 
@@ -20,31 +20,68 @@ class TestSystemInfo(TestCase):
         result = gather_system_info()
         self.assertEqual(result, {"python": "1.2.3", "os": "some_system"})
 
-    @patch("samcli.lib.utils.system_info._gather_docker_info")
+    @patch("samcli.lib.utils.system_info._gather_container_engine_info")
     @patch("samcli.lib.utils.system_info._gather_cdk_info")
     @patch("samcli.lib.utils.system_info._gather_terraform_info")
-    def test_gather_additional_dependencies_info(self, terraform_info_mock, cdk_info_mock, docker_info_mock):
-        docker_info_mock.return_value = "1.1.1"
+    def test_gather_additional_dependencies_info(self, terraform_info_mock, cdk_info_mock, container_info_mock):
+        container_info_mock.return_value = "Docker(v1.1.1)"
         cdk_info_mock.return_value = "2.2.2"
         terraform_info_mock.return_value = "3.3.3"
         result = gather_additional_dependencies_info()
-        self.assertEqual(result, {"docker_engine": "1.1.1", "aws_cdk": "2.2.2", "terraform": "3.3.3"})
+        self.assertEqual(result, {"container_engine": "Docker(v1.1.1)", "aws_cdk": "2.2.2", "terraform": "3.3.3"})
 
-    @patch("docker.from_env")
-    @patch("samcli.local.docker.utils.is_docker_reachable")
-    def test_gather_docker_info_when_client_is_reachable(self, is_docker_reachable_mock, from_env_mock):
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_docker_client_is_reachable(self, mock_create_client):
         docker_client_mock = Mock()
-        is_docker_reachable_mock.return_value = True
         docker_client_mock.version.return_value = {"Version": "1.1.1"}
-        from_env_mock.return_value = docker_client_mock
-        result = _gather_docker_info()
-        self.assertEqual(result, "1.1.1")
+        docker_client_mock.get_runtime_type.return_value = "docker"
+        mock_create_client.return_value = docker_client_mock
+        result = _gather_container_engine_info()
+        self.assertEqual(result, "Docker(v1.1.1)")
 
-    @patch("docker.from_env")
-    @patch("samcli.local.docker.utils.is_docker_reachable")
-    def test_gather_docker_info_when_client_is_not_reachable(self, is_docker_reachable_mock, from_env_mock):
-        is_docker_reachable_mock.return_value = False
-        result = _gather_docker_info()
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_finch_client_is_reachable(self, mock_create_client):
+        finch_client_mock = Mock()
+        finch_client_mock.version.return_value = {"Version": "v0.20.0"}
+        finch_client_mock.get_runtime_type.return_value = "finch"
+        mock_create_client.return_value = finch_client_mock
+        result = _gather_container_engine_info()
+        self.assertEqual(result, "Finch(v0.20.0)")
+
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_version_not_available(self, mock_create_client):
+        client_mock = Mock()
+        client_mock.version.return_value = {"Version": "Not available"}
+        client_mock.get_runtime_type.return_value = "finch"
+        mock_create_client.return_value = client_mock
+        result = _gather_container_engine_info()
+        self.assertEqual(result, "Not available")
+
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_version_key_missing(self, mock_create_client):
+        client_mock = Mock()
+        client_mock.version.return_value = {}  # No "Version" key
+        client_mock.get_runtime_type.return_value = "finch"
+        mock_create_client.return_value = client_mock
+        result = _gather_container_engine_info()
+        self.assertEqual(result, "Not available")
+
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_client_has_no_runtime_type(self, mock_create_client):
+        # Test legacy client without get_runtime_type method
+        client_mock = Mock()
+        client_mock.version.return_value = {"Version": "1.1.1"}
+        del client_mock.get_runtime_type  # Remove the method
+        mock_create_client.return_value = client_mock
+        result = _gather_container_engine_info()
+        self.assertEqual(result, "Docker(v1.1.1)")
+
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_gather_container_engine_info_when_client_is_not_reachable(self, mock_create_client):
+        from samcli.local.docker.exceptions import ContainerNotReachableException
+
+        mock_create_client.side_effect = ContainerNotReachableException("No container runtime available")
+        result = _gather_container_engine_info()
         self.assertEqual(result, "Not available")
 
     @patch("subprocess.run")

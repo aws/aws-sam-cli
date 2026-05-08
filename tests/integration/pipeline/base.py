@@ -65,12 +65,31 @@ class BootstrapIntegBase(PipelineBase):
         super().setUp()
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
 
+    # Max time in seconds to wait for each stack deletion to complete
+    STACK_DELETE_TIMEOUT_SECONDS = 180
+
     def tearDown(self):
         for stack_name in self.stack_names:
             self._cleanup_s3_buckets(stack_name)
             self.cf_client.delete_stack(StackName=stack_name)
+        self._wait_for_stack_deletions()
         shutil.rmtree(os.path.join(os.getcwd(), ".aws-sam", "pipeline"), ignore_errors=True)
         super().tearDown()
+
+    def _wait_for_stack_deletions(self):
+        """Wait for all stack deletions to complete so subsequent runs don't collide."""
+        waiter = self.cf_client.get_waiter("stack_delete_complete")
+        for stack_name in self.stack_names:
+            try:
+                waiter.wait(
+                    StackName=stack_name,
+                    WaiterConfig={
+                        "Delay": 10,
+                        "MaxAttempts": self.STACK_DELETE_TIMEOUT_SECONDS // 10,
+                    },
+                )
+            except botocore.exceptions.WaiterError:
+                logging.warning("Timed out waiting for stack %s to delete", stack_name)
 
     def _cleanup_s3_buckets(self, stack_name):
         try:

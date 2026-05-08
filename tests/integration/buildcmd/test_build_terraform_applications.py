@@ -11,14 +11,14 @@ from typing import Optional
 from unittest import skipIf
 
 import boto3
-import docker
 import pytest
 
 from parameterized import parameterized_class
 
+from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_parse
 from tests.integration.buildcmd.build_integ_base import BuildIntegBase
-from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUN_BY_CANARY, USING_FINCH_RUNTIME
 from tests.testing_utils import run_command as static_run_command
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class BuildTerraformApplicationIntegBase(BuildIntegBase):
         super(BuildTerraformApplicationIntegBase, cls).setUpClass()
         cls.terraform_application_path = str(Path(cls.test_data_path, cls.terraform_application))
         if cls.build_in_container:
-            cls.client = docker.from_env()
+            cls.client = get_validated_container_client()
             cls.image_name = "sam-terraform-python-build"
             cls.docker_tag = f"{cls.image_name}:v1"
             cls.terraform_sam_build_image_context_path = str(
@@ -253,6 +253,7 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndLocalBackendWit
             cls.terraform_application = "terraform/zip_based_lambda_functions_local_backend_container_windows"
         super().setUpClass()
 
+    @pytest.mark.tier1
     def test_build_and_invoke_lambda_functions(self):
         self.validate_metadata_file()
         self._verify_invoke_built_function(
@@ -385,6 +386,10 @@ class TestBuildTerraformApplicationsWithZipBasedLambdaFunctionAndS3Backend(Build
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
+@skipIf(
+    USING_FINCH_RUNTIME,
+    "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(BuildTerraformApplicationIntegBase):
     function_identifier = "aws_lambda_function.function_with_non_image_uri"
     terraform_application = Path("terraform/image_based_lambda_functions_local_backend")
@@ -407,6 +412,10 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndLocalBackend(
     (not RUN_BY_CANARY and not CI_OVERRIDE),
     "Skip Terraform test cases unless running in CI",
 )
+@skipIf(
+    USING_FINCH_RUNTIME,
+    "Skip test when using Finch runtime: Terraform Docker provider cannot connect to Finch daemon via Docker socket",
+)
 class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
     BuildTerraformApplicationS3BackendIntegBase
 ):
@@ -426,3 +435,57 @@ class TestBuildTerraformApplicationsWithImageBasedLambdaFunctionAndS3Backend(
                 "multiValueHeaders": None,
             },
         )
+
+
+@skipIf(
+    (not RUN_BY_CANARY and not CI_OVERRIDE),
+    "Skip Terraform test cases unless running in CI",
+)
+class TestBuildTerraformWithSymlinkZip(BuildTerraformApplicationIntegBase):
+    """Test sam build --hook-name terraform with a zip artifact containing symlinks."""
+
+    terraform_application = Path("terraform/zip_with_symlink")
+    function_identifier = "aws_lambda_function.symlink_function"
+
+    def setUp(self):
+        # Call grandparent setUp (BuildIntegBase) for working_dir setup, then copy terraform project.
+        # Skip BuildTerraformApplicationIntegBase.setUp which calls build_with_prepare_hook().
+        BuildIntegBase.setUp(self)
+        shutil.rmtree(Path(self.working_dir))
+        shutil.copytree(Path(self.terraform_application_path), Path(self.working_dir))
+
+    def _run_build(self, mount_symlinks=False):
+        build_cmd = self.get_command_list(
+            function_identifier=self.function_identifier,
+            hook_name="terraform",
+            mount_symlinks=mount_symlinks,
+        )
+        LOG.info("Running: %s", " ".join(build_cmd))
+        return self.run_command(build_cmd)
+
+    def test_build_fails_without_mount_symlinks(self):
+        """Build should fail when zip contains absolute symlink and --mount-symlinks is not set."""
+        _, stderr, returncode = self._run_build(mount_symlinks=False)
+        stderr_str = stderr.decode("utf-8") if isinstance(stderr, bytes) else stderr
+        self.assertNotEqual(returncode, 0, f"Expected build to fail but it succeeded. stderr: {stderr_str}")
+        self.assertIn(
+            "Failed to extract file from the zip file. A symlink has an absolute target which is not allowed",
+            stderr_str,
+        )
+
+    def test_build_succeeds_with_mount_symlinks(self):
+        """Build should succeed when zip contains absolute symlink and --mount-symlinks is set."""
+        _, stderr, returncode = self._run_build(mount_symlinks=True)
+        stderr_str = stderr.decode("utf-8") if isinstance(stderr, bytes) else stderr
+        self.assertEqual(returncode, 0, f"Expected build to succeed but it failed. stderr: {stderr_str}")
+
+        # Find the function build directory (SAM CLI generates a hashed logical ID)
+        build_dir = Path(self.working_dir) / ".aws-sam" / "build"
+        self.assertTrue(build_dir.exists(), f"Build output directory not found: {build_dir}")
+        function_dirs = [d for d in build_dir.iterdir() if d.is_dir()]
+        self.assertEqual(len(function_dirs), 1, f"Expected 1 function dir, found: {function_dirs}")
+
+        function_dir = function_dirs[0]
+        symlink_path = function_dir / "external_link"
+        self.assertTrue(symlink_path.is_symlink(), f"Expected symlink at {symlink_path}")
+        self.assertEqual(os.readlink(str(symlink_path)), "/tmp/some_external_target")

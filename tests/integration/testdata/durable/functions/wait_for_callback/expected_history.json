@@ -1,0 +1,87 @@
+[
+  {
+    "EventType": "ExecutionStarted",
+    "EventId": 1,
+    "ExecutionStartedDetails": {
+      "Input": {
+        "Payload": "{}",
+        "Truncated": false
+      },
+      "ExecutionTimeout": 900
+    }
+  },
+  {
+    "EventType": "ContextStarted",
+    "SubType": "RunInChildContext",
+    "EventId": 2,
+    "Name": "external_call",
+    "ContextStartedDetails": {}
+  },
+  {
+    "EventType": "CallbackStarted",
+    "SubType": "Callback",
+    "EventId": 3,
+    "Name": "external_call create callback id",
+    "CallbackStartedDetails": {}
+  },
+  {
+    "EventType": "StepStarted",
+    "SubType": "Step",
+    "EventId": 4,
+    "Name": "external_call submitter",
+    "StepStartedDetails": {}
+  },
+  {
+    "EventType": "StepSucceeded",
+    "SubType": "Step",
+    "EventId": 5,
+    "Name": "external_call submitter",
+    "StepSucceededDetails": {
+      "Result": {
+        "Payload": "null",
+        "Truncated": false
+      }
+    }
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 6
+  },
+  {
+    "EventType": "CallbackSucceeded",
+    "SubType": "Callback",
+    "EventId": 7,
+    "Name": "external_call create callback id",
+    "CallbackSucceededDetails": {
+      "Result": {
+        "Truncated": false
+      }
+    }
+  },
+  {
+    "EventType": "ContextSucceeded",
+    "SubType": "RunInChildContext",
+    "EventId": 8,
+    "Name": "external_call",
+    "ContextSucceededDetails": {
+      "Result": {
+        "Payload": "null",
+        "Truncated": false
+      }
+    }
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 9
+  },
+  {
+    "EventType": "ExecutionSucceeded",
+    "EventId": 10,
+    "ExecutionSucceededDetails": {
+      "Result": {
+        "Payload": "\"External system result: None\"",
+        "Truncated": false
+      }
+    }
+  }
+]

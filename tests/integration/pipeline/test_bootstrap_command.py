@@ -356,9 +356,7 @@ class TestBootstrap(BootstrapIntegBase):
                 "y",  # Create resources confirmation
             ]
 
-            bootstrap_process_execute = run_command_with_input(
-                bootstrap_command_list, ("\n".join(inputs) + "\n").encode()
-            )
+            bootstrap_process_execute = run_command_with_inputs(bootstrap_command_list, inputs)
 
             self.assertEqual(bootstrap_process_execute.process.returncode, 0)
             stdout = bootstrap_process_execute.stdout.decode()

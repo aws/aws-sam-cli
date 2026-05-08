@@ -1,0 +1,25 @@
+[
+  {
+    "EventType": "ExecutionStarted",
+    "EventId": 1,
+    "Name": "executiontimeout-integration-test",
+    "ExecutionStartedDetails": {
+      "ExecutionTimeout": 5
+    }
+  },
+  {
+    "EventType": "WaitStarted",
+    "SubType": "Wait",
+    "EventId": 2,
+    "Name": "custom_wait"
+  },
+  {
+    "EventType": "InvocationCompleted",
+    "EventId": 3
+  },
+  {
+    "EventType": "ExecutionTimedOut",
+    "EventId": 4,
+    "Name": "executiontimeout-integration-test"
+  }
+]

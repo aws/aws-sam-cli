@@ -3,7 +3,6 @@ import shutil
 from pathlib import Path
 from unittest import skipIf
 
-import docker
 import pytest
 from docker.errors import APIError
 from parameterized import parameterized
@@ -12,6 +11,7 @@ from timeit import default_timer as timer
 from samcli import __version__ as version
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from samcli.lib.utils.architecture import X86_64
+from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase, SKIP_LAYERS_TESTS
 from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
@@ -146,7 +146,7 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
 
     def tearDown(self) -> None:
         # Tear down a unique image resource after it is finished being used
-        docker_client = docker.from_env()
+        docker_client = get_validated_container_client()
         try:
             to_remove = self.teardown_function_name
             docker_client.api.remove_image(f"{to_remove.lower()}")

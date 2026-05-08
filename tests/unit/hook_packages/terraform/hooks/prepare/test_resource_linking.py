@@ -909,7 +909,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(len(results), 2)
         self.assertEqual(results[0], value1)
         self.assertEqual(results[1], value2)
-        get_configuration_address_mock.has_calls([call("layer_arn_1"), call("layer_arn_2")])
+        get_configuration_address_mock.assert_has_calls([call("layer_arn_1"), call("layer_arn_2")])
         resolve_module_variable_mock.assert_has_calls(
             [
                 call(
@@ -965,7 +965,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0], value1)
         self.assertEqual(results[1], value2)
 
-        get_configuration_address_mock.has_calls([call("layer1"), call("layer2")])
+        get_configuration_address_mock.assert_has_calls([call("layer1"), call("layer2")])
 
         resolve_module_output_mock.assert_has_calls(
             [
@@ -1045,7 +1045,7 @@ class TestResourceLinking(TestCase):
         self.assertEqual(results[0], module_reference_value)
         self.assertEqual(results[1], variable_reference_value)
 
-        get_configuration_address_mock.has_calls([call("layer1"), call("layer2_arn")])
+        get_configuration_address_mock.assert_has_calls([call("layer1"), call("layer2_arn")])
 
         resolve_module_output_mock.assert_has_calls(
             [

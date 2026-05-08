@@ -2008,7 +2008,7 @@ N
         request_mock.side_effect = requests.Timeout()
         init_options_from_manifest_mock.return_value = [
             {
-                "directory": "python3.13/cookiecutter-aws-sam-hello-python",
+                "directory": "python3.14/cookiecutter-aws-sam-hello-python",
                 "displayName": "Hello World Example",
                 "dependencyManager": "pip",
                 "appTemplate": "hello-world",
@@ -2016,7 +2016,7 @@ N
                 "useCaseName": "Hello World Example",
             },
             {
-                "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
+                "directory": "java25/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
                 "displayName": "EventBridge App from scratch (100+ Event Schemas): Maven",
                 "dependencyManager": "maven",
                 "appTemplate": "eventBridge-schema-app",
@@ -2028,10 +2028,10 @@ N
 
         get_preprocessed_manifest_mock.return_value = {
             "Hello World Example": {
-                "python3.13": {
+                "python3.14": {
                     "Zip": [
                         {
-                            "directory": "python3.13/cookiecutter-aws-sam-hello-python3.12",
+                            "directory": "python3.14/cookiecutter-aws-sam-hello-python3.12",
                             "displayName": "Hello World Example",
                             "dependencyManager": "pip",
                             "appTemplate": "hello-world",
@@ -2040,7 +2040,7 @@ N
                         },
                     ]
                 },
-                "java11": {
+                "java25": {
                     "Zip": [
                         {
                             "directory": "java11/cookiecutter-aws-sam-eventbridge-schema-app-java-maven",
@@ -2077,12 +2077,12 @@ test-project
         generate_project_patch.assert_called_once_with(
             ANY,
             ZIP,
-            "python3.13",
+            "python3.14",
             "pip",
             ".",
             "test-project",
             True,
-            {"project_name": "test-project", "runtime": "python3.13", "architectures": {"value": ["x86_64"]}},
+            {"project_name": "test-project", "runtime": "python3.14", "architectures": {"value": ["x86_64"]}},
             False,
             False,
             False,

@@ -47,6 +47,7 @@ class TestCli(TestCase):
         self.hook_name = None
         self.no_mem_limit = False
         self.no_watch = False
+        self.container_dns = None
 
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.lib.local_lambda_service.LocalLambdaService")
@@ -86,8 +87,10 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            function_logical_ids=(),
             no_mem_limit=self.no_mem_limit,
             no_watch=self.no_watch,
+            container_dns=self.container_dns,
         )
 
         local_lambda_service_mock.assert_called_with(lambda_invoke_context=context_mock, port=self.port, host=self.host)
@@ -136,8 +139,10 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            function_logical_ids=(),
             no_mem_limit=self.no_mem_limit,
             no_watch=True,  # Verify this is True
+            container_dns=self.container_dns,
         )
 
         service_mock.start.assert_called_with()
@@ -214,6 +219,7 @@ class TestCli(TestCase):
     def call_cli(self):
         start_lambda_cli(
             ctx=self.ctx_mock,
+            function_logical_ids=(),
             host=self.host,
             port=self.port,
             template=self.template,
@@ -239,4 +245,5 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             no_mem_limit=self.no_mem_limit,
             no_watch=self.no_watch,
+            container_dns=self.container_dns,
         )

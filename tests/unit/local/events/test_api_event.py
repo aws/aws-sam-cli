@@ -2,7 +2,7 @@ from unittest import TestCase
 from unittest.mock import Mock
 
 from time import time
-from datetime import datetime
+from datetime import datetime, timezone
 from samcli.local.apigw.route import Route
 
 from samcli.local.events.api_event import (
@@ -245,7 +245,7 @@ class TestRequestContextV2(TestCase):
         http_mock = Mock()
         http_mock.to_dict.return_value = {"method": "POST"}
         request_time_epoch = int(time())
-        request_time = datetime.utcnow().strftime("%d/%b/%Y:%H:%M:%S +0000")
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         request_context = RequestContextV2(
             "account_id", "api_id", http_mock, "request_id", "route_key", "stage", request_time_epoch, request_time

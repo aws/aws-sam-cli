@@ -91,7 +91,8 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             "tags": "integ=true clarity=yes",
         }
 
-        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=2)
+        # AWS CLI v2 returns 252 for missing required arguments (command line parsing error)
+        self.deploy_regression_check(arguments, sam_return_code=2, aws_return_code=252)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_with_no_capabilities(self, template_file):
@@ -135,7 +136,8 @@ class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
             "tags": "integ=true clarity=yes",
         }
         # if no template file is specified, sam cli looks for a template.yaml in the current working directory.
-        self.deploy_regression_check(arguments, sam_return_code=1, aws_return_code=2)
+        # AWS CLI v2 returns 252 for missing required arguments (command line parsing error)
+        self.deploy_regression_check(arguments, sam_return_code=1, aws_return_code=252)
 
     @parameterized.expand(["aws-serverless-function.yaml"])
     def test_deploy_with_no_changes(self, template_file):

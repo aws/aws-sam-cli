@@ -23,3 +23,10 @@ Resources:
       Handler: main.default_handler
       Runtime: python3.9
       CodeUri: ./lambda-fns
+
+  HelloWorldFunction4:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.default_handler
+      Runtime: python3.9
+      CodeUri: ./lambda-fns

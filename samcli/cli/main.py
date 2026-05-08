@@ -134,6 +134,11 @@ def cli(ctx):
     import atexit
 
     from samcli.lib.telemetry.metric import emit_all_metrics, send_installed_metric
+    from samcli.lib.utils.subprocess_utils import isolate_library_paths_for_subprocess
+
+    # When running from PyInstaller bundle, isolate library paths so external processes
+    # (npm, node, pip, etc.) use system libraries instead of bundled ones
+    isolate_library_paths_for_subprocess()
 
     # if development version of SAM CLI is used, attach module proxy
     # to catch missing configuration for dynamic/hidden imports
@@ -142,7 +147,7 @@ def cli(ctx):
     if ctx and getattr(ctx, "command_path", None) == "samdev":
         from samcli.cli.import_module_proxy import attach_import_module_proxy
 
-        LOG.info("Attaching import module proxy for analyzing dynamic imports")
+        LOG.debug("Attaching import module proxy for analyzing dynamic imports")
         attach_import_module_proxy()
 
     gc = GlobalConfig()

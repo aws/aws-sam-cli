@@ -4,6 +4,9 @@ Supplies the environment variables necessary to set up Local Lambda runtime
 
 import sys
 from enum import IntEnum
+from typing import Optional
+
+from samcli.lib.providers.provider import CapacityProviderConfig
 
 
 class Python(IntEnum):
@@ -49,6 +52,8 @@ class EnvironmentVariables:
         shell_env_values=None,
         override_values=None,
         aws_creds=None,
+        capacity_provider_configuration: Optional[CapacityProviderConfig] = None,
+        is_debugging=False,
     ):
         """
         Initializes this class. It takes in two sets of properties:
@@ -68,6 +73,8 @@ class EnvironmentVariables:
             from ``default_values`` and ``shell_env_values``.
         :param dict aws_creds: Optional. Dictionary containing AWS credentials passed to the Lambda runtime through
             environment variables. It should contain "key", "secret", "region" and optional "sessiontoken" keys
+        :param CapacityProviderConfig capacity_provider_configuration: Optional. Configuration for LMI function
+            capacity provider
         """
 
         self._function = {
@@ -75,6 +82,7 @@ class EnvironmentVariables:
             "timeout": function_timeout,
             "handler": function_handler,
             "name": function_name,
+            "capacity_provider_configuration": capacity_provider_configuration,
         }
 
         self.variables = variables or {}
@@ -82,6 +90,7 @@ class EnvironmentVariables:
         self.override_values = override_values or {}
         self.aws_creds = aws_creds or {}
         self.logging_config = function_logging_config or {}
+        self.is_debugging = is_debugging
 
     def resolve(self):
         """
@@ -126,6 +135,10 @@ class EnvironmentVariables:
     @timeout.setter
     def timeout(self, value):
         self._function["timeout"] = value
+
+    @property
+    def capacity_provider_configuration(self) -> Optional[CapacityProviderConfig]:
+        return self._function.get("capacity_provider_configuration")
 
     @property
     def memory(self):
@@ -182,6 +195,14 @@ class EnvironmentVariables:
         # Session Token should be added **only** if the input creds have a token and the value is not empty.
         if self.aws_creds.get("sessiontoken"):
             result["AWS_SESSION_TOKEN"] = self.aws_creds.get("sessiontoken")
+
+        # Set AWS_LAMBDA_MAX_CONCURRENCY based on capacity provider configuration
+        # If no capacity provider configuration, AWS_LAMBDA_MAX_CONCURRENCY is not set
+        if self.capacity_provider_configuration and not self.is_debugging:
+            # If capacity provider configuration exists, use its max concurrency value (default is 4)
+            result["AWS_LAMBDA_MAX_CONCURRENCY"] = str(
+                self.capacity_provider_configuration.execution_environment_max_concurrency
+            )
 
         # Add the ApplicationLogLevel as a env variable and also update the function's LogGroup name
         log_group = self.logging_config.get("LogGroup")

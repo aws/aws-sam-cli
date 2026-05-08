@@ -14,7 +14,7 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = ["stack_name"]
 
 INPUT_EVENT_OPTIONS: List[str] = ["event", "event_file", "test_event_name"]
 
-ADDITIONAL_OPTIONS: List[str] = ["parameter", "output"]
+ADDITIONAL_OPTIONS: List[str] = ["parameter", "output", "tenant_id", "durable_execution_name"]
 
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
@@ -43,10 +43,9 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

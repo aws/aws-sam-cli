@@ -9,12 +9,12 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
+    USING_FINCH_RUNTIME,
     run_command_with_input,
 )
 from tests.integration.buildcmd.build_integ_base import (
     BuildIntegDotnetBase,
 )
-
 
 LOG = logging.getLogger(__name__)
 
@@ -30,6 +30,18 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_dotnet_al2(self, runtime, code_uri, mode, mount_mode):
+        # Skip specific test case when using Finch runtime
+        if (
+            runtime == "provided.al2"
+            and code_uri == "Dotnet7"
+            and mode is None
+            and mount_mode is None
+            and USING_FINCH_RUNTIME
+        ):
+            self.skipTest(
+                "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket"
+            )
+
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -77,6 +89,10 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             ("dotnet8", "Dotnet8", None, MountMode.WRITE),
             ("dotnet8", "Dotnet8", "debug", None),
             ("dotnet8", "Dotnet8", "debug", MountMode.WRITE),
+            ("dotnet10", "Dotnet10", None, None),
+            ("dotnet10", "Dotnet10", None, MountMode.WRITE),
+            ("dotnet10", "Dotnet10", "debug", None),
+            ("dotnet10", "Dotnet10", "debug", MountMode.WRITE),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -93,6 +109,34 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, runtime)
 
+    @pytest.mark.tier1_extra
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_dotnet_build(self):
+        """Single Dotnet build test for cross-platform validation."""
+        overrides = {
+            "Runtime": "dotnet10",
+            "CodeUri": "Dotnet10",
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": "x86_64",
+        }
+        self.validate_build_command(overrides, None)
+        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
+        self.validate_invoke_command(overrides, "dotnet10")
+
+    @pytest.mark.tier1_extra
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_tier1_dotnet_build_in_container(self):
+        """Single Dotnet container build test for cross-platform validation."""
+        overrides = {
+            "Runtime": "dotnet8",
+            "CodeUri": "Dotnet8",
+            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
+            "Architectures": "x86_64",
+        }
+        self.validate_build_command(overrides, None, MountMode.WRITE)
+        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
+        self.validate_invoke_command(overrides, "dotnet8")
+
 
 @pytest.mark.dotnet
 @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
@@ -102,7 +146,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("provided.al2", "Dotnet7", None),
         ]
     )
-    def test_dotnet_al2(self, runtime, code_uri, mode):
+    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -122,7 +166,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
             ("dotnet6", "Dotnet6", "debug"),
         ]
     )
-    def test_dotnet_6(self, runtime, code_uri, mode):
+    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -138,11 +182,13 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         [
             ("dotnet8", "Dotnet8", None),
             ("dotnet8", "Dotnet8", "debug"),
+            ("dotnet10", "Dotnet10", None),
+            ("dotnet10", "Dotnet10", "debug"),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     @pytest.mark.al2023
-    def test_dotnet_al2023(self, runtime, code_uri, mode):
+    def test_dotnet_al2023_in_container(self, runtime, code_uri, mode):
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -155,7 +201,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         self.validate_invoke_command(overrides, runtime)
 
     @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
-    def test_must_fail_on_container_mount_without_write_interactive(self, runtime, code_uri):
+    def test_must_fail_in_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
             "Runtime": runtime,
