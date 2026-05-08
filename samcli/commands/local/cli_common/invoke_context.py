@@ -257,6 +257,7 @@ class InvokeContext:
             ContainersMode.WARM: RefreshableSamFunctionProvider,
             ContainersMode.COLD: SamFunctionProvider,
         }
+
         _function_providers_args: Dict[ContainersMode, List[Any]] = {
             ContainersMode.WARM: [self._stacks, self._parameter_overrides, self._global_parameter_overrides],
             ContainersMode.COLD: [self._stacks],

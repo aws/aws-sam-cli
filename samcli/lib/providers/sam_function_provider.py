@@ -910,6 +910,8 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
+        :param bool no_watch: If True, skip creating the FileObserver entirely. The provider will not
+            detect template changes and stack/function refreshes will not be triggered.
         """
 
         # Store function_logical_ids before calling super().__init__
@@ -932,13 +934,12 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
 
         self.is_changed = False
 
-        # Only initialize file watcher if no_watch is False
+        self._observer: Optional[FileObserver] = None
+        # Only initialize file watcher when --no-watch is not set
         if not no_watch:
-            self._observer: Optional[FileObserver] = FileObserver(self._set_templates_changed)
+            self._observer = FileObserver(self._set_templates_changed)
             self._observer.start()
             self._watch_stack_templates(stacks)
-        else:
-            self._observer = None
 
     @property
     def stacks(self) -> List[Stack]:

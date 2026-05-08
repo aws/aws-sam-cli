@@ -444,7 +444,6 @@ class SingletonFileObserver(metaclass=Singleton):
         self._observed_watches: Dict[str, ObservedWatch] = {}
         self._watch_dog_observed_paths: Dict[str, List[str]] = {}
         self._observer: BaseObserver = Observer()
-
         self._code_modification_handler: PatternMatchingEventHandler = PatternMatchingEventHandler(
             patterns=["*"], ignore_patterns=[], ignore_directories=False
         )
