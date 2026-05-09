@@ -49,9 +49,7 @@ def _make_ecr_client(existing_policy_doc=None, get_side_effect=None, set_side_ef
     if get_side_effect is not None:
         ecr_client.get_repository_policy.side_effect = get_side_effect
     elif existing_policy_doc is not None:
-        ecr_client.get_repository_policy.return_value = {
-            "policyText": json.dumps(existing_policy_doc)
-        }
+        ecr_client.get_repository_policy.return_value = {"policyText": json.dumps(existing_policy_doc)}
     else:
         ecr_client.get_repository_policy.return_value = {"policyText": "{}"}
 
@@ -118,9 +116,7 @@ class TestEnsureEcrLambdaPullPolicy(TestCase):
     @patch("samcli.commands.deploy.deploy_context._upsert_ecr_lambda_policy")
     def test_deduplicates_same_repo(self, mock_upsert):
         uri = "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo:latest"
-        _ensure_ecr_lambda_pull_policy(
-            MagicMock(), {"FnA": uri, "FnB": uri}, None
-        )
+        _ensure_ecr_lambda_pull_policy(MagicMock(), {"FnA": uri, "FnB": uri}, None)
         mock_upsert.assert_called_once()
 
     @patch("samcli.commands.deploy.deploy_context._upsert_ecr_lambda_policy")
@@ -137,9 +133,7 @@ class TestEnsureEcrLambdaPullPolicy(TestCase):
 
     @patch("samcli.commands.deploy.deploy_context._upsert_ecr_lambda_policy")
     def test_singular_image_repository(self, mock_upsert):
-        _ensure_ecr_lambda_pull_policy(
-            MagicMock(), None, "123456789012.dkr.ecr.us-east-1.amazonaws.com/single:v2"
-        )
+        _ensure_ecr_lambda_pull_policy(MagicMock(), None, "123456789012.dkr.ecr.us-east-1.amazonaws.com/single:v2")
         mock_upsert.assert_called_once()
 
 
@@ -162,9 +156,10 @@ class TestUpsertEcrLambdaPolicy(TestCase):
         self.assertEqual(policy["Statement"][0]["Sid"], _SAM_ECR_POLICY_SID)
 
     def test_preserves_existing_statements_and_appends_sam(self):
-        existing = {"Version": "2012-10-17", "Statement": [
-            {"Sid": "CustomerPolicy", "Effect": "Allow", "Principal": "*", "Action": "ecr:*"}
-        ]}
+        existing = {
+            "Version": "2012-10-17",
+            "Statement": [{"Sid": "CustomerPolicy", "Effect": "Allow", "Principal": "*", "Action": "ecr:*"}],
+        }
         ecr_client = _make_ecr_client(existing_policy_doc=existing)
         _upsert_ecr_lambda_policy(ecr_client, "my-repo")
 
@@ -175,9 +170,17 @@ class TestUpsertEcrLambdaPolicy(TestCase):
         self.assertEqual(len(policy["Statement"]), 2)
 
     def test_idempotent_replaces_existing_sam_statement(self):
-        stale = {"Version": "2012-10-17", "Statement": [
-            {"Sid": _SAM_ECR_POLICY_SID, "Effect": "Deny", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "ecr:*"}
-        ]}
+        stale = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Sid": _SAM_ECR_POLICY_SID,
+                    "Effect": "Deny",
+                    "Principal": {"Service": "lambda.amazonaws.com"},
+                    "Action": "ecr:*",
+                }
+            ],
+        }
         ecr_client = _make_ecr_client(existing_policy_doc=stale)
         _upsert_ecr_lambda_policy(ecr_client, "my-repo")
 
@@ -271,9 +274,14 @@ class TestIssue8190Scenarios(TestCase):
         def cf_handler(function_name: str):
             current = json.loads(json.dumps(policy_store["doc"]))
             time.sleep(0.01)
-            current["Statement"] = [{"Sid": f"Grant_{function_name}", "Effect": "Allow",
-                                     "Principal": {"Service": "lambda.amazonaws.com"},
-                                     "Action": ["ecr:GetDownloadUrlForLayer"]}]
+            current["Statement"] = [
+                {
+                    "Sid": f"Grant_{function_name}",
+                    "Effect": "Allow",
+                    "Principal": {"Service": "lambda.amazonaws.com"},
+                    "Action": ["ecr:GetDownloadUrlForLayer"],
+                }
+            ]
             policy_store["doc"] = current
 
         threads = [threading.Thread(target=cf_handler, args=(n,)) for n in SEVEN_FUNCTIONS_SAME_REPO]

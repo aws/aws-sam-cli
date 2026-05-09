@@ -167,9 +167,7 @@ class DeployContext:
         self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)
 
         if self.image_repositories or self.image_repository:
-            ecr_client = boto3.client(
-                "ecr", region_name=self.region if self.region else None, config=boto_config
-            )
+            ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
             _ensure_ecr_lambda_pull_policy(
                 ecr_client,
                 self.image_repositories if isinstance(self.image_repositories, dict) else None,
@@ -361,7 +359,6 @@ class DeployContext:
         return parameter_values
 
 
-
 def _extract_ecr_repo_name(ecr_uri: str) -> str:
     """
     Extract the ECR repository name from a full ECR URI.
@@ -410,7 +407,7 @@ def _upsert_ecr_lambda_policy(ecr_client, repo_name: str) -> None:
     Soft-fails on AccessDenied so users who have manually pre-configured
     policies or whose IAM principal lacks ecr:SetRepositoryPolicy are not blocked.
     """
-    # Step 1: Fetch current policy (if any)
+
     existing_statements = []
     try:
         response = ecr_client.get_repository_policy(repositoryName=repo_name)
@@ -430,16 +427,13 @@ def _upsert_ecr_lambda_policy(ecr_client, repo_name: str) -> None:
             return
         raise deploy_exceptions.ECRPolicySetError(repo_name=repo_name, msg=str(ex)) from ex
 
-    # Step 2: Remove any existing SAM-owned statement (idempotent upsert)
     filtered = [s for s in existing_statements if s.get("Sid") != _SAM_ECR_POLICY_SID]
 
-    # Step 3: Build merged policy
     merged_policy = {
         "Version": "2012-10-17",
         "Statement": filtered + [_LAMBDA_ECR_POLICY_STATEMENT],
     }
 
-    # Step 4: Write the merged policy back
     try:
         ecr_client.set_repository_policy(
             repositoryName=repo_name,
