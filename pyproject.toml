@@ -63,7 +63,7 @@ dependencies = [
 
 [project.optional-dependencies]
 pre-dev = [
-    "ruff==0.15.8",
+    "ruff==0.15.12",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
