@@ -1,0 +1,112 @@
+{
+  "Parameters": {
+    "Stage": {
+      "Type": "String",
+      "Default": "Prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [
+        "Prod",
+        {"Ref": "Stage"}
+      ]
+    }
+  },
+  "Mappings": {
+    "MapName": {
+      "TopKey1": {
+        "SecondKey1": "Value1",
+        "SecondKey2": "Value2",
+        "{\"To\":\"Json\",\"String\":\"Function\"}": "Value3"
+      },
+      "TopKey2": {
+        "SecondKey1": "Value4",
+        "SecondKey2": "Value5"
+      }
+    }
+  },
+  "Resources": {
+    "Queue0": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "DelaySecond": 4
+      }
+    },
+    "Mesh": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Fn::Sub": ["${Prefix}${Suffix}", {"Suffix": "Key1", "Prefix": "Top"}]},
+            {"Fn::Sub": ["${Prefix}${Suffix}", {"Prefix": "Second", "Suffix": "Key1"}]}
+          ]
+        }
+      }
+    },
+    "Mesh2": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Fn::If": ["IsProd", "TopKey1", "TopKey2"]},
+            {"Fn::If": ["IsProd", "SecondKey1", "SecondKey2"]}
+          ]
+        }
+      }
+    },
+    "Cluster": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Fn::Join": ["", ["Top", "Key1"]]},
+            {"Fn::Join": ["", ["Second", "Key1"]]}
+          ]
+        }
+      }
+    },
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": {
+          "Fn::FindInMap": [
+            {"Fn::Select": [0, {"Fn::Split": [".", "MapName.TopKey1.SecondKey1"]}]},
+            {"Fn::Select": [1, {"Fn::Split": [".", "MapName.TopKey1.SecondKey1"]}]},
+            {"Fn::Select": [2, {"Fn::Split": [".", "MapName.TopKey1.SecondKey1"]}]}
+          ]
+        }
+      }
+    },
+    "Cluster2": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            {"Fn::Select": [{"Fn::Length": []}, {"Fn::Split": [".", "MapName.TopKey1.SecondKey2"]}]},
+            {"Fn::Select": [{"Fn::Length": ["1"]}, {"Fn::Split": [".", "MapName.TopKey1.SecondKey2"]}]},
+            {"Fn::Select": [{"Fn::Length": ["1", "2"]}, {"Fn::Split": [".", "MapName.TopKey1.SecondKey2"]}]}
+          ]
+        }
+      }
+    },
+    "Cluster3": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey1",
+            {"Fn::ToJsonString": {
+              "To": "Json",
+              "String": "Function"
+            }}
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}
