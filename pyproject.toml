@@ -73,7 +73,7 @@ dev = [
     "types-pywin32==311.0.0.20260508",
     "types-PyYAML==6.0.12.20250915",
     "types-chevron==0.14.2.20250103",
-    "types-psutil==7.2.2.20260130",
+    "types-psutil==7.2.2.20260508",
     "types-setuptools==82.0.0.20260408",
     "types-Pygments==2.19.0.20251121",
     "types-colorama==0.4.15.20260508",
