@@ -71,7 +71,7 @@ dev = [
     "pytest-cov==7.1.0",
     "mypy==2.1.0",
     "types-pywin32==311.0.0.20260508",
-    "types-PyYAML==6.0.12.20250915",
+    "types-PyYAML==6.0.12.20260510",
     "types-chevron==0.14.2.20260408",
     "types-psutil==7.2.2.20260508",
     "types-setuptools==82.0.0.20260508",
