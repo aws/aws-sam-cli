@@ -1099,9 +1099,7 @@ class TestResolveTemplate(TestCase):
         # values into logical_id_translator. Mirror that here so
         # get_translation() actually returns the list form that triggers the
         # crash on the unfixed code path.
-        symbol_resolver = IntrinsicsSymbolTable(
-            template=template, logical_id_translator={"AppName": "hello, world"}
-        )
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"AppName": "hello, world"})
         resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
         processed_template = resolver.resolve_template()
 
