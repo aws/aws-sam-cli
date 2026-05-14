@@ -2133,6 +2133,7 @@ class TestFnFindInMapResolverPartialMode:
     def test_unresolved_top_key_still_raises_in_full_mode(self):
         """In FULL mode, an unresolvable Ref raises (regression-guard for the FULL path)."""
         from samcli.lib.cfn_language_extensions.exceptions import UnresolvableReferenceError
+
         parsed = ParsedTemplate(mappings={"M": {"dev": {"k": "v"}}})
         ctx = TemplateProcessingContext(
             fragment={"Resources": {}},
@@ -2179,3 +2180,44 @@ class TestFnFindInMapResolverPartialMode:
         orch.register_resolver(FnFindInMapResolver)
         with pytest.raises(InvalidTemplateException):
             orch.resolve_value({"Fn::FindInMap": ["M", {"Fn::GetAtt": ["Q", "Arn"]}, "k"]})
+
+
+class TestFnFindInMapIssue9004Regression:
+    """End-to-end regression test for GitHub issue #9004.
+
+    Repro: a template with AWS::LanguageExtensions transform, a parameter that
+    has no Default and no override, and Fn::FindInMap using !Ref to that
+    parameter as a key. Before the fix, this raised "Fn::FindInMap layout is
+    incorrect" during sam build. After the fix, the call is preserved verbatim
+    in PARTIAL mode and CloudFormation resolves it at deploy time.
+    """
+
+    def test_template_with_unresolved_ref_in_findinmap_processes_in_partial_mode(self):
+        from samcli.lib.cfn_language_extensions.api import process_template
+
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {
+                "Stage": {"Type": "String"},
+            },
+            "Mappings": {
+                "EnvConfig": {
+                    "dev": {"BucketName": "dev-bucket"},
+                    "prod": {"BucketName": "prod-bucket"},
+                },
+            },
+            "Resources": {
+                "MyBucket": {
+                    "Type": "AWS::S3::Bucket",
+                    "Properties": {"BucketName": {"Fn::FindInMap": ["EnvConfig", {"Ref": "Stage"}, "BucketName"]}},
+                },
+            },
+        }
+
+        # In PARTIAL mode (sam build's mode), processing must not raise.
+        result = process_template(template, resolution_mode=ResolutionMode.PARTIAL)
+
+        # The Fn::FindInMap call is preserved unchanged for CloudFormation.
+        bucket_name = result["Resources"]["MyBucket"]["Properties"]["BucketName"]
+        assert bucket_name == {"Fn::FindInMap": ["EnvConfig", {"Ref": "Stage"}, "BucketName"]}
