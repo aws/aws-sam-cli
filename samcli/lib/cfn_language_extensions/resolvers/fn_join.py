@@ -39,7 +39,7 @@ class FnJoinResolver(IntrinsicFunctionResolver):
 
     _EXPECTED_ARGS = 2
 
-    def resolve(self, value: Dict[str, Any]) -> str:
+    def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::Join intrinsic function.
 
@@ -52,7 +52,9 @@ class FnJoinResolver(IntrinsicFunctionResolver):
                    E.g., {"Fn::Join": [",", ["a", "b", "c"]]}
 
         Returns:
-            A string with all list elements joined by the delimiter.
+            A string with all list elements joined by the delimiter, or - in
+            PARTIAL mode when an arg is an unresolved parameter Ref - the
+            preserved Fn::Join call as a dict.
 
         Raises:
             InvalidTemplateException: If the layout is incorrect.
