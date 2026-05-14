@@ -38,6 +38,7 @@ from samcli.lib.cfn_language_extensions.resolvers.base import (
     IntrinsicResolver,
 )
 from samcli.lib.cfn_language_extensions.resolvers.fn_find_in_map import FnFindInMapResolver
+from samcli.lib.cfn_language_extensions.resolvers.fn_ref import FnRefResolver
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
 # =============================================================================
@@ -2077,3 +2078,104 @@ class TestFnFindInMapFallbackToFragment:
         value = {"Fn::FindInMap": ["RegionMap", "us-east-1", "AMI"]}
         result = resolver.resolve(value)
         assert result == "ami-12345678"
+
+
+class TestFnFindInMapResolverPartialMode:
+    """Tests for FnFindInMapResolver in PARTIAL resolution mode (issue #9004)."""
+
+    @pytest.fixture
+    def partial_context(self) -> TemplateProcessingContext:
+        parsed = ParsedTemplate(
+            parameters={"Stage": {"Type": "String"}},
+            mappings={"M": {"dev": {"k": "v"}}},
+        )
+        return TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parsed_template=parsed,
+        )
+
+    @pytest.fixture
+    def orchestrator(self, partial_context: TemplateProcessingContext) -> IntrinsicResolver:
+        orchestrator = IntrinsicResolver(partial_context)
+        orchestrator.register_resolver(FnRefResolver)
+        orchestrator.register_resolver(FnFindInMapResolver)
+        return orchestrator
+
+    def test_unresolved_top_key_is_preserved_in_partial_mode(self, orchestrator: IntrinsicResolver):
+        """Issue #9004: top-level key is Ref to a parameter without default/override."""
+        value = {"Fn::FindInMap": ["M", {"Ref": "Stage"}, "k"]}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Fn::FindInMap": ["M", {"Ref": "Stage"}, "k"]}
+
+    def test_unresolved_map_name_is_preserved_in_partial_mode(self, orchestrator: IntrinsicResolver):
+        value = {"Fn::FindInMap": [{"Ref": "Stage"}, "dev", "k"]}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Fn::FindInMap": [{"Ref": "Stage"}, "dev", "k"]}
+
+    def test_unresolved_second_key_is_preserved_in_partial_mode(self, orchestrator: IntrinsicResolver):
+        value = {"Fn::FindInMap": ["M", "dev", {"Ref": "Stage"}]}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Fn::FindInMap": ["M", "dev", {"Ref": "Stage"}]}
+
+    def test_unresolved_key_with_default_value_is_preserved_in_partial_mode(self, orchestrator: IntrinsicResolver):
+        """When DefaultValue is present, preserve the entire call including the options dict."""
+        value = {"Fn::FindInMap": ["M", {"Ref": "Stage"}, "k", {"DefaultValue": "fallback"}]}
+        result = orchestrator.resolve_value(value)
+        assert result == {"Fn::FindInMap": ["M", {"Ref": "Stage"}, "k", {"DefaultValue": "fallback"}]}
+
+    def test_resolved_keys_still_perform_lookup_in_partial_mode(self, orchestrator: IntrinsicResolver):
+        """Sanity: when keys do resolve, lookup still works in PARTIAL mode."""
+        value = {"Fn::FindInMap": ["M", "dev", "k"]}
+        result = orchestrator.resolve_value(value)
+        assert result == "v"
+
+    def test_unresolved_top_key_still_raises_in_full_mode(self):
+        """In FULL mode, an unresolvable Ref raises (regression-guard for the FULL path)."""
+        from samcli.lib.cfn_language_extensions.exceptions import UnresolvableReferenceError
+        parsed = ParsedTemplate(mappings={"M": {"dev": {"k": "v"}}})
+        ctx = TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.FULL,
+            parsed_template=parsed,
+        )
+        orch = IntrinsicResolver(ctx)
+        orch.register_resolver(FnRefResolver)
+        orch.register_resolver(FnFindInMapResolver)
+        with pytest.raises((InvalidTemplateException, UnresolvableReferenceError)):
+            orch.resolve_value({"Fn::FindInMap": ["M", {"Ref": "Missing"}, "k"]})
+
+    def test_resource_ref_as_key_still_raises_in_partial_mode(self):
+        """Kotlin compat: a Ref to a *resource* (not a parameter) is not a valid
+        Fn::FindInMap key and must raise even in PARTIAL mode. Without this guard,
+        the fix would over-broaden and break tests/.../compatibility/templates/
+        fnFindInMapWithUnsupportedFunctionFnRef.json."""
+        # No 'Queue' parameter declared — only a 'Queue' resource.
+        parsed = ParsedTemplate(
+            parameters={},
+            mappings={"M": {"dev": {"k": "v"}}},
+        )
+        ctx = TemplateProcessingContext(
+            fragment={"Resources": {"Queue": {"Type": "AWS::SQS::Queue"}}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parsed_template=parsed,
+        )
+        orch = IntrinsicResolver(ctx)
+        orch.register_resolver(FnRefResolver)
+        orch.register_resolver(FnFindInMapResolver)
+        with pytest.raises(InvalidTemplateException):
+            orch.resolve_value({"Fn::FindInMap": ["M", {"Ref": "Queue"}, "k"]})
+
+    def test_getatt_as_key_still_raises_in_partial_mode(self):
+        """Kotlin compat: Fn::GetAtt as a key must raise even in PARTIAL mode."""
+        parsed = ParsedTemplate(mappings={"M": {"dev": {"k": "v"}}})
+        ctx = TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parsed_template=parsed,
+        )
+        orch = IntrinsicResolver(ctx)
+        orch.register_resolver(FnRefResolver)
+        orch.register_resolver(FnFindInMapResolver)
+        with pytest.raises(InvalidTemplateException):
+            orch.resolve_value({"Fn::FindInMap": ["M", {"Fn::GetAtt": ["Q", "Arn"]}, "k"]})

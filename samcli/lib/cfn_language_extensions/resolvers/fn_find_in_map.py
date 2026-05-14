@@ -12,7 +12,9 @@ specifying a DefaultValue to return when the map lookup fails.
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode, TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
 
 
 class FnFindInMapResolver(IntrinsicFunctionResolver):
@@ -95,12 +97,24 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
             top_key = top_key_arg
             second_key = second_key_arg
 
-        # Validate resolved keys are strings
-        if not isinstance(map_name, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(top_key, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(second_key, str):
+        # In PARTIAL mode, if a key didn't resolve to a string but did resolve
+        # to a deferred parameter/pseudo-parameter Ref (Ref to a declared
+        # parameter without a default value and no override, or to a
+        # pseudo-parameter without a provided value), preserve the call so
+        # CloudFormation can resolve it at deploy time. See GitHub issue #9004.
+        # Resource refs and other intrinsics (Fn::GetAtt, etc.) continue to
+        # raise because they can't be resolved by the template-time
+        # Fn::FindInMap function at any stage — matching Kotlin compat.
+        keys = (map_name, top_key, second_key)
+        if not all(isinstance(k, str) for k in keys):
+            if self.context.resolution_mode == ResolutionMode.PARTIAL and all(
+                isinstance(k, str) or _is_unresolved_param_or_pseudo_ref(k, self.context)
+                for k in keys
+            ):
+                preserved = [map_name, top_key, second_key]
+                if len(args) >= self._ARGS_WITH_DEFAULT:
+                    preserved.append(args[3])
+                return {"Fn::FindInMap": preserved}
             raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
 
         # Check for DefaultValue option (4th argument)
@@ -215,3 +229,22 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
                 if isinstance(resource, dict) and "Type" in resource:
                     return str(resource["Type"])
         return "Unknown"
+
+
+def _is_unresolved_param_or_pseudo_ref(value: Any, context: TemplateProcessingContext) -> bool:
+    """Return True if value is `{"Ref": <name>}` where <name> is a declared template
+    parameter or a pseudo-parameter — i.e. an unresolved reference that CloudFormation
+    will resolve at deploy time. Resource refs and other intrinsics return False so
+    they can continue to raise."""
+    if not isinstance(value, dict) or len(value) != 1:
+        return False
+    if "Ref" not in value:
+        return False
+    ref_target = value["Ref"]
+    if not isinstance(ref_target, str):
+        return False
+    if ref_target in PSEUDO_PARAMETERS:
+        return True
+    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
+        return True
+    return False
