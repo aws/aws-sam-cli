@@ -516,6 +516,21 @@ class TestFnSelectResolverPartialMode:
             "preserved": {"Fn::GetAtt": ["MyBucket", "Arn"]},
         }
 
+    def test_unresolved_index_is_preserved_in_partial_mode(self):
+        from samcli.lib.cfn_language_extensions.models import ParsedTemplate
+        ctx = TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parsed_template=ParsedTemplate(parameters={"Idx": {"Type": "Number"}}),
+        )
+        orch = IntrinsicResolver(ctx)
+        orch.register_resolver(FnRefResolver)
+        orch.register_resolver(FnSelectResolver)
+
+        value = {"Fn::Select": [{"Ref": "Idx"}, ["a", "b", "c"]]}
+        result = orch.resolve_value(value)
+        assert result == {"Fn::Select": [{"Ref": "Idx"}, ["a", "b", "c"]]}
+
 
 class TestFnSelectResolverRealWorldExamples:
     """Tests for Fn::Select with real-world CloudFormation patterns."""
