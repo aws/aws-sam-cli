@@ -95,12 +95,18 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
             top_key = top_key_arg
             second_key = second_key_arg
 
-        # Validate resolved keys are strings
-        if not isinstance(map_name, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(top_key, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(second_key, str):
+        # In PARTIAL mode an unresolved nested intrinsic (e.g. {"Ref": "ENV"})
+        # arrives here as a dict — preserve the Fn::FindInMap expression so
+        # CloudFormation can resolve it at deploy time. Non-dict, non-string keys
+        # (e.g. an int literal) remain a layout error in either mode.
+        if not isinstance(map_name, str) or not isinstance(top_key, str) or not isinstance(second_key, str):
+            from samcli.lib.cfn_language_extensions.models import ResolutionMode
+
+            has_unresolved_intrinsic = (
+                isinstance(map_name, dict) or isinstance(top_key, dict) or isinstance(second_key, dict)
+            )
+            if has_unresolved_intrinsic and self.context.resolution_mode == ResolutionMode.PARTIAL:
+                return value
             raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
 
         # Check for DefaultValue option (4th argument)

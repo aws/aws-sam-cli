@@ -32,7 +32,10 @@ from typing import Any, Dict, Optional, Tuple, List
 
 from samcli.lib.cfn_language_extensions.api import process_template
 from samcli.lib.cfn_language_extensions.models import ResolutionMode, PseudoParameterValues
-from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.exceptions import (
+    InvalidTemplateException,
+    UnresolvableReferenceError,
+)
 
 # Path to test templates
 KOTLIN_TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -189,6 +192,13 @@ ERROR_TEMPLATES_PASSING = [
     "fnFindInMapWithDefaultValueWithMapTopKeyNotResolveToString",
     "fnFindInMapWithMapNameNotResolveToString",
     "fnFindInMapWithReferenceToIncorrectParameterType",
+]
+
+# Templates that the Kotlin reference treats as errors, but whose error in
+# Python depends on resolution mode: PARTIAL preserves unresolvable resource
+# references inside Fn::FindInMap so the expression survives to CloudFormation;
+# FULL keeps Kotlin parity and treats them as layout errors.
+ERROR_TEMPLATES_FULL_MODE_ONLY = [
     "fnFindInMapWithUnsupportedFunctionFnGetAtt",
     "fnFindInMapWithUnsupportedFunctionFnRef",
     "fnFindInMapWithUnsupportedFunctionInMapName",
@@ -215,6 +225,24 @@ def test_error_templates_passing(template_name: str):
     input_template = load_json_template(input_path)
     with pytest.raises(InvalidTemplateException):
         process_template(input_template)
+
+
+@pytest.mark.parametrize("template_name", ERROR_TEMPLATES_FULL_MODE_ONLY)
+def test_error_templates_passing_in_full_mode(template_name: str):
+    """Templates that match Kotlin's strict error behavior only in FULL mode.
+
+    PARTIAL mode preserves these intentionally; FULL mode keeps Kotlin parity
+    for callers that need strict resolution.
+    """
+    input_path = KOTLIN_TEMPLATES_DIR / f"{template_name}.json"
+    if not input_path.exists():
+        pytest.skip(f"Template {template_name} not available")
+    input_template = load_json_template(input_path)
+    # Depending on which resolver fires first, FULL mode raises either
+    # InvalidTemplateException (FindInMap layout error) or
+    # UnresolvableReferenceError (Ref to a resource).
+    with pytest.raises((InvalidTemplateException, UnresolvableReferenceError)):
+        process_template(input_template, resolution_mode=ResolutionMode.FULL)
 
 
 @pytest.mark.parametrize("template_name", ERROR_TEMPLATES_WITH_PLACEHOLDER)

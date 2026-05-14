@@ -38,6 +38,7 @@ from samcli.lib.cfn_language_extensions.resolvers.base import (
     IntrinsicResolver,
 )
 from samcli.lib.cfn_language_extensions.resolvers.fn_find_in_map import FnFindInMapResolver
+from samcli.lib.cfn_language_extensions.resolvers.fn_ref import FnRefResolver
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
 # =============================================================================
@@ -710,6 +711,55 @@ class TestFnFindInMapResolverPartialMode:
             "ami": "ami-12345678",
             "preserved": {"Fn::GetAtt": ["MyBucket", "Arn"]},
         }
+
+    @pytest.fixture
+    def partial_orchestrator_with_ref(self, partial_context: TemplateProcessingContext) -> IntrinsicResolver:
+        """Orchestrator in partial mode with both FnFindInMap and FnRef registered."""
+        orchestrator = IntrinsicResolver(partial_context)
+        orchestrator.register_resolver(FnFindInMapResolver)
+        orchestrator.register_resolver(FnRefResolver)
+        return orchestrator
+
+    def test_fn_find_in_map_preserves_expression_when_top_key_unresolved_in_partial_mode(
+        self, partial_orchestrator_with_ref: IntrinsicResolver
+    ):
+        """Unresolved Ref in the top-level key position is preserved in partial mode."""
+        value = {"Fn::FindInMap": ["RegionMap", {"Ref": "ENV"}, "AMI"]}
+        result = partial_orchestrator_with_ref.resolve_value(value)
+
+        assert result == {"Fn::FindInMap": ["RegionMap", {"Ref": "ENV"}, "AMI"]}
+
+    def test_fn_find_in_map_preserves_expression_when_map_name_unresolved_in_partial_mode(
+        self, partial_orchestrator_with_ref: IntrinsicResolver
+    ):
+        """Unresolved Ref in the map-name position is also preserved in partial mode."""
+        value = {"Fn::FindInMap": [{"Ref": "ENV"}, "us-east-1", "AMI"]}
+        result = partial_orchestrator_with_ref.resolve_value(value)
+
+        assert result == {"Fn::FindInMap": [{"Ref": "ENV"}, "us-east-1", "AMI"]}
+
+    def test_fn_find_in_map_preserves_expression_when_second_key_unresolved_in_partial_mode(
+        self, partial_orchestrator_with_ref: IntrinsicResolver
+    ):
+        """Unresolved Ref in the second-level key position is also preserved in partial mode."""
+        value = {"Fn::FindInMap": ["RegionMap", "us-east-1", {"Ref": "ENV"}]}
+        result = partial_orchestrator_with_ref.resolve_value(value)
+
+        assert result == {"Fn::FindInMap": ["RegionMap", "us-east-1", {"Ref": "ENV"}]}
+
+    def test_fn_find_in_map_still_raises_for_non_string_key_in_full_mode(self, mappings: Dict[str, Any]):
+        """FULL mode keeps raising InvalidTemplateException for a non-string key."""
+        full_context = TemplateProcessingContext(
+            fragment={"Resources": {}, "Mappings": mappings},
+            resolution_mode=ResolutionMode.FULL,
+        )
+        full_context.parsed_template = ParsedTemplate(resources={}, mappings=mappings)
+        resolver = FnFindInMapResolver(full_context)
+
+        value = {"Fn::FindInMap": ["RegionMap", {"Ref": "ENV"}, "AMI"]}
+        with pytest.raises(InvalidTemplateException) as exc_info:
+            resolver.resolve(value)
+        assert "Fn::FindInMap layout is incorrect" in str(exc_info.value)
 
 
 # =============================================================================
