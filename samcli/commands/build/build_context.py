@@ -919,6 +919,7 @@ class BuildContext:
             The modified resource with updated artifact paths
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _set_prop_value
 
         original_props = original_resource.get("Properties", {})
         modified_props = modified_resource.get("Properties", {})
@@ -929,8 +930,9 @@ class BuildContext:
             return
 
         for prop_name in prop_names:
-            if prop_name in modified_props:
-                original_props[prop_name] = modified_props[prop_name]
+            value = _get_prop_value(modified_props, prop_name)
+            if value is not None:
+                _set_prop_value(original_props, prop_name, value)
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """
