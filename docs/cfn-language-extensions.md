@@ -41,7 +41,37 @@ Running `sam build` expands this into `UsersFunction`, `OrdersFunction`, and `Pr
 
 ### Dynamic artifact properties
 
-When a packageable property (like `CodeUri`, `ContentUri`, `ImageUri`) uses a loop variable (e.g., `./services/${Name}`), SAM CLI generates a CloudFormation `Mappings` section that maps each collection value to its S3 URI. The `Fn::ForEach` body is rewritten to use `Fn::FindInMap` so CloudFormation can resolve the correct artifact at deploy time.
+When a packageable property uses a loop variable (e.g., `./services/${Name}`), SAM CLI generates a CloudFormation `Mappings` section that maps each collection value to its S3 URI. The `Fn::ForEach` body is rewritten to use `Fn::FindInMap` so CloudFormation can resolve the correct artifact at deploy time.
+
+The set of recognized artifact properties is derived from the same canonical list `sam package` already uses (`RESOURCES_WITH_LOCAL_PATHS` and `RESOURCES_WITH_IMAGE_COMPONENT` in `samcli/lib/utils/resources.py`), so every resource type whose artifact property `sam package` would normally rewrite is supported here too. That includes:
+
+| Resource type | Property |
+|---------------|----------|
+| `AWS::Serverless::Function` | `CodeUri`, `ImageUri` |
+| `AWS::Serverless::LayerVersion` | `ContentUri` |
+| `AWS::Serverless::Api` | `DefinitionUri` |
+| `AWS::Serverless::HttpApi` | `DefinitionUri` |
+| `AWS::Serverless::StateMachine` | `DefinitionUri` |
+| `AWS::Serverless::GraphQLApi` | `SchemaUri`, `CodeUri` |
+| `AWS::Serverless::Application` | `Location` |
+| `AWS::Lambda::Function` | `Code`, `Code.ImageUri` |
+| `AWS::Lambda::LayerVersion` | `Content` |
+| `AWS::ApiGateway::RestApi` | `BodyS3Location` |
+| `AWS::ApiGatewayV2::Api` | `BodyS3Location` |
+| `AWS::AppSync::GraphQLSchema` | `DefinitionS3Location` |
+| `AWS::AppSync::Resolver` | `RequestMappingTemplateS3Location`, `ResponseMappingTemplateS3Location`, `CodeS3Location` |
+| `AWS::AppSync::FunctionConfiguration` | `RequestMappingTemplateS3Location`, `ResponseMappingTemplateS3Location`, `CodeS3Location` |
+| `AWS::StepFunctions::StateMachine` | `DefinitionS3Location` |
+| `AWS::ElasticBeanstalk::ApplicationVersion` | `SourceBundle` |
+| `AWS::Glue::Job` | `Command.ScriptLocation` |
+| `AWS::CloudFormation::Stack` | `TemplateURL` |
+| `AWS::CloudFormation::StackSet` | `TemplateURL` |
+| `AWS::CloudFormation::ModuleVersion` | `ModulePackage` |
+| `AWS::CloudFormation::ResourceVersion` | `SchemaHandlerPackage` |
+
+When a property is dotted (e.g. `Command.ScriptLocation` on `AWS::Glue::Job` or `Code.ImageUri` on `AWS::Lambda::Function`), SAM CLI reads and writes the value at the dotted location on the resource — so it lands at `Properties.Command.ScriptLocation` rather than at a literal `Properties["Command.ScriptLocation"]` key — and uses only the leaf segment when it needs to construct an alphanumeric identifier (Mapping name suffix or `Fn::FindInMap` third argument).
+
+When the property is loop-templated, the Mapping name is `SAM<LeafProperty><LoopName>` (e.g., `SAMCodeUriServices`, `SAMScriptLocationJobs`). Customer-authored mappings should not start with these `SAM*` prefixes — they are reserved for SAM CLI (see [Limitations](#limitations) below).
 
 For example, after `sam package`:
 
@@ -66,6 +96,45 @@ Resources:
           Runtime: python3.12
           CodeUri: !FindInMap [SAMCodeUriServices, !Ref Name, CodeUri]
 ```
+
+### Multiple resources per ForEach body
+
+A single `Fn::ForEach` body can emit more than one resource per iteration. Each resource is generated for every collection value:
+
+```yaml
+Resources:
+  Fn::ForEach::Tables:
+    - TableName
+    - [Users, Orders, Products]
+    - ${TableName}Table:
+        Type: AWS::DynamoDB::Table
+        Properties:
+          TableName: !Sub "${AWS::StackName}-${TableName}"
+          # ...
+
+      ${TableName}StreamProcessor:
+        Type: AWS::Serverless::Function
+        Properties:
+          CodeUri: stream-processors/${TableName}/
+          Events:
+            DDBStream:
+              Type: DynamoDB
+              Properties:
+                Stream: !GetAtt
+                  - !Sub "${TableName}Table"
+                  - StreamArn
+```
+
+### Mapping name collision resolution
+
+When two resources in the same `Fn::ForEach` body declare the same dynamic artifact property (for example, both an `Api` and a `StateMachine` use `DefinitionUri`), SAM CLI appends a sanitized suffix derived from the resource logical-ID template to keep Mapping names unique:
+
+| Resource template | Property | Mapping name |
+|-------------------|----------|--------------|
+| `${Svc}Api` | `DefinitionUri` | `SAMDefinitionUriServicesApi` |
+| `${Svc}StateMachine` | `DefinitionUri` | `SAMDefinitionUriServicesStateMachine` |
+
+When there is no collision the base name (e.g., `SAMDefinitionUriServices`) is used.
 
 ### Parameter-based collections
 
@@ -120,6 +189,46 @@ Resources:
                   STAGE: !Ref Env
 ```
 
+### ForEach in Outputs
+
+`Fn::ForEach` blocks are also expanded inside the `Outputs` section, so you can emit one output per collection value:
+
+```yaml
+Outputs:
+  Fn::ForEach::FunctionArns:
+    - Name
+    - [alpha, beta]
+    - ${Name}FunctionArn:
+        Value: !GetAtt
+          - !Sub "${Name}Function"
+          - Arn
+```
+
+### Conditions and DependsOn
+
+Resources emitted by `Fn::ForEach` can carry `Condition` and `DependsOn` like any other resource. The condition or dependency is replicated onto each generated resource:
+
+```yaml
+Conditions:
+  IsProd: !Equals [!Ref Environment, prod]
+
+Resources:
+  SharedTable:
+    Type: AWS::DynamoDB::Table
+    # ...
+
+  Fn::ForEach::Functions:
+    - Name
+    - [api, worker]
+    - ${Name}Function:
+        Type: AWS::Serverless::Function
+        Condition: IsProd
+        DependsOn: SharedTable
+        Properties:
+          Handler: main.handler
+          CodeUri: functions/${Name}/
+```
+
 ### &{identifier} syntax
 
 The `&{identifier}` syntax strips non-alphanumeric characters from the substituted value, useful for generating valid logical IDs from values like IP addresses:
@@ -154,11 +263,26 @@ The following intrinsic functions are resolved locally during expansion:
 
 Functions that require deployed resources (`Fn::GetAtt`, `Fn::ImportValue`, `Fn::GetAZs`) are preserved for CloudFormation to resolve at deploy time.
 
+## Validation errors
+
+The following template issues are caught locally before the SAM transform runs:
+
+| Error | Cause |
+|-------|-------|
+| `Fn::ForEach must have exactly 3 elements` | The `Fn::ForEach` value is not a 3-element list (`[loop_variable, collection, output_template]`). |
+| `Maximum nesting depth of 5 exceeded` | More than 5 levels of `Fn::ForEach` are nested. |
+| `Parameter '<name>' referenced by Fn::ForEach not found` | The `!Ref` in the collection points at a parameter that is not declared in the template. |
+| Empty collection | If the collection resolves to an empty list (e.g., a `CommaDelimitedList` parameter with `Default: ""`), no resources are emitted — the loop is silently skipped. |
+
 ## Limitations
 
 - **Collections must be resolvable at build/package time.** `Fn::ForEach` collections that use `Fn::GetAtt`, `Fn::ImportValue`, or SSM/Secrets Manager dynamic references cannot be expanded locally. Use a parameter with `--parameter-overrides` instead.
 - **Parameter values are fixed at package time.** If you change `--parameter-overrides` at deploy time without re-packaging, the Mappings won't include entries for new values and deployment will fail.
 - **`DeletionPolicy` and `UpdateReplacePolicy`** are validated and resolved during expansion. They support `Ref` to parameters but not other intrinsic functions.
+- **Nesting limit.** Up to 5 levels of `Fn::ForEach` may be nested, matching CloudFormation's server-side limit.
+- **Reserved Mapping names.** Mapping names starting with any of the following are reserved for SAM CLI — do not author your own mappings with these prefixes:
+  - `SAMCodeUri`, `SAMImageUri`, `SAMContentUri`, `SAMDefinitionUri`, `SAMSchemaUri`, `SAMBodyS3Location`, `SAMDefinitionS3Location`, `SAMTemplateURL`, `SAMCode`, `SAMContent` — emitted by `sam package` for dynamic artifact properties (see the table above).
+  - `SAMLayers` — emitted by `sam build` when a `Fn::ForEach`-generated function picks up auto-generated dependency-layer references (Lambda layers SAM CLI builds into a nested stack). This prefix has no corresponding user-authored property; it is added automatically.
 
 ## Telemetry
 
