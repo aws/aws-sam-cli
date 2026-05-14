@@ -94,25 +94,34 @@ def is_unresolved_param_or_pseudo_ref(value: Any, context: "TemplateProcessingCo
 
 
 # Mapping-name prefixes that SAM CLI emits for dynamic Fn::ForEach handling:
-#   - SAM + <packageable artifact property> + <nesting path> + [resource suffix]
+#   - SAM + <leaf of packageable artifact property> + <nesting path> + [resource suffix]
 #     (see language_extensions_packaging._compute_mapping_name)
 #   - SAMLayers + <nesting path>  (see build_context — auto dependency layer refs)
-# Customer-authored mappings should never start with one of these exact
-# PascalCase prefixes, so exact-prefix matching avoids the false positives
-# a regex like r"^SAM[A-Z]..." would hit on names like SAMPLE / SAMSUNG.
-_SAM_GENERATED_MAPPING_PREFIXES: Tuple[str, ...] = (
-    "SAMCodeUri",
-    "SAMImageUri",
-    "SAMContentUri",
-    "SAMDefinitionUri",
-    "SAMSchemaUri",
-    "SAMBodyS3Location",
-    "SAMDefinitionS3Location",
-    "SAMTemplateURL",
-    "SAMCode",
-    "SAMContent",
-    "SAMLayers",
-)
+# Derived from PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES so the set automatically
+# tracks the canonical packageable-resource list. Customer-authored mappings
+# should never start with one of these exact PascalCase prefixes; exact-prefix
+# matching avoids the false positives a regex like r"^SAM[A-Z]..." would hit on
+# names like SAMPLE / SAMSUNG.
+def _build_sam_generated_mapping_prefixes() -> Tuple[str, ...]:
+    from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
+    seen: set = set()
+    prefixes: list = []
+    for props in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.values():
+        for prop in props:
+            leaf = prop.rsplit(".", 1)[-1]
+            prefix = f"SAM{leaf}"
+            if prefix not in seen:
+                seen.add(prefix)
+                prefixes.append(prefix)
+    # SAMLayers is emitted by sam build for auto dependency layer references and
+    # has no corresponding artifact property; add it explicitly.
+    if "SAMLayers" not in seen:
+        prefixes.append("SAMLayers")
+    return tuple(prefixes)
+
+
+_SAM_GENERATED_MAPPING_PREFIXES: Tuple[str, ...] = _build_sam_generated_mapping_prefixes()
 
 
 def is_sam_generated_mapping(mapping_name: str) -> bool:
