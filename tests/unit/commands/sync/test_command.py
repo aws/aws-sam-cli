@@ -43,6 +43,7 @@ class TestDoCli(TestCase):
         self.image_repositories = None
         self.mode = "mode"
         self.s3_bucket = "s3-bucket"
+        self.force_upload = False
         self.s3_prefix = "s3-prefix"
         self.kms_key_id = "kms-key-id"
         self.notification_arns = []
@@ -136,6 +137,7 @@ class TestDoCli(TestCase):
             self.image_repository,
             self.image_repositories,
             self.s3_bucket,
+            self.force_upload,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -190,7 +192,7 @@ class TestDoCli(TestCase):
             region=self.region,
             profile=self.profile,
             use_json=False,
-            force_upload=True,
+            force_upload=self.force_upload,
         )
 
         DeployContextMock.assert_called_with(
@@ -213,7 +215,7 @@ class TestDoCli(TestCase):
             fail_on_empty_changeset=True,
             confirm_changeset=False,
             use_changeset=False,
-            force_upload=True,
+            force_upload=self.force_upload,
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=10,
@@ -304,6 +306,7 @@ class TestDoCli(TestCase):
             self.image_repository,
             self.image_repositories,
             self.s3_bucket,
+            self.force_upload,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -354,7 +357,7 @@ class TestDoCli(TestCase):
             region=self.region,
             profile=self.profile,
             use_json=False,
-            force_upload=True,
+            force_upload=self.force_upload,
         )
 
         DeployContextMock.assert_called_with(
@@ -377,7 +380,7 @@ class TestDoCli(TestCase):
             fail_on_empty_changeset=True,
             confirm_changeset=False,
             use_changeset=False,
-            force_upload=True,
+            force_upload=self.force_upload,
             signing_profiles=None,
             disable_rollback=False,
             poll_delay=0.5,
@@ -456,6 +459,7 @@ class TestDoCli(TestCase):
             self.image_repository,
             self.image_repositories,
             self.s3_bucket,
+            self.force_upload,
             self.s3_prefix,
             self.kms_key_id,
             self.capabilities,
@@ -480,6 +484,77 @@ class TestDoCli(TestCase):
             resource_types=self.resource,
             auto_dependency_layer=auto_dependency_layer,
         )
+
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.sync.command.click")
+    @patch("samcli.commands.sync.command.execute_infra_contexts")
+    @patch("samcli.commands.sync.command.execute_code_sync")
+    @patch("samcli.commands.build.build_context.BuildContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.sync.command.manage_stack")
+    @patch("samcli.commands.sync.command.SyncContext")
+    @patch("samcli.commands.sync.command.check_enable_dependency_layer")
+    def test_force_upload_flag_propagates_to_package_and_deploy_contexts(
+        self,
+        force_upload,
+        check_enable_adl_mock,
+        SyncContextMock,
+        manage_stack_mock,
+        DeployContextMock,
+        PackageContextMock,
+        BuildContextMock,
+        execute_code_sync_mock,
+        execute_infra_mock,
+        click_mock,
+    ):
+        # `force_upload` was previously hardcoded to True in sam sync, which
+        # bypassed the S3Uploader SHA-based dedup and made every sync re-upload
+        # all artifacts. The flag must now flow through to both PackageContext
+        # and DeployContext so users can opt back into the old behavior.
+        BuildContextMock.return_value.__enter__.return_value = Mock()
+        PackageContextMock.return_value.__enter__.return_value = Mock()
+        DeployContextMock.return_value.__enter__.return_value = Mock()
+        SyncContextMock.return_value.__enter__.return_value = Mock()
+        check_enable_adl_mock.return_value = False
+        execute_infra_mock.return_value = InfraSyncResult(True)
+
+        do_cli(
+            self.template_file,
+            False,
+            False,
+            self.resource_id,
+            self.resource,
+            False,
+            True,
+            self.stack_name,
+            self.region,
+            self.profile,
+            self.base_dir,
+            self.parameter_overrides,
+            self.mode,
+            self.image_repository,
+            self.image_repositories,
+            self.s3_bucket,
+            force_upload,
+            self.s3_prefix,
+            self.kms_key_id,
+            self.capabilities,
+            self.role_arn,
+            self.notification_arns,
+            self.tags,
+            self.metadata,
+            False,
+            self.container_env_var_file,
+            self.build_image,
+            self.config_file,
+            self.config_env,
+            build_in_source=False,
+            watch_exclude={},
+        )
+
+        self.assertEqual(PackageContextMock.call_args.kwargs["force_upload"], force_upload)
+        self.assertEqual(DeployContextMock.call_args.kwargs["force_upload"], force_upload)
 
 
 class TestSyncCode(TestCase):
