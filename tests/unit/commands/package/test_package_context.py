@@ -1002,6 +1002,18 @@ class TestPackageContextLanguageExtensions(TestCase):
         # Existing keys preserved
         self.assertEqual(props["Command"]["Name"], "glueetl")
 
+    def test_copy_artifact_uris_for_type_glue_job_dotted_path(self):
+        """Regression: dotted property path (Command.ScriptLocation) must be copied."""
+        original_props = {"Command": {"Name": "glueetl", "ScriptLocation": "./script.py"}}
+        exported_props = {"Command": {"Name": "glueetl", "ScriptLocation": "s3://b/k.py"}}
+
+        result = _copy_artifact_uris_for_type(original_props, exported_props, "AWS::Glue::Job")
+
+        self.assertTrue(result)
+        self.assertEqual(original_props["Command"]["ScriptLocation"], "s3://b/k.py")
+        # Sibling keys preserved
+        self.assertEqual(original_props["Command"]["Name"], "glueetl")
+
 
 class TestPackageContextMappingsIntegration(TestCase):
     """Test cases for the complete Mappings transformation integration in _export()"""

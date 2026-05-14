@@ -271,11 +271,12 @@ def _copy_artifact_uris_for_type(
 
     copied = False
     for prop_name in prop_names:
-        if prop_name not in exported_props:
+        exported_value = _get_prop_value(exported_props, prop_name)
+        if exported_value is None:
             continue
         if dynamic_prop_keys and foreach_key and (foreach_key, prop_name) in dynamic_prop_keys:
             continue
-        original_props[prop_name] = exported_props[prop_name]
+        _set_prop_value(original_props, prop_name, exported_value)
         copied = True
 
     return copied
