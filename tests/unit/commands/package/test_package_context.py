@@ -1207,6 +1207,74 @@ class TestPackageContextLanguageExtensions(TestCase):
             mappings["SAMImageUriFuncs"]["Beta"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"}
         )
 
+    def test_generate_artifact_mappings_disambiguates_leaf_collision_across_types(self):
+        """Two dotted paths sharing the same leaf (Serverless::Function 'ImageUri' and
+        Lambda::Function 'Code.ImageUri') must not collide into a single Mapping.
+        Without the leaf-keyed collision check the second resource's entries silently
+        overwrite the first's.
+        """
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        sam_prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Sam",
+            resource_type="AWS::Serverless::Function",
+            property_name="ImageUri",
+            property_value="sam-${Name}:latest",
+        )
+        lambda_prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Lambda",
+            resource_type="AWS::Lambda::Function",
+            property_name="Code.ImageUri",
+            property_value="lambda-${Name}:latest",
+        )
+        exported_resources = {
+            "AlphaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha"},
+            },
+            "BetaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta"},
+            },
+            "AlphaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha"}},
+            },
+            "BetaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta"}},
+            },
+        }
+
+        mappings, _ = _generate_artifact_mappings([sam_prop, lambda_prop], "/tmp", exported_resources)
+
+        # Two distinct Mapping names exist (resource-key suffix applied because leaves collide).
+        sam_image_mappings = sorted(name for name in mappings if name.startswith("SAMImageUriFuncs"))
+        self.assertEqual(
+            len(sam_image_mappings),
+            2,
+            f"Expected two distinct SAMImageUriFuncs* mappings; got {sam_image_mappings}.",
+        )
+        # Both sets of entries are preserved — neither resource's mapping was overwritten.
+        all_values = {entry["ImageUri"] for name in sam_image_mappings for entry in mappings[name].values()}
+        self.assertEqual(
+            all_values,
+            {
+                "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha",
+                "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta",
+                "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha",
+                "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta",
+            },
+        )
+
 
 class TestPackageContextMappingsIntegration(TestCase):
     """Test cases for the complete Mappings transformation integration in _export()"""

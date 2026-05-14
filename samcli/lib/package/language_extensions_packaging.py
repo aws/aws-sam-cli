@@ -376,8 +376,13 @@ def _compute_mapping_name(
     npath = _nesting_path(prop)
     # Use the leaf segment for the Mapping name so dotted property paths (e.g.
     # "Command.ScriptLocation") yield well-formed alphanumeric Mapping names.
-    base_name = f"SAM{_leaf_prop_name(prop.property_name)}{npath}"
-    key = (npath, prop.property_name)
+    leaf = _leaf_prop_name(prop.property_name)
+    base_name = f"SAM{leaf}{npath}"
+    # Collision detection must also key on the leaf — two resources with
+    # different dotted paths but the same leaf (e.g. "ImageUri" vs
+    # "Code.ImageUri") would otherwise generate identical Mapping names and
+    # silently overwrite each other.
+    key = (npath, leaf)
     if collision_groups.get(key, 0) <= 1:
         return base_name
     suffix = _sanitize_resource_key_for_mapping(prop.resource_key)
@@ -400,9 +405,11 @@ def _generate_artifact_mappings(
     mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
     property_to_mapping: Dict[Tuple, str] = {}
 
-    # Pre-pass: detect collisions where multiple resources share (nesting_path, property_name)
+    # Pre-pass: detect collisions where multiple resources share (nesting_path, leaf).
+    # Keyed on the leaf so dotted paths that share a leaf (e.g. "ImageUri" vs
+    # "Code.ImageUri") are detected as colliding and get a resource-key suffix.
     collision_groups: Dict[Tuple[str, str], int] = Counter(
-        (_nesting_path(p), p.property_name) for p in dynamic_properties
+        (_nesting_path(p), _leaf_prop_name(p.property_name)) for p in dynamic_properties
     )
 
     for prop in dynamic_properties:

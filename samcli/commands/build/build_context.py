@@ -635,7 +635,11 @@ class BuildContext:
                     )
                     if mapping_entries:
                         mapping_name = f"SAM{leaf_name}{nesting_path}"
-                        if dynamic_props_count.get(prop_name, 0) > 1:
+                        # Collision count is keyed on the leaf so dotted paths
+                        # that share a leaf (e.g. "ImageUri" vs "Code.ImageUri")
+                        # get the resource-key suffix and don't overwrite each
+                        # other's Mapping entries.
+                        if dynamic_props_count.get(leaf_name, 0) > 1:
                             suffix = sanitize_resource_key_for_mapping(resource_template_key)
                             mapping_name = f"{mapping_name}{suffix}"
                         generated_mappings[mapping_name] = mapping_entries
@@ -719,7 +723,11 @@ class BuildContext:
         share the same property name (e.g., two resources both with DefinitionUri).
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _resolve_property_paths
+        from samcli.lib.package.language_extensions_packaging import (
+            _get_prop_value,
+            _leaf_prop_name,
+            _resolve_property_paths,
+        )
 
         count: Counter = Counter()
         for rtk, rt in body.items():
@@ -735,7 +743,9 @@ class BuildContext:
             for pname in _resolve_property_paths(candidate_paths, rprops):
                 pval = _get_prop_value(rprops, pname)
                 if pval is not None and contains_loop_variable(pval, loop_variable) and collection_values:
-                    count[pname] += 1
+                    # Count by leaf so collisions across resource types with
+                    # different dotted paths but the same leaf are detected.
+                    count[_leaf_prop_name(pname)] += 1
         return count
 
     @staticmethod

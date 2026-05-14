@@ -2164,6 +2164,67 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
         # PackageType sibling preserved
         self.assertEqual(body["${Name}Function"]["Properties"]["PackageType"], "Image")
 
+    def test_leaf_collision_across_resource_types_disambiguates_mapping_name(self):
+        """A Serverless::Function (ImageUri) and a Lambda::Function (Code.ImageUri) in the
+        same ForEach body share the same leaf "ImageUri" but different dotted paths.
+        Their generated Mapping names must NOT collide — the resource-key suffix should
+        be applied so neither set of entries silently overwrites the other.
+        """
+        foreach_key = "Fn::ForEach::Funcs"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Sam": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "ImageUri": "sam-${Name}:latest",
+                        "PackageType": "Image",
+                    },
+                },
+                "${Name}Lambda": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {"ImageUri": "lambda-${Name}:latest"},
+                        "PackageType": "Image",
+                    },
+                },
+            },
+        ]
+        modified_resources = {
+            "AlphaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha"},
+            },
+            "BetaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta"},
+            },
+            "AlphaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha"}},
+            },
+            "BetaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Two distinct Mapping names should exist — one per resource — disambiguated
+        # by the resource-key suffix because both leaf to "ImageUri".
+        sam_image_mappings = sorted(name for name in mappings if name.startswith("SAMImageUriFuncs"))
+        self.assertEqual(
+            len(sam_image_mappings),
+            2,
+            f"Expected two distinct SAMImageUriFuncs* mappings (one per resource type); got {sam_image_mappings}.",
+        )
+        # And neither set of entries should be lost: every collection value appears
+        # exactly once in each of the two distinct mappings.
+        for name in sam_image_mappings:
+            self.assertEqual(set(mappings[name].keys()), {"Alpha", "Beta"})
+
 
 class TestBuildContext_contains_loop_variable(TestCase):
     """Tests for the contains_loop_variable shared function."""
