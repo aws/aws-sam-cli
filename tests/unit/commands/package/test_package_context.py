@@ -975,6 +975,33 @@ class TestPackageContextLanguageExtensions(TestCase):
         code_uri = body["${Name}Service"]["Properties"]["CodeUri"]
         self.assertEqual(code_uri, {"Fn::FindInMap": ["SAMCodeUriServices", {"Ref": "Name"}, "CodeUri"]})
 
+    def test_get_prop_value_flat_key(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+        self.assertEqual(_get_prop_value({"CodeUri": "s3://b/k"}, "CodeUri"), "s3://b/k")
+
+    def test_get_prop_value_dotted_key(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+        props = {"Command": {"ScriptLocation": "s3://b/k.py"}}
+        self.assertEqual(_get_prop_value(props, "Command.ScriptLocation"), "s3://b/k.py")
+
+    def test_get_prop_value_missing_returns_none(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+        self.assertIsNone(_get_prop_value({"CodeUri": "x"}, "Command.ScriptLocation"))
+
+    def test_set_prop_value_flat_key(self):
+        from samcli.lib.package.language_extensions_packaging import _set_prop_value
+        props = {"CodeUri": "./src"}
+        _set_prop_value(props, "CodeUri", "s3://b/k")
+        self.assertEqual(props["CodeUri"], "s3://b/k")
+
+    def test_set_prop_value_dotted_key_creates_intermediate(self):
+        from samcli.lib.package.language_extensions_packaging import _set_prop_value
+        props = {"Command": {"Name": "glueetl"}}
+        _set_prop_value(props, "Command.ScriptLocation", "s3://b/k.py")
+        self.assertEqual(props["Command"]["ScriptLocation"], "s3://b/k.py")
+        # Existing keys preserved
+        self.assertEqual(props["Command"]["Name"], "glueetl")
+
 
 class TestPackageContextMappingsIntegration(TestCase):
     """Test cases for the complete Mappings transformation integration in _export()"""

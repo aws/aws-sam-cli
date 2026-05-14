@@ -8,12 +8,14 @@ None of the functions use instance state — they are pure functions.
 
 import copy
 import itertools
+import jmespath
 import logging
 import re
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
+from botocore.utils import set_value_from_jmespath
 
 from samcli.lib.cfn_language_extensions.models import (
     PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES,
@@ -116,6 +118,22 @@ def generate_and_apply_artifact_mappings(
     mappings, property_to_mapping = _generate_artifact_mappings(dynamic_properties, template_dir, exported_resources)
 
     return _apply_artifact_mappings_to_template(template, mappings, dynamic_properties, property_to_mapping)
+
+
+def _get_prop_value(props: Dict[str, Any], prop_name: str) -> Optional[Any]:
+    """Read a property by jmespath path. Supports flat keys ("CodeUri") and
+    dotted paths ("Command.ScriptLocation"). Returns None if missing.
+    """
+    if not isinstance(props, dict):
+        return None
+    return jmespath.search(prop_name, props)
+
+
+def _set_prop_value(props: Dict[str, Any], prop_name: str, value: Any) -> None:
+    """Write a property by jmespath path. Creates intermediate dicts as needed.
+    Supports flat keys and dotted paths.
+    """
+    set_value_from_jmespath(props, prop_name, value)
 
 
 # ---------------------------------------------------------------------------
