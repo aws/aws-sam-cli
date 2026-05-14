@@ -10,7 +10,9 @@ Fn::Join format: {"Fn::Join": [delimiter, [list, of, items]]}
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode, TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
 
 
 class FnJoinResolver(IntrinsicFunctionResolver):
@@ -70,13 +72,24 @@ class FnJoinResolver(IntrinsicFunctionResolver):
         if self.parent is not None:
             delimiter = self.parent.resolve_value(delimiter)
 
-        # Validate delimiter is a string
-        if not isinstance(delimiter, str):
-            raise InvalidTemplateException("Fn::Join layout is incorrect")
-
         # Resolve any nested intrinsic functions in the list
         if self.parent is not None:
             list_to_join = self.parent.resolve_value(list_to_join)
+
+        # In PARTIAL mode, preserve the call when either argument is still an
+        # unresolved Ref to a declared template parameter or a pseudo-parameter
+        # (i.e. CloudFormation will resolve it at deploy time). Resource refs
+        # and other intrinsics still raise — they aren't valid Fn::Join inputs.
+        delim_is_param_ref = _is_unresolved_param_or_pseudo_ref(delimiter, self.context)
+        list_is_param_ref = _is_unresolved_param_or_pseudo_ref(list_to_join, self.context)
+        if delim_is_param_ref or list_is_param_ref:
+            if self.context.resolution_mode == ResolutionMode.PARTIAL:
+                return {"Fn::Join": [delimiter, list_to_join]}
+            raise InvalidTemplateException("Fn::Join layout is incorrect")
+
+        # Validate delimiter is a string
+        if not isinstance(delimiter, str):
+            raise InvalidTemplateException("Fn::Join layout is incorrect")
 
         # Validate the list
         if not isinstance(list_to_join, list):
@@ -117,3 +130,20 @@ class FnJoinResolver(IntrinsicFunctionResolver):
             return ",".join(self._to_string(item) for item in value)
         else:
             return str(value)
+
+
+def _is_unresolved_param_or_pseudo_ref(value: Any, context: TemplateProcessingContext) -> bool:
+    """Return True if value is `{"Ref": <name>}` where <name> is a declared template
+    parameter or a pseudo-parameter. Resource refs return False so they continue to raise."""
+    if not isinstance(value, dict) or len(value) != 1:
+        return False
+    if "Ref" not in value:
+        return False
+    ref_target = value["Ref"]
+    if not isinstance(ref_target, str):
+        return False
+    if ref_target in PSEUDO_PARAMETERS:
+        return True
+    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
+        return True
+    return False
