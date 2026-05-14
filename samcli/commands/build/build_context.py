@@ -553,6 +553,12 @@ class BuildContext:
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
         from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
+        from samcli.lib.package.language_extensions_packaging import (
+            _get_prop_value,
+            _leaf_prop_name,
+            _resolve_property_paths,
+            _set_prop_value,
+        )
 
         generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
 
@@ -599,10 +605,16 @@ class BuildContext:
             if not isinstance(properties, dict):
                 continue
 
-            for prop_name in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type, []):
-                prop_value = properties.get(prop_name)
+            candidate_paths = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type, [])
+            for prop_name in _resolve_property_paths(candidate_paths, properties):
+                prop_value = _get_prop_value(properties, prop_name)
                 if prop_value is None:
                     continue
+
+                # CloudFormation Mapping names and FindInMap third-args must be alphanumeric,
+                # so dotted property names (e.g. "Command.ScriptLocation") use the leaf segment
+                # for those identifiers while the dotted form is preserved for property addressing.
+                leaf_name = _leaf_prop_name(prop_name)
 
                 if contains_loop_variable(prop_value, loop_variable) and collection_values:
                     # Determine which outer loop variables the property references
@@ -622,7 +634,7 @@ class BuildContext:
                         referenced_outer_vars=referenced_outer_vars,
                     )
                     if mapping_entries:
-                        mapping_name = f"SAM{prop_name}{nesting_path}"
+                        mapping_name = f"SAM{leaf_name}{nesting_path}"
                         if dynamic_props_count.get(prop_name, 0) > 1:
                             suffix = sanitize_resource_key_for_mapping(resource_template_key)
                             mapping_name = f"{mapping_name}{suffix}"
@@ -637,7 +649,7 @@ class BuildContext:
                         else:
                             lookup_key = {"Ref": loop_variable}
 
-                        properties[prop_name] = {"Fn::FindInMap": [mapping_name, lookup_key, prop_name]}
+                        _set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
                 else:
                     expanded_key = self._build_expanded_key(
                         resource_template_key,
@@ -648,7 +660,7 @@ class BuildContext:
                     if expanded_key:
                         artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
                         if artifact_value is not None:
-                            properties[prop_name] = artifact_value
+                            _set_prop_value(properties, prop_name, artifact_value)
 
             # Propagate auto dependency layer references from expanded functions
             # to the ForEach body. Each expanded function may have Layers entries
@@ -707,6 +719,7 @@ class BuildContext:
         share the same property name (e.g., two resources both with DefinitionUri).
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _resolve_property_paths
 
         count: Counter = Counter()
         for rtk, rt in body.items():
@@ -718,8 +731,9 @@ class BuildContext:
             rprops = rt.get("Properties", {})
             if not isinstance(rprops, dict):
                 continue
-            for pname in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(rtype, []):
-                pval = rprops.get(pname)
+            candidate_paths = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(rtype, [])
+            for pname in _resolve_property_paths(candidate_paths, rprops):
+                pval = _get_prop_value(rprops, pname)
                 if pval is not None and contains_loop_variable(pval, loop_variable) and collection_values:
                     count[pname] += 1
         return count
@@ -759,8 +773,15 @@ class BuildContext:
 
         For nested ForEach, enumerates all outer value combinations to find
         the fully-expanded resource name.
+
+        ``prop_name`` may be a jmespath dotted path; the value-dict key stored
+        in the Mapping uses the leaf segment so it stays alphanumeric and
+        matches the third argument of the generated Fn::FindInMap.
         """
+        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+
         mapping_entries: Dict[str, Dict[str, str]] = {}
+        leaf_name = _leaf_prop_name(prop_name)
 
         for coll_value in collection_values:
             if outer_context:
@@ -778,7 +799,7 @@ class BuildContext:
                 expanded_key = substitute_loop_variable(resource_template_key, loop_variable, coll_value)
                 artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
                 if artifact_value is not None:
-                    mapping_entries[coll_value] = {prop_name: artifact_value}
+                    mapping_entries[coll_value] = {leaf_name: artifact_value}
 
         return mapping_entries
 
@@ -793,9 +814,15 @@ class BuildContext:
         mapping_entries: Dict[str, Dict[str, str]],
         referenced_outer_vars: Optional[List[Tuple[str, List[str]]]] = None,
     ) -> None:
-        """Enumerate outer value combinations to find expanded resource for a nested ForEach."""
+        """Enumerate outer value combinations to find expanded resource for a nested ForEach.
+
+        ``prop_name`` may be a jmespath dotted path; the value-dict key uses the leaf segment.
+        """
         import itertools
 
+        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+
+        leaf_name = _leaf_prop_name(prop_name)
         outer_collections = [oc[1] for oc in outer_context]
         outer_vars = [oc[0] for oc in outer_context]
 
@@ -821,7 +848,7 @@ class BuildContext:
                 mapping_key = coll_value
 
             if mapping_key not in mapping_entries:
-                mapping_entries[mapping_key] = {prop_name: artifact_value}
+                mapping_entries[mapping_key] = {leaf_name: artifact_value}
 
     def _collect_foreach_layer_mappings(
         self,
@@ -895,14 +922,19 @@ class BuildContext:
 
     @staticmethod
     def _get_artifact_value(modified_resources: Dict, expanded_key: str, prop_name: str) -> Optional[Any]:
-        """Extract an artifact property value from an expanded resource, or return None."""
+        """Extract an artifact property value from an expanded resource, or return None.
+
+        ``prop_name`` may be a jmespath dotted path (e.g. "Command.ScriptLocation").
+        """
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
         modified_resource = modified_resources.get(expanded_key, {})
         if not isinstance(modified_resource, dict):
             return None
         modified_props = modified_resource.get("Properties", {})
         if not isinstance(modified_props, dict):
             return None
-        return modified_props.get(prop_name)
+        return _get_prop_value(modified_props, prop_name)
 
     def _copy_artifact_paths(self, original_resource: Dict, modified_resource: Dict) -> None:
         """

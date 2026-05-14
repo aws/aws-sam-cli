@@ -412,8 +412,10 @@ def detect_foreach_dynamic_properties(
         if not isinstance(properties, dict):
             continue
 
-        for prop_name in artifact_properties:
-            prop_value = properties.get(prop_name)
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _resolve_property_paths
+
+        for prop_name in _resolve_property_paths(artifact_properties, properties):
+            prop_value = _get_prop_value(properties, prop_name)
             if prop_value is not None:
                 if contains_loop_variable(prop_value, loop_variable):
                     dynamic_properties.append(

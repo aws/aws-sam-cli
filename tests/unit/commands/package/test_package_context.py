@@ -1100,6 +1100,113 @@ class TestPackageContextLanguageExtensions(TestCase):
         self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::Lambda::Function"))
         self.assertEqual(original_props["Code"]["ImageUri"], "111.dkr.ecr.us-east-1.amazonaws.com/r:tag")
 
+    # =========================================================================
+    # Dotted-path Fn::ForEach detection / Mapping / FindInMap behaviors
+    # =========================================================================
+
+    def test_detect_dynamic_glue_script_location_dotted(self):
+        """detect_dynamic_artifact_properties finds dotted Command.ScriptLocation."""
+        template = {
+            "Resources": {
+                "Fn::ForEach::Jobs": [
+                    "Name",
+                    ["Etl1", "Etl2"],
+                    {
+                        "${Name}Job": {
+                            "Type": "AWS::Glue::Job",
+                            "Properties": {
+                                "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                            },
+                        }
+                    },
+                ]
+            },
+        }
+
+        dynamic_properties = detect_dynamic_artifact_properties(template)
+
+        self.assertEqual(len(dynamic_properties), 1)
+        prop = dynamic_properties[0]
+        self.assertEqual(prop.property_name, "Command.ScriptLocation")
+        self.assertEqual(prop.property_value, "./scripts/${Name}.py")
+        self.assertEqual(prop.resource_type, "AWS::Glue::Job")
+
+    def test_replace_dynamic_artifact_with_findmap_dotted_glue(self):
+        """_replace_dynamic_artifact_with_findmap writes FindInMap at the dotted path with leaf-name third arg."""
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        resources = {
+            "Fn::ForEach::Jobs": [
+                "Name",
+                ["Etl1", "Etl2"],
+                {
+                    "${Name}Job": {
+                        "Type": "AWS::Glue::Job",
+                        "Properties": {
+                            "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                        },
+                    }
+                },
+            ]
+        }
+        prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Jobs",
+            loop_name="Jobs",
+            loop_variable="Name",
+            collection=["Etl1", "Etl2"],
+            resource_key="${Name}Job",
+            resource_type="AWS::Glue::Job",
+            property_name="Command.ScriptLocation",
+            property_value="./scripts/${Name}.py",
+        )
+
+        result = _replace_dynamic_artifact_with_findmap(resources, prop)
+
+        self.assertTrue(result)
+        body = resources["Fn::ForEach::Jobs"][2]
+        # FindInMap is written at Properties.Command.ScriptLocation, not at a literal "Command.ScriptLocation" key
+        script_location = body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"]
+        self.assertEqual(
+            script_location, {"Fn::FindInMap": ["SAMScriptLocationJobs", {"Ref": "Name"}, "ScriptLocation"]}
+        )
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+
+    def test_generate_artifact_mappings_dotted_lambda_image(self):
+        """_generate_artifact_mappings produces leaf-named Mapping with leaf-keyed value-dict for Code.ImageUri."""
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Function",
+            resource_type="AWS::Lambda::Function",
+            property_name="Code.ImageUri",
+            property_value="local-image-${Name}:latest",
+        )
+        exported_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}},
+            },
+            "BetaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"}},
+            },
+        }
+
+        mappings, _ = _generate_artifact_mappings([prop], "/tmp", exported_resources)
+
+        self.assertIn("SAMImageUriFuncs", mappings)
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Alpha"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}
+        )
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Beta"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"}
+        )
+
 
 class TestPackageContextMappingsIntegration(TestCase):
     """Test cases for the complete Mappings transformation integration in _export()"""
