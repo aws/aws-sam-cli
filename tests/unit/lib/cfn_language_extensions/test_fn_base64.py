@@ -25,6 +25,7 @@ from samcli.lib.cfn_language_extensions.resolvers.base import (
     IntrinsicResolver,
 )
 from samcli.lib.cfn_language_extensions.resolvers.fn_base64 import FnBase64Resolver
+from samcli.lib.cfn_language_extensions.resolvers.fn_ref import FnRefResolver
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 
 
@@ -477,6 +478,21 @@ class TestFnBase64ResolverPartialMode:
             "encoded": "aGVsbG8=",
             "preserved": {"Fn::GetAtt": ["MyBucket", "Arn"]},
         }
+
+    def test_unresolved_arg_is_preserved_in_partial_mode(self):
+        from samcli.lib.cfn_language_extensions.models import ParsedTemplate
+        ctx = TemplateProcessingContext(
+            fragment={"Resources": {}},
+            resolution_mode=ResolutionMode.PARTIAL,
+            parsed_template=ParsedTemplate(parameters={"UserData": {"Type": "String"}}),
+        )
+        orch = IntrinsicResolver(ctx)
+        orch.register_resolver(FnRefResolver)
+        orch.register_resolver(FnBase64Resolver)
+
+        value = {"Fn::Base64": {"Ref": "UserData"}}
+        result = orch.resolve_value(value)
+        assert result == {"Fn::Base64": {"Ref": "UserData"}}
 
 
 class TestFnBase64ResolverRealWorldScenarios:
