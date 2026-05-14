@@ -481,6 +481,7 @@ class TestFnBase64ResolverPartialMode:
 
     def test_unresolved_arg_is_preserved_in_partial_mode(self):
         from samcli.lib.cfn_language_extensions.models import ParsedTemplate
+
         ctx = TemplateProcessingContext(
             fragment={"Resources": {}},
             resolution_mode=ResolutionMode.PARTIAL,

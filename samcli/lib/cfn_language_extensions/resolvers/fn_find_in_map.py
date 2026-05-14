@@ -108,8 +108,7 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
         keys = (map_name, top_key, second_key)
         if not all(isinstance(k, str) for k in keys):
             if self.context.resolution_mode == ResolutionMode.PARTIAL and all(
-                isinstance(k, str) or is_unresolved_param_or_pseudo_ref(k, self.context)
-                for k in keys
+                isinstance(k, str) or is_unresolved_param_or_pseudo_ref(k, self.context) for k in keys
             ):
                 preserved = [map_name, top_key, second_key]
                 if len(args) >= self._ARGS_WITH_DEFAULT:
