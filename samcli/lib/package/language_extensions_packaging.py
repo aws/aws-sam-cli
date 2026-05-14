@@ -8,13 +8,13 @@ None of the functions use instance state — they are pure functions.
 
 import copy
 import itertools
-import jmespath
 import logging
 import re
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
+import jmespath
 from botocore.utils import set_value_from_jmespath
 
 from samcli.lib.cfn_language_extensions.models import (
@@ -124,8 +124,6 @@ def _get_prop_value(props: Dict[str, Any], prop_name: str) -> Optional[Any]:
     """Read a property by jmespath path. Supports flat keys ("CodeUri") and
     dotted paths ("Command.ScriptLocation"). Returns None if missing.
     """
-    if not isinstance(props, dict):
-        return None
     return jmespath.search(prop_name, props)
 
 
