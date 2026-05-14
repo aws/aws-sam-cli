@@ -312,6 +312,14 @@ def sync_ecr_stack(
     function_logical_ids = [
         function.full_path for function in function_provider.get_all() if function.packagetype == IMAGE
     ]
+
+    # Also include ECS/AgentCore container resources that need ECR repos
+    from samcli.lib.providers.sam_container_provider import SamContainerServiceProvider
+
+    container_provider = SamContainerServiceProvider(stacks)
+    container_logical_ids = [service.full_path for service in container_provider.get_all()]
+    function_logical_ids.extend(container_logical_ids)
+
     manager.set_functions(function_logical_ids, image_repositories)
     image_repositories.update(manager.get_repository_mapping())
     manager.sync_repos()

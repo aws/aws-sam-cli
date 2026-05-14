@@ -293,6 +293,7 @@ class Template:
                     continue
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer, cache)
+                exporter.resource_metadata = resource.get("Metadata")
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict

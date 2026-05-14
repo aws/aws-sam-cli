@@ -12,6 +12,7 @@ from samcli.lib.build.app_builder import ApplicationBuildResult
 from samcli.lib.package.utils import is_local_folder, is_zip_file
 from samcli.lib.providers.provider import Function, FunctionBuildInfo, ResourceIdentifier, Stack
 from samcli.lib.sync.flows.auto_dependency_layer_sync_flow import AutoDependencyLayerParentSyncFlow
+from samcli.lib.sync.flows.ecs_container_sync_flow import ECSContainerSyncFlow
 from samcli.lib.sync.flows.function_sync_flow import FunctionSyncFlow
 from samcli.lib.sync.flows.http_api_sync_flow import HttpApiSyncFlow
 from samcli.lib.sync.flows.image_function_sync_flow import ImageFunctionSyncFlow
@@ -39,6 +40,8 @@ from samcli.lib.utils.resource_type_based_factory import ResourceTypeBasedFactor
 from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
+    AWS_BEDROCK_AGENTCORE_RUNTIME,
+    AWS_ECS_TASK_DEFINITION,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_API,
@@ -338,6 +341,21 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             self._stacks,
         )
 
+    def _create_ecs_container_flow(
+        self,
+        resource_identifier: ResourceIdentifier,
+        application_build_result: Optional[ApplicationBuildResult],
+    ) -> Optional[SyncFlow]:
+        return ECSContainerSyncFlow(
+            str(resource_identifier),
+            self._build_context,
+            self._deploy_context,
+            self._sync_context,
+            self._physical_id_mapping,
+            self._stacks,
+            application_build_result,
+        )
+
     GeneratorFunction = Callable[
         ["SyncFlowFactory", ResourceIdentifier, Optional[ApplicationBuildResult]], Optional[SyncFlow]
     ]
@@ -352,6 +370,8 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         AWS_APIGATEWAY_V2_API: _create_api_flow,
         AWS_SERVERLESS_STATEMACHINE: _create_stepfunctions_flow,
         AWS_STEPFUNCTIONS_STATEMACHINE: _create_stepfunctions_flow,
+        AWS_ECS_TASK_DEFINITION: _create_ecs_container_flow,
+        AWS_BEDROCK_AGENTCORE_RUNTIME: _create_ecs_container_flow,
     }
 
     # SyncFlow mapping between resource type and creation function
