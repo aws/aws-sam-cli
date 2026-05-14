@@ -1313,6 +1313,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 None,
                 "mybucket",
+                False,
                 "myprefix",
                 "mykms",
                 ["cap1", "cap2"],
