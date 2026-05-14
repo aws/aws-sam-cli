@@ -10,9 +10,9 @@ Fn::Select format: {"Fn::Select": [index, [list, of, items]]}
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-from samcli.lib.cfn_language_extensions.models import ResolutionMode, TemplateProcessingContext
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
-from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnSelectResolver(IntrinsicFunctionResolver):
@@ -80,7 +80,7 @@ class FnSelectResolver(IntrinsicFunctionResolver):
         # We must still resolve the source list below in case it contains
         # resolvable intrinsics — that way, partial expansion makes maximal
         # progress.
-        if _is_unresolved_param_or_pseudo_ref(index, self.context):
+        if is_unresolved_param_or_pseudo_ref(index, self.context):
             if self.context.resolution_mode != ResolutionMode.PARTIAL:
                 raise InvalidTemplateException("Fn::Select layout is incorrect")
             if self.parent is not None:
@@ -124,20 +124,3 @@ class FnSelectResolver(IntrinsicFunctionResolver):
         # Return the item at the specified index
         # Requirement 10.5: Return the element at that index
         return source_list[index]
-
-
-def _is_unresolved_param_or_pseudo_ref(value: Any, context: TemplateProcessingContext) -> bool:
-    """Return True if value is `{"Ref": <name>}` where <name> is a declared template
-    parameter or a pseudo-parameter. Resource refs return False so they continue to raise."""
-    if not isinstance(value, dict) or len(value) != 1:
-        return False
-    if "Ref" not in value:
-        return False
-    ref_target = value["Ref"]
-    if not isinstance(ref_target, str):
-        return False
-    if ref_target in PSEUDO_PARAMETERS:
-        return True
-    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
-        return True
-    return False

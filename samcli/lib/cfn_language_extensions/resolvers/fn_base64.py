@@ -9,9 +9,9 @@ import base64
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
-from samcli.lib.cfn_language_extensions.models import ResolutionMode, TemplateProcessingContext
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
-from samcli.lib.cfn_language_extensions.utils import PSEUDO_PARAMETERS
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnBase64Resolver(IntrinsicFunctionResolver):
@@ -73,7 +73,7 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
         # (a Ref to a declared parameter without a default/override, or to a
         # pseudo-parameter), preserve the call so CloudFormation can resolve it
         # at deploy time. Resource refs / GetAtt / etc. still raise.
-        if _is_unresolved_param_or_pseudo_ref(resolved_args, self.context):
+        if is_unresolved_param_or_pseudo_ref(resolved_args, self.context):
             if self.context.resolution_mode == ResolutionMode.PARTIAL:
                 return {"Fn::Base64": resolved_args}
             raise InvalidTemplateException("Fn::Base64 layout is incorrect")
@@ -86,20 +86,3 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
         # CloudFormation uses UTF-8 encoding for the input string
         encoded_bytes = base64.b64encode(resolved_args.encode("utf-8"))
         return encoded_bytes.decode("utf-8")
-
-
-def _is_unresolved_param_or_pseudo_ref(value: Any, context: TemplateProcessingContext) -> bool:
-    """Return True if value is `{"Ref": <name>}` where <name> is a declared template
-    parameter or a pseudo-parameter. Resource refs return False so they continue to raise."""
-    if not isinstance(value, dict) or len(value) != 1:
-        return False
-    if "Ref" not in value:
-        return False
-    ref_target = value["Ref"]
-    if not isinstance(ref_target, str):
-        return False
-    if ref_target in PSEUDO_PARAMETERS:
-        return True
-    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
-        return True
-    return False

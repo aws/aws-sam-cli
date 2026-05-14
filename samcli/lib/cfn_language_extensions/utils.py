@@ -5,7 +5,10 @@ This module provides shared helpers used across the SAM CLI codebase
 for working with templates that may contain Fn::ForEach blocks.
 """
 
-from typing import Dict, Iterator, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Tuple
+
+if TYPE_CHECKING:
+    from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
 
 FOREACH_PREFIX = "Fn::ForEach::"
 
@@ -63,6 +66,31 @@ def is_intrinsic_key(key: str) -> bool:
     special single-word keys (``Ref``, ``Condition``).
     """
     return key.startswith("Fn::") or key in _INTRINSIC_SINGLE_KEYS
+
+
+def is_unresolved_param_or_pseudo_ref(value: Any, context: "TemplateProcessingContext") -> bool:
+    """Return True if *value* is ``{"Ref": <name>}`` where ``<name>`` is a declared
+    template parameter or a pseudo-parameter — i.e. an unresolved reference that
+    CloudFormation will resolve at deploy time.
+
+    Used by template-time intrinsic resolvers (Fn::FindInMap, Fn::Join, Fn::Select,
+    Fn::Base64) to decide, in PARTIAL resolution mode, whether to preserve the
+    enclosing call instead of raising. Resource refs and other intrinsics return
+    False so they continue to raise — matching Kotlin compatibility for
+    template-time intrinsics that genuinely cannot accept deploy-time inputs.
+    """
+    if not isinstance(value, dict) or len(value) != 1:
+        return False
+    if "Ref" not in value:
+        return False
+    ref_target = value["Ref"]
+    if not isinstance(ref_target, str):
+        return False
+    if ref_target in PSEUDO_PARAMETERS:
+        return True
+    if context.parsed_template is not None and ref_target in context.parsed_template.parameters:
+        return True
+    return False
 
 
 # Mapping-name prefixes that SAM CLI emits for dynamic Fn::ForEach handling:
