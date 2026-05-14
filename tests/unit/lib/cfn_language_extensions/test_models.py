@@ -290,35 +290,40 @@ class TestPackageableResourceArtifactProperties:
 
     def test_includes_existing_serverless_function(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert "CodeUri" in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::Serverless::Function"]
         assert "ImageUri" in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::Serverless::Function"]
 
     def test_includes_existing_lambda_function_dotted_image(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         props = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::Lambda::Function"]
         assert "Code" in props
         assert "Code.ImageUri" in props
 
     def test_includes_serverless_application(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::Serverless::Application"] == ["Location"]
 
     def test_includes_cloudformation_stackset(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::CloudFormation::StackSet"] == ["TemplateURL"]
 
     def test_includes_elasticbeanstalk_application_version(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::ElasticBeanstalk::ApplicationVersion"] == [
-            "SourceBundle"
-        ]
+
+        assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::ElasticBeanstalk::ApplicationVersion"] == ["SourceBundle"]
 
     def test_includes_appsync_graphql_schema(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::AppSync::GraphQLSchema"] == ["DefinitionS3Location"]
 
     def test_includes_appsync_resolver_three_props(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         props = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::AppSync::Resolver"]
         assert sorted(props) == sorted(
             ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location", "CodeS3Location"]
@@ -326,6 +331,7 @@ class TestPackageableResourceArtifactProperties:
 
     def test_includes_appsync_function_configuration_three_props(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         props = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::AppSync::FunctionConfiguration"]
         assert sorted(props) == sorted(
             ["RequestMappingTemplateS3Location", "ResponseMappingTemplateS3Location", "CodeS3Location"]
@@ -333,14 +339,17 @@ class TestPackageableResourceArtifactProperties:
 
     def test_includes_glue_job_dotted_path(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::Glue::Job"] == ["Command.ScriptLocation"]
 
     def test_includes_cloudformation_module_version(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::CloudFormation::ModuleVersion"] == ["ModulePackage"]
 
     def test_includes_cloudformation_resource_version(self):
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES["AWS::CloudFormation::ResourceVersion"] == [
             "SchemaHandlerPackage"
         ]
@@ -348,11 +357,13 @@ class TestPackageableResourceArtifactProperties:
     def test_excludes_ecr_repository_repositoryname(self):
         """RepositoryName is a name, not a packaged-artifact URI. Excluded by design."""
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert "AWS::ECR::Repository" not in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 
     def test_excludes_serverlessrepo_application_metadata(self):
         """ServerlessRepo::Application uses METADATA_WITH_LOCAL_PATHS, not resource props."""
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+
         assert "AWS::ServerlessRepo::Application" not in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 
     def test_dict_is_in_sync_with_canonical_lists(self):
@@ -361,8 +372,8 @@ class TestPackageableResourceArtifactProperties:
         from samcli.lib.utils.resources import RESOURCES_WITH_LOCAL_PATHS
 
         for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items():
-            assert resource_type in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES, (
-                f"{resource_type} from RESOURCES_WITH_LOCAL_PATHS must be in derived dict"
-            )
+            assert (
+                resource_type in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
+            ), f"{resource_type} from RESOURCES_WITH_LOCAL_PATHS must be in derived dict"
             for prop in props:
                 assert prop in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES[resource_type]

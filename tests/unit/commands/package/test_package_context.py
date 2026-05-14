@@ -977,25 +977,30 @@ class TestPackageContextLanguageExtensions(TestCase):
 
     def test_get_prop_value_flat_key(self):
         from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
         self.assertEqual(_get_prop_value({"CodeUri": "s3://b/k"}, "CodeUri"), "s3://b/k")
 
     def test_get_prop_value_dotted_key(self):
         from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
         props = {"Command": {"ScriptLocation": "s3://b/k.py"}}
         self.assertEqual(_get_prop_value(props, "Command.ScriptLocation"), "s3://b/k.py")
 
     def test_get_prop_value_missing_returns_none(self):
         from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
         self.assertIsNone(_get_prop_value({"CodeUri": "x"}, "Command.ScriptLocation"))
 
     def test_set_prop_value_flat_key(self):
         from samcli.lib.package.language_extensions_packaging import _set_prop_value
+
         props = {"CodeUri": "./src"}
         _set_prop_value(props, "CodeUri", "s3://b/k")
         self.assertEqual(props["CodeUri"], "s3://b/k")
 
     def test_set_prop_value_dotted_key_creates_intermediate(self):
         from samcli.lib.package.language_extensions_packaging import _set_prop_value
+
         props = {"Command": {"Name": "glueetl"}}
         _set_prop_value(props, "Command.ScriptLocation", "s3://b/k.py")
         self.assertEqual(props["Command"]["ScriptLocation"], "s3://b/k.py")
@@ -1018,42 +1023,34 @@ class TestPackageContextLanguageExtensions(TestCase):
         """Regression for #9005: Location URI must be copied for AWS::Serverless::Application."""
         original_props = {"Location": "./PublisherApi/template.yaml"}
         exported_props = {"Location": "https://s3.amazonaws.com/bucket/abc123.template"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::Serverless::Application"
-        ))
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::Serverless::Application"))
         self.assertEqual(original_props["Location"], "https://s3.amazonaws.com/bucket/abc123.template")
 
     def test_copy_artifact_uris_for_type_cloudformation_stack(self):
         """TemplateURL must be copied for AWS::CloudFormation::Stack."""
         original_props = {"TemplateURL": "./child/template.yaml"}
         exported_props = {"TemplateURL": "https://s3.amazonaws.com/bucket/xyz789.template"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::CloudFormation::Stack"
-        ))
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::Stack"))
         self.assertEqual(original_props["TemplateURL"], "https://s3.amazonaws.com/bucket/xyz789.template")
 
     def test_copy_artifact_uris_for_type_cloudformation_stackset(self):
         original_props = {"TemplateURL": "./child.yaml"}
         exported_props = {"TemplateURL": "https://s3.amazonaws.com/b/k.template"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::CloudFormation::StackSet"
-        ))
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::StackSet"))
         self.assertEqual(original_props["TemplateURL"], "https://s3.amazonaws.com/b/k.template")
 
     def test_copy_artifact_uris_for_type_eb_application_version(self):
         original_props = {"SourceBundle": "./bundle.zip"}
         exported_props = {"SourceBundle": {"S3Bucket": "b", "S3Key": "k"}}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::ElasticBeanstalk::ApplicationVersion"
-        ))
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::ElasticBeanstalk::ApplicationVersion")
+        )
         self.assertEqual(original_props["SourceBundle"], {"S3Bucket": "b", "S3Key": "k"})
 
     def test_copy_artifact_uris_for_type_appsync_graphql_schema(self):
         original_props = {"DefinitionS3Location": "./schema.graphql"}
         exported_props = {"DefinitionS3Location": "s3://b/schema.graphql"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::AppSync::GraphQLSchema"
-        ))
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::GraphQLSchema"))
         self.assertEqual(original_props["DefinitionS3Location"], "s3://b/schema.graphql")
 
     def test_copy_artifact_uris_for_type_appsync_resolver_all_three(self):
@@ -1067,9 +1064,7 @@ class TestPackageContextLanguageExtensions(TestCase):
             "ResponseMappingTemplateS3Location": "s3://b/res.vtl",
             "CodeS3Location": "s3://b/code.js",
         }
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::AppSync::Resolver"
-        ))
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::Resolver"))
         self.assertEqual(original_props["RequestMappingTemplateS3Location"], "s3://b/req.vtl")
         self.assertEqual(original_props["ResponseMappingTemplateS3Location"], "s3://b/res.vtl")
         self.assertEqual(original_props["CodeS3Location"], "s3://b/code.js")
@@ -1077,36 +1072,33 @@ class TestPackageContextLanguageExtensions(TestCase):
     def test_copy_artifact_uris_for_type_appsync_function_configuration(self):
         original_props = {"CodeS3Location": "./code.js"}
         exported_props = {"CodeS3Location": "s3://b/code.js"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::AppSync::FunctionConfiguration"
-        ))
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::FunctionConfiguration")
+        )
         self.assertEqual(original_props["CodeS3Location"], "s3://b/code.js")
 
     def test_copy_artifact_uris_for_type_cloudformation_module_version(self):
         original_props = {"ModulePackage": "./module.zip"}
         exported_props = {"ModulePackage": "s3://b/module.zip"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::CloudFormation::ModuleVersion"
-        ))
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::ModuleVersion")
+        )
         self.assertEqual(original_props["ModulePackage"], "s3://b/module.zip")
 
     def test_copy_artifact_uris_for_type_cloudformation_resource_version(self):
         original_props = {"SchemaHandlerPackage": "./pkg.zip"}
         exported_props = {"SchemaHandlerPackage": "s3://b/pkg.zip"}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::CloudFormation::ResourceVersion"
-        ))
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::ResourceVersion")
+        )
         self.assertEqual(original_props["SchemaHandlerPackage"], "s3://b/pkg.zip")
 
     def test_copy_artifact_uris_for_type_lambda_function_image_dotted(self):
         # AWS::Lambda::Function has both Code and Code.ImageUri (dotted path)
         original_props = {"Code": {"ImageUri": "local-tag:latest"}}
         exported_props = {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:tag"}}
-        self.assertTrue(_copy_artifact_uris_for_type(
-            original_props, exported_props, "AWS::Lambda::Function"
-        ))
-        self.assertEqual(original_props["Code"]["ImageUri"],
-                         "111.dkr.ecr.us-east-1.amazonaws.com/r:tag")
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::Lambda::Function"))
+        self.assertEqual(original_props["Code"]["ImageUri"], "111.dkr.ecr.us-east-1.amazonaws.com/r:tag")
 
 
 class TestPackageContextMappingsIntegration(TestCase):
