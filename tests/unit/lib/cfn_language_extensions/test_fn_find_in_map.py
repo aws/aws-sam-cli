@@ -2080,8 +2080,14 @@ class TestFnFindInMapFallbackToFragment:
         assert result == "ami-12345678"
 
 
-class TestFnFindInMapResolverPartialMode:
-    """Tests for FnFindInMapResolver in PARTIAL resolution mode (issue #9004)."""
+class TestFnFindInMapResolverPartialModeWithUnresolvedRef:
+    """Tests for FnFindInMapResolver in PARTIAL resolution mode when keys are
+    unresolved Refs to declared template parameters or pseudo-parameters.
+
+    Distinct from the earlier TestFnFindInMapResolverPartialMode class above —
+    these tests exercise the orchestrator with FnRefResolver registered, to
+    cover the unresolved-Ref-as-key paths.
+    """
 
     @pytest.fixture
     def partial_context(self) -> TemplateProcessingContext:
@@ -2182,8 +2188,8 @@ class TestFnFindInMapResolverPartialMode:
             orch.resolve_value({"Fn::FindInMap": ["M", {"Fn::GetAtt": ["Q", "Arn"]}, "k"]})
 
 
-class TestFnFindInMapIssue9004Regression:
-    """End-to-end regression test for GitHub issue #9004.
+class TestFnFindInMapEndToEndWithUnresolvedRef:
+    """End-to-end regression test driven through process_template.
 
     Repro: a template with AWS::LanguageExtensions transform, a parameter that
     has no Default and no override, and Fn::FindInMap using !Ref to that
