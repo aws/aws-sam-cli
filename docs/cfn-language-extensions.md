@@ -267,12 +267,12 @@ Functions that require deployed resources (`Fn::GetAtt`, `Fn::ImportValue`, `Fn:
 
 The following template issues are caught locally before the SAM transform runs:
 
-| Error | Cause |
-|-------|-------|
-| `Fn::ForEach must have exactly 3 elements` | The `Fn::ForEach` value is not a 3-element list (`[loop_variable, collection, output_template]`). |
-| `Maximum nesting depth of 5 exceeded` | More than 5 levels of `Fn::ForEach` are nested. |
-| `Parameter '<name>' referenced by Fn::ForEach not found` | The `!Ref` in the collection points at a parameter that is not declared in the template. |
-| Empty collection | If the collection resolves to an empty list (e.g., a `CommaDelimitedList` parameter with `Default: ""`), no resources are emitted — the loop is silently skipped. |
+| Cause | Error message |
+|-------|---------------|
+| The `Fn::ForEach` value is malformed — not a list, doesn't have exactly 3 elements, or has a non-string loop identifier. | `Fn::ForEach::<key> layout is incorrect` (raised as `InvalidTemplateException`; see `samcli/lib/cfn_language_extensions/processors/foreach.py`). |
+| More than 5 levels of `Fn::ForEach` are nested. | `Fn::ForEach nesting depth of <N> exceeds the maximum allowed depth of 5. CloudFormation supports up to 5 nested Fn::ForEach loops.` |
+| The collection resolves to an empty list (e.g., a `CommaDelimitedList` parameter with `Default: ""`). | No error — the loop is silently skipped and no resources are emitted. |
+| The `!Ref` in the collection points at a parameter that is not declared in the template. | No error in the typical `sam build` / `sam package` flow. SAM CLI runs intrinsic resolution in PARTIAL mode and preserves the unresolved `{"Ref": "<name>"}`. CloudFormation will reject the unresolved ref at deploy time. |
 
 ## Limitations
 
