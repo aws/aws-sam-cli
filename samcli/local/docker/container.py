@@ -560,6 +560,99 @@ class Container:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
             return resp.content, False
 
+    # ------------------------------------------------------------------
+    # Response streaming support
+    # ------------------------------------------------------------------
+    # The methods below provide a "streaming" companion to the
+    # _make_http_request / wait_for_http_response pair above. They are used
+    # by the local API Gateway service when a Lambda function returns its
+    # response progressively (e.g. via Node.js `awslambda.streamifyResponse`
+    # which talks the Lambda response streaming protocol). Instead of
+    # buffering the whole response from RIE, we keep the connection open
+    # with `stream=True` and hand the raw `requests.Response` back to the
+    # caller, which will iterate body chunks and forward them to the
+    # browser.
+
+    def wait_for_streaming_response(self, event: str, tenant_id: Optional[str] = None):
+        """
+        Block until the container's socket is ready, then POST `event` to
+        the RIE invoke endpoint.
+
+        Returns a two-tuple ``(response, release)`` where:
+
+        * ``response`` is a raw :class:`requests.Response` opened with
+          ``stream=True``. The caller is responsible for iterating it and
+          calling ``close()`` when done.
+        * ``release`` is a zero-arg callable that releases this
+          invocation's concurrency-semaphore permit. It is **idempotent
+          per call site**: each call to ``wait_for_streaming_response``
+          gets its own closure with its own flag, so two concurrent
+          invocations against a container with ``AWS_LAMBDA_MAX_CONCURRENCY > 1``
+          cannot accidentally overwrite each other's release state and
+          leak permits.
+
+        This method intentionally does NOT use the ``@retry`` decorator
+        that ``wait_for_http_response`` does: retrying mid-stream would
+        misorder bytes already delivered to the client. Connection-level
+        retries are handled by ``_wait_for_socket_connection`` below.
+        """
+        self.start_logs_thread_if_not_alive(None)
+        self._wait_for_socket_connection()
+
+        # Honor the per-container concurrency semaphore. Note that for a
+        # streaming invoke the semaphore is held for the entire duration of
+        # the stream (not just the HTTP send), which is the correct
+        # behavior: a streaming function occupies the runtime slot until
+        # it finishes. The caller MUST invoke the returned ``release``
+        # closure when iteration ends.
+        slot_held = False
+        if self._concurrency_semaphore:
+            self._concurrency_semaphore.acquire()
+            slot_held = True
+
+        # Per-invocation release state. Storing this on ``self`` would
+        # cause cross-invocation overwrites at ``max_concurrency > 1``;
+        # closing over locals keeps each call site independent.
+        released = {"value": False}
+        release_lock = threading.Lock()
+
+        def release() -> None:
+            if not slot_held:
+                return
+            with release_lock:
+                if released["value"]:
+                    return
+                released["value"] = True
+                # Plain ``threading.Semaphore`` (not BoundedSemaphore)
+                # would silently let an over-release inflate the permit
+                # count past ``max_concurrency`` — the guard above is the
+                # only thing keeping the concurrency cap honest.
+                self._concurrency_semaphore.release()
+
+        try:
+            response = self._make_streaming_http_request(event, tenant_id)
+        except Exception:
+            # If the request itself blew up, immediately release the
+            # slot we just acquired; otherwise we would leak permits.
+            release()
+            raise
+
+        return response, release
+
+    def _make_streaming_http_request(self, event: str, tenant_id: Optional[str] = None):
+        headers = {"Content-Type": "application/json"}
+        if tenant_id is not None:
+            headers["X-Amz-Tenant-Id"] = tenant_id
+            LOG.debug("Adding tenant-id header to streaming invoke: %s", tenant_id)
+
+        return requests.post(
+            self.URL.format(host=self._container_host, port=self.rapid_port_host, function_name="function"),
+            data=event.encode("utf-8"),
+            headers=headers,
+            stream=True,
+            timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
+        )
+
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.
         # NOTE(sriram-mv): All logging is re-directed to stderr, so that only the lambda function return
