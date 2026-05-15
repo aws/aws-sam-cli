@@ -14,12 +14,13 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
-import jmespath
-from botocore.utils import set_value_from_jmespath
 
-from samcli.lib.cfn_language_extensions.models import (
-    PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES,
-    DynamicArtifactProperty,
+from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+from samcli.lib.cfn_language_extensions.property_paths import (
+    copy_artifact_properties,
+    get_prop_value,
+    leaf_prop_name,
+    set_prop_value,
 )
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
@@ -120,64 +121,6 @@ def generate_and_apply_artifact_mappings(
     return _apply_artifact_mappings_to_template(template, mappings, dynamic_properties, property_to_mapping)
 
 
-def _get_prop_value(props: Dict[str, Any], prop_name: str) -> Optional[Any]:
-    """Read a property by jmespath path. Supports flat keys ("CodeUri") and
-    dotted paths ("Command.ScriptLocation"). Returns None if missing.
-    """
-    return jmespath.search(prop_name, props)
-
-
-def _set_prop_value(props: Dict[str, Any], prop_name: str, value: Any) -> None:
-    """Write a property by jmespath path. Creates intermediate dicts as needed.
-    Supports flat keys and dotted paths.
-    """
-    set_value_from_jmespath(props, prop_name, value)
-
-
-def _leaf_prop_name(prop_name: str) -> str:
-    """Return the last segment of a jmespath property name.
-
-    CloudFormation Mapping names must be alphanumeric, and the third argument of
-    Fn::FindInMap and the keys of Mapping value-dicts must match each other as
-    plain strings. Dotted property names (e.g. "Command.ScriptLocation") are
-    used to *address* the property on a resource, but the *identifier* used in
-    Mapping names and FindInMap lookups must use only the leaf segment so the
-    generated CloudFormation is well-formed.
-    """
-    return prop_name.rsplit(".", 1)[-1]
-
-
-def _resolve_property_paths(prop_names: List[str], properties: Dict[str, Any]) -> List[str]:
-    """Filter ``prop_names`` so a parent path is dropped when a more specific
-    child path is present in ``properties``.
-
-    Some resource types declare multiple alternative artifact paths in
-    ``PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES``. For example,
-    ``AWS::Lambda::Function`` lists ``Code`` (used for ZIP packages) and
-    ``Code.ImageUri`` (used for image packages). A given user template uses
-    only one of these shapes, but ``Code`` is a prefix of ``Code.ImageUri``,
-    so a naive iteration would address both paths and treat the same nested
-    value twice. Returning only the most specific resolved path picks the
-    correct interpretation for the user's actual property shape.
-    """
-    # Sort longest-first so child paths win over their parents.
-    sorted_paths = sorted(prop_names, key=lambda p: -p.count("."))
-    consumed_prefixes: set = set()
-    selected: List[str] = []
-    for path in sorted_paths:
-        if _get_prop_value(properties, path) is None:
-            continue
-        # If a more specific path under this prefix has already been selected, skip.
-        if any(other.startswith(path + ".") for other in consumed_prefixes):
-            continue
-        selected.append(path)
-        consumed_prefixes.add(path)
-    # Preserve original ordering for callers that care.
-    order = {p: i for i, p in enumerate(prop_names)}
-    selected.sort(key=lambda p: order.get(p, 0))
-    return selected
-
-
 # ---------------------------------------------------------------------------
 # Merge helpers
 # ---------------------------------------------------------------------------
@@ -262,8 +205,12 @@ def _update_foreach_with_s3_uris(
             continue
         exported_props = exported_resource.get("Properties", {})
 
-        _copy_artifact_uris_for_type(
-            properties, exported_props, resource_template.get("Type", ""), foreach_key, dynamic_prop_keys
+        copy_artifact_properties(
+            properties,
+            exported_props,
+            resource_template.get("Type", ""),
+            foreach_key=foreach_key,
+            dynamic_prop_keys=dynamic_prop_keys,
         )
 
 
@@ -288,40 +235,11 @@ def _build_expanded_key(
 
 def _copy_artifact_uris(original_resource: Dict, exported_resource: Dict) -> None:
     """Copy artifact URIs from exported resource to original resource."""
-    original_props = original_resource.get("Properties", {})
-    exported_props = exported_resource.get("Properties", {})
-    resource_type = original_resource.get("Type", "")
-    _copy_artifact_uris_for_type(original_props, exported_props, resource_type)
-
-
-def _copy_artifact_uris_for_type(
-    original_props: Dict,
-    exported_props: Dict,
-    resource_type: str,
-    foreach_key: Optional[str] = None,
-    dynamic_prop_keys: Optional[set] = None,
-) -> bool:
-    """
-    Copy artifact URIs based on resource type.
-
-    Uses PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES to determine which
-    properties to copy, avoiding a long elif chain.
-    """
-    prop_names = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type)
-    if not prop_names:
-        return False
-
-    copied = False
-    for prop_name in prop_names:
-        exported_value = _get_prop_value(exported_props, prop_name)
-        if exported_value is None:
-            continue
-        if dynamic_prop_keys and foreach_key and (foreach_key, prop_name) in dynamic_prop_keys:
-            continue
-        _set_prop_value(original_props, prop_name, exported_value)
-        copied = True
-
-    return copied
+    copy_artifact_properties(
+        original_resource.get("Properties", {}),
+        exported_resource.get("Properties", {}),
+        original_resource.get("Type", ""),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +294,7 @@ def _compute_mapping_name(
     npath = _nesting_path(prop)
     # Use the leaf segment for the Mapping name so dotted property paths (e.g.
     # "Command.ScriptLocation") yield well-formed alphanumeric Mapping names.
-    leaf = _leaf_prop_name(prop.property_name)
+    leaf = leaf_prop_name(prop.property_name)
     base_name = f"SAM{leaf}{npath}"
     # Collision detection must also key on the leaf — two resources with
     # different dotted paths but the same leaf (e.g. "ImageUri" vs
@@ -409,7 +327,7 @@ def _generate_artifact_mappings(
     # Keyed on the leaf so dotted paths that share a leaf (e.g. "ImageUri" vs
     # "Code.ImageUri") are detected as colliding and get a resource-key suffix.
     collision_groups: Dict[Tuple[str, str], int] = Counter(
-        (_nesting_path(p), _leaf_prop_name(p.property_name)) for p in dynamic_properties
+        (_nesting_path(p), leaf_prop_name(p.property_name)) for p in dynamic_properties
     )
 
     for prop in dynamic_properties:
@@ -419,7 +337,7 @@ def _generate_artifact_mappings(
         # The Mapping value-dict key and the third FindInMap argument must use
         # the leaf segment so dotted property paths produce well-formed
         # CloudFormation (Mappings can't contain dots in either name or keys).
-        leaf_name = _leaf_prop_name(prop.property_name)
+        leaf_name = leaf_prop_name(prop.property_name)
 
         if mapping_name not in mappings:
             mappings[mapping_name] = {}
@@ -536,7 +454,7 @@ def _find_artifact_uri_for_resource(
     if not isinstance(properties, dict):
         return None
 
-    artifact_uri = _get_prop_value(properties, property_name)
+    artifact_uri = get_prop_value(properties, property_name)
 
     if isinstance(artifact_uri, str):
         return artifact_uri
@@ -590,7 +508,7 @@ def _replace_dynamic_artifact_with_findmap(
     """
     if mapping_name is None:
         # Use the leaf segment so dotted paths produce alphanumeric Mapping names.
-        mapping_name = f"SAM{_leaf_prop_name(prop.property_name)}{_nesting_path(prop)}"
+        mapping_name = f"SAM{leaf_prop_name(prop.property_name)}{_nesting_path(prop)}"
 
     current_scope = resources
     if prop.outer_loops:
@@ -643,14 +561,14 @@ def _replace_dynamic_artifact_with_findmap(
     # Address the property at its dotted location (creating intermediate dicts
     # if needed) and use the leaf segment as the FindInMap third argument so
     # the lookup matches the Mapping value-dict key.
-    _set_prop_value(
+    set_prop_value(
         properties,
         prop.property_name,
         {
             "Fn::FindInMap": [
                 mapping_name,
                 lookup_key,
-                _leaf_prop_name(prop.property_name),
+                leaf_prop_name(prop.property_name),
             ]
         },
     )

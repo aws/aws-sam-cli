@@ -504,7 +504,13 @@ class BuildContext:
             elif isinstance(resource_value, dict) and resource_key in modified_resources:
                 # Regular resource - copy updated paths from modified template
                 modified_resource = modified_resources.get(resource_key, {})
-                self._copy_artifact_paths(resource_value, modified_resource)
+                from samcli.lib.cfn_language_extensions.property_paths import copy_artifact_properties
+
+                copy_artifact_properties(
+                    resource_value.get("Properties", {}),
+                    modified_resource.get("Properties", {}),
+                    resource_value.get("Type", ""),
+                )
 
         # Merge generated Mappings into the template
         if all_generated_mappings:
@@ -552,13 +558,13 @@ class BuildContext:
             Generated Mappings section for dynamic artifact properties (empty dict if none)
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
-        from samcli.lib.package.language_extensions_packaging import (
-            _get_prop_value,
-            _leaf_prop_name,
-            _resolve_property_paths,
-            _set_prop_value,
+        from samcli.lib.cfn_language_extensions.property_paths import (
+            get_prop_value,
+            leaf_prop_name,
+            resolve_property_paths,
+            set_prop_value,
         )
+        from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
 
         generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
 
@@ -606,15 +612,15 @@ class BuildContext:
                 continue
 
             candidate_paths = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type, [])
-            for prop_name in _resolve_property_paths(candidate_paths, properties):
-                prop_value = _get_prop_value(properties, prop_name)
+            for prop_name in resolve_property_paths(candidate_paths, properties):
+                prop_value = get_prop_value(properties, prop_name)
                 if prop_value is None:
                     continue
 
                 # CloudFormation Mapping names and FindInMap third-args must be alphanumeric,
                 # so dotted property names (e.g. "Command.ScriptLocation") use the leaf segment
                 # for those identifiers while the dotted form is preserved for property addressing.
-                leaf_name = _leaf_prop_name(prop_name)
+                leaf_name = leaf_prop_name(prop_name)
 
                 if contains_loop_variable(prop_value, loop_variable) and collection_values:
                     # Determine which outer loop variables the property references
@@ -653,7 +659,7 @@ class BuildContext:
                         else:
                             lookup_key = {"Ref": loop_variable}
 
-                        _set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
+                        set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
                 else:
                     expanded_key = self._build_expanded_key(
                         resource_template_key,
@@ -664,7 +670,7 @@ class BuildContext:
                     if expanded_key:
                         artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
                         if artifact_value is not None:
-                            _set_prop_value(properties, prop_name, artifact_value)
+                            set_prop_value(properties, prop_name, artifact_value)
 
             # Propagate auto dependency layer references from expanded functions
             # to the ForEach body. Each expanded function may have Layers entries
@@ -723,10 +729,10 @@ class BuildContext:
         share the same property name (e.g., two resources both with DefinitionUri).
         """
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.package.language_extensions_packaging import (
-            _get_prop_value,
-            _leaf_prop_name,
-            _resolve_property_paths,
+        from samcli.lib.cfn_language_extensions.property_paths import (
+            get_prop_value,
+            leaf_prop_name,
+            resolve_property_paths,
         )
 
         count: Counter = Counter()
@@ -740,12 +746,12 @@ class BuildContext:
             if not isinstance(rprops, dict):
                 continue
             candidate_paths = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(rtype, [])
-            for pname in _resolve_property_paths(candidate_paths, rprops):
-                pval = _get_prop_value(rprops, pname)
+            for pname in resolve_property_paths(candidate_paths, rprops):
+                pval = get_prop_value(rprops, pname)
                 if pval is not None and contains_loop_variable(pval, loop_variable) and collection_values:
                     # Count by leaf so collisions across resource types with
                     # different dotted paths but the same leaf are detected.
-                    count[_leaf_prop_name(pname)] += 1
+                    count[leaf_prop_name(pname)] += 1
         return count
 
     @staticmethod
@@ -788,10 +794,10 @@ class BuildContext:
         in the Mapping uses the leaf segment so it stays alphanumeric and
         matches the third argument of the generated Fn::FindInMap.
         """
-        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+        from samcli.lib.cfn_language_extensions.property_paths import leaf_prop_name
 
         mapping_entries: Dict[str, Dict[str, str]] = {}
-        leaf_name = _leaf_prop_name(prop_name)
+        leaf_name = leaf_prop_name(prop_name)
 
         for coll_value in collection_values:
             if outer_context:
@@ -830,9 +836,9 @@ class BuildContext:
         """
         import itertools
 
-        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+        from samcli.lib.cfn_language_extensions.property_paths import leaf_prop_name
 
-        leaf_name = _leaf_prop_name(prop_name)
+        leaf_name = leaf_prop_name(prop_name)
         outer_collections = [oc[1] for oc in outer_context]
         outer_vars = [oc[0] for oc in outer_context]
 
@@ -936,7 +942,7 @@ class BuildContext:
 
         ``prop_name`` may be a jmespath dotted path (e.g. "Command.ScriptLocation").
         """
-        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+        from samcli.lib.cfn_language_extensions.property_paths import get_prop_value
 
         modified_resource = modified_resources.get(expanded_key, {})
         if not isinstance(modified_resource, dict):
@@ -944,37 +950,7 @@ class BuildContext:
         modified_props = modified_resource.get("Properties", {})
         if not isinstance(modified_props, dict):
             return None
-        return _get_prop_value(modified_props, prop_name)
-
-    def _copy_artifact_paths(self, original_resource: Dict, modified_resource: Dict) -> None:
-        """
-        Copy artifact paths from modified resource to original resource.
-
-        Uses PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES to determine which
-        properties to copy, avoiding a hardcoded elif chain.
-
-        Parameters
-        ----------
-        original_resource : Dict
-            The original resource (will be modified in place)
-        modified_resource : Dict
-            The modified resource with updated artifact paths
-        """
-        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _set_prop_value
-
-        original_props = original_resource.get("Properties", {})
-        modified_props = modified_resource.get("Properties", {})
-        resource_type = original_resource.get("Type", "")
-
-        prop_names = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type)
-        if not prop_names:
-            return
-
-        for prop_name in prop_names:
-            value = _get_prop_value(modified_props, prop_name)
-            if value is not None:
-                _set_prop_value(original_props, prop_name, value)
+        return get_prop_value(modified_props, prop_name)
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """

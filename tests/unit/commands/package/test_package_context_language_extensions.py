@@ -1,17 +1,19 @@
 """
 Tests for language extensions packaging support.
 
-Covers _copy_artifact_uris_for_type with various resource types and dynamic property skipping.
-These functions now live in samcli.lib.package.language_extensions_packaging.
+Covers ``copy_artifact_properties`` with various resource types and dynamic
+property skipping. The helper now lives in
+``samcli.lib.cfn_language_extensions.property_paths`` and is shared by
+``samcli.lib.package.language_extensions_packaging`` and ``samcli.commands.build.build_context``.
 """
 
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.property_paths import copy_artifact_properties
 from samcli.lib.package.language_extensions_packaging import (
     _compute_mapping_name,
-    _copy_artifact_uris_for_type,
     _nesting_path,
     _prop_identity,
     _update_foreach_with_s3_uris,
@@ -21,110 +23,110 @@ from samcli.lib.package.language_extensions_packaging import (
 )
 
 
-class TestCopyArtifactUrisForType(TestCase):
-    """Tests for _copy_artifact_uris_for_type."""
+class TestCopyArtifactProperties(TestCase):
+    """Per-resource-type behavior of the consolidated ``copy_artifact_properties`` helper."""
 
     def test_serverless_function_codeuri(self):
         original = {}
         exported = {"CodeUri": "s3://bucket/code.zip"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::Function")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::Function")
         self.assertTrue(result)
         self.assertEqual(original["CodeUri"], "s3://bucket/code.zip")
 
     def test_serverless_function_imageuri(self):
         original = {}
         exported = {"ImageUri": "123456.dkr.ecr.us-east-1.amazonaws.com/repo:tag"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::Function")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::Function")
         self.assertTrue(result)
         self.assertEqual(original["ImageUri"], "123456.dkr.ecr.us-east-1.amazonaws.com/repo:tag")
 
     def test_lambda_function_code(self):
         original = {}
         exported = {"Code": {"S3Bucket": "bucket", "S3Key": "key"}}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Lambda::Function")
+        result = copy_artifact_properties(original, exported, "AWS::Lambda::Function")
         self.assertTrue(result)
         self.assertEqual(original["Code"]["S3Bucket"], "bucket")
 
     def test_serverless_layer_contenturi(self):
         original = {}
         exported = {"ContentUri": "s3://bucket/layer.zip"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::LayerVersion")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::LayerVersion")
         self.assertTrue(result)
         self.assertEqual(original["ContentUri"], "s3://bucket/layer.zip")
 
     def test_lambda_layer_content(self):
         original = {}
         exported = {"Content": {"S3Bucket": "bucket", "S3Key": "key"}}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Lambda::LayerVersion")
+        result = copy_artifact_properties(original, exported, "AWS::Lambda::LayerVersion")
         self.assertTrue(result)
 
     def test_serverless_api_definitionuri(self):
         original = {}
         exported = {"DefinitionUri": "s3://bucket/api.yaml"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::Api")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::Api")
         self.assertTrue(result)
         self.assertEqual(original["DefinitionUri"], "s3://bucket/api.yaml")
 
     def test_serverless_httpapi_definitionuri(self):
         original = {}
         exported = {"DefinitionUri": "s3://bucket/httpapi.yaml"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::HttpApi")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::HttpApi")
         self.assertTrue(result)
 
     def test_serverless_statemachine_definitionuri(self):
         original = {}
         exported = {"DefinitionUri": "s3://bucket/sm.json"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::StateMachine")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::StateMachine")
         self.assertTrue(result)
 
     def test_serverless_graphqlapi_schemauri(self):
         original = {}
         exported = {"SchemaUri": "s3://bucket/schema.graphql"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::GraphQLApi")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::GraphQLApi")
         self.assertTrue(result)
         self.assertEqual(original["SchemaUri"], "s3://bucket/schema.graphql")
 
     def test_serverless_graphqlapi_codeuri(self):
         original = {}
         exported = {"CodeUri": "s3://bucket/resolvers.zip"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::GraphQLApi")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::GraphQLApi")
         self.assertTrue(result)
 
     def test_apigateway_restapi_bodys3location(self):
         original = {}
         exported = {"BodyS3Location": "s3://bucket/body.yaml"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::ApiGateway::RestApi")
+        result = copy_artifact_properties(original, exported, "AWS::ApiGateway::RestApi")
         self.assertTrue(result)
 
     def test_apigatewayv2_api_bodys3location(self):
         original = {}
         exported = {"BodyS3Location": "s3://bucket/body.yaml"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::ApiGatewayV2::Api")
+        result = copy_artifact_properties(original, exported, "AWS::ApiGatewayV2::Api")
         self.assertTrue(result)
 
     def test_stepfunctions_statemachine_definitions3location(self):
         original = {}
         exported = {"DefinitionS3Location": "s3://bucket/sm.json"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::StepFunctions::StateMachine")
+        result = copy_artifact_properties(original, exported, "AWS::StepFunctions::StateMachine")
         self.assertTrue(result)
 
     def test_unknown_resource_type_returns_false(self):
         original = {}
         exported = {"SomeUri": "s3://bucket/thing"}
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::SNS::Topic")
+        result = copy_artifact_properties(original, exported, "AWS::SNS::Topic")
         self.assertFalse(result)
 
     def test_no_matching_property_returns_false(self):
         original = {}
         exported = {"Handler": "index.handler"}  # Not an artifact property
-        result = _copy_artifact_uris_for_type(original, exported, "AWS::Serverless::Function")
+        result = copy_artifact_properties(original, exported, "AWS::Serverless::Function")
         self.assertFalse(result)
 
     def test_dynamic_property_skipped(self):
         original = {}
         exported = {"CodeUri": "s3://bucket/code.zip"}
         dynamic_keys = {("Fn::ForEach::Funcs", "CodeUri")}
-        result = _copy_artifact_uris_for_type(
+        result = copy_artifact_properties(
             original,
             exported,
             "AWS::Serverless::Function",
@@ -138,7 +140,7 @@ class TestCopyArtifactUrisForType(TestCase):
         original = {}
         exported = {"CodeUri": "s3://bucket/code.zip"}
         dynamic_keys = {("Fn::ForEach::Other", "CodeUri")}
-        result = _copy_artifact_uris_for_type(
+        result = copy_artifact_properties(
             original,
             exported,
             "AWS::Serverless::Function",
@@ -152,7 +154,7 @@ class TestCopyArtifactUrisForType(TestCase):
         original = {}
         exported = {"CodeUri": "s3://bucket/code.zip"}
         dynamic_keys = {("Fn::ForEach::Funcs", "CodeUri")}
-        result = _copy_artifact_uris_for_type(
+        result = copy_artifact_properties(
             original,
             exported,
             "AWS::Serverless::Function",
