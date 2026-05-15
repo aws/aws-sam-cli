@@ -19,7 +19,12 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    ContainerBuildDefinition,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+)
 from samcli.lib.build.build_strategy import (
     BuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
@@ -51,7 +56,9 @@ from samcli.lib.utils.lambda_builders import patch_runtime
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.path_utils import check_path_valid_type, convert_path_to_unix_path
 from samcli.lib.utils.resources import (
+    AWS_BEDROCK_AGENTCORE_RUNTIME,
     AWS_CLOUDFORMATION_STACK,
+    AWS_ECS_TASK_DEFINITION,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_APPLICATION,
@@ -378,7 +385,11 @@ class ApplicationBuilder:
 
             if has_build_artifact:
                 ApplicationBuilder._update_built_resource(
-                    built_artifacts[full_path], properties, resource_type or "", store_path
+                    built_artifacts[full_path],
+                    properties,
+                    resource_type or "",
+                    store_path,
+                    resource.get("Metadata"),
                 )
 
             if is_stack:
@@ -391,7 +402,9 @@ class ApplicationBuilder:
         return template_dict
 
     @staticmethod
-    def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+    def _update_built_resource(
+        path: str, resource_properties: Dict, resource_type: str, absolute_path: str, metadata: Optional[Dict] = None
+    ) -> None:
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
@@ -404,6 +417,26 @@ class ApplicationBuilder:
             resource_properties["Code"] = {"ImageUri": path}
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
             resource_properties["ImageUri"] = path
+        if resource_type == AWS_ECS_TASK_DEFINITION:
+            container_defs = resource_properties.get("ContainerDefinitions", [])
+            if container_defs:
+                target_name = metadata.get("ContainerName") if metadata else None
+                if target_name:
+                    for container_def in container_defs:
+                        if container_def.get("Name") == target_name:
+                            container_def["Image"] = path
+                            break
+                    else:
+                        raise DockerBuildFailed(
+                            f"Metadata.ContainerName '{target_name}' does not match any "
+                            f"container in ContainerDefinitions"
+                        )
+                else:
+                    container_defs[0]["Image"] = path
+        if resource_type == AWS_BEDROCK_AGENTCORE_RUNTIME:
+            artifact = resource_properties.setdefault("AgentRuntimeArtifact", {})
+            container_config = artifact.setdefault("ContainerConfiguration", {})
+            container_config["ContainerUri"] = path
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
@@ -537,6 +570,53 @@ class ApplicationBuilder:
                 return f"{image.id}"
         except (docker.errors.APIError, OSError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerBuildFailed(msg=str(ex)) from ex
+
+    def build_container_images(self, container_build_definitions: List[ContainerBuildDefinition]) -> Dict[str, str]:
+        """
+        Build container images for non-Lambda resources (ECS, AgentCore).
+
+        Parameters
+        ----------
+        container_build_definitions : List[ContainerBuildDefinition]
+            List of container build definitions to build
+
+        Returns
+        -------
+        Dict[str, str]
+            Map of resource identifier to the built image tag
+        """
+        artifacts: Dict[str, str] = {}
+        for container_def in container_build_definitions:
+            if not container_def.metadata:
+                continue
+            image_tag = self._build_container_image(
+                container_def.resource_identifier,
+                container_def.metadata,
+                container_def.architecture,
+            )
+            artifacts[container_def.resource_identifier] = image_tag
+        return artifacts
+
+    def _build_container_image(self, resource_name: str, metadata: Dict, architecture: str) -> str:
+        """
+        Build a container image for an ECS/AgentCore resource. Uses the same Metadata
+        convention as Lambda Image builds (Dockerfile, DockerContext, DockerBuildArgs, etc.)
+
+        Parameters
+        ----------
+        resource_name : str
+            Logical ID or identifier of the resource
+        metadata : dict
+            Metadata block from the resource
+        architecture : str
+            Target architecture
+
+        Returns
+        -------
+        str
+            The full tag of the built image
+        """
+        return self._build_lambda_image(resource_name, metadata, architecture)
 
     def _build_layer(
         self,

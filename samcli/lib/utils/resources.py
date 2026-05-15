@@ -58,6 +58,14 @@ AWS_KINESIS_STREAM = "AWS::Kinesis::Stream"
 AWS_SERVERLESS_STATEMACHINE = "AWS::Serverless::StateMachine"
 AWS_STEPFUNCTIONS_STATEMACHINE = "AWS::StepFunctions::StateMachine"
 AWS_ECR_REPOSITORY = "AWS::ECR::Repository"
+
+# ECS
+AWS_ECS_TASK_DEFINITION = "AWS::ECS::TaskDefinition"
+AWS_ECS_SERVICE = "AWS::ECS::Service"
+
+# AgentCore
+AWS_BEDROCK_AGENTCORE_RUNTIME = "AWS::BedrockAgentCore::Runtime"
+
 AWS_APPLICATION_INSIGHTS = "AWS::ApplicationInsights::Application"
 AWS_RESOURCE_GROUP = "AWS::ResourceGroups::Group"
 
@@ -99,6 +107,8 @@ RESOURCES_WITH_IMAGE_COMPONENT = {
     AWS_SERVERLESS_FUNCTION: ["ImageUri"],
     AWS_LAMBDA_FUNCTION: ["Code.ImageUri"],
     AWS_ECR_REPOSITORY: ["RepositoryName"],
+    AWS_ECS_TASK_DEFINITION: ["ContainerDefinitions.Image"],
+    AWS_BEDROCK_AGENTCORE_RUNTIME: ["AgentRuntimeArtifact.ContainerConfiguration.ContainerUri"],
 }
 
 NESTED_STACKS_RESOURCES = {

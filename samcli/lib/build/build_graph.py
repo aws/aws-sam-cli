@@ -200,12 +200,14 @@ class BuildGraph:
     # global table build definitions key
     FUNCTION_BUILD_DEFINITIONS = "function_build_definitions"
     LAYER_BUILD_DEFINITIONS = "layer_build_definitions"
+    CONTAINER_BUILD_DEFINITIONS = "container_build_definitions"
 
     def __init__(self, build_dir: str) -> None:
         # put build.toml file inside .aws-sam folder
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._function_build_definitions: List["FunctionBuildDefinition"] = []
         self._layer_build_definitions: List["LayerBuildDefinition"] = []
+        self._container_build_definitions: List["ContainerBuildDefinition"] = []
         self._atomic_read()
 
     def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
@@ -213,6 +215,21 @@ class BuildGraph:
 
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
+
+    def get_container_build_definitions(self) -> Tuple["ContainerBuildDefinition", ...]:
+        return tuple(self._container_build_definitions)
+
+    def put_container_build_definition(self, container_build_definition: "ContainerBuildDefinition") -> None:
+        """
+        Puts the newly read container build definition into existing build graph.
+        Each container build definition is unique per resource identifier.
+        """
+        if container_build_definition not in self._container_build_definitions:
+            LOG.debug(
+                "Adding container build definition: %s",
+                container_build_definition,
+            )
+            self._container_build_definitions.append(container_build_definition)
 
     def get_function_build_definition_with_full_path(
         self, function_full_path: str
@@ -699,5 +716,69 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.packagetype == other.packagetype
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
+            and self.architecture == other.architecture
+        )
+
+
+class ContainerBuildDefinition(AbstractBuildDefinition):
+    """
+    ContainerBuildDefinition holds information about each unique container image build
+    for non-Lambda resources (ECS TaskDefinitions, AgentCore, etc.)
+    """
+
+    def __init__(
+        self,
+        resource_identifier: str,
+        resource_type: str,
+        metadata: Optional[Dict],
+        source_hash: str = "",
+        manifest_hash: str = "",
+        env_vars: Optional[Dict] = None,
+        architecture: str = X86_64,
+    ) -> None:
+        # Allow metadata to override architecture (e.g., "arm64" for AgentCore)
+        if metadata and metadata.get("Architecture"):
+            architecture = metadata["Architecture"]
+        super().__init__(source_hash, manifest_hash, env_vars, architecture)
+        self.resource_identifier = resource_identifier
+        self.resource_type = resource_type
+
+        metadata_copied = deepcopy(metadata) if metadata else {}
+        metadata_copied.pop(SAM_RESOURCE_ID_KEY, "")
+        metadata_copied.pop(SAM_IS_NORMALIZED, "")
+        self.metadata = metadata_copied
+
+    @property
+    def dockerfile(self) -> Optional[str]:
+        return self.metadata.get("Dockerfile") if self.metadata else None
+
+    @property
+    def docker_context(self) -> Optional[str]:
+        return self.metadata.get("DockerContext") if self.metadata else None
+
+    @property
+    def docker_build_args(self) -> Dict:
+        return self.metadata.get("DockerBuildArgs", {}) if self.metadata else {}
+
+    @property
+    def docker_build_target(self) -> Optional[str]:
+        return self.metadata.get("DockerBuildTarget") if self.metadata else None
+
+    def get_resource_full_paths(self) -> str:
+        return self.resource_identifier
+
+    def __str__(self) -> str:
+        return (
+            f"ContainerBuildDefinition({self.resource_identifier}, {self.resource_type}, "
+            f"{self.source_hash}, {self.uuid}, {self.metadata}, {self.architecture})"
+        )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContainerBuildDefinition):
+            return False
+        return (
+            self.resource_identifier == other.resource_identifier
+            and self.resource_type == other.resource_type
+            and self.metadata == other.metadata
             and self.architecture == other.architecture
         )
