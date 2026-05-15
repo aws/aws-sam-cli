@@ -20,6 +20,7 @@ def print_deploy_args(
     signing_profiles,
     use_changeset,
     disable_rollback,
+    import_existing_resources,
 ):
     """
     Print a table of the values that are used during a sam deploy.
@@ -33,6 +34,7 @@ def print_deploy_args(
         Region                     : us-east-1
         Confirm changeset          : False
         Disable rollback           : False
+        Import Existing Resources  : False
         Deployment s3 bucket       : aws-sam-cli-managed-default-samclisourcebucket-abcdef
         Capabilities               : ["CAPABILITY_IAM"]
         Parameter overrides        : {'MyParamater': '***', 'Parameter2': 'dd'}
@@ -70,6 +72,7 @@ def print_deploy_args(
     if use_changeset:
         click.echo(f"\tConfirm changeset            : {confirm_changeset}")
     click.echo(f"\tDisable rollback             : {disable_rollback}")
+    click.echo(f"\tImport Existing Resources    : {import_existing_resources}")
     if image_repository:
         msg = "Deployment image repository  : "
         # NOTE(sriram-mv): tab length is 8 spaces.
