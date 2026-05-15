@@ -38,7 +38,6 @@ from samcli.lib.build.exceptions import (
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
-    sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
@@ -551,6 +550,10 @@ class BuildContext:
         Dict[str, Dict[str, Dict[str, str]]]
             Generated Mappings section for dynamic artifact properties (empty dict if none)
         """
+        from samcli.lib.cfn_language_extensions.foreach_mapping_helpers import (
+            compute_lookup_key,
+            compute_mapping_name,
+        )
         from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
         from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
         from samcli.lib.package.language_extensions_packaging import (
@@ -634,24 +637,23 @@ class BuildContext:
                         referenced_outer_vars=referenced_outer_vars,
                     )
                     if mapping_entries:
-                        mapping_name = f"SAM{leaf_name}{nesting_path}"
-                        # Collision count is keyed on the leaf so dotted paths
-                        # that share a leaf (e.g. "ImageUri" vs "Code.ImageUri")
-                        # get the resource-key suffix and don't overwrite each
-                        # other's Mapping entries.
-                        if dynamic_props_count.get(leaf_name, 0) > 1:
-                            suffix = sanitize_resource_key_for_mapping(resource_template_key)
-                            mapping_name = f"{mapping_name}{suffix}"
+                        # Collision keying on the leaf is what prevents two dotted
+                        # paths that share a leaf (e.g. ``ImageUri`` and
+                        # ``Code.ImageUri``) from silently overwriting each other's
+                        # Mapping entries. ``compute_mapping_name`` is shared with
+                        # the package-time pipeline.
+                        mapping_name = compute_mapping_name(
+                            leaf_name,
+                            nesting_path,
+                            has_collision=dynamic_props_count.get(leaf_name, 0) > 1,
+                            resource_template_key=resource_template_key,
+                        )
                         generated_mappings[mapping_name] = mapping_entries
 
-                        lookup_key: Any
-                        if referenced_outer_vars:
-                            # Compound key: join outer + inner variable refs with "-"
-                            ref_parts = [{"Ref": ovar} for ovar, _ in referenced_outer_vars]
-                            ref_parts.append({"Ref": loop_variable})
-                            lookup_key = {"Fn::Join": ["-", ref_parts]}
-                        else:
-                            lookup_key = {"Ref": loop_variable}
+                        lookup_key = compute_lookup_key(
+                            loop_variable,
+                            [ovar for ovar, _ in referenced_outer_vars],
+                        )
 
                         _set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
                 else:
@@ -830,6 +832,7 @@ class BuildContext:
         """
         import itertools
 
+        from samcli.lib.cfn_language_extensions.foreach_mapping_helpers import compute_compound_mapping_key
         from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
 
         leaf_name = _leaf_prop_name(prop_name)
@@ -849,13 +852,10 @@ class BuildContext:
             if artifact_value is None:
                 continue
 
-            if compound_outer_vars:
-                # Build compound key from referenced outer values + inner value
-                key_parts = [oval for ovar, oval in zip(outer_vars, outer_combo) if ovar in compound_outer_vars]
-                key_parts.append(coll_value)
-                mapping_key = "-".join(key_parts)
-            else:
-                mapping_key = coll_value
+            # Outer values participating in the compound key, in iteration order.
+            # When ``compound_outer_vars`` is empty this collapses to just ``coll_value``.
+            outer_key_parts = [oval for ovar, oval in zip(outer_vars, outer_combo) if ovar in compound_outer_vars]
+            mapping_key = compute_compound_mapping_key(outer_key_parts, coll_value)
 
             if mapping_key not in mapping_entries:
                 mapping_entries[mapping_key] = {leaf_name: artifact_value}
