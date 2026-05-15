@@ -21,15 +21,21 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 
-# Minimum number of parts expected when splitting an ECS service ARN by "/"
+# ECS service ARN format: arn:aws:ecs:<region>:<account>:service/<cluster>/<name>
+_ECS_SERVICE_ARN_PREFIX = "arn:aws:ecs:"
+_ECS_SERVICE_ARN_SERVICE_SEGMENT = ":service/"
+
+# Minimum number of slash-separated parts after splitting a service ARN
 # e.g. arn:aws:ecs:region:account:service/cluster/name -> [..., "cluster", "name"]
 _ECS_SERVICE_ARN_PARTS = 3
 
 
 class ECSContainerSyncFlow(SyncFlow):
-    """SyncFlow for ECS TaskDefinition and AgentCore container image resources.
+    """SyncFlow for ECS TaskDefinition container image resources.
 
-    Builds the container image, pushes to ECR, and triggers an ECS service update.
+    Builds the container image, pushes to ECR, registers a new TaskDefinition
+    revision with the updated image URI, then updates any associated ECS services
+    to that revision.
     """
 
     _resource_identifier: str
@@ -131,7 +137,6 @@ class ECSContainerSyncFlow(SyncFlow):
             LOG.debug("%sSkipping sync. Image name is None.", self.log_prefix)
             return
 
-        # Get ECR repo from deploy context
         ecr_repo = self._deploy_context.image_repository
         if (
             not ecr_repo
@@ -142,68 +147,145 @@ class ECSContainerSyncFlow(SyncFlow):
 
         if not ecr_repo:
             LOG.warning(
-                "%sNo ECR repository configured for %s. " "Use --image-repository or --image-repositories.",
+                "%sNo ECR repository configured for %s. Use --image-repository or --image-repositories.",
                 self.log_prefix,
                 self._resource_identifier,
             )
             return
 
-        # Push image to ECR
         ecr_uploader = ECRUploader(self._get_docker_client(), self._get_ecr_client(), ecr_repo, None)
-        ecr_uploader.upload(self._image_name, self._resource_identifier)
+        image_uri = ecr_uploader.upload(self._image_name, self._resource_identifier)
 
-        # Force new deployment of ECS service if one is associated
-        self._force_ecs_deployment()
+        new_task_def_arn = self._register_updated_task_definition(image_uri)
+        if new_task_def_arn:
+            self._update_services_to_task_definition(new_task_def_arn)
 
-    def _force_ecs_deployment(self) -> None:
-        """Force new deployment for ECS services in the stack that use this task definition."""
+    def _register_updated_task_definition(self, image_uri: str) -> Optional[str]:
+        """Describe the current task definition, swap the image URI, and register a new revision."""
         physical_id = self._physical_id_mapping.get(self._resource_identifier)
         if not physical_id:
-            LOG.debug("%sNo physical ID found for %s, skipping ECS update", self.log_prefix, self._resource_identifier)
-            return
+            LOG.debug(
+                "%sNo physical ID for %s; cannot register new task definition revision.",
+                self.log_prefix,
+                self._resource_identifier,
+            )
+            return None
+
+        ecs_client = self._get_ecs_client()
+        try:
+            response = ecs_client.describe_task_definition(taskDefinition=physical_id, include=["TAGS"])
+        except ClientError:
+            LOG.warning(
+                "%sFailed to describe task definition %s", self.log_prefix, physical_id, exc_info=True
+            )
+            return None
+
+        task_def = response.get("taskDefinition", {})
+        tags = response.get("tags", [])
+
+        # Fields that are output-only and must be stripped before re-registering
+        _READONLY_FIELDS = {
+            "taskDefinitionArn",
+            "revision",
+            "status",
+            "requiresAttributes",
+            "compatibilities",
+            "registeredAt",
+            "registeredBy",
+        }
+        register_input = {k: v for k, v in task_def.items() if k not in _READONLY_FIELDS}
+
+        # Update the image in the matching container definition
+        container_name = self._get_container_name()
+        container_defs = register_input.get("containerDefinitions", [])
+        updated = False
+        for cd in container_defs:
+            if container_name is None or cd.get("name") == container_name:
+                cd["image"] = image_uri
+                updated = True
+                if container_name is not None:
+                    break
+
+        if not updated:
+            LOG.warning(
+                "%sContainerName '%s' not found in task definition; skipping registration.",
+                self.log_prefix,
+                container_name,
+            )
+            return None
+
+        if tags:
+            register_input["tags"] = tags
 
         try:
-            ecs_client = self._get_ecs_client()
-
-            # Find ECS services in the same stack by looking at physical_id_mapping
-            # ECS Service physical IDs are ARNs like arn:aws:ecs:region:account:service/cluster/name
-            for resource_id, resource_physical_id in self._physical_id_mapping.items():
-                if not resource_physical_id or "service/" not in str(resource_physical_id):
-                    continue
-                # Check if this service uses our task definition
-                try:
-                    # Extract cluster and service from the ARN
-                    parts = resource_physical_id.rsplit("/", 2)
-                    if len(parts) < _ECS_SERVICE_ARN_PARTS:
-                        continue
-                    cluster = parts[-2]
-                    service_name = parts[-1]
-
-                    svc_response = ecs_client.describe_services(cluster=cluster, services=[service_name])
-                    my_family = physical_id.rsplit("/", 1)[-1].split(":", 1)[0]
-                    for svc in svc_response.get("services", []):
-                        svc_task_def = svc.get("taskDefinition", "")
-                        svc_family = svc_task_def.rsplit("/", 1)[-1].split(":", 1)[0]
-                        if svc_family and svc_family == my_family:
-                            ecs_client.update_service(
-                                cluster=cluster,
-                                service=service_name,
-                                forceNewDeployment=True,
-                            )
-                            LOG.info(
-                                "%sForced new deployment for service %s",
-                                self.log_prefix,
-                                service_name,
-                            )
-                except ClientError:
-                    LOG.warning(
-                        "%sFailed to update service %s",
-                        self.log_prefix,
-                        resource_id,
-                        exc_info=True,
-                    )
+            reg_response = ecs_client.register_task_definition(**register_input)
         except ClientError:
-            LOG.warning("%sFailed to force ECS deployment", self.log_prefix, exc_info=True)
+            LOG.warning("%sFailed to register new task definition revision", self.log_prefix, exc_info=True)
+            return None
+
+        new_arn = reg_response.get("taskDefinition", {}).get("taskDefinitionArn")
+        LOG.info("%sRegistered new task definition revision: %s", self.log_prefix, new_arn)
+        return new_arn
+
+    def _get_container_name(self) -> Optional[str]:
+        """Return ContainerName from resource metadata, if set."""
+        if not self._stacks:
+            return None
+        provider = SamContainerServiceProvider(self._stacks)
+        service = provider.get(self._resource_identifier)
+        if service and isinstance(service.metadata, dict):
+            return service.metadata.get("ContainerName")
+        return None
+
+    def _update_services_to_task_definition(self, task_def_arn: str) -> None:
+        """Update ECS services that reference this task definition family to the new revision."""
+        physical_id = self._physical_id_mapping.get(self._resource_identifier)
+        if not physical_id:
+            return
+
+        ecs_client = self._get_ecs_client()
+        my_family = physical_id.rsplit("/", 1)[-1].split(":", 1)[0]
+
+        for resource_id, resource_physical_id in self._physical_id_mapping.items():
+            if not resource_physical_id:
+                continue
+            # Only consider ECS service ARNs; skip everything else (incl. App Runner, VPC Lattice, etc.)
+            if not (
+                str(resource_physical_id).startswith(_ECS_SERVICE_ARN_PREFIX)
+                and _ECS_SERVICE_ARN_SERVICE_SEGMENT in str(resource_physical_id)
+            ):
+                continue
+
+            parts = resource_physical_id.rsplit("/", 2)
+            if len(parts) < _ECS_SERVICE_ARN_PARTS:
+                continue
+            cluster = parts[-2]
+            service_name = parts[-1]
+
+            try:
+                svc_response = ecs_client.describe_services(cluster=cluster, services=[service_name])
+                for svc in svc_response.get("services", []):
+                    svc_task_def = svc.get("taskDefinition", "")
+                    svc_family = svc_task_def.rsplit("/", 1)[-1].split(":", 1)[0]
+                    if svc_family and svc_family == my_family:
+                        ecs_client.update_service(
+                            cluster=cluster,
+                            service=service_name,
+                            taskDefinition=task_def_arn,
+                        )
+                        LOG.info(
+                            "%sUpdated service %s to task definition %s",
+                            self.log_prefix,
+                            service_name,
+                            task_def_arn,
+                        )
+            except ClientError:
+                LOG.warning(
+                    "%sFailed to update service %s",
+                    self.log_prefix,
+                    resource_id,
+                    exc_info=True,
+                )
 
     def gather_dependencies(self) -> List[SyncFlow]:
         return []
@@ -212,7 +294,7 @@ class ECSContainerSyncFlow(SyncFlow):
         return [
             ResourceAPICall(
                 self._resource_identifier,
-                [ApiCallTypes.UPDATE_FUNCTION_CODE],
+                [ApiCallTypes.UPDATE_CONTAINER_IMAGE],
             )
         ]
 

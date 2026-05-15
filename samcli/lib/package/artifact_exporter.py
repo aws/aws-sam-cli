@@ -620,6 +620,7 @@ class Template:
                 exporter.parent_parameter_values = self.parameter_values
                 exporter.resource_metadata = resource.get("Metadata")
                 exporter.language_extensions_enabled = self.language_extensions_enabled
+                exporter.resource_metadata = resource.get("Metadata")
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
