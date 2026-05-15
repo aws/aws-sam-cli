@@ -17,6 +17,11 @@ import click
 import jmespath
 from botocore.utils import set_value_from_jmespath
 
+from samcli.lib.cfn_language_extensions.foreach_mapping_helpers import (
+    compute_compound_mapping_key,
+    compute_lookup_key,
+    compute_mapping_name,
+)
 from samcli.lib.cfn_language_extensions.models import (
     PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES,
     DynamicArtifactProperty,
@@ -359,34 +364,27 @@ def _compute_mapping_name(
     collision_groups: Dict[Tuple[str, str], int],
 ) -> str:
     """
-    Compute a unique Mapping name, adding a resource-key suffix when multiple
-    resources share the same (loop_name, property_name).
+    Compute a unique Mapping name from a DynamicArtifactProperty.
 
-    The suffix is derived from the resource logical ID template (resource_key)
-    with loop variable placeholders stripped.  This is guaranteed unique because
-    resource keys are unique within a ForEach body.
+    Delegates to ``compute_mapping_name`` in
+    ``samcli/lib/cfn_language_extensions/foreach_mapping_helpers.py`` (the
+    same helper the build-time pipeline uses), so package-time and build-time
+    Mapping names cannot diverge.
 
-    Examples (collision on DefinitionUri in Fn::ForEach::Services):
-      - resource_key="${Svc}Api"          -> SAMDefinitionUriServicesApi
-      - resource_key="${Svc}StateMachine"  -> SAMDefinitionUriServicesStateMachine
-
-    When there is no collision the base name is returned unchanged for backward
-    compatibility.
+    Collision detection is keyed on ``(nesting_path, leaf)`` — dotted paths
+    that share a leaf (e.g. ``ImageUri`` on Serverless::Function vs.
+    ``Code.ImageUri`` on Lambda::Function) collide and get a resource-key
+    suffix to keep their Mapping entries distinct.
     """
     npath = _nesting_path(prop)
-    # Use the leaf segment for the Mapping name so dotted property paths (e.g.
-    # "Command.ScriptLocation") yield well-formed alphanumeric Mapping names.
     leaf = _leaf_prop_name(prop.property_name)
-    base_name = f"SAM{leaf}{npath}"
-    # Collision detection must also key on the leaf — two resources with
-    # different dotted paths but the same leaf (e.g. "ImageUri" vs
-    # "Code.ImageUri") would otherwise generate identical Mapping names and
-    # silently overwrite each other.
-    key = (npath, leaf)
-    if collision_groups.get(key, 0) <= 1:
-        return base_name
-    suffix = _sanitize_resource_key_for_mapping(prop.resource_key)
-    return f"{base_name}{suffix}"
+    has_collision = collision_groups.get((npath, leaf), 0) > 1
+    return compute_mapping_name(
+        leaf,
+        npath,
+        has_collision=has_collision,
+        resource_template_key=prop.resource_key,
+    )
 
 
 def _generate_artifact_mappings(
@@ -439,7 +437,7 @@ def _generate_artifact_mappings(
             for combo in itertools.product(*outer_collections, prop.collection):
                 outer_values = list(combo[:-1])
                 inner_value = combo[-1]
-                compound_key = "-".join(list(outer_values) + [inner_value])
+                compound_key = compute_compound_mapping_key(outer_values, inner_value)
 
                 expanded_resource_key = prop.resource_key
                 for outer_var, outer_val in zip(outer_vars, outer_values):
@@ -589,8 +587,15 @@ def _replace_dynamic_artifact_with_findmap(
     Replace a dynamic artifact property value with Fn::FindInMap reference.
     """
     if mapping_name is None:
-        # Use the leaf segment so dotted paths produce alphanumeric Mapping names.
-        mapping_name = f"SAM{_leaf_prop_name(prop.property_name)}{_nesting_path(prop)}"
+        # Default: the bare base shape (caller didn't pre-compute a collision-aware
+        # name from a Counter, so we assume no collision). Real callers go through
+        # ``_compute_mapping_name`` which threads ``collision_groups``.
+        mapping_name = compute_mapping_name(
+            _leaf_prop_name(prop.property_name),
+            _nesting_path(prop),
+            has_collision=False,
+            resource_template_key=prop.resource_key,
+        )
 
     current_scope = resources
     if prop.outer_loops:
@@ -625,20 +630,13 @@ def _replace_dynamic_artifact_with_findmap(
         LOG.warning("Properties is not a dict for resource %s in %s", prop.resource_key, prop.foreach_key)
         return False
 
-    uses_compound_keys = False
     referenced_outer_vars: List[str] = []
     if prop.outer_loops:
         for _, outer_var, _ in prop.outer_loops:
             if contains_loop_variable(prop.property_value, outer_var):
-                uses_compound_keys = True
                 referenced_outer_vars.append(outer_var)
 
-    if uses_compound_keys and referenced_outer_vars:
-        ref_parts = [{"Ref": ovar} for ovar in referenced_outer_vars]
-        ref_parts.append({"Ref": prop.loop_variable})
-        lookup_key: Any = {"Fn::Join": ["-", ref_parts]}
-    else:
-        lookup_key = {"Ref": prop.loop_variable}
+    lookup_key = compute_lookup_key(prop.loop_variable, referenced_outer_vars)
 
     # Address the property at its dotted location (creating intermediate dicts
     # if needed) and use the leaf segment as the FindInMap third argument so
