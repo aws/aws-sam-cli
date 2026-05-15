@@ -135,22 +135,34 @@ class TemplateProcessingContext:
 
 
 # Packageable resource types and their artifact properties that can be dynamic in Fn::ForEach blocks.
-# These properties reference local files/directories that SAM CLI needs to package.
-# Dynamic values (using loop variables) are supported via Mappings transformation.
-PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES: Dict[str, List[str]] = {
-    "AWS::Serverless::Function": ["CodeUri", "ImageUri"],
-    "AWS::Lambda::Function": ["Code"],
-    "AWS::Serverless::LayerVersion": ["ContentUri"],
-    "AWS::Lambda::LayerVersion": ["Content"],
-    "AWS::Serverless::Api": ["DefinitionUri"],
-    "AWS::Serverless::HttpApi": ["DefinitionUri"],
-    "AWS::Serverless::StateMachine": ["DefinitionUri"],
-    "AWS::Serverless::GraphQLApi": ["SchemaUri", "CodeUri"],
-    "AWS::ApiGateway::RestApi": ["BodyS3Location"],
-    "AWS::ApiGatewayV2::Api": ["BodyS3Location"],
-    "AWS::StepFunctions::StateMachine": ["DefinitionS3Location"],
-    "AWS::CloudFormation::Stack": ["TemplateURL"],
-}
+# Derived from samcli.lib.utils.resources to keep one source of truth: any resource type
+# whose property the artifact exporter packages MUST be merged back into the original
+# (Fn::ForEach-preserving) template. See issue #9005 for the symptom of drift.
+#
+# Property names follow jmespath syntax (e.g., "Command.ScriptLocation" for nested keys),
+# matching the canonical dicts. Consumers must use jmespath-aware get/set when copying.
+def _build_packageable_resource_artifact_properties() -> Dict[str, List[str]]:
+    from samcli.lib.utils.resources import (
+        AWS_ECR_REPOSITORY,
+        RESOURCES_WITH_IMAGE_COMPONENT,
+        RESOURCES_WITH_LOCAL_PATHS,
+    )
+
+    result: Dict[str, List[str]] = {}
+    for resource_type, props in RESOURCES_WITH_LOCAL_PATHS.items():
+        result[resource_type] = list(props)
+    for resource_type, props in RESOURCES_WITH_IMAGE_COMPONENT.items():
+        # ECR::Repository.RepositoryName is not a packaged-artifact path.
+        if resource_type == AWS_ECR_REPOSITORY:
+            continue
+        result.setdefault(resource_type, [])
+        for prop in props:
+            if prop not in result[resource_type]:
+                result[resource_type].append(prop)
+    return result
+
+
+PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES: Dict[str, List[str]] = _build_packageable_resource_artifact_properties()
 
 
 @dataclass(frozen=True)

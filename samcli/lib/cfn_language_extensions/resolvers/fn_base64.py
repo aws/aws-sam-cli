@@ -9,7 +9,9 @@ import base64
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnBase64Resolver(IntrinsicFunctionResolver):
@@ -32,7 +34,7 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
 
     FUNCTION_NAMES = ["Fn::Base64"]
 
-    def resolve(self, value: Dict[str, Any]) -> str:
+    def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::Base64 intrinsic function.
 
@@ -46,7 +48,10 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
                    {"Fn::Base64": {"Ref": "MyStringParam"}}
 
         Returns:
-            The base64-encoded string.
+            The base64-encoded string. In PARTIAL resolution mode, if the
+            argument is an unresolved Ref to a declared template parameter or a
+            pseudo-parameter, the original Fn::Base64 call is returned verbatim
+            so CloudFormation can resolve it at deploy time.
 
         Raises:
             InvalidTemplateException: If the resolved value is not a string.
@@ -63,6 +68,15 @@ class FnBase64Resolver(IntrinsicFunctionResolver):
         else:
             # If no parent resolver, use args as-is (for testing)
             resolved_args = args
+
+        # In PARTIAL mode, if the argument resolved to a deferred parameter Ref
+        # (a Ref to a declared parameter without a default/override, or to a
+        # pseudo-parameter), preserve the call so CloudFormation can resolve it
+        # at deploy time. Resource refs / GetAtt / etc. still raise.
+        if is_unresolved_param_or_pseudo_ref(resolved_args, self.context):
+            if self.context.resolution_mode == ResolutionMode.PARTIAL:
+                return {"Fn::Base64": resolved_args}
+            raise InvalidTemplateException("Fn::Base64 layout is incorrect")
 
         # Validate that the resolved value is a string
         if not isinstance(resolved_args, str):

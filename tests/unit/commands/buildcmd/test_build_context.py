@@ -2033,6 +2033,198 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
         find_in_map = code_uri["Fn::FindInMap"]
         self.assertEqual(find_in_map[1], {"Ref": "Svc"})
 
+    def test_static_dotted_glue_script_location(self):
+        """Static Command.ScriptLocation must be copied via dotted path (no clobbering siblings)."""
+
+        foreach_key = "Fn::ForEach::Jobs"
+        foreach_value = [
+            "Name",
+            ["Etl1", "Etl2"],
+            {
+                "${Name}Job": {
+                    "Type": "AWS::Glue::Job",
+                    "Properties": {
+                        "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/job.py"},
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "Etl1Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "../build/Etl1Job/job.py"}},
+            },
+            "Etl2Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "../build/Etl2Job/job.py"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        body = foreach_value[2]
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"], "../build/Etl1Job/job.py")
+        # Sibling key preserved
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        # No literal "Command.ScriptLocation" key was created
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+        # Static path: no Mapping
+        self.assertEqual(mappings, {})
+
+    def test_dynamic_dotted_glue_script_location_generates_mapping(self):
+        """Dynamic Command.ScriptLocation generates a Mapping with the leaf name and a FindInMap reference."""
+
+        foreach_key = "Fn::ForEach::Jobs"
+        foreach_value = [
+            "Name",
+            ["Etl1", "Etl2"],
+            {
+                "${Name}Job": {
+                    "Type": "AWS::Glue::Job",
+                    "Properties": {
+                        "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "Etl1Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "Etl1.py"}},
+            },
+            "Etl2Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "Etl2.py"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Mapping name uses the leaf "ScriptLocation", not "Command.ScriptLocation"
+        self.assertIn("SAMScriptLocationJobs", mappings)
+        self.assertEqual(mappings["SAMScriptLocationJobs"]["Etl1"], {"ScriptLocation": "Etl1.py"})
+        self.assertEqual(mappings["SAMScriptLocationJobs"]["Etl2"], {"ScriptLocation": "Etl2.py"})
+
+        # ScriptLocation should be replaced with Fn::FindInMap at the dotted path
+        body = foreach_value[2]
+        script_location = body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"]
+        self.assertEqual(
+            script_location, {"Fn::FindInMap": ["SAMScriptLocationJobs", {"Ref": "Name"}, "ScriptLocation"]}
+        )
+        # Sibling key preserved
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        # No literal "Command.ScriptLocation" key
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+
+    def test_dynamic_dotted_lambda_image_uri_generates_mapping(self):
+        """Dynamic Code.ImageUri (Lambda image function) generates a leaf-named Mapping."""
+
+        foreach_key = "Fn::ForEach::Funcs"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Function": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {"ImageUri": "local-image-${Name}:latest"},
+                        "PackageType": "Image",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"},
+                    "PackageType": "Image",
+                },
+            },
+            "BetaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"},
+                    "PackageType": "Image",
+                },
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Mapping name uses leaf "ImageUri", not "Code.ImageUri"
+        self.assertIn("SAMImageUriFuncs", mappings)
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Alpha"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}
+        )
+
+        body = foreach_value[2]
+        image_uri = body["${Name}Function"]["Properties"]["Code"]["ImageUri"]
+        self.assertEqual(image_uri, {"Fn::FindInMap": ["SAMImageUriFuncs", {"Ref": "Name"}, "ImageUri"]})
+        # PackageType sibling preserved
+        self.assertEqual(body["${Name}Function"]["Properties"]["PackageType"], "Image")
+
+    def test_leaf_collision_across_resource_types_disambiguates_mapping_name(self):
+        """A Serverless::Function (ImageUri) and a Lambda::Function (Code.ImageUri) in the
+        same ForEach body share the same leaf "ImageUri" but different dotted paths.
+        Their generated Mapping names must NOT collide — the resource-key suffix should
+        be applied so neither set of entries silently overwrites the other.
+        """
+        foreach_key = "Fn::ForEach::Funcs"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Sam": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "ImageUri": "sam-${Name}:latest",
+                        "PackageType": "Image",
+                    },
+                },
+                "${Name}Lambda": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {"ImageUri": "lambda-${Name}:latest"},
+                        "PackageType": "Image",
+                    },
+                },
+            },
+        ]
+        modified_resources = {
+            "AlphaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha"},
+            },
+            "BetaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta"},
+            },
+            "AlphaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha"}},
+            },
+            "BetaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+
+        # Two distinct Mapping names should exist — one per resource — disambiguated
+        # by the resource-key suffix because both leaf to "ImageUri".
+        sam_image_mappings = sorted(name for name in mappings if name.startswith("SAMImageUriFuncs"))
+        self.assertEqual(
+            len(sam_image_mappings),
+            2,
+            f"Expected two distinct SAMImageUriFuncs* mappings (one per resource type); got {sam_image_mappings}.",
+        )
+        # And neither set of entries should be lost: every collection value appears
+        # exactly once in each of the two distinct mappings.
+        for name in sam_image_mappings:
+            self.assertEqual(set(mappings[name].keys()), {"Alpha", "Beta"})
+
 
 class TestBuildContext_contains_loop_variable(TestCase):
     """Tests for the contains_loop_variable shared function."""

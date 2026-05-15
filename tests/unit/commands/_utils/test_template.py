@@ -688,6 +688,53 @@ class Test_update_sam_mappings_relative_paths(TestCase):
                 "emulation-python3.9-beta:latest",
             )
 
+    def test_updates_glue_script_location_mapping(self):
+        """Mappings emitted for AWS::Glue::Job (key 'ScriptLocation' from leaf of 'Command.ScriptLocation')
+        must be recognized as SAM-generated and have their relative paths adjusted on template move.
+        """
+        mappings = {
+            "SAMScriptLocationJobs": {
+                "Etl1": {"ScriptLocation": os.path.join(".aws-sam", "build", "Etl1Job", "job.py")},
+                "Etl2": {"ScriptLocation": os.path.join(".aws-sam", "build", "Etl2Job", "job.py")},
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = tmpdir
+            new_root = os.path.join(tmpdir, ".aws-sam", "build")
+            os.makedirs(new_root, exist_ok=True)
+
+            _update_sam_mappings_relative_paths(mappings, original_root, new_root)
+
+            self.assertEqual(
+                mappings["SAMScriptLocationJobs"]["Etl1"]["ScriptLocation"],
+                os.path.join("Etl1Job", "job.py"),
+            )
+            self.assertEqual(
+                mappings["SAMScriptLocationJobs"]["Etl2"]["ScriptLocation"],
+                os.path.join("Etl2Job", "job.py"),
+            )
+
+    def test_updates_serverless_application_location_mapping(self):
+        """Mappings emitted for AWS::Serverless::Application (key 'Location') must be recognized."""
+        mappings = {
+            "SAMLocationApps": {
+                "Pub": {"Location": os.path.join(".aws-sam", "build", "PubApi", "template.yaml")},
+            }
+        }
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_root = tmpdir
+            new_root = os.path.join(tmpdir, ".aws-sam", "build")
+            os.makedirs(new_root, exist_ok=True)
+
+            _update_sam_mappings_relative_paths(mappings, original_root, new_root)
+
+            self.assertEqual(
+                mappings["SAMLocationApps"]["Pub"]["Location"],
+                os.path.join("PubApi", "template.yaml"),
+            )
+
 
 class Test_resolve_relative_to(TestCase):
     def setUp(self):

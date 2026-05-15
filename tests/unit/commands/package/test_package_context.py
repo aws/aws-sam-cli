@@ -975,6 +975,306 @@ class TestPackageContextLanguageExtensions(TestCase):
         code_uri = body["${Name}Service"]["Properties"]["CodeUri"]
         self.assertEqual(code_uri, {"Fn::FindInMap": ["SAMCodeUriServices", {"Ref": "Name"}, "CodeUri"]})
 
+    def test_get_prop_value_flat_key(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
+        self.assertEqual(_get_prop_value({"CodeUri": "s3://b/k"}, "CodeUri"), "s3://b/k")
+
+    def test_get_prop_value_dotted_key(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
+        props = {"Command": {"ScriptLocation": "s3://b/k.py"}}
+        self.assertEqual(_get_prop_value(props, "Command.ScriptLocation"), "s3://b/k.py")
+
+    def test_get_prop_value_missing_returns_none(self):
+        from samcli.lib.package.language_extensions_packaging import _get_prop_value
+
+        self.assertIsNone(_get_prop_value({"CodeUri": "x"}, "Command.ScriptLocation"))
+
+    def test_set_prop_value_flat_key(self):
+        from samcli.lib.package.language_extensions_packaging import _set_prop_value
+
+        props = {"CodeUri": "./src"}
+        _set_prop_value(props, "CodeUri", "s3://b/k")
+        self.assertEqual(props["CodeUri"], "s3://b/k")
+
+    def test_set_prop_value_dotted_key_creates_intermediate(self):
+        from samcli.lib.package.language_extensions_packaging import _set_prop_value
+
+        props = {"Command": {"Name": "glueetl"}}
+        _set_prop_value(props, "Command.ScriptLocation", "s3://b/k.py")
+        self.assertEqual(props["Command"]["ScriptLocation"], "s3://b/k.py")
+        # Existing keys preserved
+        self.assertEqual(props["Command"]["Name"], "glueetl")
+
+    def test_copy_artifact_uris_for_type_glue_job_dotted_path(self):
+        """Regression: dotted property path (Command.ScriptLocation) must be copied."""
+        original_props = {"Command": {"Name": "glueetl", "ScriptLocation": "./script.py"}}
+        exported_props = {"Command": {"Name": "glueetl", "ScriptLocation": "s3://b/k.py"}}
+
+        result = _copy_artifact_uris_for_type(original_props, exported_props, "AWS::Glue::Job")
+
+        self.assertTrue(result)
+        self.assertEqual(original_props["Command"]["ScriptLocation"], "s3://b/k.py")
+        # Sibling keys preserved
+        self.assertEqual(original_props["Command"]["Name"], "glueetl")
+
+    def test_copy_artifact_uris_for_type_serverless_application(self):
+        """Regression for #9005: Location URI must be copied for AWS::Serverless::Application."""
+        original_props = {"Location": "./PublisherApi/template.yaml"}
+        exported_props = {"Location": "https://s3.amazonaws.com/bucket/abc123.template"}
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::Serverless::Application"))
+        self.assertEqual(original_props["Location"], "https://s3.amazonaws.com/bucket/abc123.template")
+
+    def test_copy_artifact_uris_for_type_cloudformation_stack(self):
+        """TemplateURL must be copied for AWS::CloudFormation::Stack."""
+        original_props = {"TemplateURL": "./child/template.yaml"}
+        exported_props = {"TemplateURL": "https://s3.amazonaws.com/bucket/xyz789.template"}
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::Stack"))
+        self.assertEqual(original_props["TemplateURL"], "https://s3.amazonaws.com/bucket/xyz789.template")
+
+    def test_copy_artifact_uris_for_type_cloudformation_stackset(self):
+        original_props = {"TemplateURL": "./child.yaml"}
+        exported_props = {"TemplateURL": "https://s3.amazonaws.com/b/k.template"}
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::StackSet"))
+        self.assertEqual(original_props["TemplateURL"], "https://s3.amazonaws.com/b/k.template")
+
+    def test_copy_artifact_uris_for_type_eb_application_version(self):
+        original_props = {"SourceBundle": "./bundle.zip"}
+        exported_props = {"SourceBundle": {"S3Bucket": "b", "S3Key": "k"}}
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::ElasticBeanstalk::ApplicationVersion")
+        )
+        self.assertEqual(original_props["SourceBundle"], {"S3Bucket": "b", "S3Key": "k"})
+
+    def test_copy_artifact_uris_for_type_appsync_graphql_schema(self):
+        original_props = {"DefinitionS3Location": "./schema.graphql"}
+        exported_props = {"DefinitionS3Location": "s3://b/schema.graphql"}
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::GraphQLSchema"))
+        self.assertEqual(original_props["DefinitionS3Location"], "s3://b/schema.graphql")
+
+    def test_copy_artifact_uris_for_type_appsync_resolver_all_three(self):
+        original_props = {
+            "RequestMappingTemplateS3Location": "./req.vtl",
+            "ResponseMappingTemplateS3Location": "./res.vtl",
+            "CodeS3Location": "./code.js",
+        }
+        exported_props = {
+            "RequestMappingTemplateS3Location": "s3://b/req.vtl",
+            "ResponseMappingTemplateS3Location": "s3://b/res.vtl",
+            "CodeS3Location": "s3://b/code.js",
+        }
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::Resolver"))
+        self.assertEqual(original_props["RequestMappingTemplateS3Location"], "s3://b/req.vtl")
+        self.assertEqual(original_props["ResponseMappingTemplateS3Location"], "s3://b/res.vtl")
+        self.assertEqual(original_props["CodeS3Location"], "s3://b/code.js")
+
+    def test_copy_artifact_uris_for_type_appsync_function_configuration(self):
+        original_props = {"CodeS3Location": "./code.js"}
+        exported_props = {"CodeS3Location": "s3://b/code.js"}
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::AppSync::FunctionConfiguration")
+        )
+        self.assertEqual(original_props["CodeS3Location"], "s3://b/code.js")
+
+    def test_copy_artifact_uris_for_type_cloudformation_module_version(self):
+        original_props = {"ModulePackage": "./module.zip"}
+        exported_props = {"ModulePackage": "s3://b/module.zip"}
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::ModuleVersion")
+        )
+        self.assertEqual(original_props["ModulePackage"], "s3://b/module.zip")
+
+    def test_copy_artifact_uris_for_type_cloudformation_resource_version(self):
+        original_props = {"SchemaHandlerPackage": "./pkg.zip"}
+        exported_props = {"SchemaHandlerPackage": "s3://b/pkg.zip"}
+        self.assertTrue(
+            _copy_artifact_uris_for_type(original_props, exported_props, "AWS::CloudFormation::ResourceVersion")
+        )
+        self.assertEqual(original_props["SchemaHandlerPackage"], "s3://b/pkg.zip")
+
+    def test_copy_artifact_uris_for_type_lambda_function_image_dotted(self):
+        # AWS::Lambda::Function has both Code and Code.ImageUri (dotted path)
+        original_props = {"Code": {"ImageUri": "local-tag:latest"}}
+        exported_props = {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:tag"}}
+        self.assertTrue(_copy_artifact_uris_for_type(original_props, exported_props, "AWS::Lambda::Function"))
+        self.assertEqual(original_props["Code"]["ImageUri"], "111.dkr.ecr.us-east-1.amazonaws.com/r:tag")
+
+    # =========================================================================
+    # Dotted-path Fn::ForEach detection / Mapping / FindInMap behaviors
+    # =========================================================================
+
+    def test_detect_dynamic_glue_script_location_dotted(self):
+        """detect_dynamic_artifact_properties finds dotted Command.ScriptLocation."""
+        template = {
+            "Resources": {
+                "Fn::ForEach::Jobs": [
+                    "Name",
+                    ["Etl1", "Etl2"],
+                    {
+                        "${Name}Job": {
+                            "Type": "AWS::Glue::Job",
+                            "Properties": {
+                                "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                            },
+                        }
+                    },
+                ]
+            },
+        }
+
+        dynamic_properties = detect_dynamic_artifact_properties(template)
+
+        self.assertEqual(len(dynamic_properties), 1)
+        prop = dynamic_properties[0]
+        self.assertEqual(prop.property_name, "Command.ScriptLocation")
+        self.assertEqual(prop.property_value, "./scripts/${Name}.py")
+        self.assertEqual(prop.resource_type, "AWS::Glue::Job")
+
+    def test_replace_dynamic_artifact_with_findmap_dotted_glue(self):
+        """_replace_dynamic_artifact_with_findmap writes FindInMap at the dotted path with leaf-name third arg."""
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        resources = {
+            "Fn::ForEach::Jobs": [
+                "Name",
+                ["Etl1", "Etl2"],
+                {
+                    "${Name}Job": {
+                        "Type": "AWS::Glue::Job",
+                        "Properties": {
+                            "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                        },
+                    }
+                },
+            ]
+        }
+        prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Jobs",
+            loop_name="Jobs",
+            loop_variable="Name",
+            collection=["Etl1", "Etl2"],
+            resource_key="${Name}Job",
+            resource_type="AWS::Glue::Job",
+            property_name="Command.ScriptLocation",
+            property_value="./scripts/${Name}.py",
+        )
+
+        result = _replace_dynamic_artifact_with_findmap(resources, prop)
+
+        self.assertTrue(result)
+        body = resources["Fn::ForEach::Jobs"][2]
+        # FindInMap is written at Properties.Command.ScriptLocation, not at a literal "Command.ScriptLocation" key
+        script_location = body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"]
+        self.assertEqual(
+            script_location, {"Fn::FindInMap": ["SAMScriptLocationJobs", {"Ref": "Name"}, "ScriptLocation"]}
+        )
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+
+    def test_generate_artifact_mappings_dotted_lambda_image(self):
+        """_generate_artifact_mappings produces leaf-named Mapping with leaf-keyed value-dict for Code.ImageUri."""
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Function",
+            resource_type="AWS::Lambda::Function",
+            property_name="Code.ImageUri",
+            property_value="local-image-${Name}:latest",
+        )
+        exported_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}},
+            },
+            "BetaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"}},
+            },
+        }
+
+        mappings, _ = _generate_artifact_mappings([prop], "/tmp", exported_resources)
+
+        self.assertIn("SAMImageUriFuncs", mappings)
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Alpha"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}
+        )
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Beta"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"}
+        )
+
+    def test_generate_artifact_mappings_disambiguates_leaf_collision_across_types(self):
+        """Two dotted paths sharing the same leaf (Serverless::Function 'ImageUri' and
+        Lambda::Function 'Code.ImageUri') must not collide into a single Mapping.
+        Without the leaf-keyed collision check the second resource's entries silently
+        overwrite the first's.
+        """
+        from samcli.lib.cfn_language_extensions.models import DynamicArtifactProperty
+
+        sam_prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Sam",
+            resource_type="AWS::Serverless::Function",
+            property_name="ImageUri",
+            property_value="sam-${Name}:latest",
+        )
+        lambda_prop = DynamicArtifactProperty(
+            foreach_key="Fn::ForEach::Funcs",
+            loop_name="Funcs",
+            loop_variable="Name",
+            collection=["Alpha", "Beta"],
+            resource_key="${Name}Lambda",
+            resource_type="AWS::Lambda::Function",
+            property_name="Code.ImageUri",
+            property_value="lambda-${Name}:latest",
+        )
+        exported_resources = {
+            "AlphaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha"},
+            },
+            "BetaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta"},
+            },
+            "AlphaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha"}},
+            },
+            "BetaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta"}},
+            },
+        }
+
+        mappings, _ = _generate_artifact_mappings([sam_prop, lambda_prop], "/tmp", exported_resources)
+
+        # Two distinct Mapping names exist (resource-key suffix applied because leaves collide).
+        sam_image_mappings = sorted(name for name in mappings if name.startswith("SAMImageUriFuncs"))
+        self.assertEqual(
+            len(sam_image_mappings),
+            2,
+            f"Expected two distinct SAMImageUriFuncs* mappings; got {sam_image_mappings}.",
+        )
+        # Both sets of entries are preserved — neither resource's mapping was overwritten.
+        all_values = {entry["ImageUri"] for name in sam_image_mappings for entry in mappings[name].values()}
+        self.assertEqual(
+            all_values,
+            {
+                "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha",
+                "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta",
+                "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha",
+                "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta",
+            },
+        )
+
 
 class TestPackageContextMappingsIntegration(TestCase):
     """Test cases for the complete Mappings transformation integration in _export()"""

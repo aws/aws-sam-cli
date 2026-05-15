@@ -91,6 +91,21 @@ class TestCopyArtifactPaths(TestCase):
         ctx._copy_artifact_paths(original, modified)
         self.assertNotIn("CodeUri", original["Properties"])
 
+    def test_glue_job_dotted_path(self):
+        """Regression: dotted property path (Command.ScriptLocation) must be copied."""
+        ctx = self._make_context()
+        original = {
+            "Type": "AWS::Glue::Job",
+            "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "./script.py"}},
+        }
+        modified = {
+            "Type": "AWS::Glue::Job",
+            "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "s3://b/k.py"}},
+        }
+        ctx._copy_artifact_paths(original, modified)
+        self.assertEqual(original["Properties"]["Command"]["ScriptLocation"], "s3://b/k.py")
+        self.assertEqual(original["Properties"]["Command"]["Name"], "glueetl")
+
 
 class TestGetTemplateForOutputForEachExploration(TestCase):
     """

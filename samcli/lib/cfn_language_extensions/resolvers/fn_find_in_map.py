@@ -12,7 +12,9 @@ specifying a DefaultValue to return when the map lookup fails.
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnFindInMapResolver(IntrinsicFunctionResolver):
@@ -95,12 +97,23 @@ class FnFindInMapResolver(IntrinsicFunctionResolver):
             top_key = top_key_arg
             second_key = second_key_arg
 
-        # Validate resolved keys are strings
-        if not isinstance(map_name, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(top_key, str):
-            raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
-        if not isinstance(second_key, str):
+        # In PARTIAL mode, if a key didn't resolve to a string but did resolve
+        # to a deferred parameter/pseudo-parameter Ref (Ref to a declared
+        # parameter without a default value and no override, or to a
+        # pseudo-parameter without a provided value), preserve the call so
+        # CloudFormation can resolve it at deploy time. See GitHub issue #9004.
+        # Resource refs and other intrinsics (Fn::GetAtt, etc.) continue to
+        # raise because they can't be resolved by the template-time
+        # Fn::FindInMap function at any stage — matching Kotlin compat.
+        keys = (map_name, top_key, second_key)
+        if not all(isinstance(k, str) for k in keys):
+            if self.context.resolution_mode == ResolutionMode.PARTIAL and all(
+                isinstance(k, str) or is_unresolved_param_or_pseudo_ref(k, self.context) for k in keys
+            ):
+                preserved = [map_name, top_key, second_key]
+                if len(args) >= self._ARGS_WITH_DEFAULT:
+                    preserved.append(args[3])
+                return {"Fn::FindInMap": preserved}
             raise InvalidTemplateException("Fn::FindInMap layout is incorrect")
 
         # Check for DefaultValue option (4th argument)
