@@ -184,13 +184,11 @@ class ECSContainerSyncFlow(SyncFlow):
                     service_name = parts[-1]
 
                     svc_response = ecs_client.describe_services(cluster=cluster, services=[service_name])
+                    my_family = physical_id.rsplit("/", 1)[-1].split(":", 1)[0]
                     for svc in svc_response.get("services", []):
                         svc_task_def = svc.get("taskDefinition", "")
-                        # Check if this service references our task definition family
-                        if physical_id in svc_task_def or (
-                            svc_task_def.rsplit("/", 1)[-1].split(":", 1)[0]
-                            == physical_id.rsplit("/", 1)[-1].split(":", 1)[0]
-                        ):
+                        svc_family = svc_task_def.rsplit("/", 1)[-1].split(":", 1)[0]
+                        if svc_family and svc_family == my_family:
                             ecs_client.update_service(
                                 cluster=cluster,
                                 service=service_name,

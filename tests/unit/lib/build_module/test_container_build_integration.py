@@ -1,8 +1,7 @@
 """Tests for ECS/AgentCore container build integration across modules"""
 
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock
-from copy import deepcopy
+from unittest.mock import MagicMock, patch
 
 from samcli.lib.build.app_builder import ApplicationBuilder
 from samcli.lib.build.build_graph import ContainerBuildDefinition
@@ -184,7 +183,7 @@ class TestSyncEcrStackIncludesContainerResources(TestCase):
         mock_manager.get_repository_mapping.return_value = {"MyFunction": "uri1", "MyAgent": "uri2"}
         mock_manager_cls.return_value = mock_manager
 
-        result = sync_ecr_stack("template.yaml", "stack", "us-east-1", "bucket", "prefix", {})
+        sync_ecr_stack("template.yaml", "stack", "us-east-1", "bucket", "prefix", {})
 
         # Verify both function and container service were passed
         call_args = mock_manager.set_functions.call_args[0]
@@ -257,3 +256,41 @@ class TestECSContainerSyncFlow(TestCase):
         flow._physical_id_mapping = {}
         # Should not raise
         flow.sync()
+
+
+class TestContainerNameErrorHandling(TestCase):
+    def test_update_built_resource_raises_on_container_name_mismatch(self):
+        from samcli.lib.build.exceptions import DockerBuildFailed
+
+        properties = {
+            "ContainerDefinitions": [
+                {"Name": "sidecar", "Image": "sidecar:latest"},
+                {"Name": "web", "Image": "placeholder"},
+            ]
+        }
+        metadata = {"ContainerName": "typo"}
+        with self.assertRaises(DockerBuildFailed):
+            ApplicationBuilder._update_built_resource(
+                "myimage:latest", properties, AWS_ECS_TASK_DEFINITION, "/path", metadata
+            )
+
+    def test_get_target_index_raises_on_container_name_mismatch(self):
+        from samcli.commands.package import exceptions
+
+        exporter = ECSTaskDefinitionImageResource.__new__(ECSTaskDefinitionImageResource)
+        exporter.resource_metadata = {"ContainerName": "typo"}
+        container_defs = [{"Name": "web"}, {"Name": "sidecar"}]
+        with self.assertRaises(exceptions.ExportFailedError):
+            exporter._get_target_index(container_defs)
+
+    def test_get_target_index_returns_match(self):
+        exporter = ECSTaskDefinitionImageResource.__new__(ECSTaskDefinitionImageResource)
+        exporter.resource_metadata = {"ContainerName": "web"}
+        container_defs = [{"Name": "sidecar"}, {"Name": "web"}]
+        self.assertEqual(exporter._get_target_index(container_defs), 1)
+
+    def test_get_target_index_defaults_to_zero_without_name(self):
+        exporter = ECSTaskDefinitionImageResource.__new__(ECSTaskDefinitionImageResource)
+        exporter.resource_metadata = {}
+        container_defs = [{"Name": "web"}]
+        self.assertEqual(exporter._get_target_index(container_defs), 0)
