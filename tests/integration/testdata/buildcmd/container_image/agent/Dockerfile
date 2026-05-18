@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM public.ecr.aws/docker/library/alpine:3.19
 WORKDIR /app
 RUN echo "hello" > /app/test.txt
-CMD ["python", "-c", "print('test')"]
+CMD ["echo", "test"]

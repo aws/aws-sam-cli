@@ -21,6 +21,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 LOG = logging.getLogger(__name__)
 
+# Minimum number of parts expected when splitting an ECS service ARN by "/"
+# e.g. arn:aws:ecs:region:account:service/cluster/name -> [..., "cluster", "name"]
+_ECS_SERVICE_ARN_PARTS = 3
+
 
 class ECSContainerSyncFlow(SyncFlow):
     """SyncFlow for ECS TaskDefinition and AgentCore container image resources.
@@ -174,7 +178,7 @@ class ECSContainerSyncFlow(SyncFlow):
                 try:
                     # Extract cluster and service from the ARN
                     parts = resource_physical_id.rsplit("/", 2)
-                    if len(parts) < 3:
+                    if len(parts) < _ECS_SERVICE_ARN_PARTS:
                         continue
                     cluster = parts[-2]
                     service_name = parts[-1]
