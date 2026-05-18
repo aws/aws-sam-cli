@@ -1,16 +1,20 @@
 """Integration test for ECS/AgentCore container image builds"""
 
-import os
 import shutil
 import tempfile
 from pathlib import Path
-from unittest import TestCase
+from unittest import TestCase, skipIf
 
 import yaml
 
 from samcli.commands.build.build_context import BuildContext
+from tests.testing_utils import CI_OVERRIDE, IS_WINDOWS, RUNNING_ON_CI
 
 
+@skipIf(
+    (IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE,
+    "Skip container image build tests on Windows CI (no Linux Docker support)",
+)
 class TestContainerImageBuild(TestCase):
     """Test that samdev build correctly handles ECS and AgentCore container resources."""
 
