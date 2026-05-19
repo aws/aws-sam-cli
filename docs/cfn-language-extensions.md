@@ -263,6 +263,22 @@ The following intrinsic functions are resolved locally during expansion:
 
 Functions that require deployed resources (`Fn::GetAtt`, `Fn::ImportValue`, `Fn::GetAZs`) are preserved for CloudFormation to resolve at deploy time.
 
+## AWS::Include processing order
+
+When a template uses both `Fn::Transform: AWS::Include` and
+`Transform: AWS::LanguageExtensions`, SAM CLI processes the inline
+`AWS::Include` macros **before** running language-extension expansion
+locally. This mirrors CloudFormation's server-side transform pipeline,
+where `Fn::Transform` macros are resolved before
+`AWS::LanguageExtensions`.
+
+The practical effect is that `AWS::Include` `Location` rewrites work
+correctly even when the include lives buried inside language-extension
+functions like `Fn::ToJsonString` or `Fn::ForEach` bodies, because the
+include is rewritten while still structurally visible — before
+`Fn::ToJsonString` collapses subtrees into JSON-string literals or
+`Fn::ForEach` expands resources.
+
 ## Validation errors
 
 The following template issues are caught locally before the SAM transform runs:
@@ -272,7 +288,7 @@ The following template issues are caught locally before the SAM transform runs:
 | The `Fn::ForEach` value is malformed — not a list, doesn't have exactly 3 elements, or has a non-string loop identifier. | `Fn::ForEach::<key> layout is incorrect` (raised as `InvalidTemplateException`; see `samcli/lib/cfn_language_extensions/processors/foreach.py`). |
 | More than 5 levels of `Fn::ForEach` are nested. | `Fn::ForEach nesting depth of <N> exceeds the maximum allowed depth of 5. CloudFormation supports up to 5 nested Fn::ForEach loops.` |
 | The collection resolves to an empty list (e.g., a `CommaDelimitedList` parameter with `Default: ""`). | No error — the loop is silently skipped and no resources are emitted. |
-| The `!Ref` in the collection points at a parameter that is not declared in the template. | No error in the typical `sam build` / `sam package` flow. SAM CLI runs intrinsic resolution in PARTIAL mode and preserves the unresolved `{"Ref": "<name>"}`. CloudFormation will reject the unresolved ref at deploy time. |
+| The `!Ref` in the collection points at a parameter that is not declared in the template. | No error in the typical `sam build` / `sam package` flow. SAM CLI runs intrinsic resolution in PARTIAL mode and preserves the unresolved `{"Ref": "<name>"}`. At deploy time, CloudFormation will resolve it server side. |
 
 ## Limitations
 
