@@ -3,6 +3,7 @@ Context object used by build command
 """
 
 import copy
+import itertools
 import logging
 import os
 import pathlib
@@ -36,13 +37,21 @@ from samcli.lib.build.exceptions import (
     InvalidBuildGraphException,
 )
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
+    resolve_collection,
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.package.language_extensions_packaging import (
+    _get_prop_value,
+    _leaf_prop_name,
+    _resolve_property_paths,
+    _set_prop_value,
+)
 from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
@@ -469,7 +478,7 @@ class BuildContext:
             modified_template,
             stack,
             artifacts,
-            stack_output_template_path_by_stack_path or {},
+            stack_output_template_path_by_stack_path,
         )
 
         # Propagate the auto dependency layer nested stack resource from the expanded template
@@ -603,15 +612,6 @@ class BuildContext:
         Dict[str, Dict[str, Dict[str, str]]]
             Generated Mappings section for dynamic artifact properties (empty dict if none)
         """
-        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.cfn_language_extensions.sam_integration import resolve_collection
-        from samcli.lib.package.language_extensions_packaging import (
-            _get_prop_value,
-            _leaf_prop_name,
-            _resolve_property_paths,
-            _set_prop_value,
-        )
-
         generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
 
         if outer_context is None:
@@ -791,8 +791,6 @@ class BuildContext:
         ``ApplicationBuilder.update_template`` early-skip so that, e.g.,
         ``Code: {ZipFile: !Sub ...}`` Lambdas survive verbatim. See #9029.
         """
-        from samcli.lib.package.language_extensions_packaging import _set_prop_value
-
         expanded_key = self._build_expanded_key(
             resource_template_key,
             loop_variable,
@@ -818,13 +816,6 @@ class BuildContext:
         Used to detect collisions where multiple resources in the same ForEach body
         share the same property name (e.g., two resources both with DefinitionUri).
         """
-        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.package.language_extensions_packaging import (
-            _get_prop_value,
-            _leaf_prop_name,
-            _resolve_property_paths,
-        )
-
         count: Counter = Counter()
         for rtk, rt in body.items():
             if is_foreach_key(rtk):
@@ -891,8 +882,6 @@ class BuildContext:
         the root-level merge. Iterations whose ``get_full_path(stack_path,
         expanded_key)`` is absent from ``artifacts`` are skipped. See #9029.
         """
-        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
-
         mapping_entries: Dict[str, Dict[str, str]] = {}
         leaf_name = _leaf_prop_name(prop_name)
 
@@ -940,10 +929,6 @@ class BuildContext:
         ``artifacts`` filters per-iteration expanded keys (see
         ``_collect_dynamic_mapping_entries``).
         """
-        import itertools
-
-        from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
-
         leaf_name = _leaf_prop_name(prop_name)
         outer_collections = [oc[1] for oc in outer_context]
         outer_vars = [oc[0] for oc in outer_context]
@@ -990,8 +975,6 @@ class BuildContext:
         Returns a dict mapping each collection value (or compound key for nested ForEach)
         to its layer output key, e.g. {"Alpha": {"LayerOutputKey": "Outputs.AlphaFunction...DepLayer"}}.
         """
-        import itertools
-
         mapping_entries: Dict[str, Dict[str, str]] = {}
 
         for coll_value in collection_values:
@@ -1050,8 +1033,6 @@ class BuildContext:
 
         ``prop_name`` may be a jmespath dotted path (e.g. "Command.ScriptLocation").
         """
-        from samcli.lib.package.language_extensions_packaging import _get_prop_value
-
         modified_resource = modified_resources.get(expanded_key, {})
         if not isinstance(modified_resource, dict):
             return None
@@ -1074,9 +1055,6 @@ class BuildContext:
         modified_resource : Dict
             The modified resource with updated artifact paths
         """
-        from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
-        from samcli.lib.package.language_extensions_packaging import _get_prop_value, _set_prop_value
-
         original_props = original_resource.get("Properties", {})
         modified_props = modified_resource.get("Properties", {})
         resource_type = original_resource.get("Type", "")
