@@ -17,7 +17,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 import copy
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Sequence
 
 from botocore.utils import set_value_from_jmespath
 
@@ -28,10 +28,11 @@ from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
-    GLOBAL_EXPORT_DICT,
-    METADATA_EXPORT_LIST,
+    GLOBAL_TRANSFORM_EXPORTS,
+    METADATA_EXPORTS,
     RESOURCES_EXPORT_LIST,
     ECRResource,
+    MetadataExportSpec,
     ResourceZip,
 )
 from samcli.lib.package.uploaders import Destination, Uploaders
@@ -336,7 +337,7 @@ class Template:
     template_dict: Dict
     template_dir: str
     resources_to_export: frozenset
-    metadata_to_export: frozenset
+    metadata_to_export: Sequence[MetadataExportSpec]
     uploaders: Uploaders
     code_signer: CodeSigner
 
@@ -350,7 +351,7 @@ class Template:
             RESOURCES_EXPORT_LIST
             + [CloudFormationStackResource, CloudFormationStackSetResource, ServerlessApplicationResource]
         ),
-        metadata_to_export=frozenset(METADATA_EXPORT_LIST),
+        metadata_to_export=tuple(METADATA_EXPORTS),
         template_str: Optional[str] = None,
         normalize_template: bool = False,
         normalize_parameters: bool = False,
@@ -405,14 +406,21 @@ class Template:
         """
         Template params such as AWS::Include transforms are not specific to
         any resource type but contain artifacts that should be exported,
-        here we iterate through the template dict and export params with a
-        handler defined in GLOBAL_EXPORT_DICT
+        here we iterate through the template dict and dispatch to handlers
+        declared in GLOBAL_TRANSFORM_EXPORTS.
         """
+        specs_by_key: Dict[str, list] = {}
+        for spec in GLOBAL_TRANSFORM_EXPORTS:
+            specs_by_key.setdefault(spec.template_key, []).append(spec)
+
         for key, val in template_dict.items():
-            if key in GLOBAL_EXPORT_DICT:
-                template_dict[key] = GLOBAL_EXPORT_DICT[key](
-                    val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
-                )
+            if key in specs_by_key:
+                for spec in specs_by_key[key]:
+                    if spec.discriminator(val):
+                        template_dict[key] = spec.handler(
+                            val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
+                        )
+                        val = template_dict[key]  # subsequent specs see the rewrite
             elif isinstance(val, dict):
                 self._export_global_artifacts(val)
             elif isinstance(val, list):
@@ -429,11 +437,13 @@ class Template:
         if "Metadata" not in self.template_dict:
             return
 
-        for metadata_type, metadata_dict in self.template_dict["Metadata"].items():
-            for exporter_class in self.metadata_to_export:
-                if exporter_class.RESOURCE_TYPE != metadata_type:
-                    continue
+        specs_by_type = {spec.metadata_type: spec for spec in self.metadata_to_export}
 
+        for metadata_type, metadata_dict in self.template_dict["Metadata"].items():
+            spec = specs_by_type.get(metadata_type)
+            if spec is None:
+                continue
+            for exporter_class in spec.exporters:
                 exporter = exporter_class(self.uploaders, self.code_signer)
                 exporter.export(metadata_type, metadata_dict, self.template_dir)
 

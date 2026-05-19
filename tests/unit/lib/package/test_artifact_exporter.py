@@ -41,7 +41,8 @@ from samcli.lib.package.packageable_resources import (
     LambdaLayerVersionResource,
     copy_to_temp_dir,
     include_transform_export_handler,
-    GLOBAL_EXPORT_DICT,
+    GLOBAL_TRANSFORM_EXPORTS,
+    GlobalTransformExportSpec,
     ServerlessLayerVersionResource,
     ServerlessRepoApplicationLicense,
     ServerlessRepoApplicationReadme,
@@ -1454,6 +1455,8 @@ class TestArtifactExporter(unittest.TestCase):
 
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
     def test_template_export_metadata(self, yaml_parse_mock):
+        from samcli.lib.package.packageable_resources import MetadataExportSpec
+
         parent_dir = os.path.sep
         template_dir = os.path.join(parent_dir, "foo", "bar")
         template_path = os.path.join(template_dir, "path")
@@ -1476,7 +1479,18 @@ class TestArtifactExporter(unittest.TestCase):
         metadata_type2_instance = Mock()
         metadata_type2_class.return_value = metadata_type2_instance
 
-        metadata_to_export = [metadata_type1_class, metadata_type2_class]
+        metadata_to_export = [
+            MetadataExportSpec(
+                metadata_type="metadata_type1",
+                property_names=["property_1"],
+                exporters=[metadata_type1_class],
+            ),
+            MetadataExportSpec(
+                metadata_type="metadata_type2",
+                property_names=["property_2"],
+                exporters=[metadata_type2_class],
+            ),
+        ]
 
         template_dict = {"Metadata": {"metadata_type1": {"property_1": "abc"}, "metadata_type2": {"property_2": "def"}}}
         open_mock = mock.mock_open()
@@ -1852,8 +1866,13 @@ class TestArtifactExporter(unittest.TestCase):
         }
         yaml_parse_mock.return_value = template_dict
 
+        mock_spec = GlobalTransformExportSpec(
+            template_key="Fn::Transform",
+            discriminator=lambda v: isinstance(v, dict),
+            handler=include_transform_export_handler_mock,
+        )
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-            with patch.dict(GLOBAL_EXPORT_DICT, {"Fn::Transform": include_transform_export_handler_mock}):
+            with patch("samcli.lib.package.artifact_exporter.GLOBAL_TRANSFORM_EXPORTS", [mock_spec]):
                 template_exporter = Template(template_path, parent_dir, self.uploaders_mock, resources_to_export)
                 exported_template = template_exporter._export_global_artifacts(template_exporter.template_dict)
 
@@ -1969,6 +1988,7 @@ class TestArtifactExporter(unittest.TestCase):
         )
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
         self.assertEqual(handler_output, {"Name": "AWS::OtherTransform", "Parameters": {"Location": "foo.yaml"}})
+
 
     def test_template_export_path_be_folder(self):
         template_path = "/path/foo"
@@ -2570,6 +2590,38 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
         finally:
             os.remove(template_path)
+
+    def test_metadata_exports_registry_shape(self):
+        from samcli.lib.package.packageable_resources import (
+            METADATA_EXPORTS,
+            MetadataExportSpec,
+            ServerlessRepoApplicationLicense,
+            ServerlessRepoApplicationReadme,
+        )
+
+        self.assertTrue(all(isinstance(s, MetadataExportSpec) for s in METADATA_EXPORTS))
+
+        by_type = {s.metadata_type: s for s in METADATA_EXPORTS}
+        spec = by_type["AWS::ServerlessRepo::Application"]
+
+        self.assertEqual(sorted(spec.property_names), ["LicenseUrl", "ReadmeUrl"])
+        self.assertIn(ServerlessRepoApplicationLicense, spec.exporters)
+        self.assertIn(ServerlessRepoApplicationReadme, spec.exporters)
+
+    def test_global_transform_exports_registry_shape(self):
+        self.assertTrue(all(isinstance(s, GlobalTransformExportSpec) for s in GLOBAL_TRANSFORM_EXPORTS))
+
+        aws_include = next(
+            s for s in GLOBAL_TRANSFORM_EXPORTS if s.discriminator({"Name": "AWS::Include", "Parameters": {}})
+        )
+
+        self.assertEqual(aws_include.template_key, "Fn::Transform")
+        self.assertIs(aws_include.handler, include_transform_export_handler)
+
+        # Discriminator must reject non-AWS::Include transforms and non-dict inputs
+        self.assertFalse(aws_include.discriminator({"Name": "AWS::OtherTransform"}))
+        self.assertFalse(aws_include.discriminator(None))
+        self.assertFalse(aws_include.discriminator("not-a-dict"))
 
 
 class TestResolveNestedStackParameters(unittest.TestCase):
