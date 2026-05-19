@@ -232,23 +232,21 @@ class TestForEachStaticArtifactsSkip(TestCase):
         self.assertEqual(body["${Name}Func"]["Properties"]["Code"], original_code)
 
 
-class TestForEachDynamicNoArtifactsRefusal(TestCase):
+class TestForEachDynamicNoArtifactsPassthrough(TestCase):
     """#9029: a dynamic Fn::ForEach property whose iterations produced no build
-    artifacts cannot be expressed as a per-iteration CloudFormation Mapping
-    (Mappings hold only static strings, so deploy-time intrinsics would be
-    silently lost) and cannot leave the loop variable unresolved. Mirrors the
-    artifacts-lookup discipline of the static branch and the root-level merge —
-    refuse rather than emit a misleading template.
+    artifacts (e.g. inline-source ``Code: {ZipFile: !Sub ...}``) is passed
+    through verbatim. CFN's LanguageExtensions transform expands the ForEach at
+    deploy time, substituting the loop variable in each per-iteration copy, so
+    no per-iteration Mapping is needed.
     """
 
     def _make_context(self):
         with patch.object(BuildContext, "__init__", lambda self: None):
             return BuildContext()
 
-    def test_dynamic_property_with_no_artifacts_raises(self):
-        from samcli.commands.exceptions import UserException
-
+    def test_dynamic_property_with_no_artifacts_skipped(self):
         ctx = self._make_context()
+        original_code = {"ZipFile": {"Fn::Sub": "print('${Name}')"}}
         foreach_value = [
             "Name",
             ["Alpha", "Beta"],
@@ -259,7 +257,7 @@ class TestForEachDynamicNoArtifactsRefusal(TestCase):
                         # ZipFile contains the loop variable; an inline-source
                         # Lambda has no CodeUri, so neither AlphaFunc nor BetaFunc
                         # appears in `artifacts`.
-                        "Code": {"ZipFile": {"Fn::Sub": "print('${Name}')"}},
+                        "Code": original_code,
                     },
                 }
             },
@@ -274,18 +272,19 @@ class TestForEachDynamicNoArtifactsRefusal(TestCase):
                 "Properties": {"Code": {"ZipFile": "print('Beta')"}},
             },
         }
-        with self.assertRaises(UserException) as cm:
-            ctx._update_foreach_artifact_paths(
-                "Fn::ForEach::Names",
-                foreach_value,
-                modified_resources,
-                template={},
-                parameter_values={},
-                artifacts={},
-            )
-        message = str(cm.exception)
-        self.assertIn("Name", message)
-        self.assertIn("non-buildable property", message)
+        generated_mappings = ctx._update_foreach_artifact_paths(
+            "Fn::ForEach::Names",
+            foreach_value,
+            modified_resources,
+            template={},
+            parameter_values={},
+            artifacts={},
+        )
+        # No Mapping is generated for a non-buildable dynamic property and the
+        # original Code (with the Fn::Sub intrinsic intact) is left untouched.
+        self.assertEqual(generated_mappings, {})
+        body = foreach_value[2]
+        self.assertEqual(body["${Name}Func"]["Properties"]["Code"], original_code)
 
 
 class TestGetTemplateForOutputForEachExploration(TestCase):
