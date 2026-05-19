@@ -4459,3 +4459,84 @@ class TestBuildToPackageFlow(TestCase):
         codeuri = body["${FunctionName}Function"]["Properties"]["CodeUri"]
         self.assertIn("Fn::FindInMap", codeuri)
         self.assertEqual(codeuri["Fn::FindInMap"][0], "SAMCodeUriFunctions")
+
+
+class TestPackageContextBuriedAWSInclude(TestCase):
+    """A root-level template that uses Fn::ToJsonString (a language extension)
+    and contains AWS::Include buried inside AWS::SSM::Parameter must end up
+    with the include's Location rewritten to the s3:// URL the uploader
+    returned, matching the behavior of sam-cli 1.159.0.
+
+    Regression coverage for https://github.com/aws/aws-sam-cli/issues/9027.
+    Nested-stack coverage lives in tests/unit/lib/package/test_artifact_exporter.py.
+    """
+
+    def setUp(self):
+        import os
+        import tempfile
+
+        from samcli.commands.package.package_context import PackageContext
+        from samcli.lib.package.uploaders import Destination, Uploaders
+
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+        self.template_path = os.path.join(self.tmp.name, "template.yaml")
+        self.include_path = os.path.join(self.tmp.name, "export-events.json")
+
+        with open(self.include_path, "w") as f:
+            f.write('[{"event": "demo"}]')
+
+        with open(self.template_path, "w") as f:
+            f.write(
+                "Transform: AWS::LanguageExtensions\n"
+                "Resources:\n"
+                "  Parameter:\n"
+                "    Type: AWS::SSM::Parameter\n"
+                "    Properties:\n"
+                "      Type: String\n"
+                "      DataType: text\n"
+                "      Value:\n"
+                "        Fn::ToJsonString:\n"
+                "          Fn::Transform:\n"
+                "            Name: AWS::Include\n"
+                "            Parameters:\n"
+                "              Location: export-events.json\n"
+            )
+
+        # Mock uploader with deterministic S3 URL.
+        self.s3_uploader = MagicMock()
+        self.s3_uploader.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://my-bucket/{os.path.basename(local_path)}-md5"
+        )
+        self.s3_uploader.EXPORT_DESTINATION = Destination.S3
+
+        self.uploaders = MagicMock(spec=Uploaders)
+        self.uploaders.get.return_value = self.s3_uploader
+
+        # Bypass PackageContext.__init__ — wire only the attributes _export reads.
+        self.ctx = PackageContext.__new__(PackageContext)
+        self.ctx.template_file = self.template_path
+        self.ctx.uploaders = self.uploaders
+        self.ctx.code_signer = MagicMock()
+        self.ctx.parameter_overrides = {}
+        self.ctx._global_parameter_overrides = {}
+
+    def test_buried_aws_include_location_is_rewritten(self):
+        from samcli.yamlhelper import yaml_parse
+
+        exported_str = self.ctx._export(self.template_path, use_json=False)
+
+        exported = yaml_parse(exported_str)
+
+        location = exported["Resources"]["Parameter"]["Properties"]["Value"]["Fn::ToJsonString"]["Fn::Transform"][
+            "Parameters"
+        ]["Location"]
+        self.assertTrue(
+            location.startswith("s3://"),
+            f"Issue #9027: AWS::Include Location must be an S3 URI after sam package, " f"got {location!r}.",
+        )
+        self.assertEqual(location, "s3://my-bucket/export-events.json-md5")
+
+        # Sanity: the LE Transform line is preserved on the root.
+        self.assertEqual(exported.get("Transform"), "AWS::LanguageExtensions")

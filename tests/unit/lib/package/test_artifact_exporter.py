@@ -1989,6 +1989,215 @@ class TestArtifactExporter(unittest.TestCase):
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
         self.assertEqual(handler_output, {"Name": "AWS::OtherTransform", "Parameters": {"Location": "foo.yaml"}})
 
+    def test_le_template_with_top_level_aws_include_merges_location(self):
+        """End-to-end regression: an LE template with a top-level AWS::Include
+        in Outputs (outside any Fn::ForEach body) must end up with its
+        Location rewritten to the uploader's S3 URL after the
+        package_context._export-equivalent flow:
+
+            _export_global_artifacts_pass(template_dict, ...)
+              -> expand_language_extensions(...)
+              -> Template(template_dict=expanded).export()
+              -> merge_language_extensions_s3_uris(original, exported, dynamic)
+
+        The pre-LE global-transform pass is what now rewrites AWS::Include
+        Locations; the merge pass only handles resource artifact properties
+        and Metadata. See aws/aws-sam-cli#9027.
+        """
+        import copy as _copy
+
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        from samcli.lib.package.artifact_exporter import _export_global_artifacts_pass
+        from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
+
+        # Predictable upload URL keyed on basename so we can assert on it later.
+        # upload_with_dedup is invoked with absolute paths (for AWS::Include) and
+        # with absolute paths to temp zips (for ServerlessFunctionResource folder
+        # uploads); both forms have a basename we can use.
+        self.s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Real files on disk so is_local_file / is_local_folder return True
+            # without needing to mock them. extra.yaml is the AWS::Include target;
+            # code/ is the CodeUri folder for the (post-expansion) functions.
+            extra_yaml_path = os.path.join(tmpdir, "extra.yaml")
+            with open(extra_yaml_path, "w", encoding="utf-8") as f:
+                f.write("# stub include target\n")
+            code_dir = os.path.join(tmpdir, "code")
+            os.makedirs(code_dir)
+            with open(os.path.join(code_dir, "index.py"), "w", encoding="utf-8") as f:
+                f.write("def handler(event, context):\n    return event\n")
+
+            template_dict = {
+                "Transform": "AWS::LanguageExtensions",
+                "Resources": {
+                    "Fn::ForEach::Services": [
+                        "Name",
+                        ["A", "B"],
+                        {
+                            "${Name}Function": {
+                                "Type": "AWS::Serverless::Function",
+                                "Properties": {
+                                    "CodeUri": "./code",
+                                    "Handler": "index.handler",
+                                    "Runtime": "python3.11",
+                                },
+                            }
+                        },
+                    ]
+                },
+                "Outputs": {
+                    "Extra": {
+                        "Value": {
+                            "Fn::Transform": {
+                                "Name": "AWS::Include",
+                                "Parameters": {"Location": "./extra.yaml"},
+                            }
+                        }
+                    }
+                },
+            }
+
+            # Mirror PackageContext._export's flow: run the pre-LE
+            # global-transform pass on the original template before
+            # language-extension expansion.
+            _export_global_artifacts_pass(template_dict, self.s3_uploader_mock, tmpdir)
+
+            parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+            result = expand_language_extensions(template_dict, parameter_values)
+            self.assertTrue(result.had_language_extensions)
+
+            template = Template(
+                template_path="template.yaml",
+                parent_dir=tmpdir,
+                uploaders=self.uploaders_mock,
+                code_signer=self.code_signer_mock,
+                normalize_template=True,
+                normalize_parameters=True,
+                template_dict=_copy.deepcopy(result.expanded_template),
+                parameter_values=parameter_values,
+            )
+            exported_template = template.export()
+
+            output = merge_language_extensions_s3_uris(
+                result.original_template, exported_template, result.dynamic_artifact_properties
+            )
+
+        # The original Fn::ForEach is preserved (not re-expanded) in the merged output.
+        self.assertIn("Fn::ForEach::Services", output["Resources"])
+
+        # The top-level AWS::Include Location is rewritten to the uploader's S3 URL.
+        out_location = output["Outputs"]["Extra"]["Value"]["Fn::Transform"]["Parameters"]["Location"]
+        self.assertEqual(out_location, "s3://bucket/extra.yaml-md5")
+
+    def test_le_template_with_serverless_repo_metadata_merges_license_url(self):
+        """End-to-end regression: an LE template with
+        AWS::ServerlessRepo::Application metadata containing local
+        LicenseUrl/ReadmeUrl paths must end up with both rewritten to
+        S3 URLs after the package_context._export-equivalent flow:
+
+            expand_language_extensions(...)
+              -> Template(template_dict=expanded).export()
+              -> merge_language_extensions_s3_uris(original, exported, dynamic)
+
+        This covers the Metadata merge pass (Task 4) wired into the
+        artifact-exporter's export plumbing.
+        """
+        import copy as _copy
+
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
+
+        # SAR exporters extend ResourceZip, whose do_export ultimately
+        # routes through upload_local_artifacts -> uploader.upload_with_dedup.
+        # Same lambda as Task 7: a predictable URL keyed on basename.
+        self.s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Real files on disk for the SAR exporters (LicenseUrl / ReadmeUrl)
+            # and for the Fn::ForEach-expanded SAM function's CodeUri.
+            license_path = os.path.join(tmpdir, "LICENSE.txt")
+            with open(license_path, "w", encoding="utf-8") as f:
+                f.write("MIT\n")
+            readme_path = os.path.join(tmpdir, "README.md")
+            with open(readme_path, "w", encoding="utf-8") as f:
+                f.write("# MyApp\n")
+            code_dir = os.path.join(tmpdir, "code")
+            os.makedirs(code_dir)
+            with open(os.path.join(code_dir, "index.py"), "w", encoding="utf-8") as f:
+                f.write("def handler(event, context):\n    return event\n")
+
+            template_dict = {
+                "Transform": "AWS::LanguageExtensions",
+                "Metadata": {
+                    "AWS::ServerlessRepo::Application": {
+                        "Name": "MyApp",
+                        "Description": "Test app",
+                        "Author": "Test",
+                        "SemanticVersion": "1.0.0",
+                        "LicenseUrl": "./LICENSE.txt",
+                        "ReadmeUrl": "./README.md",
+                    }
+                },
+                "Resources": {
+                    "Fn::ForEach::Services": [
+                        "Name",
+                        ["A"],
+                        {
+                            "${Name}Function": {
+                                "Type": "AWS::Serverless::Function",
+                                "Properties": {
+                                    "CodeUri": "./code",
+                                    "Handler": "index.handler",
+                                    "Runtime": "python3.11",
+                                },
+                            }
+                        },
+                    ]
+                },
+            }
+
+            parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+            result = expand_language_extensions(template_dict, parameter_values)
+            self.assertTrue(result.had_language_extensions)
+
+            template = Template(
+                template_path="template.yaml",
+                parent_dir=tmpdir,
+                uploaders=self.uploaders_mock,
+                code_signer=self.code_signer_mock,
+                normalize_template=True,
+                normalize_parameters=True,
+                template_dict=_copy.deepcopy(result.expanded_template),
+                parameter_values=parameter_values,
+            )
+            exported_template = template.export()
+
+            output = merge_language_extensions_s3_uris(
+                result.original_template, exported_template, result.dynamic_artifact_properties
+            )
+
+        # SAR LicenseUrl and ReadmeUrl must both be rewritten to S3 URLs.
+        sar = output["Metadata"]["AWS::ServerlessRepo::Application"]
+        self.assertTrue(sar["LicenseUrl"].startswith("s3://"), f"LicenseUrl: {sar['LicenseUrl']!r}")
+        self.assertTrue(sar["ReadmeUrl"].startswith("s3://"), f"ReadmeUrl: {sar['ReadmeUrl']!r}")
+        # The basenames identify which file was uploaded to which property,
+        # confirming the SAR exporter fired once for License and once for Readme.
+        self.assertIn("LICENSE.txt", sar["LicenseUrl"])
+        self.assertIn("README.md", sar["ReadmeUrl"])
+        # Unrelated SAR metadata is preserved untouched.
+        self.assertEqual(sar["Name"], "MyApp")
+        self.assertEqual(sar["SemanticVersion"], "1.0.0")
+        # The original Fn::ForEach is preserved (not re-expanded) in the merged output.
+        self.assertIn("Fn::ForEach::Services", output["Resources"])
 
     def test_template_export_path_be_folder(self):
         template_path = "/path/foo"
@@ -2795,6 +3004,83 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
             self.assertEqual(passed_params.get("ServiceNames"), "Users,Orders,Products")
             # And still carries propagated parent/pseudo values:
             self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+class TestCloudFormationStackResourceBuriedAWSInclude(unittest.TestCase):
+    """Nested-stack child template containing AWS::Include buried inside an
+    LE function (e.g. Fn::ToJsonString) must have the include's Location
+    rewritten by the pre-LE global-transform pass in
+    CloudFormationStackResource.do_export, before LE expansion would have
+    collapsed the structural Fn::Transform into a JSON-string literal.
+
+    Regression coverage for https://github.com/aws/aws-sam-cli/issues/9027.
+    Root-flow coverage lives in tests/unit/commands/package/
+    test_package_context.py.
+    """
+
+    def test_buried_aws_include_in_le_child_is_rewritten(self):
+        uploaders_mock = Mock()
+        s3_uploader_mock = Mock()
+        s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+        # Template upload (the child template itself) — give it a deterministic URL.
+        s3_uploader_mock.upload.return_value = "s3://bucket/child-template-md5"
+        s3_uploader_mock.to_path_style_s3_url.return_value = "https://s3.amazonaws.com/bucket/child-template-md5"
+        uploaders_mock.get.return_value = s3_uploader_mock
+
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+
+        stack_resource = CloudFormationStackResource(uploaders_mock, code_signer_mock)
+
+        # Child template mirrors the issue #9027 reporter's shape:
+        # Fn::ToJsonString over Fn::Transform: AWS::Include, buried inside
+        # AWS::SSM::Parameter.Properties.Value. The whole thing wrapped in
+        # Transform: AWS::LanguageExtensions so the LE branch is taken.
+        child_template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Parameter": {
+                    "Type": "AWS::SSM::Parameter",
+                    "Properties": {
+                        "Type": "String",
+                        "DataType": "text",
+                        "Value": {
+                            "Fn::ToJsonString": {
+                                "Fn::Transform": {
+                                    "Name": "AWS::Include",
+                                    "Parameters": {"Location": "export-events.json"},
+                                }
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = os.path.join(tmpdir, "child.yaml")
+            include_path = os.path.join(tmpdir, "export-events.json")
+            from samcli.yamlhelper import yaml_dump
+
+            with open(child_path, "w", encoding="utf-8") as f:
+                f.write(yaml_dump(child_template))
+            with open(include_path, "w", encoding="utf-8") as f:
+                f.write('[{"event": "demo"}]')
+
+            resource_dict = {"TemplateURL": child_path}
+            stack_resource.do_export("ChildStack", resource_dict, tmpdir)
+
+            # Walk every upload_with_dedup call to confirm the include was uploaded.
+            uploaded_files = [call_args[0][0] for call_args in s3_uploader_mock.upload_with_dedup.call_args_list]
+            self.assertIn(include_path, uploaded_files)
         finally:
             import shutil
 
