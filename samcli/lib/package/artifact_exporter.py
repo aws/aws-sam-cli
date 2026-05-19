@@ -17,7 +17,7 @@ Exporting resources defined in the cloudformation template to the cloud.
 import copy
 import logging
 import os
-from typing import Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, cast
 
 from botocore.utils import set_value_from_jmespath
 
@@ -119,6 +119,46 @@ def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_value
     return resolved
 
 
+def _export_global_artifacts_pass(template_dict: Any, uploader, template_dir: str) -> Any:
+    """
+    Walk template_dict recursively, dispatching dict nodes to handlers
+    registered in GLOBAL_TRANSFORM_EXPORTS (today: AWS::Include).
+
+    Mutates template_dict in place AND returns it for caller convenience.
+
+    This is the standalone form of Template._export_global_artifacts —
+    used by callers that need to run the global-transform export pass
+    on a template before constructing a Template (e.g., the pre-LE
+    pass that processes AWS::Include before language-extension
+    expansion runs).
+
+    No-ops on non-dict input (e.g. yaml_parse returning None for empty
+    template files), so callers can pass the result of yaml_parse
+    unconditionally.
+    """
+    if not isinstance(template_dict, dict):
+        return template_dict
+
+    specs_by_key: Dict[str, list] = {}
+    for spec in GLOBAL_TRANSFORM_EXPORTS:
+        specs_by_key.setdefault(spec.template_key, []).append(spec)
+
+    for key, val in template_dict.items():
+        if key in specs_by_key:
+            current = val
+            for spec in specs_by_key[key]:
+                if spec.discriminator(current):
+                    template_dict[key] = spec.handler(current, uploader, template_dir)
+                    current = template_dict[key]
+        elif isinstance(val, dict):
+            _export_global_artifacts_pass(val, uploader, template_dir)
+        elif isinstance(val, list):
+            for item in val:
+                if isinstance(item, dict):
+                    _export_global_artifacts_pass(item, uploader, template_dir)
+    return template_dict
+
+
 class CloudFormationStackResource(ResourceZip):
     """
     Represents CloudFormation::Stack resource that can refer to a nested
@@ -167,6 +207,18 @@ class CloudFormationStackResource(ResourceZip):
             child_template_dict = yaml_parse(f.read())
 
         child_template_dir = os.path.dirname(abs_template_path)
+
+        # Process AWS::Include before LE expansion to mirror CFN's transform
+        # ordering. See aws/aws-sam-cli#9027.
+        #
+        # NOTE: mutates child_template_dict in place. Must run before the
+        # expand_language_extensions call below so result.original_template
+        # and result.expanded_template both observe the rewrite.
+        _export_global_artifacts_pass(
+            child_template_dict,
+            self.uploaders.get(ResourceZip.EXPORT_DESTINATION),
+            child_template_dir,
+        )
 
         # Merge pseudo-parameters with:
         #  1) values propagated from the parent Template (parent stack's own params
@@ -403,31 +455,18 @@ class Template:
         self.parameter_values = parameter_values
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
+        """See module-level _export_global_artifacts_pass for the canonical
+        implementation. This wrapper exists so Template.export() doesn't
+        need to know about uploader / template_dir plumbing.
         """
-        Template params such as AWS::Include transforms are not specific to
-        any resource type but contain artifacts that should be exported,
-        here we iterate through the template dict and dispatch to handlers
-        declared in GLOBAL_TRANSFORM_EXPORTS.
-        """
-        specs_by_key: Dict[str, list] = {}
-        for spec in GLOBAL_TRANSFORM_EXPORTS:
-            specs_by_key.setdefault(spec.template_key, []).append(spec)
-
-        for key, val in template_dict.items():
-            if key in specs_by_key:
-                for spec in specs_by_key[key]:
-                    if spec.discriminator(val):
-                        template_dict[key] = spec.handler(
-                            val, self.uploaders.get(ResourceZip.EXPORT_DESTINATION), self.template_dir
-                        )
-                        val = template_dict[key]  # subsequent specs see the rewrite
-            elif isinstance(val, dict):
-                self._export_global_artifacts(val)
-            elif isinstance(val, list):
-                for item in val:
-                    if isinstance(item, dict):
-                        self._export_global_artifacts(item)
-        return template_dict
+        result = _export_global_artifacts_pass(
+            template_dict,
+            self.uploaders.get(ResourceZip.EXPORT_DESTINATION),
+            self.template_dir,
+        )
+        # template_dict is guaranteed to be a dict here, so the pass returns
+        # the same dict back. cast() narrows the return type for mypy.
+        return cast(Dict, result)
 
     def _export_metadata(self):
         """

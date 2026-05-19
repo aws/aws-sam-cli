@@ -26,7 +26,7 @@ import click
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.package.artifact_exporter import Template
+from samcli.lib.package.artifact_exporter import Template, _export_global_artifacts_pass
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.language_extensions_packaging import (
@@ -34,7 +34,7 @@ from samcli.lib.package.language_extensions_packaging import (
     merge_language_extensions_s3_uris,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
-from samcli.lib.package.uploaders import Uploaders
+from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
@@ -176,6 +176,23 @@ class PackageContext:
         # Read the original template
         with open(template_path, "r", encoding="utf-8") as f:
             original_template_dict = yaml_parse(f.read())
+
+        # Process AWS::Include (and other global Fn::Transform exporters) on the
+        # original template before language-extension expansion. This mirrors
+        # CloudFormation's server-side transform ordering and prevents LE
+        # functions like Fn::ToJsonString from collapsing structural Fn::Transform
+        # nodes into JSON-string literals before the exporter can reach them.
+        # See aws/aws-sam-cli#9027.
+        #
+        # NOTE: this mutates original_template_dict in place. The mutation must
+        # happen before expand_language_extensions snapshots the tree, so both
+        # result.original_template and result.expanded_template see the rewrite.
+        template_dir = os.path.dirname(os.path.abspath(template_path))
+        _export_global_artifacts_pass(
+            original_template_dict,
+            self.uploaders.get(Destination.S3),
+            template_dir,
+        )
 
         # Build combined parameter values for expand_language_extensions
         parameter_values = {}
