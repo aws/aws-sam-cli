@@ -417,11 +417,19 @@ class BuildContext:
             # Determine which template to write to disk
             # If the stack has an original template (with Fn::ForEach intact), use it
             # Otherwise, use the modified (expanded) template
-            template_to_write = self._get_template_for_output(stack, modified_template, artifacts)
+            template_to_write = self._get_template_for_output(
+                stack, modified_template, artifacts, stack_output_template_path_by_stack_path
+            )
 
             move_template(stack.location, output_template_path, template_to_write)
 
-    def _get_template_for_output(self, stack: Stack, modified_template: Dict, artifacts: Dict[str, str]) -> Dict:
+    def _get_template_for_output(
+        self,
+        stack: Stack,
+        modified_template: Dict,
+        artifacts: Dict[str, str],
+        stack_output_template_path_by_stack_path: Optional[Dict[str, str]] = None,
+    ) -> Dict:
         """
         Get the template to write to the build output directory.
 
@@ -438,6 +446,8 @@ class BuildContext:
             The expanded template with updated artifact paths
         artifacts : Dict[str, str]
             Map of resource full paths to their built artifact locations
+        stack_output_template_path_by_stack_path : Optional[Dict[str, str]]
+            Map of stack paths to their output template paths (for nested stacks).
 
         Returns
         -------
@@ -454,7 +464,13 @@ class BuildContext:
         original_template: Dict = copy.deepcopy(stack.original_template_dict)
 
         # Update artifact paths in the original template
-        self._update_original_template_paths(original_template, modified_template, stack)
+        self._update_original_template_paths(
+            original_template,
+            modified_template,
+            stack,
+            artifacts,
+            stack_output_template_path_by_stack_path or {},
+        )
 
         # Propagate the auto dependency layer nested stack resource from the expanded template
         # into the original template. This resource is a regular AWS::CloudFormation::Stack type
@@ -465,7 +481,14 @@ class BuildContext:
 
         return original_template
 
-    def _update_original_template_paths(self, original_template: Dict, modified_template: Dict, stack: Stack) -> None:
+    def _update_original_template_paths(
+        self,
+        original_template: Dict,
+        modified_template: Dict,
+        stack: Stack,
+        artifacts: Optional[Dict[str, str]] = None,
+        stack_output_template_path_by_stack_path: Optional[Dict[str, str]] = None,
+    ) -> None:
         """
         Update artifact paths in the original template based on the modified template.
 
@@ -481,7 +504,20 @@ class BuildContext:
             The expanded template with updated artifact paths
         stack : Stack
             The stack being processed
+        artifacts : Optional[Dict[str, str]]
+            Map of resource full paths to built artifact locations. Used to
+            skip merge for resources that produced no build artifact (e.g.
+            inline-source ``ZipFile`` Lambdas). Mirrors the non-LE
+            ``ApplicationBuilder.update_template`` skip. See #9029.
+        stack_output_template_path_by_stack_path : Optional[Dict[str, str]]
+            Map of stack paths to their output template paths (for nested stacks).
         """
+        from samcli.lib.providers.provider import get_full_path
+
+        artifacts = artifacts if artifacts is not None else {}
+        stack_outputs = stack_output_template_path_by_stack_path or {}
+        stack_path = stack.stack_path if isinstance(stack.stack_path, str) else ""
+
         # Get the resources section from both templates
         original_resources = original_template.get("Resources", {})
         modified_resources = modified_template.get("Resources", {})
@@ -499,9 +535,19 @@ class BuildContext:
                     modified_resources,
                     template=original_template,
                     parameter_values=stack.parameters,
+                    artifacts=artifacts,
+                    stack_path=stack_path,
                 )
                 all_generated_mappings.update(generated_mappings)
             elif isinstance(resource_value, dict) and resource_key in modified_resources:
+                # Skip resources that produced no build artifact and are not nested
+                # stacks — there is nothing to merge back. Mirrors the non-LE
+                # ``ApplicationBuilder.update_template`` early-skip and prevents
+                # the LE-resolved value from clobbering user intrinsics on, e.g.,
+                # ``Code: {ZipFile: !Sub ...}`` Lambdas. See #9029.
+                full_path = get_full_path(stack_path, resource_key)
+                if full_path not in artifacts and full_path not in stack_outputs:
+                    continue
                 # Regular resource - copy updated paths from modified template
                 modified_resource = modified_resources.get(resource_key, {})
                 self._copy_artifact_paths(resource_value, modified_resource)
@@ -521,6 +567,8 @@ class BuildContext:
         template: Optional[Dict] = None,
         parameter_values: Optional[Dict] = None,
         parent_nesting_path: str = "",
+        artifacts: Optional[Dict[str, str]] = None,
+        stack_path: str = "",
     ) -> Dict[str, Dict[str, Dict[str, str]]]:
         """
         Update artifact paths in a Fn::ForEach construct.
@@ -545,6 +593,13 @@ class BuildContext:
         parent_nesting_path : str
             Accumulated nesting path from parent ForEach loops (e.g., "Envs" when
             nested under Fn::ForEach::Envs).
+        artifacts : Optional[Dict[str, str]]
+            Map of resource full paths to built artifact locations. Used to skip
+            the static-branch merge for expanded resources that produced no build
+            artifact (e.g. inline-source ``ZipFile`` Lambdas inside a ForEach body).
+            Mirrors the non-LE early-skip. See #9029.
+        stack_path : str
+            The owning stack's path (for computing the ``full_path`` lookup key).
 
         Returns
         -------
@@ -559,6 +614,8 @@ class BuildContext:
             _resolve_property_paths,
             _set_prop_value,
         )
+
+        artifacts = artifacts if artifacts is not None else {}
 
         generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
 
@@ -593,6 +650,8 @@ class BuildContext:
                     template=template,
                     parameter_values=parameter_values,
                     parent_nesting_path=nesting_path,
+                    artifacts=artifacts,
+                    stack_path=stack_path,
                 )
                 generated_mappings.update(nested_mappings)
                 continue
@@ -632,39 +691,53 @@ class BuildContext:
                         modified_resources,
                         outer_context,
                         referenced_outer_vars=referenced_outer_vars,
+                        artifacts=artifacts,
+                        stack_path=stack_path,
                     )
-                    if mapping_entries:
-                        mapping_name = f"SAM{leaf_name}{nesting_path}"
-                        # Collision count is keyed on the leaf so dotted paths
-                        # that share a leaf (e.g. "ImageUri" vs "Code.ImageUri")
-                        # get the resource-key suffix and don't overwrite each
-                        # other's Mapping entries.
-                        if dynamic_props_count.get(leaf_name, 0) > 1:
-                            suffix = sanitize_resource_key_for_mapping(resource_template_key)
-                            mapping_name = f"{mapping_name}{suffix}"
-                        generated_mappings[mapping_name] = mapping_entries
+                    if not mapping_entries:
+                        # No per-iteration expanded resource produced a build
+                        # artifact — the property is non-packageable for every
+                        # iteration (e.g. ``Code: {ZipFile: ...}`` Lambdas have
+                        # no ``CodeUri`` to build). Mappings hold only static
+                        # strings, so deploy-time intrinsics like ``Fn::Sub``
+                        # cannot be expressed per-iteration; leaving the loop
+                        # variable in the original would fail at deploy time
+                        # (the variable isn't a CFN parameter). Reject. Mirrors
+                        # the artifacts-lookup discipline of the static branch
+                        # and the root-level merge. See #9029.
+                        self._raise_dynamic_no_artifacts_unsupported(resource_template_key, loop_variable, leaf_name)
+                    mapping_name = f"SAM{leaf_name}{nesting_path}"
+                    # Collision count is keyed on the leaf so dotted paths
+                    # that share a leaf (e.g. "ImageUri" vs "Code.ImageUri")
+                    # get the resource-key suffix and don't overwrite each
+                    # other's Mapping entries.
+                    if dynamic_props_count.get(leaf_name, 0) > 1:
+                        suffix = sanitize_resource_key_for_mapping(resource_template_key)
+                        mapping_name = f"{mapping_name}{suffix}"
+                    generated_mappings[mapping_name] = mapping_entries
 
-                        lookup_key: Any
-                        if referenced_outer_vars:
-                            # Compound key: join outer + inner variable refs with "-"
-                            ref_parts = [{"Ref": ovar} for ovar, _ in referenced_outer_vars]
-                            ref_parts.append({"Ref": loop_variable})
-                            lookup_key = {"Fn::Join": ["-", ref_parts]}
-                        else:
-                            lookup_key = {"Ref": loop_variable}
+                    lookup_key: Any
+                    if referenced_outer_vars:
+                        # Compound key: join outer + inner variable refs with "-"
+                        ref_parts = [{"Ref": ovar} for ovar, _ in referenced_outer_vars]
+                        ref_parts.append({"Ref": loop_variable})
+                        lookup_key = {"Fn::Join": ["-", ref_parts]}
+                    else:
+                        lookup_key = {"Ref": loop_variable}
 
-                        _set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
+                    _set_prop_value(properties, prop_name, {"Fn::FindInMap": [mapping_name, lookup_key, leaf_name]})
                 else:
-                    expanded_key = self._build_expanded_key(
+                    self._merge_static_artifact_path(
                         resource_template_key,
                         loop_variable,
                         collection_values,
                         outer_context,
+                        modified_resources,
+                        properties,
+                        prop_name,
+                        artifacts,
+                        stack_path,
                     )
-                    if expanded_key:
-                        artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
-                        if artifact_value is not None:
-                            _set_prop_value(properties, prop_name, artifact_value)
 
             # Propagate auto dependency layer references from expanded functions
             # to the ForEach body. Each expanded function may have Layers entries
@@ -710,6 +783,54 @@ class BuildContext:
                 properties["Layers"] = existing_layers
 
         return generated_mappings
+
+    def _merge_static_artifact_path(
+        self,
+        resource_template_key: str,
+        loop_variable: str,
+        collection_values: List[str],
+        outer_context: List[Tuple[str, List[str]]],
+        modified_resources: Dict,
+        properties: Dict,
+        prop_name: str,
+        artifacts: Dict[str, str],
+        stack_path: str,
+    ) -> None:
+        """Static-property merge inside a Fn::ForEach body. Skips resources that
+        produced no build artifact — mirrors the non-LE
+        ``ApplicationBuilder.update_template`` early-skip so that, e.g.,
+        ``Code: {ZipFile: !Sub ...}`` Lambdas survive verbatim. See #9029.
+        """
+        from samcli.lib.package.language_extensions_packaging import _set_prop_value
+        from samcli.lib.providers.provider import get_full_path
+
+        expanded_key = self._build_expanded_key(
+            resource_template_key,
+            loop_variable,
+            collection_values,
+            outer_context,
+        )
+        if not expanded_key:
+            return
+        if get_full_path(stack_path, expanded_key) not in artifacts:
+            return
+        artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
+        if artifact_value is not None:
+            _set_prop_value(properties, prop_name, artifact_value)
+
+    @staticmethod
+    def _raise_dynamic_no_artifacts_unsupported(resource_template_key: str, loop_variable: str, leaf_name: str) -> None:
+        """Refuse a Fn::ForEach body whose dynamic artifact property produced no
+        build artifacts for any iteration (e.g. an inline-source ``Code: {ZipFile:
+        ...}`` Lambda has no ``CodeUri`` to build). Mappings hold only static
+        strings, so we cannot emit a per-iteration value that preserves deploy-time
+        intrinsics, and we cannot leave the loop variable unresolved. See #9029.
+        """
+        raise UserException(
+            f"Resource '{resource_template_key}' uses Fn::ForEach loop variable "
+            f"'{loop_variable}' in non-buildable property '{leaf_name}'. "
+            f"This is not supported."
+        )
 
     @staticmethod
     def _count_dynamic_properties(
@@ -776,6 +897,8 @@ class BuildContext:
         modified_resources: Dict,
         outer_context: List[Tuple[str, List[str]]],
         referenced_outer_vars: Optional[List[Tuple[str, List[str]]]] = None,
+        artifacts: Optional[Dict[str, str]] = None,
+        stack_path: str = "",
     ) -> Dict[str, Dict[str, str]]:
         """
         Collect Mapping entries for a dynamic artifact property by looking up
@@ -787,11 +910,18 @@ class BuildContext:
         ``prop_name`` may be a jmespath dotted path; the value-dict key stored
         in the Mapping uses the leaf segment so it stays alphanumeric and
         matches the third argument of the generated Fn::FindInMap.
+
+        ``artifacts`` filters per-iteration expanded keys to only those that
+        produced a build artifact — same discipline as the static branch and
+        the root-level merge. Iterations whose ``get_full_path(stack_path,
+        expanded_key)`` is absent from ``artifacts`` are skipped. See #9029.
         """
         from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+        from samcli.lib.providers.provider import get_full_path
 
         mapping_entries: Dict[str, Dict[str, str]] = {}
         leaf_name = _leaf_prop_name(prop_name)
+        artifacts = artifacts if artifacts is not None else {}
 
         for coll_value in collection_values:
             if outer_context:
@@ -804,9 +934,13 @@ class BuildContext:
                     outer_context,
                     mapping_entries,
                     referenced_outer_vars=referenced_outer_vars,
+                    artifacts=artifacts,
+                    stack_path=stack_path,
                 )
             else:
                 expanded_key = substitute_loop_variable(resource_template_key, loop_variable, coll_value)
+                if get_full_path(stack_path, expanded_key) not in artifacts:
+                    continue
                 artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
                 if artifact_value is not None:
                     mapping_entries[coll_value] = {leaf_name: artifact_value}
@@ -823,18 +957,25 @@ class BuildContext:
         outer_context: List[Tuple[str, List[str]]],
         mapping_entries: Dict[str, Dict[str, str]],
         referenced_outer_vars: Optional[List[Tuple[str, List[str]]]] = None,
+        artifacts: Optional[Dict[str, str]] = None,
+        stack_path: str = "",
     ) -> None:
         """Enumerate outer value combinations to find expanded resource for a nested ForEach.
 
         ``prop_name`` may be a jmespath dotted path; the value-dict key uses the leaf segment.
+
+        ``artifacts`` filters per-iteration expanded keys (see
+        ``_collect_dynamic_mapping_entries``).
         """
         import itertools
 
         from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
+        from samcli.lib.providers.provider import get_full_path
 
         leaf_name = _leaf_prop_name(prop_name)
         outer_collections = [oc[1] for oc in outer_context]
         outer_vars = [oc[0] for oc in outer_context]
+        artifacts = artifacts if artifacts is not None else {}
 
         # Determine which outer vars need compound keys
         compound_outer_vars = {ovar for ovar, _ in (referenced_outer_vars or [])}
@@ -845,6 +986,8 @@ class BuildContext:
                 expanded_key = substitute_loop_variable(expanded_key, ovar, oval)
             expanded_key = substitute_loop_variable(expanded_key, loop_variable, coll_value)
 
+            if get_full_path(stack_path, expanded_key) not in artifacts:
+                continue
             artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
             if artifact_value is None:
                 continue

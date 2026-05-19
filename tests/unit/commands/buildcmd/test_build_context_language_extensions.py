@@ -6,7 +6,7 @@ and bug condition exploration tests for auto dependency layer with ForEach templ
 """
 
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import MagicMock, patch
 
 from samcli.commands.build.build_context import BuildContext
 
@@ -35,12 +35,13 @@ class TestCopyArtifactPaths(TestCase):
         ctx._copy_artifact_paths(original, modified)
         self.assertEqual(original["Properties"]["ImageUri"], "123.dkr.ecr.us-east-1.amazonaws.com/repo")
 
-    def test_lambda_function_code(self):
+    def test_lambda_function_code_packageable(self):
+        """Packageable Code (S3 location, no ZipFile): merge wins."""
         ctx = self._make_context()
-        original = {"Type": "AWS::Lambda::Function", "Properties": {"Code": {"ZipFile": "code"}}}
-        modified = {"Type": "AWS::Lambda::Function", "Properties": {"Code": {"S3Bucket": "b", "S3Key": "k"}}}
+        original = {"Type": "AWS::Lambda::Function", "Properties": {"Code": {"S3Bucket": "old", "S3Key": "k"}}}
+        modified = {"Type": "AWS::Lambda::Function", "Properties": {"Code": {"S3Bucket": "new", "S3Key": "k"}}}
         ctx._copy_artifact_paths(original, modified)
-        self.assertEqual(original["Properties"]["Code"]["S3Bucket"], "b")
+        self.assertEqual(original["Properties"]["Code"]["S3Bucket"], "new")
 
     def test_serverless_layer_contenturi(self):
         ctx = self._make_context()
@@ -105,6 +106,186 @@ class TestCopyArtifactPaths(TestCase):
         ctx._copy_artifact_paths(original, modified)
         self.assertEqual(original["Properties"]["Command"]["ScriptLocation"], "s3://b/k.py")
         self.assertEqual(original["Properties"]["Command"]["Name"], "glueetl")
+
+
+class TestUpdateOriginalTemplatePathsZipFile(TestCase):
+    """#9029: At the root level, _update_original_template_paths must skip resources
+    that produced no build artifact, mirroring the non-LE
+    ApplicationBuilder.update_template skip. Inline-source ``ZipFile`` Lambdas have
+    no CodeUri and are never built, so they must not be overwritten by the LE-resolved
+    expansion (which strips intrinsics like Fn::Sub against pseudo-parameter defaults).
+    """
+
+    def _make_context(self):
+        with patch.object(BuildContext, "__init__", lambda self: None):
+            return BuildContext()
+
+    def test_zipfile_resource_not_in_artifacts_is_skipped(self):
+        """Lambda with Code.ZipFile is not in artifacts (no CodeUri to build);
+        merge must skip it so the original Fn::Sub survives."""
+        ctx = self._make_context()
+        original_code = {"ZipFile": {"Fn::Sub": "arn:aws:states:${AWS::Region}:..."}}
+        # LE-expanded template has Fn::Sub already resolved against defaults
+        modified_code = {"ZipFile": "arn:aws:states:us-east-1:..."}
+        original_template = {
+            "Resources": {"MyFunc": {"Type": "AWS::Lambda::Function", "Properties": {"Code": original_code}}}
+        }
+        modified_template = {
+            "Resources": {"MyFunc": {"Type": "AWS::Lambda::Function", "Properties": {"Code": modified_code}}}
+        }
+        stack = MagicMock()
+        stack.parameters = {}
+        stack.stack_path = ""
+
+        # MyFunc not in artifacts (no CodeUri to build)
+        ctx._update_original_template_paths(
+            original_template,
+            modified_template,
+            stack,
+            artifacts={},
+            stack_output_template_path_by_stack_path={},
+        )
+
+        self.assertEqual(original_template["Resources"]["MyFunc"]["Properties"]["Code"], original_code)
+
+    def test_packageable_resource_in_artifacts_is_merged(self):
+        """Lambda with packageable Code is in artifacts; merge proceeds normally."""
+        ctx = self._make_context()
+        original_template = {
+            "Resources": {
+                "MyFunc": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": {"S3Bucket": "old", "S3Key": "k"}},
+                }
+            }
+        }
+        modified_template = {
+            "Resources": {
+                "MyFunc": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": {"S3Bucket": "new", "S3Key": "k"}},
+                }
+            }
+        }
+        stack = MagicMock()
+        stack.parameters = {}
+        stack.stack_path = ""
+
+        ctx._update_original_template_paths(
+            original_template,
+            modified_template,
+            stack,
+            artifacts={"MyFunc": "/path/to/built/MyFunc"},
+            stack_output_template_path_by_stack_path={},
+        )
+
+        self.assertEqual(original_template["Resources"]["MyFunc"]["Properties"]["Code"]["S3Bucket"], "new")
+
+
+class TestForEachStaticArtifactsSkip(TestCase):
+    """#9029 (case b): A ForEach body whose static property holds inline source
+    (e.g. ``Code: {ZipFile: ...}``) is never built, so its expanded children are
+    absent from ``artifacts``. The static-branch merge must skip them so the
+    original property survives verbatim.
+    """
+
+    def _make_context(self):
+        with patch.object(BuildContext, "__init__", lambda self: None):
+            return BuildContext()
+
+    def test_static_zipfile_in_foreach_skipped_when_not_in_artifacts(self):
+        ctx = self._make_context()
+        original_code = {"ZipFile": {"Fn::Sub": "print('${AWS::Region}')"}}
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Func": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": original_code},
+                }
+            },
+        ]
+        # Modified resources have the LE-expanded values (us-east-1 baked in)
+        modified_resources = {
+            "AlphaFunc": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ZipFile": "print('us-east-1')"}},
+            },
+            "BetaFunc": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ZipFile": "print('us-east-1')"}},
+            },
+        }
+        # No artifacts entries — these functions had no CodeUri to build.
+        ctx._update_foreach_artifact_paths(
+            "Fn::ForEach::Names",
+            foreach_value,
+            modified_resources,
+            template={},
+            parameter_values={},
+            artifacts={},
+        )
+
+        # Original Code (with Fn::Sub intact) must be untouched
+        body = foreach_value[2]
+        self.assertEqual(body["${Name}Func"]["Properties"]["Code"], original_code)
+
+
+class TestForEachDynamicNoArtifactsRefusal(TestCase):
+    """#9029: a dynamic Fn::ForEach property whose iterations produced no build
+    artifacts cannot be expressed as a per-iteration CloudFormation Mapping
+    (Mappings hold only static strings, so deploy-time intrinsics would be
+    silently lost) and cannot leave the loop variable unresolved. Mirrors the
+    artifacts-lookup discipline of the static branch and the root-level merge —
+    refuse rather than emit a misleading template.
+    """
+
+    def _make_context(self):
+        with patch.object(BuildContext, "__init__", lambda self: None):
+            return BuildContext()
+
+    def test_dynamic_property_with_no_artifacts_raises(self):
+        from samcli.commands.exceptions import UserException
+
+        ctx = self._make_context()
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Func": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        # ZipFile contains the loop variable; an inline-source
+                        # Lambda has no CodeUri, so neither AlphaFunc nor BetaFunc
+                        # appears in `artifacts`.
+                        "Code": {"ZipFile": {"Fn::Sub": "print('${Name}')"}},
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunc": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ZipFile": "print('Alpha')"}},
+            },
+            "BetaFunc": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ZipFile": "print('Beta')"}},
+            },
+        }
+        with self.assertRaises(UserException) as cm:
+            ctx._update_foreach_artifact_paths(
+                "Fn::ForEach::Names",
+                foreach_value,
+                modified_resources,
+                template={},
+                parameter_values={},
+                artifacts={},
+            )
+        message = str(cm.exception)
+        self.assertIn("Name", message)
+        self.assertIn("non-buildable property", message)
 
 
 class TestGetTemplateForOutputForEachExploration(TestCase):
@@ -543,6 +724,7 @@ class TestGetTemplateForOutputPreservation(TestCase):
         stack = MagicMock()
         stack.original_template_dict = original_template
         stack.parameters = {"FunctionNames": "Alpha,Beta"}
+        stack.stack_path = ""
 
         # Expanded template with built artifact paths
         expanded_template = {
@@ -567,7 +749,11 @@ class TestGetTemplateForOutputPreservation(TestCase):
             },
         }
 
-        result = ctx._get_template_for_output(stack, expanded_template, {})
+        result = ctx._get_template_for_output(
+            stack,
+            expanded_template,
+            {"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Fn::ForEach structure must be preserved
         self.assertIn("Fn::ForEach::Functions", result.get("Resources", {}))

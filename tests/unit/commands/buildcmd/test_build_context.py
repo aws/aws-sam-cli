@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock, ANY, call
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from parameterized import parameterized
 
@@ -9,10 +9,10 @@ from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBu
 from samcli.commands.build.utils import MountMode
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
-    BuildError,
-    UnsupportedBuilderLibraryVersionError,
-    BuildInsideContainerError,
     ApplicationBuildResult,
+    BuildError,
+    BuildInsideContainerError,
+    UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -20,9 +20,8 @@ from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.providers.provider import Function, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
 
 class DeepWrap(Exception):
@@ -1502,6 +1501,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """When stack has original_template_dict, return a copy of it with updated paths."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Fn::ForEach::Functions": [
@@ -1538,7 +1538,7 @@ class TestBuildContext_get_template_for_output(TestCase):
                 },
             }
         }
-        artifacts = {}
+        artifacts = {"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1555,6 +1555,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """Ensure the original template is deep copied and not modified in place."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Function": {
@@ -1576,7 +1577,8 @@ class TestBuildContext_get_template_for_output(TestCase):
                 }
             }
         }
-        artifacts = {}
+        # Function was built — ensure the merge is not skipped by the #9029 guard.
+        artifacts = {"Function": "/path/to/built/Function"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1589,6 +1591,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """When Fn::ForEach has dynamic CodeUri, the output template should have Mappings."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Fn::ForEach::Functions": [
@@ -1625,7 +1628,7 @@ class TestBuildContext_get_template_for_output(TestCase):
                 },
             }
         }
-        artifacts = {}
+        artifacts = {"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1691,7 +1694,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Static CodeUri: should be updated to first matching expanded resource's path
         self.assertEqual(foreach_value[2]["${Name}Function"]["Properties"]["CodeUri"], "../build/AlphaFunction")
@@ -1732,7 +1740,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Mappings should be generated
         self.assertIn("SAMCodeUriFunctions", mappings)
@@ -1788,7 +1801,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             }
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Layer1Layer": "/built/Layer1Layer", "Layer2Layer": "/built/Layer2Layer"},
+        )
 
         self.assertEqual(foreach_value[2]["${Name}Layer"]["Properties"]["ContentUri"], "../build/Layer1Layer")
         self.assertEqual(mappings, {})
@@ -1827,7 +1845,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"UsersService": "/built/UsersService", "OrdersService": "/built/OrdersService"},
+        )
 
         self.assertIn("SAMCodeUriServices", mappings)
         self.assertEqual(mappings["SAMCodeUriServices"]["Users"]["CodeUri"], "UsersService")
@@ -1877,6 +1900,7 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             modified_resources,
             template=template,
             parameter_values=parameter_values,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
         )
 
         # Should resolve the Ref collection and generate mappings
@@ -1954,7 +1978,17 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "DevApiFunction": "/built/DevApiFunction",
+                "DevWorkerFunction": "/built/DevWorkerFunction",
+                "ProdApiFunction": "/built/ProdApiFunction",
+                "ProdWorkerFunction": "/built/ProdWorkerFunction",
+            },
+        )
 
         # Mappings should use compound keys (outer-inner) and nesting path
         self.assertIn("SAMCodeUriEnvsServices", mappings)
@@ -2019,7 +2053,17 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "DevApiFunction": "/built/DevApiFunction",
+                "DevWorkerFunction": "/built/DevWorkerFunction",
+                "ProdApiFunction": "/built/ProdApiFunction",
+                "ProdWorkerFunction": "/built/ProdWorkerFunction",
+            },
+        )
 
         # Mappings should use simple keys (inner only) and nesting path
         self.assertIn("SAMCodeUriEnvsServices", mappings)
@@ -2060,7 +2104,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Etl1Job": "/built/Etl1Job", "Etl2Job": "/built/Etl2Job"},
+        )
 
         body = foreach_value[2]
         self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"], "../build/Etl1Job/job.py")
@@ -2098,7 +2147,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Etl1Job": "/built/Etl1Job", "Etl2Job": "/built/Etl2Job"},
+        )
 
         # Mapping name uses the leaf "ScriptLocation", not "Command.ScriptLocation"
         self.assertIn("SAMScriptLocationJobs", mappings)
@@ -2150,7 +2204,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Mapping name uses leaf "ImageUri", not "Code.ImageUri"
         self.assertIn("SAMImageUriFuncs", mappings)
@@ -2210,7 +2269,17 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "AlphaSam": "/built/AlphaSam",
+                "BetaSam": "/built/BetaSam",
+                "AlphaLambda": "/built/AlphaLambda",
+                "BetaLambda": "/built/BetaLambda",
+            },
+        )
 
         # Two distinct Mapping names should exist — one per resource — disambiguated
         # by the resource-key suffix because both leaf to "ImageUri".

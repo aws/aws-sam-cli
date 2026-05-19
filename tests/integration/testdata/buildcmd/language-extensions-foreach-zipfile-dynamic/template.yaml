@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Regression test for #9029, ForEach dynamic-branch (case C). Each expanded
+  Lambda has `Code: {ZipFile: ...}` whose body references the loop variable.
+  The dynamic-branch merge cannot express a per-iteration ZipFile via a
+  CloudFormation Mapping (Mappings hold only static strings) and there is no
+  build artifact to fall back on, so `sam build` must reject the template
+  with InvalidTemplateException naming the non-buildable property.
+
+Resources:
+  Fn::ForEach::Workers:
+    - WorkerName
+    - - Alpha
+      - Beta
+    - ${WorkerName}Worker:
+        Type: AWS::Lambda::Function
+        Properties:
+          FunctionName: !Sub ${WorkerName}-worker
+          Runtime: python3.11
+          Handler: index.handler
+          Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/worker-role'
+          Code:
+            ZipFile: !Sub |
+              import boto3
+              def handler(event, context):
+                  print('worker name: ${WorkerName}')

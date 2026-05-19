@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Regression test for #9029. Inline-source `Code: {ZipFile: !Sub ...}` on a
+  Lambda function under AWS::LanguageExtensions must round-trip through
+  `sam build` with the `Fn::Sub` intact (no pseudo-parameter resolution).
+
+Resources:
+  MyTriggerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: my-trigger
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/my-role'
+      Code:
+        ZipFile: !Sub |
+          import boto3
+          def handler(event, context):
+              client = boto3.client('stepfunctions')
+              client.start_execution(
+                  stateMachineArn='arn:aws:states:${AWS::Region}:${AWS::AccountId}:stateMachine:my-state-machine',
+              )
