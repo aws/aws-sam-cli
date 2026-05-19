@@ -43,7 +43,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack
+from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -512,9 +512,6 @@ class BuildContext:
         stack_output_template_path_by_stack_path : Optional[Dict[str, str]]
             Map of stack paths to their output template paths (for nested stacks).
         """
-        from samcli.lib.providers.provider import get_full_path
-
-        artifacts = artifacts if artifacts is not None else {}
         stack_outputs = stack_output_template_path_by_stack_path or {}
         stack_path = stack.stack_path if isinstance(stack.stack_path, str) else ""
 
@@ -546,7 +543,7 @@ class BuildContext:
                 # the LE-resolved value from clobbering user intrinsics on, e.g.,
                 # ``Code: {ZipFile: !Sub ...}`` Lambdas. See #9029.
                 full_path = get_full_path(stack_path, resource_key)
-                if full_path not in artifacts and full_path not in stack_outputs:
+                if (not artifacts or full_path not in artifacts) and full_path not in stack_outputs:
                     continue
                 # Regular resource - copy updated paths from modified template
                 modified_resource = modified_resources.get(resource_key, {})
@@ -614,8 +611,6 @@ class BuildContext:
             _resolve_property_paths,
             _set_prop_value,
         )
-
-        artifacts = artifacts if artifacts is not None else {}
 
         generated_mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
 
@@ -696,16 +691,11 @@ class BuildContext:
                     )
                     if not mapping_entries:
                         # No per-iteration expanded resource produced a build
-                        # artifact — the property is non-packageable for every
-                        # iteration (e.g. ``Code: {ZipFile: ...}`` Lambdas have
-                        # no ``CodeUri`` to build). Mappings hold only static
-                        # strings, so deploy-time intrinsics like ``Fn::Sub``
-                        # cannot be expressed per-iteration; leaving the loop
-                        # variable in the original would fail at deploy time
-                        # (the variable isn't a CFN parameter). Reject. Mirrors
-                        # the artifacts-lookup discipline of the static branch
-                        # and the root-level merge. See #9029.
-                        self._raise_dynamic_no_artifacts_unsupported(resource_template_key, loop_variable, leaf_name)
+                        # artifact (e.g. inline ``Code: {ZipFile: !Sub ...}``
+                        # has no ``CodeUri`` to build). Leave the property as
+                        # written in the source so deploy-time intrinsics
+                        # survive. See #9029.
+                        continue
                     mapping_name = f"SAM{leaf_name}{nesting_path}"
                     # Collision count is keyed on the leaf so dotted paths
                     # that share a leaf (e.g. "ImageUri" vs "Code.ImageUri")
@@ -793,7 +783,7 @@ class BuildContext:
         modified_resources: Dict,
         properties: Dict,
         prop_name: str,
-        artifacts: Dict[str, str],
+        artifacts: Optional[Dict[str, str]],
         stack_path: str,
     ) -> None:
         """Static-property merge inside a Fn::ForEach body. Skips resources that
@@ -802,7 +792,6 @@ class BuildContext:
         ``Code: {ZipFile: !Sub ...}`` Lambdas survive verbatim. See #9029.
         """
         from samcli.lib.package.language_extensions_packaging import _set_prop_value
-        from samcli.lib.providers.provider import get_full_path
 
         expanded_key = self._build_expanded_key(
             resource_template_key,
@@ -812,25 +801,11 @@ class BuildContext:
         )
         if not expanded_key:
             return
-        if get_full_path(stack_path, expanded_key) not in artifacts:
+        if not artifacts or get_full_path(stack_path, expanded_key) not in artifacts:
             return
         artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
         if artifact_value is not None:
             _set_prop_value(properties, prop_name, artifact_value)
-
-    @staticmethod
-    def _raise_dynamic_no_artifacts_unsupported(resource_template_key: str, loop_variable: str, leaf_name: str) -> None:
-        """Refuse a Fn::ForEach body whose dynamic artifact property produced no
-        build artifacts for any iteration (e.g. an inline-source ``Code: {ZipFile:
-        ...}`` Lambda has no ``CodeUri`` to build). Mappings hold only static
-        strings, so we cannot emit a per-iteration value that preserves deploy-time
-        intrinsics, and we cannot leave the loop variable unresolved. See #9029.
-        """
-        raise UserException(
-            f"Resource '{resource_template_key}' uses Fn::ForEach loop variable "
-            f"'{loop_variable}' in non-buildable property '{leaf_name}'. "
-            f"This is not supported."
-        )
 
     @staticmethod
     def _count_dynamic_properties(
@@ -917,11 +892,9 @@ class BuildContext:
         expanded_key)`` is absent from ``artifacts`` are skipped. See #9029.
         """
         from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
-        from samcli.lib.providers.provider import get_full_path
 
         mapping_entries: Dict[str, Dict[str, str]] = {}
         leaf_name = _leaf_prop_name(prop_name)
-        artifacts = artifacts if artifacts is not None else {}
 
         for coll_value in collection_values:
             if outer_context:
@@ -939,7 +912,7 @@ class BuildContext:
                 )
             else:
                 expanded_key = substitute_loop_variable(resource_template_key, loop_variable, coll_value)
-                if get_full_path(stack_path, expanded_key) not in artifacts:
+                if not artifacts or get_full_path(stack_path, expanded_key) not in artifacts:
                     continue
                 artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
                 if artifact_value is not None:
@@ -970,12 +943,10 @@ class BuildContext:
         import itertools
 
         from samcli.lib.package.language_extensions_packaging import _leaf_prop_name
-        from samcli.lib.providers.provider import get_full_path
 
         leaf_name = _leaf_prop_name(prop_name)
         outer_collections = [oc[1] for oc in outer_context]
         outer_vars = [oc[0] for oc in outer_context]
-        artifacts = artifacts if artifacts is not None else {}
 
         # Determine which outer vars need compound keys
         compound_outer_vars = {ovar for ovar, _ in (referenced_outer_vars or [])}
@@ -986,7 +957,7 @@ class BuildContext:
                 expanded_key = substitute_loop_variable(expanded_key, ovar, oval)
             expanded_key = substitute_loop_variable(expanded_key, loop_variable, coll_value)
 
-            if get_full_path(stack_path, expanded_key) not in artifacts:
+            if not artifacts or get_full_path(stack_path, expanded_key) not in artifacts:
                 continue
             artifact_value = self._get_artifact_value(modified_resources, expanded_key, prop_name)
             if artifact_value is None:

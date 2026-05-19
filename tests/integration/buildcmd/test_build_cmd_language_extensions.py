@@ -192,13 +192,13 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         self.assertNotIn("us-east-1", sub_body)
         self.assertNotIn("123456789012", sub_body)
 
-    def test_build_foreach_dynamic_non_buildable_property_rejected(self):
+    def test_build_foreach_dynamic_inline_zipfile_preserved(self):
         """Regression for #9029 (ForEach dynamic branch / case C): inside a
         Fn::ForEach body, a property that references the loop variable but produces
-        no build artifact for any iteration (e.g. inline-source `Code.ZipFile`)
-        cannot be expressed as a per-iteration CloudFormation Mapping. `sam build`
-        must reject the template with InvalidTemplateException naming the
-        non-buildable property."""
+        no build artifact for any iteration (e.g. inline-source `Code.ZipFile`) is
+        passed through verbatim. CFN's LanguageExtensions transform expands the
+        ForEach at deploy time, substituting the loop variable in each per-iteration
+        copy, so the inline body works correctly without a SAM-built artifact."""
         self.template_path = str(
             Path(self.test_data_path, "language-extensions-foreach-zipfile-dynamic", "template.yaml")
         )
@@ -206,10 +206,28 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         cmdlist = self.get_command_list()
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
-        self.assertNotEqual(command_result.process.returncode, 0, "Build should have failed")
-        stderr = command_result.stderr.decode("utf-8")
-        self.assertIn("non-buildable property", stderr)
-        self.assertIn("WorkerName", stderr)
+        self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
+
+        built_template_path = self.default_build_dir.joinpath("template.yaml")
+        with open(built_template_path, "r") as f:
+            built_template = yaml.safe_load(f)
+
+        resources = built_template.get("Resources", {})
+        foreach_block = resources["Fn::ForEach::Workers"]
+        body = foreach_block[2]
+        worker_props = body["${WorkerName}Worker"]["Properties"]
+        zipfile_value = worker_props["Code"]["ZipFile"]
+        # The inline ZipFile must remain a Fn::Sub dict with both the loop
+        # variable and pseudo-parameter intrinsics intact — neither resolved
+        # at build time nor replaced by a Mapping lookup.
+        self.assertIsInstance(zipfile_value, dict)
+        self.assertIn("Fn::Sub", zipfile_value)
+        sub_body = zipfile_value["Fn::Sub"]
+        self.assertIn("${WorkerName}", sub_body)
+        role_value = worker_props["Role"]
+        self.assertIsInstance(role_value, dict)
+        self.assertIn("Fn::Sub", role_value)
+        self.assertIn("${AWS::AccountId}", role_value["Fn::Sub"])
 
     def test_build_nested_foreach_dynamic_codeuri_generates_mappings(self):
         """Test that nested Fn::ForEach with dynamic CodeUri generates Mappings."""

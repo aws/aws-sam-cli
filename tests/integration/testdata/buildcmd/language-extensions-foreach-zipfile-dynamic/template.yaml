@@ -5,11 +5,12 @@ Transform:
 
 Description: >
   Regression test for #9029, ForEach dynamic-branch (case C). Each expanded
-  Lambda has `Code: {ZipFile: ...}` whose body references the loop variable.
-  The dynamic-branch merge cannot express a per-iteration ZipFile via a
-  CloudFormation Mapping (Mappings hold only static strings) and there is no
-  build artifact to fall back on, so `sam build` must reject the template
-  with InvalidTemplateException naming the non-buildable property.
+  Lambda has `Code: {ZipFile: !Sub ...}` whose body references the loop
+  variable. There is no build artifact for `sam build` to merge, so the
+  property must be passed through verbatim. CFN's LanguageExtensions transform
+  expands the ForEach at deploy time and substitutes the loop variable in each
+  per-iteration copy, so the inline body works correctly without a SAM-built
+  artifact.
 
 Resources:
   Fn::ForEach::Workers:
