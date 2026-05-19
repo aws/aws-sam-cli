@@ -476,6 +476,8 @@ def detect_dynamic_artifact_properties(
 def expand_language_extensions(
     template: Dict[str, Any],
     parameter_values: Optional[Dict[str, Any]] = None,
+    *,
+    enabled: bool,
 ) -> LanguageExtensionResult:
     """
     Canonical Phase 1 entry point for expanding CloudFormation Language Extensions.
@@ -497,6 +499,10 @@ def expand_language_extensions(
         The raw template dictionary
     parameter_values : dict, optional
         Template parameter values (may include pseudo-parameters like AWS::Region)
+    enabled : bool
+        Required keyword. When False, returns a passthrough result without
+        inspecting the template (silent pre-1.160.0 behavior). When True,
+        runs the full Phase 1 pipeline if the template uses AWS::LanguageExtensions.
 
     Returns
     -------
@@ -509,6 +515,14 @@ def expand_language_extensions(
     InvalidSamDocumentException
         If the template contains invalid language extension syntax
     """
+    if not enabled:
+        return LanguageExtensionResult(
+            expanded_template=template,
+            original_template=template,
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+
     if not check_using_language_extension(template):
         return LanguageExtensionResult(
             expanded_template=template,
