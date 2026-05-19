@@ -153,3 +153,67 @@ class TestGetStacksLanguageExtensions(TestCase):
         self.assertEqual(param_values["Names"], "A,B")
         # Should include pseudo-parameters
         self.assertIn("AWS::Region", param_values)
+
+
+class TestGetStacksLanguageExtensionsEnabledKwarg(TestCase):
+    """get_stacks() forwards language_extensions_enabled to expand_language_extensions."""
+
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
+    def test_disabled_passes_enabled_false(self, mock_get_template, mock_expand):
+        """When language_extensions_enabled=False, enabled=False is passed to expand_language_extensions."""
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {"Resources": {"MyFunc": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "."}}}}
+        mock_get_template.return_value = template
+        mock_expand.return_value = MagicMock(
+            expanded_template=template,
+            original_template=template,
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+        SamLocalStackProvider.get_stacks(
+            template_file="t.yaml",
+            language_extensions_enabled=False,
+        )
+        for call in mock_expand.call_args_list:
+            self.assertIs(call.kwargs.get("enabled"), False)
+
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
+    def test_enabled_passes_enabled_true(self, mock_get_template, mock_expand):
+        """When language_extensions_enabled=True, enabled=True is passed to expand_language_extensions."""
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {"Resources": {"MyFunc": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "."}}}}
+        mock_get_template.return_value = template
+        mock_expand.return_value = MagicMock(
+            expanded_template=template,
+            original_template=template,
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+        SamLocalStackProvider.get_stacks(
+            template_file="t.yaml",
+            language_extensions_enabled=True,
+        )
+        for call in mock_expand.call_args_list:
+            self.assertIs(call.kwargs.get("enabled"), True)
+
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
+    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
+    def test_default_is_disabled(self, mock_get_template, mock_expand):
+        """When the kwarg is omitted, enabled=False is passed to expand_language_extensions."""
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {"Resources": {"MyFunc": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "."}}}}
+        mock_get_template.return_value = template
+        mock_expand.return_value = MagicMock(
+            expanded_template=template,
+            original_template=template,
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+        SamLocalStackProvider.get_stacks(template_file="t.yaml")
+        for call in mock_expand.call_args_list:
+            self.assertIs(call.kwargs.get("enabled"), False)
