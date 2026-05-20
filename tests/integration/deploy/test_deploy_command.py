@@ -1717,10 +1717,23 @@ to create a managed default bucket, or run sam deploy --guided",
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
+        # Build first — sam deploy of a raw ForEach template requires a build step
+        build_dir = tempfile.mkdtemp()
+        build_command_list = self.base_command_list + [
+            "build",
+            "-t",
+            str(template),
+            "-b",
+            build_dir,
+            "--language-extensions",
+        ]
+        build_process = self.run_command(build_command_list)
+        self.assertEqual(build_process.process.returncode, 0, f"Build failed: {build_process.stderr}")
+
+        built_template = Path(build_dir) / "template.yaml"
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
+            template_file=built_template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
         )
-        deploy_command_list.append("--language-extensions")
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -1867,8 +1880,6 @@ to create a managed default bucket, or run sam deploy --guided",
                 tags="integ=true clarity=yes foo_bar=baz",
                 confirm_changeset=False,
             )
-            deploy_command_list.append("--language-extensions")
-
             deploy_process = self.run_command(deploy_command_list)
             self.assertEqual(deploy_process.process.returncode, 0)
         finally:
