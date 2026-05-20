@@ -209,6 +209,7 @@ class PackageContext:
             normalize_parameters=True,
             template_dict=copy.deepcopy(result.expanded_template),
             parameter_values=parameter_values,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
 
         exported_template = template.export()
