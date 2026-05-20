@@ -103,18 +103,18 @@ class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
             time.sleep(1)
         return execution_response
 
-    def invoke_and_wait_for_callback(self, payload=None):
-        """Helper to invoke WaitForCallback function and wait for callback to be pending.
+    def invoke_and_wait_for_callback(self, payload=None, function_name="WaitForCallback"):
+        """Helper to invoke a wait_for_callback function and wait for callback to be pending.
 
         Returns:
             tuple: (execution_arn, callback_id)
         """
         if payload:
             response = self.lambda_client.invoke(
-                FunctionName="WaitForCallback", InvocationType="Event", Payload=payload
+                FunctionName=function_name, InvocationType="Event", Payload=payload
             )
         else:
-            response = self.lambda_client.invoke(FunctionName="WaitForCallback", InvocationType="Event")
+            response = self.lambda_client.invoke(FunctionName=function_name, InvocationType="Event")
 
         execution_arn = self.assert_durable_invoke_response(
             response, DurableFunctionExamples.WAIT_FOR_CALLBACK, invocation_type="Event"
@@ -170,12 +170,10 @@ class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
         """Test start-lambda with durable function execution timeout."""
         example = DurableFunctionExamples.EXECUTION_TIMEOUT
         execution_name = "executiontimeout-integration-test"
-        event_data = {"wait_seconds": 30}
 
         response = self.lambda_client.invoke(
             FunctionName=example.function_name,
             DurableExecutionName=execution_name,
-            Payload=json.dumps(event_data).encode("utf-8"),
         )
 
         self.assertEqual(response.get("StatusCode"), 200)
@@ -250,10 +248,7 @@ class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_local_start_lambda_invoke_wait_for_callback_timeout(self):
         """Test start-lambda with wait_for_callback timeout (no callback sent)."""
-        # Set a short timeout so test doesn't take too long
-        event_payload = json.dumps({"timeout_seconds": 5, "heartbeat_timeout_seconds": 3})
-
-        execution_arn, callback_id = self.invoke_and_wait_for_callback(payload=event_payload)
+        execution_arn, callback_id = self.invoke_and_wait_for_callback(function_name="WaitForCallbackShortTimeout")
 
         # Don't send any callback - let it timeout
         execution_response = self.wait_for_execution_status(execution_arn, "FAILED", max_wait=15)
