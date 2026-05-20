@@ -616,6 +616,7 @@ class TestCallersUseExpandLanguageExtensions(TestCase):
         ctx.template_file = "template.yaml"
         ctx.parameter_overrides = {}
         ctx._global_parameter_overrides = {}
+        ctx._language_extensions_enabled = True
         ctx.uploaders = MagicMock()
         ctx.code_signer = MagicMock()
 
