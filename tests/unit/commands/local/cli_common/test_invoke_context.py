@@ -224,7 +224,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
@@ -318,7 +318,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
@@ -409,7 +409,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)

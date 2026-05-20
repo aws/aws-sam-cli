@@ -275,6 +275,9 @@ class InvokeContext:
         if self._function_logical_ids:
             _function_providers_kwargs["function_logical_ids"] = self._function_logical_ids
 
+        if self._containers_mode == ContainersMode.WARM:
+            _function_providers_kwargs["language_extensions_enabled"] = self._language_extensions_enabled
+
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode], **_function_providers_kwargs
         )
