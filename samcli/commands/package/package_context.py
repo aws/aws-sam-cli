@@ -25,6 +25,7 @@ import click
 
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.code_signer import CodeSigner
@@ -78,6 +79,7 @@ class PackageContext:
         on_deploy=False,
         signing_profiles=None,
         resolve_image_repos=False,
+        language_extensions=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -97,6 +99,7 @@ class PackageContext:
         self.signing_profiles = signing_profiles
         self.parameter_overrides = parameter_overrides
         self.resolve_image_repos = resolve_image_repos
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
@@ -121,6 +124,7 @@ class PackageContext:
             self.template_file,
             global_parameter_overrides=self._global_parameter_overrides,
             parameter_overrides=self.parameter_overrides,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
         self._warn_preview_runtime(stacks)
         self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
@@ -187,7 +191,7 @@ class PackageContext:
 
         # Use the canonical expand_language_extensions() entry point (Phase 1)
         try:
-            result = expand_language_extensions(original_template_dict, parameter_values)
+            result = expand_language_extensions(original_template_dict, parameter_values, enabled=self._language_extensions_enabled)
         except InvalidSamDocumentException as e:
             raise PackageFailedError(template_file=self.template_file, ex=str(e)) from e
 
@@ -261,3 +265,7 @@ class PackageContext:
 
         with open(output_file_name, "w") as fp:
             fp.write(data)
+
+    @property
+    def language_extensions_enabled(self) -> bool:
+        return self._language_extensions_enabled
