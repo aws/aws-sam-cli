@@ -1020,6 +1020,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                     template_file,
                     parameter_overrides=self._parameter_overrides,
                     global_parameter_overrides=self._global_parameter_overrides,
+                    language_extensions_enabled=False,
                 )
                 self._stacks += template_stacks
             except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
