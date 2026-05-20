@@ -58,6 +58,7 @@ class TestInvokeLanguageExtensions(InvokeIntegBase):
             str(self.build_dir),
             "--parameter-overrides",
             self._make_parameter_override_arg(overrides),
+            "--language-extensions",
         ]
 
         build_result = run_command(build_command, cwd=self.working_dir)
