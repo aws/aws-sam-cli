@@ -511,7 +511,5 @@ class TestSyncContextLanguageExtensions(TestCase):
         assert self._ctx(language_extensions=True).language_extensions_enabled is True
 
     def test_explicit_false_overrides_env(self):
-        with mock.patch.dict(
-            os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False
-        ):
+        with mock.patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False):
             assert self._ctx(language_extensions=False).language_extensions_enabled is False

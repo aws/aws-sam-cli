@@ -64,7 +64,9 @@ class TestWatchManager(TestCase):
         ]
         self.watch_manager._update_stacks()
         get_stacks_mock.assert_called_once_with(
-            self.template, use_sam_transform=False, language_extensions_enabled=self.sync_context.language_extensions_enabled
+            self.template,
+            use_sam_transform=False,
+            language_extensions_enabled=self.sync_context.language_extensions_enabled,
         )
         sync_flow_factory_mock.assert_called_once_with(
             self.build_context, self.deploy_context, self.sync_context, stacks, False
@@ -147,7 +149,9 @@ class TestWatchManager(TestCase):
 
         template_trigger_mock.assert_called_once_with(self.template, stack_name, ANY)
         get_stack_mock.assert_called_with(
-            self.template, use_sam_transform=False, language_extensions_enabled=self.sync_context.language_extensions_enabled
+            self.template,
+            use_sam_transform=False,
+            language_extensions_enabled=self.sync_context.language_extensions_enabled,
         )
         self.path_observer.schedule_handlers.assert_any_call(trigger.get_path_handlers.return_value)
 

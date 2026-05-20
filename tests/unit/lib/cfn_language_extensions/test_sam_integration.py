@@ -895,7 +895,5 @@ class TestExpandLanguageExtensionsTelemetry:
         }
         with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
             expand_language_extensions(template, enabled=True)
-            feature_calls = [
-                c for c in mock_track.call_args_list if "CFNLanguageExtensions" in c.args
-            ]
+            feature_calls = [c for c in mock_track.call_args_list if "CFNLanguageExtensions" in c.args]
             assert len(feature_calls) == 1

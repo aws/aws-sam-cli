@@ -500,8 +500,10 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(resources_to_build.functions, [func1, func2, func6])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_buildable_stacks_mock.assert_called_once_with(
-            "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None,
-            language_extensions_enabled=False
+            "template_file",
+            parameter_overrides={"overrides": "value"},
+            global_parameter_overrides=None,
+            language_extensions_enabled=False,
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -2309,15 +2311,11 @@ class TestBuildContextLanguageExtensions(TestCase):
         assert ctx.language_extensions_enabled is True
 
     def test_explicit_false_overrides_env(self):
-        with patch.dict(
-            os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False
-        ):
+        with patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False):
             ctx = self._ctx(language_extensions=False)
             assert ctx.language_extensions_enabled is False
 
     def test_none_with_env_truthy(self):
-        with patch.dict(
-            os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "true"}, clear=False
-        ):
+        with patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "true"}, clear=False):
             ctx = self._ctx(language_extensions=None)
             assert ctx.language_extensions_enabled is True

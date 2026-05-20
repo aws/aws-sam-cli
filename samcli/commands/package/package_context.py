@@ -99,7 +99,7 @@ class PackageContext:
         self.signing_profiles = signing_profiles
         self.parameter_overrides = parameter_overrides
         self.resolve_image_repos = resolve_image_repos
-        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+        self._language_extensions_enabled: bool = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
 
     def __enter__(self):
@@ -191,7 +191,9 @@ class PackageContext:
 
         # Use the canonical expand_language_extensions() entry point (Phase 1)
         try:
-            result = expand_language_extensions(original_template_dict, parameter_values, enabled=self._language_extensions_enabled)
+            result = expand_language_extensions(
+                original_template_dict, parameter_values, enabled=self._language_extensions_enabled
+            )
         except InvalidSamDocumentException as e:
             raise PackageFailedError(template_file=self.template_file, ex=str(e)) from e
 

@@ -607,10 +607,14 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     deployed_params[param_name] = param_def["Default"]
 
             current_expanded = expand_language_extensions(
-                current_template, parameter_values=current_params, enabled=self._sync_context.language_extensions_enabled
+                current_template,
+                parameter_values=current_params,
+                enabled=self._sync_context.language_extensions_enabled,
             ).expanded_template
             deployed_expanded = expand_language_extensions(
-                last_deployed_template, parameter_values=deployed_params, enabled=self._sync_context.language_extensions_enabled
+                last_deployed_template,
+                parameter_values=deployed_params,
+                enabled=self._sync_context.language_extensions_enabled,
             ).expanded_template
         except Exception as e:
             LOG.warning(

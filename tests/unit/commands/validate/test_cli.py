@@ -51,7 +51,12 @@ class TestValidateCli(TestCase):
         template_validator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(InvalidSamTemplateException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False, language_extensions=None)
+            do_cli(
+                ctx=ctx_mock(profile="profile", region="region"),
+                template=template_path,
+                lint=False,
+                language_extensions=None,
+            )
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -66,7 +71,12 @@ class TestValidateCli(TestCase):
         template_validator.return_value = get_translated_template_if_valid_mock
 
         with self.assertRaises(UserException):
-            do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False, language_extensions=None)
+            do_cli(
+                ctx=ctx_mock(profile="profile", region="region"),
+                template=template_path,
+                lint=False,
+                language_extensions=None,
+            )
 
     @patch("samcli.lib.translate.sam_template_validator.SamTemplateValidator")
     @patch("samcli.commands.validate.validate.click")
@@ -80,7 +90,12 @@ class TestValidateCli(TestCase):
         get_translated_template_if_valid_mock.get_translated_template_if_valid.return_value = True
         template_validator.return_value = get_translated_template_if_valid_mock
 
-        do_cli(ctx=ctx_mock(profile="profile", region="region"), template=template_path, lint=False, language_extensions=None)
+        do_cli(
+            ctx=ctx_mock(profile="profile", region="region"),
+            template=template_path,
+            lint=False,
+            language_extensions=None,
+        )
 
     @patch("samcli.commands.validate.validate._read_sam_file")
     @patch("samcli.commands.validate.validate.click")
@@ -91,7 +106,9 @@ class TestValidateCli(TestCase):
         read_sam_file_patch.return_value = SamTemplate(serialized="{}", deserialized={})
         lint_patch.return_value = True
 
-        do_cli(ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True, language_extensions=None)
+        do_cli(
+            ctx=ctx_lint_mock(debug=False, region="region"), template=template_path, lint=True, language_extensions=None
+        )
 
     @patch("cfnlint.api.lint")
     @patch("samcli.commands.validate.validate.click")
