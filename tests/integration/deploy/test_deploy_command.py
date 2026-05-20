@@ -1734,7 +1734,11 @@ to create a managed default bucket, or run sam deploy --guided",
 
         built_template = Path(build_dir) / "template.yaml"
         deploy_command_list = self.get_deploy_command_list(
-            template_file=built_template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
+            template_file=built_template,
+            stack_name=stack_name,
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
         )
         deploy_command_list.append("--language-extensions")
         deploy_process_execute = self.run_command(deploy_command_list)
