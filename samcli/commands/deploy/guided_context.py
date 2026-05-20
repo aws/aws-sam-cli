@@ -62,6 +62,7 @@ class GuidedContext:
         config_env=None,
         config_file=None,
         disable_rollback=None,
+        language_extensions_enabled: bool = False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -95,6 +96,7 @@ class GuidedContext:
         self.color = Colored()
         self.function_provider = None
         self.disable_rollback = disable_rollback
+        self._language_extensions_enabled = language_extensions_enabled
 
     @property
     def guided_capabilities(self):
@@ -141,6 +143,7 @@ class GuidedContext:
             self.template_file,
             parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
             global_parameter_overrides=global_parameter_overrides,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")

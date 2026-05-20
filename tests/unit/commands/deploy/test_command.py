@@ -67,9 +67,9 @@ class TestDeployCliCommand(TestCase):
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     def test_all_args(self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click):
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
@@ -102,6 +102,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -133,15 +134,16 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -220,15 +222,16 @@ class TestDeployCliCommand(TestCase):
                     config_env=self.config_env,
                     config_file=self.config_file,
                     resolve_image_repos=self.resolve_image_repos,
+                    language_extensions=None,
                     disable_rollback=self.disable_rollback,
                     on_failure=self.on_failure,
                     max_wait_duration=self.max_wait_duration,
                 )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -322,6 +325,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
@@ -350,9 +354,10 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -379,9 +384,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -468,6 +473,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
@@ -496,9 +502,10 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -525,9 +532,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
@@ -617,6 +624,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -649,9 +657,10 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -688,9 +697,9 @@ class TestDeployCliCommand(TestCase):
         )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -778,6 +787,7 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -806,9 +816,10 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -839,9 +850,9 @@ class TestDeployCliCommand(TestCase):
         )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
@@ -919,6 +930,7 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
@@ -947,9 +959,10 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -958,9 +971,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.command.manage_stack")
     def test_all_args_resolve_s3(
         self, mock_manage_stack, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
@@ -997,6 +1010,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -1028,6 +1042,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -1063,15 +1078,16 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
             )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     @patch("samcli.commands.deploy.command.manage_stack")
     @patch("samcli.commands.deploy.command.sync_ecr_stack")
     def test_all_args_resolve_image_repos(
@@ -1115,6 +1131,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -1143,9 +1160,10 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -1153,9 +1171,9 @@ class TestDeployCliCommand(TestCase):
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.deploy.command.DeployContext")
     def test_passing_parameter_overrides_to_context(
         self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
     ):
@@ -1190,6 +1208,7 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
@@ -1221,6 +1240,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            language_extensions=None,
         )
 
         mock_package_context.assert_called_with(

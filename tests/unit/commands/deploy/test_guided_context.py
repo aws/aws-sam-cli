@@ -98,7 +98,7 @@ class TestGuidedContext(TestCase):
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
         patched_get_buildable_stacks.assert_called_once_with(
-            "template", parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}
+            "template", parameter_overrides={}, global_parameter_overrides={"AWS::Region": ANY}, language_extensions_enabled=False
         )
 
     @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
