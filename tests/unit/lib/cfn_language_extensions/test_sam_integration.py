@@ -863,3 +863,39 @@ class TestExpandLanguageExtensionsEnabledKwarg:
         template = {"Resources": {}}
         with pytest.raises(TypeError):
             expand_language_extensions(template)  # missing enabled=
+
+
+class TestExpandLanguageExtensionsTelemetry:
+    """Telemetry fires only when Phase 1 actually expanded a template."""
+
+    def test_telemetry_not_fired_when_disabled(self):
+        template = {"Transform": "AWS::LanguageExtensions", "Resources": {}}
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=False)
+            for call in mock_track.call_args_list:
+                assert "CFNLanguageExtensions" not in call.args
+
+    def test_telemetry_not_fired_when_enabled_but_no_le_template(self):
+        template = {"Resources": {}}
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=True)
+            for call in mock_track.call_args_list:
+                assert "CFNLanguageExtensions" not in call.args
+
+    def test_telemetry_fired_when_enabled_and_le_template(self):
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Names": [
+                    "Name",
+                    ["A"],
+                    {"${Name}T": {"Type": "AWS::SNS::Topic"}},
+                ]
+            },
+        }
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=True)
+            feature_calls = [
+                c for c in mock_track.call_args_list if "CFNLanguageExtensions" in c.args
+            ]
+            assert len(feature_calls) == 1
