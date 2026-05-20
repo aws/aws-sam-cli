@@ -38,6 +38,7 @@ from samcli.lib.build.exceptions import (
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
+    resolve_language_extensions_enabled,
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
@@ -202,9 +203,6 @@ class BuildContext:
         self._mount_with = MountMode(mount_with)
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
-
-        from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
-
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
     def __enter__(self) -> "BuildContext":
