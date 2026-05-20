@@ -28,6 +28,12 @@ class TestStartApiLanguageExtensions(StartApiIntegBaseClass):
         super().setUpClass()
 
     @classmethod
+    def start_api(cls):
+        command = get_sam_command()
+        cls.command_list = [command, "local", "start-api", "-t", cls.template, "--language-extensions"]
+        super().start_api()
+
+    @classmethod
     def build(cls):
         command = get_sam_command()
         command_list = [command, "build", "--language-extensions"]

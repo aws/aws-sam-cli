@@ -20,6 +20,7 @@ from tests.testing_utils import (
     RUN_BY_CANARY,
     SKIP_LMI_TESTS,
     UpdatableSARTemplate,
+    get_sam_command,
 )
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -1719,7 +1720,8 @@ to create a managed default bucket, or run sam deploy --guided",
 
         # Build first — sam deploy of a raw ForEach template requires a build step
         build_dir = tempfile.mkdtemp()
-        build_command_list = self.base_command_list + [
+        build_command_list = [
+            get_sam_command(),
             "build",
             "-t",
             str(template),
