@@ -347,6 +347,7 @@ def do_cli(
             profile=profile,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             parameter_overrides=context_param_overrides,
+            language_extensions=language_extensions,
         ) as package_context:
             package_context.run()
 
