@@ -164,3 +164,11 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
                     build_dir_files,
                     f"{function_name} should not exist when --language-extensions is off",
                 )
+        else:
+            # Build failed because SAM transform cannot process unexpanded
+            # Fn::ForEach — this is acceptable opt-out behavior.
+            stderr = command_result.stderr.decode("utf-8", errors="replace")
+            self.assertTrue(
+                "ForEach" in stderr or "Invalid" in stderr or "Error" in stderr,
+                f"Build failure should relate to unexpanded template, got: {stderr[:200]}",
+            )
