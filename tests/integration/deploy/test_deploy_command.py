@@ -1736,6 +1736,7 @@ to create a managed default bucket, or run sam deploy --guided",
         deploy_command_list = self.get_deploy_command_list(
             template_file=built_template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
         )
+        deploy_command_list.append("--language-extensions")
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -1882,6 +1883,7 @@ to create a managed default bucket, or run sam deploy --guided",
                 tags="integ=true clarity=yes foo_bar=baz",
                 confirm_changeset=False,
             )
+            deploy_command_list.append("--language-extensions")
             deploy_process = self.run_command(deploy_command_list)
             self.assertEqual(deploy_process.process.returncode, 0)
         finally:
