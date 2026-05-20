@@ -93,6 +93,7 @@ class BuildContext:
         mount_with: str = MountMode.READ.value,
         mount_symlinks: Optional[bool] = False,
         use_buildkit: Optional[bool] = False,
+        language_extensions: Optional[bool] = None,
     ) -> None:
         """
         Initialize the class
@@ -154,6 +155,10 @@ class BuildContext:
             Indicates if symlinks should be mounted inside the container
         use_buildkit Optional[bool]:
             Enable buildkit for container image builds
+        language_extensions Optional[bool]:
+            Tri-state user input from the --language-extensions/--no-language-extensions
+            flag. None means the user did not pass either form (resolver falls back to
+            SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS env var).
         """
 
         self._resource_identifier = resource_identifier
@@ -198,6 +203,10 @@ class BuildContext:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
 
+        from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
+
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+
     def __enter__(self) -> "BuildContext":
         self.set_up()
         return self
@@ -209,6 +218,7 @@ class BuildContext:
             self._template_file,
             parameter_overrides=self._parameter_overrides,
             global_parameter_overrides=self._global_parameter_overrides,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
 
         if remote_stack_full_paths:
@@ -1087,6 +1097,10 @@ Commands you can use next
     @property
     def use_container(self) -> bool:
         return self._use_container
+
+    @property
+    def language_extensions_enabled(self) -> bool:
+        return self._language_extensions_enabled
 
     @property
     def stacks(self) -> List[Stack]:

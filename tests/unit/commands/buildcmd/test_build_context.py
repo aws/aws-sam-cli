@@ -164,6 +164,7 @@ class TestBuildContext__enter__(TestCase):
             "template_file",
             parameter_overrides={"overrides": "value"},
             global_parameter_overrides={"AWS::Region": "any_aws_region"},
+            language_extensions_enabled=False,
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -499,7 +500,8 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(resources_to_build.functions, [func1, func2, func6])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_buildable_stacks_mock.assert_called_once_with(
-            "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None
+            "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None,
+            language_extensions_enabled=False
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -2277,3 +2279,45 @@ class TestBuildContext_substitute_loop_variable(TestCase):
         from samcli.lib.cfn_language_extensions.sam_integration import substitute_loop_variable
 
         self.assertEqual(substitute_loop_variable("StaticFunction", "Name", "Alpha"), "StaticFunction")
+
+
+class TestBuildContextLanguageExtensions(TestCase):
+    """language_extensions kwarg resolves to a bool stored on the context."""
+
+    def _ctx(self, **kwargs):
+        from samcli.commands.build.build_context import BuildContext
+
+        defaults = dict(
+            resource_identifier=None,
+            template_file="template.yaml",
+            base_dir=None,
+            build_dir="build",
+            cache_dir=".cache",
+            cached=False,
+            parallel=False,
+            mode=None,
+        )
+        defaults.update(kwargs)
+        return BuildContext(**defaults)
+
+    def test_default_is_false(self):
+        ctx = self._ctx()
+        assert ctx.language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        ctx = self._ctx(language_extensions=True)
+        assert ctx.language_extensions_enabled is True
+
+    def test_explicit_false_overrides_env(self):
+        with patch.dict(
+            os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False
+        ):
+            ctx = self._ctx(language_extensions=False)
+            assert ctx.language_extensions_enabled is False
+
+    def test_none_with_env_truthy(self):
+        with patch.dict(
+            os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "true"}, clear=False
+        ):
+            ctx = self._ctx(language_extensions=None)
+            assert ctx.language_extensions_enabled is True
