@@ -67,9 +67,9 @@ class TestDeployCliCommand(TestCase):
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     def test_all_args(self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click):
         context_mock = Mock()
         mock_deploy_context.return_value.__enter__.return_value = context_mock
@@ -141,9 +141,9 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -229,9 +229,9 @@ class TestDeployCliCommand(TestCase):
                 )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -384,9 +384,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.get_template_parameters")
@@ -532,9 +532,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
@@ -697,9 +697,9 @@ class TestDeployCliCommand(TestCase):
         )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
@@ -850,9 +850,9 @@ class TestDeployCliCommand(TestCase):
         )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.guided_context.manage_stack")
     @patch("samcli.commands.deploy.guided_context.auth_per_resource")
     @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
@@ -971,9 +971,9 @@ class TestDeployCliCommand(TestCase):
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.command.manage_stack")
     def test_all_args_resolve_s3(
         self, mock_manage_stack, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
@@ -1085,9 +1085,9 @@ class TestDeployCliCommand(TestCase):
             )
 
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.deploy.command.manage_stack")
     @patch("samcli.commands.deploy.command.sync_ecr_stack")
     def test_all_args_resolve_image_repos(
@@ -1171,9 +1171,9 @@ class TestDeployCliCommand(TestCase):
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
-    @patch("samcli.commands.deploy.command.PackageContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")
-    @patch("samcli.commands.deploy.command.DeployContext")
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
     def test_passing_parameter_overrides_to_context(
         self, mock_deploy_context, mock_deploy_click, mock_package_context, mock_package_click
     ):
