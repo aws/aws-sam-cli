@@ -94,7 +94,7 @@ class GuidedContext:
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
-        self.function_provider = None
+        self.function_provider: Optional[SamFunctionProvider] = None
         self.disable_rollback = disable_rollback
         self._language_extensions_enabled = language_extensions_enabled
 

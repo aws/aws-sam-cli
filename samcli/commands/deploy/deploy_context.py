@@ -101,7 +101,7 @@ class DeployContext:
         self.region = region
         self.profile = profile
         self.s3_uploader = None
-        self.deployer = None
+        self.deployer: Optional[Deployer] = None
         self.confirm_changeset = confirm_changeset
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
@@ -254,6 +254,7 @@ class DeployContext:
             if not authorization_required:
                 click.secho(f"{resource} has no authentication.", fg="yellow")
 
+        assert self.deployer is not None
         if use_changeset:
             try:
                 result, changeset_type = self.deployer.create_and_wait_for_changeset(
@@ -304,7 +305,7 @@ class DeployContext:
                     role_arn=role_arn,
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
-                    tags=tags,
+                    tags=tags,  # type: ignore[arg-type]
                     on_failure=self.on_failure,
                 )
                 LOG.debug(result)
