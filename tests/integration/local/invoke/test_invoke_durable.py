@@ -71,9 +71,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
         function_name = example.function_name
         execution_name = "executiontimeout-integration-test"
 
-        command_list = self.get_invoke_command_list(
-            function_name, no_event=True, durable_execution_name=execution_name
-        )
+        command_list = self.get_invoke_command_list(function_name, no_event=True, durable_execution_name=execution_name)
 
         stdout, stderr, invoke_return_code = self.run_command_with_logging(
             command_list, f"test_local_invoke_durable_function_{function_name}"

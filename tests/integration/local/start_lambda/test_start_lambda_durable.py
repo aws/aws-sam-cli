@@ -110,9 +110,7 @@ class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
             tuple: (execution_arn, callback_id)
         """
         if payload:
-            response = self.lambda_client.invoke(
-                FunctionName=function_name, InvocationType="Event", Payload=payload
-            )
+            response = self.lambda_client.invoke(FunctionName=function_name, InvocationType="Event", Payload=payload)
         else:
             response = self.lambda_client.invoke(FunctionName=function_name, InvocationType="Event")
 
