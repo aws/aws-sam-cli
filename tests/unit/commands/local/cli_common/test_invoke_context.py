@@ -1494,7 +1494,10 @@ class TestInvokeContext_get_stacks(TestCase):
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(
-            "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
+            "template_file",
+            parameter_overrides=None,
+            global_parameter_overrides={"AWS::Region": "my-custom-region"},
+            language_extensions_enabled=False,
         )
 
 
@@ -1641,3 +1644,18 @@ class TestInvokeContext_validate_function_logical_ids(TestCase):
 
         # Should not raise any exception
         invoke_context._validate_function_logical_ids()
+
+
+class TestInvokeContextLanguageExtensions:
+    def _ctx(self, **kwargs):
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        defaults = dict(template_file="template.yaml")
+        defaults.update(kwargs)
+        return InvokeContext(**defaults)
+
+    def test_default_is_false(self):
+        assert self._ctx().language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        assert self._ctx(language_extensions=True).language_extensions_enabled is True
