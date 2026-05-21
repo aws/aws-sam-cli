@@ -1172,6 +1172,7 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_cloudformation_stack(self, TemplateMock):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -1206,7 +1207,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
-                language_extensions_enabled=False,
+                language_extensions_enabled=True,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1354,6 +1355,7 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_serverless_application(self, TemplateMock):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -1388,7 +1390,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
-                language_extensions_enabled=False,
+                language_extensions_enabled=True,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -2545,6 +2547,7 @@ class TestArtifactExporter(unittest.TestCase):
         from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
 
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2663,14 +2666,16 @@ class TestArtifactExporter(unittest.TestCase):
             os.remove(template_path)
 
     @patch("samcli.lib.package.artifact_exporter.Template")
-    def test_export_cloudformation_stack_without_language_extensions(self, TemplateMock):
+    def test_export_cloudformation_stack_language_extensions_no_le_in_template(self, TemplateMock):
         """
-        When a child template does NOT use language extensions,
-        do_export should use the original flow (no expansion).
+        When LE is opted-in but the child template uses no LE, do_export
+        should still go through the LE-on branch and exit via the
+        no-extension sub-path.
         """
         from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
 
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2724,6 +2729,7 @@ class TestArtifactExporter(unittest.TestCase):
         do_export should fall back to the original flow.
         """
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2768,6 +2774,7 @@ class TestArtifactExporter(unittest.TestCase):
         it should fall back gracefully to the non-extension flow (not abort the parent packaging).
         """
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2952,6 +2959,7 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
 
     def test_child_template_receives_parent_parameters(self):
         stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
 
         # Child template: Fn::ForEach driven by a child parameter.
         child_template = {
@@ -3039,6 +3047,7 @@ class TestCloudFormationStackResourceBuriedAWSInclude(unittest.TestCase):
         code_signer_mock.should_sign_package.return_value = False
 
         stack_resource = CloudFormationStackResource(uploaders_mock, code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         # Child template mirrors the issue #9027 reporter's shape:
         # Fn::ToJsonString over Fn::Transform: AWS::Include, buried inside
@@ -3124,6 +3133,7 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
 
     def test_invalid_sam_document_exception_logs_warning_and_falls_back(self):
         stack_resource = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
         tmpdir = tempfile.mkdtemp()
         try:
             child_path = self._write_child(tmpdir)
@@ -3146,6 +3156,7 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
 
     def test_unexpected_exception_logs_error_and_falls_back(self):
         stack_resource = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
         tmpdir = tempfile.mkdtemp()
         try:
             child_path = self._write_child(tmpdir)

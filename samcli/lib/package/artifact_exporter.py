@@ -182,11 +182,9 @@ class CloudFormationStackResource(ResourceZip):
         export on the nested template, upload the exported template to S3
         and set property to URL of the uploaded S3 template.
 
-        When the child template uses CloudFormation Language Extensions
-        (e.g. Fn::ForEach), the template is first expanded so that
-        Template.export() can discover and upload all generated artifacts.
-        The S3 URIs are then merged back into the original template
-        (preserving the Fn::ForEach structure) before uploading.
+        Routes to the LE-on or LE-off branch based on
+        self.language_extensions_enabled. The flag is a hard structural
+        gate — when off, no language-extension machinery runs.
         """
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
@@ -200,127 +198,18 @@ class CloudFormationStackResource(ResourceZip):
                 property_name=self.PROPERTY_NAME, resource_id=resource_id, template_path=abs_template_path
             )
 
-        # Read and attempt language extensions expansion on the child template
-        with open(abs_template_path, "r", encoding="utf-8") as f:
-            child_template_dict = yaml_parse(f.read())
-
-        child_template_dir = os.path.dirname(abs_template_path)
-
-        # Process AWS::Include before LE expansion to mirror CFN's transform
-        # ordering. See aws/aws-sam-cli#9027.
-        #
-        # NOTE: mutates child_template_dict in place. Must run before the
-        # expand_language_extensions call below so result.original_template
-        # and result.expanded_template both observe the rewrite.
-        _export_global_artifacts_pass(
-            child_template_dict,
-            self.uploaders.get(ResourceZip.EXPORT_DESTINATION),
-            child_template_dir,
-        )
-
-        # Merge pseudo-parameters with:
-        #  1) values propagated from the parent Template (parent stack's own params
-        #     + CLI --parameter-overrides + pseudo-params), used to resolve intrinsics
-        #     in the nested stack's Parameters property;
-        #  2) the nested stack's Parameters property on the parent resource, which is
-        #     the authoritative source for the child's parameter values at deploy time.
-        # Child-local values override parent-propagated ones on key conflict, which
-        # matches CloudFormation's behavior (a child parameter shadows a same-named
-        # parent parameter unless explicitly wired).
-        parent_parameter_values = dict(self.parent_parameter_values or {})
-
-        nested_params = resource_dict.get("Parameters", {}) or {}
-        resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
-
-        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
-        parameter_values.update(parent_parameter_values)
-        parameter_values.update(resolved_nested_params)
-
-        try:
-            result = expand_language_extensions(
-                child_template_dict, parameter_values, enabled=self.language_extensions_enabled
-            )
-        except InvalidSamDocumentException as e:
-            # Expected failure path: the child template triggered the
-            # AWS::LanguageExtensions transform but SAM CLI could not expand it
-            # locally. Defer to CloudFormation's server-side transform. Note: any
-            # artifact paths inside Fn::ForEach bodies will NOT be uploaded, so
-            # child stacks with dynamic artifact properties (e.g. CodeUri using a
-            # loop variable) will fail at deploy time.
-            LOG.warning(
-                "Language extensions expansion failed for %s. "
-                "CloudFormation will process the AWS::LanguageExtensions transform "
-                "server-side; artifact URIs inside Fn::ForEach blocks will NOT be "
-                "uploaded. Error: %s",
-                abs_template_path,
-                e,
-            )
-            result = None
-        except Exception as e:  # pylint: disable=broad-except
-            # Unexpected failure: a bug in SAM CLI rather than a malformed template.
-            # Surface at ERROR with a traceback so users running --debug (and SAM
-            # telemetry) see it, but don't abort the rest of the package run.
-            LOG.error(
-                "Internal error expanding language extensions for %s. This is a "
-                "SAM CLI bug; please report at "
-                "https://github.com/aws/aws-sam-cli/issues with the template. "
-                "Falling back to server-side transform. Error: %s",
-                abs_template_path,
-                e,
-                exc_info=True,
-            )
-            result = None
-
-        if result and result.had_language_extensions:
-            LOG.debug("Child template %s uses language extensions, expanding before export", abs_template_path)
-
-            # Create Template from the expanded template string
-            template = Template(
+        if self.language_extensions_enabled:
+            exported_template_dict = self._do_export_with_language_extensions(
+                resource_id,
                 template_path,
                 parent_dir,
-                self.uploaders,
-                self.code_signer,
-                normalize_template=True,
-                normalize_parameters=True,
-                parent_stack_id=resource_id,
-                template_dict=copy.deepcopy(result.expanded_template),
-                parameter_values=parameter_values,
-                language_extensions_enabled=self.language_extensions_enabled,
+                abs_template_path,
+                resource_dict,
             )
-
-            exported_template = template.export()
-
-            # Merge S3 URIs back into the original template (preserving Fn::ForEach)
-            exported_template_dict = merge_language_extensions_s3_uris(
-                result.original_template, exported_template, result.dynamic_artifact_properties
-            )
-
-            # Generate and apply Mappings for dynamic artifact properties
-            if result.dynamic_artifact_properties:
-                LOG.debug(
-                    "Generating Mappings for %d dynamic artifact properties in child template",
-                    len(result.dynamic_artifact_properties),
-                )
-                exported_resources = exported_template.get("Resources", {})
-                exported_template_dict = generate_and_apply_artifact_mappings(
-                    exported_template_dict,
-                    result.dynamic_artifact_properties,
-                    exported_resources,
-                    child_template_dir,
-                )
         else:
-            # No language extensions — use existing flow
-            exported_template_dict = Template(
-                template_path,
-                parent_dir,
-                self.uploaders,
-                self.code_signer,
-                normalize_template=True,
-                normalize_parameters=True,
-                parent_stack_id=resource_id,
-                parameter_values=parameter_values,
-                language_extensions_enabled=self.language_extensions_enabled,
-            ).export()
+            exported_template_dict = self._do_export_without_language_extensions(
+                resource_id, template_path, parent_dir
+            )
 
         exported_template_str = yaml_dump(exported_template_dict)
 
