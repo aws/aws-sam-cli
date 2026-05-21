@@ -161,7 +161,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
             Path(self.test_data_path, "language-extensions-foreach-zipfile-static", "template.yaml")
         )
 
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list() + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
@@ -203,7 +203,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
             Path(self.test_data_path, "language-extensions-foreach-zipfile-dynamic", "template.yaml")
         )
 
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list() + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
