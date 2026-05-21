@@ -4542,3 +4542,77 @@ class TestPackageContextBuriedAWSInclude(TestCase):
 
         # Sanity: the LE Transform line is preserved on the root.
         self.assertEqual(exported.get("Transform"), "AWS::LanguageExtensions")
+
+
+class TestExportLanguageExtensionsStructuralGate(TestCase):
+    """Lock in the contract that --language-extensions is a hard correctness
+    boundary, not a passthrough hint. When disabled, _export() must not invoke
+    any LE machinery (expand_language_extensions, the pre-LE
+    _export_global_artifacts_pass, merge_language_extensions_s3_uris, or
+    generate_and_apply_artifact_mappings).
+    """
+
+    def _make_off_path_context(self):
+        """Build a PackageContext with LE disabled and the attributes _export reads."""
+        ctx = PackageContext.__new__(PackageContext)
+        ctx.template_file = "template.yaml"
+        ctx.uploaders = MagicMock()
+        ctx.code_signer = MagicMock()
+        ctx.parameter_overrides = {}
+        ctx._global_parameter_overrides = {}
+        ctx._language_extensions_enabled = False
+        return ctx
+
+    @patch("samcli.commands.package.package_context.Template")
+    @patch("samcli.commands.package.package_context.yaml_parse")
+    @patch("builtins.open", create=True)
+    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    def test_off_path_does_not_invoke_expand_language_extensions(
+        self, mock_expand, mock_open, mock_yaml_parse, mock_template_class
+    ):
+        """When --language-extensions is off, expand_language_extensions must not be called."""
+        ctx = self._make_off_path_context()
+
+        mock_yaml_parse.return_value = {"Resources": {}}
+        mock_template_instance = MagicMock()
+        mock_template_instance.export.return_value = {"Resources": {}}
+        mock_template_class.return_value = mock_template_instance
+
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+        mock_file.read.return_value = ""
+
+        # Keep yaml_dump happy if the off path ever does fall through to the
+        # LE-on body (pre-Task-4 intermediate state): a falsy
+        # had_language_extensions makes _export's post-processing skip the
+        # merge branch and emit the plain exported_template dict.
+        mock_expand.return_value.had_language_extensions = False
+
+        ctx._export("template.yaml", use_json=False)
+
+        mock_expand.assert_not_called()
+
+    @patch("samcli.commands.package.package_context.Template")
+    @patch("samcli.commands.package.package_context.yaml_parse")
+    @patch("builtins.open", create=True)
+    @patch("samcli.commands.package.package_context._export_global_artifacts_pass")
+    def test_off_path_does_not_invoke_pre_le_global_transform_pass(
+        self, mock_pre_le_pass, mock_open, mock_yaml_parse, mock_template_class
+    ):
+        """When --language-extensions is off, the pre-LE _export_global_artifacts_pass
+        in package_context.py must not be called. Template.export() still runs its own
+        internal _export_global_artifacts pass — that one is not patched here."""
+        ctx = self._make_off_path_context()
+
+        mock_yaml_parse.return_value = {"Resources": {}}
+        mock_template_instance = MagicMock()
+        mock_template_instance.export.return_value = {"Resources": {}}
+        mock_template_class.return_value = mock_template_instance
+
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+        mock_file.read.return_value = ""
+
+        ctx._export("template.yaml", use_json=False)
+
+        mock_pre_le_pass.assert_not_called()

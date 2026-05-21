@@ -265,6 +265,28 @@ class PackageContext:
 
         return exported_str
 
+    def _export_without_language_extensions(self, template_path, original_template_dict):
+        """Export a template with AWS::LanguageExtensions opt-in disabled.
+
+        Mirrors pre-1.160.0 sam-cli behavior: AWS::Include and other global
+        Fn::Transform exporters are handled inside Template.export() via its
+        own _export_global_artifacts pass — no pre-Template pass is needed
+        because there is no LE expansion step that would collapse Fn::Transform
+        into a JSON-string literal first (see aws/aws-sam-cli#9027 for why the
+        LE path differs).
+        """
+        template = Template(
+            template_path,
+            os.getcwd(),
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+            template_dict=original_template_dict,
+            language_extensions_enabled=False,
+        )
+        return template.export()
+
     @staticmethod
     def _warn_preview_runtime(stacks: List[Stack]) -> None:
         for stack in stacks:
