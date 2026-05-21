@@ -335,6 +335,27 @@ class CloudFormationStackResource(ResourceZip):
             s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
+    def _do_export_without_language_extensions(
+        self, resource_id: str, template_path: str, parent_dir: str
+    ) -> Dict:
+        """LE-off branch: legacy path-based Template construction.
+
+        Template.export() runs its own internal _export_global_artifacts so
+        AWS::Include still resolves on this path. No pre-LE pass, no
+        parameter_values, no parent_parameter_values, no copy.deepcopy —
+        none of them are needed without language extensions.
+        """
+        return Template(
+            template_path,
+            parent_dir,
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+            parent_stack_id=resource_id,
+            language_extensions_enabled=False,
+        ).export()
+
 
 class ServerlessApplicationResource(CloudFormationStackResource):
     """

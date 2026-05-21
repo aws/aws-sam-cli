@@ -3203,3 +3203,92 @@ class TestTemplateLanguageExtensionsKwarg(unittest.TestCase):
             template_dict={"Resources": {}},
         )
         self.assertFalse(template.language_extensions_enabled)
+
+
+class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
+    """Structural-gate guarantees for CloudFormationStackResource.do_export().
+
+    When language_extensions_enabled is False (the default), do_export must not
+    invoke any LE machinery: no expand_language_extensions call, no pre-LE
+    AWS::Include pass, no pseudo-param plumbing. The flag is a hard correctness
+    boundary, not a passthrough.
+
+    Patch targets are use-site (samcli.lib.package.artifact_exporter.*) per the
+    lesson from PR #9030's 45dea4b7b — hoisting an import freezes the use-site
+    binding, so source-module patches stop intercepting and tests fail only
+    under CI's deterministic collection order.
+    """
+
+    def _make_stack_resource(self):
+        uploaders_mock = Mock()
+        uploaders_mock.get.return_value = Mock()
+        uploaders_mock.get.return_value.upload.return_value = "s3://bucket/key"
+        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = (
+            "http://s3.amazonaws.com/bucket/key"
+        )
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+        return CloudFormationStackResource(uploaders_mock, code_signer_mock)
+
+    def _write_minimal_child(self, tmpdir):
+        path = os.path.join(tmpdir, "child.yaml")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("Resources: {}\n")
+        return path
+
+    def test_off_path_does_not_invoke_expand_language_extensions(self):
+        """LE-off: dispatcher must NOT call expand_language_extensions."""
+        stack_resource = self._make_stack_resource()
+        # Default state: language_extensions_enabled is False.
+        self.assertFalse(stack_resource.language_extensions_enabled)
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = self._write_minimal_child(tmpdir)
+            with (
+                patch(
+                    "samcli.lib.package.artifact_exporter.expand_language_extensions"
+                ) as mock_expand,
+                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+            ):
+                TemplateMock.return_value.export.return_value = {"Resources": {}}
+                stack_resource.do_export(
+                    "ChildStack", {"TemplateURL": child_path}, tmpdir
+                )
+
+            mock_expand.assert_not_called()
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_off_path_does_not_invoke_pre_le_global_transform_pass(self):
+        """LE-off: dispatcher / off branch must NOT call _export_global_artifacts_pass.
+
+        Note: Template.export() runs its own internal _export_global_artifacts_pass,
+        but here Template is patched, so any call to the patched
+        _export_global_artifacts_pass would be from the do_export call site
+        (which we want to NOT happen on the off path).
+        """
+        stack_resource = self._make_stack_resource()
+        self.assertFalse(stack_resource.language_extensions_enabled)
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = self._write_minimal_child(tmpdir)
+            with (
+                patch(
+                    "samcli.lib.package.artifact_exporter._export_global_artifacts_pass"
+                ) as mock_pre_pass,
+                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+            ):
+                TemplateMock.return_value.export.return_value = {"Resources": {}}
+                stack_resource.do_export(
+                    "ChildStack", {"TemplateURL": child_path}, tmpdir
+                )
+
+            mock_pre_pass.assert_not_called()
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
