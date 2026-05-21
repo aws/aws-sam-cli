@@ -4566,7 +4566,7 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
     @patch("samcli.commands.package.package_context.Template")
     @patch("samcli.commands.package.package_context.yaml_parse")
     @patch("builtins.open", create=True)
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.commands.package.package_context.expand_language_extensions")
     def test_off_path_does_not_invoke_expand_language_extensions(
         self, mock_expand, mock_open, mock_yaml_parse, mock_template_class
     ):
@@ -4581,12 +4581,6 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
         mock_file = MagicMock()
         mock_open.return_value.__enter__.return_value = mock_file
         mock_file.read.return_value = ""
-
-        # Keep yaml_dump happy if the off path ever does fall through to the
-        # LE-on body (pre-Task-4 intermediate state): a falsy
-        # had_language_extensions makes _export's post-processing skip the
-        # merge branch and emit the plain exported_template dict.
-        mock_expand.return_value.had_language_extensions = False
 
         ctx._export("template.yaml", use_json=False)
 
