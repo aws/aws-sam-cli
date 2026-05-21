@@ -315,11 +315,6 @@ class CloudFormationStackResource(ResourceZip):
             child_template_dir,
         )
 
-        # Build the child stack's parameter_values dict with CFN-parity scope:
-        # pseudo-params (parent overrides honored for pseudo names) and
-        # parent-rebound values via the nested-stack Parameters property.
-        # Child Defaults are read by the LE expander itself from
-        # parsed_template.parameters[X].Default — see _build_child_parameter_values.
         parameter_values = _build_child_parameter_values(
             self.parent_parameter_values,
             resource_dict.get("Parameters", {}) or {},

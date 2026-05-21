@@ -3112,12 +3112,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_parent_param_does_not_leak_into_child_with_same_name(self):
-        """Parent stack has parameter_values = {"Foo": "parent_foo"} but the
-        nested-stack Parameters: block does NOT rebind Foo. The captured
-        parameter_values passed to expand_language_extensions must NOT
-        contain Foo — CFN's contract is that non-rebound parent params
-        don't reach the child.
-        """
         stack_resource, _ = self._make_stack_resource()
         stack_resource.language_extensions_enabled = True
 
@@ -3172,18 +3166,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_child_default_still_resolves_via_resolver_fallback(self):
-        """Child template declares Parameters.Bar with a Default. Parent does
-        not rebind Bar. After we drop the bulk parent-set copy, Bar still
-        resolves to its Default at expansion time via the LE expander's
-        parsed_template fallback (resolvers/fn_ref.py:_resolve_parameter).
-
-        This test is the load-bearing guard for the design decision to NOT
-        fold child Defaults into the helper. If the resolver fallback
-        regresses or stops firing (e.g., parsed_template wiring changes),
-        this test fails and tells us to revisit the helper.
-
-        Real end-to-end: expand_language_extensions is NOT mocked.
-        """
         stack_resource, _ = self._make_stack_resource()
         stack_resource.language_extensions_enabled = True
 
