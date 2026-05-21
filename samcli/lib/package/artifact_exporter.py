@@ -125,6 +125,44 @@ def _resolve_nested_stack_parameters(nested_params: Dict, parent_parameter_value
     return resolved
 
 
+def _build_child_parameter_values(
+    parent_parameter_values: Optional[Dict],
+    nested_stack_parameters: Dict,
+) -> Dict:
+    """Build the parameter_values dict the LE expander should see for a child stack.
+
+    CFN-parity scope: pseudo-params (with parent overrides for the pseudo NAMES
+    only) and the parent's explicit rebindings via the nested-stack ``Parameters``
+    property. Non-pseudo parent names are NOT copied — that would diverge from
+    CloudFormation's nested-stack contract.
+
+    Child template ``Parameters.X.Default`` values are NOT folded in here. The
+    LE expander's Fn::Ref resolver reads them itself from
+    ``context.parsed_template.parameters[X]["Default"]``, which
+    ``TemplateParsingProcessor`` populates as the first step of the expansion
+    pipeline. So Defaults still take effect at expansion time; they just don't
+    pass through this helper's return value.
+
+    Names declared in the child but neither defaulted nor rebound are
+    intentionally absent everywhere — PARTIAL mode preserves the Ref and
+    CloudFormation errors at deploy time, matching the non-LE path.
+    """
+    parameter_values: Dict = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+    if parent_parameter_values:
+        for pseudo_name in IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES:
+            if pseudo_name in parent_parameter_values:
+                parameter_values[pseudo_name] = parent_parameter_values[pseudo_name]
+
+    resolved_nested = _resolve_nested_stack_parameters(
+        nested_stack_parameters,
+        dict(parent_parameter_values or {}),
+    )
+    parameter_values.update(resolved_nested)
+
+    return parameter_values
+
+
 def _export_global_artifacts_pass(template_dict: Any, uploader, template_dir: str) -> Any:
     """
     Walk template_dict recursively, dispatching dict nodes to handlers

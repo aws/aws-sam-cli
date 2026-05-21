@@ -2938,6 +2938,98 @@ class TestTemplateInitWithTemplateDict(unittest.TestCase):
         self.assertEqual(t.template_dict["Resources"]["MyTopic"]["Type"], "AWS::SNS::Topic")
 
 
+class TestBuildChildParameterValues(unittest.TestCase):
+    """Unit tests for _build_child_parameter_values, the CFN-parity helper that
+    builds the parameter_values dict threaded into expand_language_extensions
+    for a nested child stack.
+
+    Contract: result contains pseudo-params (with parent overrides for pseudo
+    NAMES only) and parent-rebound values from the nested-stack `Parameters:`
+    property. Non-pseudo parent names are NOT copied. Child template Defaults
+    are NOT folded in — the LE expander reads them from
+    parsed_template.parameters[X].Default at resolve time.
+    """
+
+    def test_excludes_non_pseudo_parent_params(self):
+        """Non-pseudo parent names must not leak into the child's scope."""
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+
+        result = _build_child_parameter_values(
+            parent_parameter_values={"Foo": "parent_foo", "AWS::Region": "us-east-1"},
+            nested_stack_parameters={},
+        )
+
+        self.assertNotIn("Foo", result)
+        # Pseudo baseline is present.
+        self.assertEqual(result.get("AWS::Region"), "us-east-1")
+
+    def test_includes_pseudo_overrides_from_parent(self):
+        """Parent's override of a pseudo name must propagate to the child."""
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+
+        result = _build_child_parameter_values(
+            parent_parameter_values={"AWS::Region": "eu-west-1"},
+            nested_stack_parameters={},
+        )
+
+        self.assertEqual(result["AWS::Region"], "eu-west-1")
+
+    def test_resolved_nested_rebinding_appears_in_result(self):
+        """Parent-rebound values reach the child."""
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+
+        result = _build_child_parameter_values(
+            parent_parameter_values={"ParentBar": "rebound"},
+            nested_stack_parameters={"Bar": {"Ref": "ParentBar"}},
+        )
+
+        self.assertEqual(result["Bar"], "rebound")
+
+    def test_resolved_nested_rebinding_can_override_pseudo_named_key(self):
+        """Edge case: explicit nested-stack rebinding of a pseudo name wins
+        over the parent's pseudo-name override (step 3 dominates step 2 in
+        the merge order). Preserves existing _resolve_nested_stack_parameters
+        semantics.
+        """
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+
+        result = _build_child_parameter_values(
+            parent_parameter_values={"AWS::Region": "us-east-1", "MyRegion": "ap-south-1"},
+            nested_stack_parameters={"AWS::Region": {"Ref": "MyRegion"}},
+        )
+
+        self.assertEqual(result["AWS::Region"], "ap-south-1")
+
+    def test_no_parent_parameter_values_uses_defaults(self):
+        """parent_parameter_values=None must not crash and must yield exactly
+        the default pseudo-param baseline."""
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+
+        result = _build_child_parameter_values(
+            parent_parameter_values=None,
+            nested_stack_parameters={},
+        )
+
+        self.assertEqual(result, dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES))
+
+    def test_does_not_fold_child_defaults(self):
+        """Helper signature does not take a child template dict. Documents the
+        design choice that child Defaults are picked up by the LE expander's
+        resolver via parsed_template.parameters[X].Default — not folded in
+        here. If a future contributor adds Default-folding to this helper,
+        this test prevents that drift.
+        """
+        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
+        import inspect
+
+        sig = inspect.signature(_build_child_parameter_values)
+        self.assertEqual(
+            list(sig.parameters.keys()),
+            ["parent_parameter_values", "nested_stack_parameters"],
+        )
+
+
 class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
     """End-to-end test for threading parent params into child template expansion.
 
