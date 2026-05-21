@@ -1,10 +1,13 @@
 """Test sam package command"""
 
 import os
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock, call, ANY
 from parameterized import parameterized
 import tempfile
+
+TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 
 from samcli.commands.package.package_context import PackageContext
@@ -4478,31 +4481,7 @@ class TestPackageContextBuriedAWSInclude(TestCase):
     """
 
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-
-        self.template_path = os.path.join(self.tmp.name, "template.yaml")
-        self.include_path = os.path.join(self.tmp.name, "export-events.json")
-
-        with open(self.include_path, "w") as f:
-            f.write('[{"event": "demo"}]')
-
-        with open(self.template_path, "w") as f:
-            f.write(
-                "Transform: AWS::LanguageExtensions\n"
-                "Resources:\n"
-                "  Parameter:\n"
-                "    Type: AWS::SSM::Parameter\n"
-                "    Properties:\n"
-                "      Type: String\n"
-                "      DataType: text\n"
-                "      Value:\n"
-                "        Fn::ToJsonString:\n"
-                "          Fn::Transform:\n"
-                "            Name: AWS::Include\n"
-                "            Parameters:\n"
-                "              Location: export-events.json\n"
-            )
+        self.template_path = str(TEST_DATA_PATH / "buried_aws_include" / "template.yaml")
 
         # Mock uploader with deterministic S3 URL.
         self.s3_uploader = MagicMock()
