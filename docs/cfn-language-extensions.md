@@ -17,7 +17,7 @@ The original template (with `Fn::ForEach` intact) is preserved for CloudFormatio
 
 ## Enabling Language Extensions
 
-Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equivalent activation methods, in priority order:
+Local processing of `AWS::LanguageExtensions` is opt-in per command. Three activation methods, in priority order (highest first):
 
 1. **CLI flag** — pass `--language-extensions` on a single invocation:
 
@@ -27,19 +27,9 @@ Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equiv
    sam deploy --language-extensions ...
    ```
 
-   `--no-language-extensions` explicitly disables, overriding the env var below.
+   `--no-language-extensions` explicitly disables, overriding both samconfig.toml and the env var below.
 
-2. **Environment variable** — set `SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1` to enable for the current shell:
-
-   ```bash
-   export SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1
-   sam build
-   sam local invoke MyFunction
-   ```
-
-   Truthy values (case-insensitive): `1`, `true`, `yes`. Anything else, including empty string, is off.
-
-3. **`samconfig.toml`** — persist the choice per project:
+2. **`samconfig.toml`** — persist the choice per project:
 
    ```toml
    [default.build.parameters]
@@ -66,6 +56,18 @@ Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equiv
    [default.validate.parameters]
    language_extensions = true
    ```
+
+   A `samconfig.toml` entry is loaded into Click's defaults, so it takes effect as if the flag were passed — and therefore wins over the env var.
+
+3. **Environment variable** — set `SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1` to enable for the current shell:
+
+   ```bash
+   export SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1
+   sam build
+   sam local invoke MyFunction
+   ```
+
+   Truthy values (case-insensitive): `1`, `true`, `yes`. Anything else, including empty string, is off. The env var is consulted only when neither the CLI flag nor samconfig.toml sets a value.
 
 **Each command needs its own activation.** Passing `--language-extensions` to `sam build` does not propagate to a later `sam local invoke` — local processing is decided per command invocation. Use the env var or samconfig entry to enable across commands without repeating the flag.
 
