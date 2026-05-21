@@ -169,7 +169,7 @@ class TestExpandLanguageExtensions(TestCase):
             },
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         self.assertIsInstance(result, LanguageExtensionResult)
         self.assertTrue(result.had_language_extensions)
@@ -185,7 +185,7 @@ class TestExpandLanguageExtensions(TestCase):
             "Resources": {"MyFunc": {"Type": "AWS::Serverless::Function"}},
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         self.assertIsInstance(result, LanguageExtensionResult)
         self.assertFalse(result.had_language_extensions)
@@ -196,7 +196,7 @@ class TestExpandLanguageExtensions(TestCase):
         """expand_language_extensions() returns had_language_extensions=False when no Transform."""
         template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         self.assertFalse(result.had_language_extensions)
 
@@ -218,7 +218,7 @@ class TestExpandLanguageExtensions(TestCase):
             },
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         # Original template should preserve Fn::ForEach
         self.assertIn("Fn::ForEach::Services", result.original_template["Resources"])
@@ -241,7 +241,7 @@ class TestExpandLanguageExtensions(TestCase):
 
         template_before = copy.deepcopy(template)
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         # Input template must not be mutated by expansion
         self.assertEqual(template, template_before)
@@ -269,7 +269,7 @@ class TestExpandLanguageExtensions(TestCase):
             },
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         self.assertTrue(len(result.dynamic_artifact_properties) > 0)
         prop = result.dynamic_artifact_properties[0]
@@ -291,7 +291,7 @@ class TestExpandLanguageExtensions(TestCase):
         }
         parameter_values = {"AWS::Region": "us-west-2", "AWS::AccountId": "123456789012"}
 
-        result = expand_language_extensions(template, parameter_values=parameter_values)
+        result = expand_language_extensions(template, parameter_values=parameter_values, enabled=True)
 
         self.assertTrue(result.had_language_extensions)
         # Pseudo-parameter should be resolved
@@ -312,7 +312,7 @@ class TestExpandLanguageExtensions(TestCase):
         }
 
         with self.assertRaises(InvalidSamDocumentException):
-            expand_language_extensions(template)
+            expand_language_extensions(template, enabled=True)
 
     def test_list_transform_with_language_extensions(self):
         """expand_language_extensions() works when Transform is a list containing AWS::LanguageExtensions."""
@@ -327,7 +327,7 @@ class TestExpandLanguageExtensions(TestCase):
             },
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         self.assertTrue(result.had_language_extensions)
         self.assertIn("ATopic", result.expanded_template["Resources"])
@@ -616,6 +616,7 @@ class TestCallersUseExpandLanguageExtensions(TestCase):
         ctx.template_file = "template.yaml"
         ctx.parameter_overrides = {}
         ctx._global_parameter_overrides = {}
+        ctx._language_extensions_enabled = True
         ctx.uploaders = MagicMock()
         ctx.code_signer = MagicMock()
 
@@ -695,8 +696,8 @@ class TestProperty10PhaseSeparationSingleExpansion:
             },
         }
 
-        result1 = expand_language_extensions(copy.deepcopy(template))
-        result2 = expand_language_extensions(copy.deepcopy(template))
+        result1 = expand_language_extensions(copy.deepcopy(template), enabled=True)
+        result2 = expand_language_extensions(copy.deepcopy(template), enabled=True)
 
         assert isinstance(result1, LanguageExtensionResult)
         assert isinstance(result2, LanguageExtensionResult)
@@ -737,7 +738,7 @@ class TestProperty10PhaseSeparationSingleExpansion:
             },
         }
 
-        result = expand_language_extensions(copy.deepcopy(template))
+        result = expand_language_extensions(copy.deepcopy(template), enabled=True)
 
         assert result.had_language_extensions is False
         assert "MyResource" in result.expanded_template["Resources"]
@@ -794,7 +795,7 @@ class TestProperty11PhaseSeparationResultEquivalence:
             },
         }
 
-        result = expand_language_extensions(copy.deepcopy(template))
+        result = expand_language_extensions(copy.deepcopy(template), enabled=True)
         direct_result = process_template_for_sam_cli(copy.deepcopy(template))
 
         assert set(result.expanded_template["Resources"].keys()) == set(direct_result["Resources"].keys())
@@ -839,7 +840,7 @@ class TestProperty11PhaseSeparationResultEquivalence:
             },
         }
 
-        result = expand_language_extensions(copy.deepcopy(template))
+        result = expand_language_extensions(copy.deepcopy(template), enabled=True)
 
         assert foreach_key in result.original_template["Resources"]
 
@@ -889,7 +890,7 @@ class TestProperty11PhaseSeparationResultEquivalence:
             },
         }
 
-        result = expand_language_extensions(copy.deepcopy(template))
+        result = expand_language_extensions(copy.deepcopy(template), enabled=True)
 
         assert len(result.dynamic_artifact_properties) > 0
 
