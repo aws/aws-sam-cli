@@ -53,7 +53,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         """Test that sam build expands Fn::ForEach and builds each generated function."""
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -71,7 +71,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
 
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
@@ -111,6 +111,124 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         self.assertEqual(codeuri["Fn::FindInMap"][0], mapping_name)
         self.assertEqual(codeuri["Fn::FindInMap"][1], {"Ref": "FunctionName"})
 
+    def test_build_zipfile_fnsub_preserves_intrinsic(self):
+        """Regression for #9029: `Code.ZipFile: !Sub ...` on a Lambda function under
+        AWS::LanguageExtensions must round-trip through `sam build` with the Fn::Sub
+        intact. Before the fix, the LE-aware merge step copied the LE-resolved value
+        back, baking default pseudo-parameter values (us-east-1, 123456789012) into
+        the built template."""
+        self.template_path = str(Path(self.test_data_path, "language-extensions-zipfile-fnsub", "template.yaml"))
+
+        cmdlist = self.get_command_list()
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
+
+        built_template_path = self.default_build_dir.joinpath("template.yaml")
+        self.assertTrue(built_template_path.exists())
+
+        with open(built_template_path, "r") as f:
+            built_template = yaml.safe_load(f)
+
+        function_props = built_template["Resources"]["MyTriggerFunction"]["Properties"]
+
+        # Code.ZipFile must remain a dict containing Fn::Sub, not a resolved string.
+        zipfile_value = function_props["Code"]["ZipFile"]
+        self.assertIsInstance(
+            zipfile_value, dict, f"Expected Code.ZipFile to remain a Fn::Sub dict, got: {zipfile_value!r}"
+        )
+        self.assertIn("Fn::Sub", zipfile_value)
+        sub_body = zipfile_value["Fn::Sub"]
+        self.assertIn("${AWS::Region}", sub_body)
+        self.assertIn("${AWS::AccountId}", sub_body)
+        # Confirm no default pseudo-param values leaked through.
+        self.assertNotIn("us-east-1", sub_body)
+        self.assertNotIn("123456789012", sub_body)
+
+        # Role's Fn::Sub should likewise be preserved (sanity check on the same merge path).
+        role_value = function_props["Role"]
+        self.assertIsInstance(role_value, dict)
+        self.assertIn("Fn::Sub", role_value)
+        self.assertIn("${AWS::AccountId}", role_value["Fn::Sub"])
+
+    def test_build_foreach_static_zipfile_fnsub_preserves_intrinsic(self):
+        """Regression for #9029 (ForEach static branch / case B): inside a
+        Fn::ForEach body, `Code.ZipFile: !Sub ...` whose body does NOT reference
+        the loop variable must round-trip through `sam build` with the Fn::Sub
+        intact. The static-branch merge has no build artifact for an inline-source
+        Lambda, so the user-authored property must be preserved verbatim."""
+        self.template_path = str(
+            Path(self.test_data_path, "language-extensions-foreach-zipfile-static", "template.yaml")
+        )
+
+        cmdlist = self.get_command_list() + ["--language-extensions"]
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
+
+        built_template_path = self.default_build_dir.joinpath("template.yaml")
+        self.assertTrue(built_template_path.exists())
+
+        with open(built_template_path, "r") as f:
+            built_template = yaml.safe_load(f)
+
+        # Fn::ForEach structure must be preserved
+        resources = built_template.get("Resources", {})
+        foreach_block = resources.get("Fn::ForEach::Workers")
+        self.assertIsNotNone(foreach_block, "Fn::ForEach::Workers must survive in built template")
+        self.assertEqual(foreach_block[0], "WorkerName")
+        self.assertEqual(foreach_block[1], ["Alpha", "Beta"])
+
+        # The body's Code.ZipFile must remain a Fn::Sub dict, not a resolved string,
+        # and must still reference ${AWS::Region} / ${AWS::AccountId}.
+        body = foreach_block[2]
+        worker_props = body["${WorkerName}Worker"]["Properties"]
+        zipfile_value = worker_props["Code"]["ZipFile"]
+        self.assertIsInstance(zipfile_value, dict)
+        self.assertIn("Fn::Sub", zipfile_value)
+        sub_body = zipfile_value["Fn::Sub"]
+        self.assertIn("${AWS::Region}", sub_body)
+        self.assertIn("${AWS::AccountId}", sub_body)
+        self.assertNotIn("us-east-1", sub_body)
+        self.assertNotIn("123456789012", sub_body)
+
+    def test_build_foreach_dynamic_inline_zipfile_preserved(self):
+        """Regression for #9029 (ForEach dynamic branch / case C): inside a
+        Fn::ForEach body, a property that references the loop variable but produces
+        no build artifact for any iteration (e.g. inline-source `Code.ZipFile`) is
+        passed through verbatim. CFN's LanguageExtensions transform expands the
+        ForEach at deploy time, substituting the loop variable in each per-iteration
+        copy, so the inline body works correctly without a SAM-built artifact."""
+        self.template_path = str(
+            Path(self.test_data_path, "language-extensions-foreach-zipfile-dynamic", "template.yaml")
+        )
+
+        cmdlist = self.get_command_list() + ["--language-extensions"]
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
+
+        built_template_path = self.default_build_dir.joinpath("template.yaml")
+        with open(built_template_path, "r") as f:
+            built_template = yaml.safe_load(f)
+
+        resources = built_template.get("Resources", {})
+        foreach_block = resources["Fn::ForEach::Workers"]
+        body = foreach_block[2]
+        worker_props = body["${WorkerName}Worker"]["Properties"]
+        zipfile_value = worker_props["Code"]["ZipFile"]
+        # The inline ZipFile must remain a Fn::Sub dict with both the loop
+        # variable and pseudo-parameter intrinsics intact — neither resolved
+        # at build time nor replaced by a Mapping lookup.
+        self.assertIsInstance(zipfile_value, dict)
+        self.assertIn("Fn::Sub", zipfile_value)
+        sub_body = zipfile_value["Fn::Sub"]
+        self.assertIn("${WorkerName}", sub_body)
+        role_value = worker_props["Role"]
+        self.assertIsInstance(role_value, dict)
+        self.assertIn("Fn::Sub", role_value)
+        self.assertIn("${AWS::AccountId}", role_value["Fn::Sub"])
+
     def test_build_nested_foreach_dynamic_codeuri_generates_mappings(self):
         """Test that nested Fn::ForEach with dynamic CodeUri generates Mappings."""
         self.template_path = str(
@@ -119,7 +237,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
 
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
@@ -147,3 +265,28 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
             for svc in ["Users", "Orders"]:
                 func_dir = self.default_build_dir.joinpath(f"{env}{svc}Function")
                 self.assertTrue(func_dir.exists(), f"Build artifact for {env}{svc}Function should exist")
+
+    def test_build_without_flag_does_not_expand_foreach(self):
+        """Without --language-extensions, sam build does not expand Fn::ForEach."""
+        runtime = self._get_python_version()
+        overrides = {"Runtime": runtime}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if command_result.process.returncode == 0:
+            build_dir_files = os.listdir(str(self.default_build_dir))
+            for function_name in self.FOREACH_GENERATED_FUNCTIONS:
+                self.assertNotIn(
+                    function_name,
+                    build_dir_files,
+                    f"{function_name} should not exist when --language-extensions is off",
+                )
+        else:
+            # Build failed because SAM transform cannot process unexpanded
+            # Fn::ForEach — this is acceptable opt-out behavior.
+            stderr = command_result.stderr.decode("utf-8", errors="replace")
+            self.assertTrue(
+                "ForEach" in stderr or "Invalid" in stderr or "Error" in stderr,
+                f"Build failure should relate to unexpanded template, got: {stderr[:200]}",
+            )

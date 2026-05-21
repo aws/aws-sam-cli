@@ -169,7 +169,10 @@ class TestSamDeployCommand(TestCase):
                 [{"ParameterKey": "a", "ParameterValue": "b"}, {"ParameterKey": "c", "UsePreviousValue": True}],
             )
             patched_get_buildable_stacks.assert_called_once_with(
-                ANY, parameter_overrides={"a": "b"}, global_parameter_overrides={"AWS::Region": "any-aws-region"}
+                ANY,
+                parameter_overrides={"a": "b"},
+                global_parameter_overrides={"AWS::Region": "any-aws-region"},
+                language_extensions_enabled=False,
             )
 
     @patch("boto3.Session")
@@ -439,3 +442,46 @@ Resources:
             # The template should NOT contain expanded function names
             self.assertNotIn("AlphaFunction:", cfn_template)
             self.assertNotIn("BetaFunction:", cfn_template)
+
+
+class TestDeployContextLanguageExtensionsFlag(TestCase):
+    """Test cases for language_extensions kwarg support in DeployContext"""
+
+    def _ctx(self, **kwargs):
+        from samcli.commands.deploy.deploy_context import DeployContext
+
+        defaults = dict(
+            template_file="template.yaml",
+            stack_name="s",
+            s3_bucket=None,
+            image_repository=None,
+            image_repositories=None,
+            force_upload=False,
+            no_progressbar=False,
+            s3_prefix="",
+            kms_key_id=None,
+            parameter_overrides={},
+            capabilities=(),
+            no_execute_changeset=False,
+            role_arn=None,
+            notification_arns=(),
+            fail_on_empty_changeset=False,
+            tags={},
+            region=None,
+            profile=None,
+            confirm_changeset=False,
+            signing_profiles={},
+            use_changeset=True,
+            disable_rollback=False,
+            poll_delay=0.5,
+            on_failure=None,
+            max_wait_duration=60,
+        )
+        defaults.update(kwargs)
+        return DeployContext(**defaults)
+
+    def test_default_is_false(self):
+        assert self._ctx().language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        assert self._ctx(language_extensions=True).language_extensions_enabled is True

@@ -46,6 +46,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             resolve_s3=self.resolve_s3,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             signing_profiles=self.signing_profiles,
         )
 
@@ -65,6 +66,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -94,6 +96,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             resolve_s3=True,
             resolve_image_repos=False,
+            language_extensions=None,
             signing_profiles=self.signing_profiles,
         )
 
@@ -113,6 +116,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=False,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -138,6 +142,7 @@ class TestPackageCliCommand(TestCase):
                 profile=self.profile,
                 resolve_s3=False,
                 resolve_image_repos=True,
+                language_extensions=None,
                 signing_profiles=self.signing_profiles,
             )
 
@@ -163,6 +168,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             resolve_s3=False,
             resolve_image_repos=True,
+            language_extensions=None,
             signing_profiles=self.signing_profiles,
         )
 
@@ -182,6 +188,7 @@ class TestPackageCliCommand(TestCase):
             profile=self.profile,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -193,3 +200,32 @@ class TestPackageCliCommand(TestCase):
         self.assertIsInstance(help_string, str)
         # Should contain resource and location information
         self.assertTrue(len(help_string) > 0)
+
+
+class TestPackageContextLanguageExtensions:
+    def _ctx(self, **kwargs):
+        from samcli.commands.package.package_context import PackageContext
+
+        defaults = dict(
+            template_file="template.yaml",
+            s3_bucket="b",
+            image_repository=None,
+            image_repositories=None,
+            s3_prefix="",
+            kms_key_id=None,
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=False,
+            metadata={},
+            region=None,
+            profile=None,
+        )
+        defaults.update(kwargs)
+        return PackageContext(**defaults)
+
+    def test_default_is_false(self):
+        assert self._ctx().language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        assert self._ctx(language_extensions=True).language_extensions_enabled is True

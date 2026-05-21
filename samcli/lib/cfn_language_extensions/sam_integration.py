@@ -12,6 +12,7 @@ SAM transforms are applied.
 
 import copy
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
@@ -34,6 +35,38 @@ LOG = logging.getLogger(__name__)
 
 # Transform name for AWS Language Extensions
 AWS_LANGUAGE_EXTENSIONS_TRANSFORM = "AWS::LanguageExtensions"
+
+# Env var that, when truthy, opts into local AWS::LanguageExtensions processing.
+# A `--language-extensions` flag, when passed, takes precedence over this env var.
+ENABLE_ENV_VAR = "SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS"
+_TRUTHY_VALUES = frozenset({"1", "true", "yes"})
+
+
+def resolve_language_extensions_enabled(flag_value: Optional[bool]) -> bool:
+    """
+    Resolve whether local AWS::LanguageExtensions expansion is enabled.
+
+    Click flag wins over the env var. Tri-state input:
+      - ``True``  -> enabled (regardless of env var)
+      - ``False`` -> disabled (regardless of env var)
+      - ``None``  -> fall back to env var (off when unset or untruthy)
+
+    Truthy env-var values (case-insensitive, whitespace-trimmed): ``1``, ``true``, ``yes``.
+
+    Parameters
+    ----------
+    flag_value : Optional[bool]
+        The Click flag value. ``None`` means the user did not pass
+        ``--language-extensions`` or ``--no-language-extensions``.
+
+    Returns
+    -------
+    bool
+        ``True`` if Phase 1 LE expansion should run, else ``False``.
+    """
+    if flag_value is not None:
+        return flag_value
+    return os.environ.get(ENABLE_ENV_VAR, "").strip().lower() in _TRUTHY_VALUES
 
 
 @dataclass(frozen=True)
@@ -476,6 +509,8 @@ def detect_dynamic_artifact_properties(
 def expand_language_extensions(
     template: Dict[str, Any],
     parameter_values: Optional[Dict[str, Any]] = None,
+    *,
+    enabled: bool,
 ) -> LanguageExtensionResult:
     """
     Canonical Phase 1 entry point for expanding CloudFormation Language Extensions.
@@ -497,6 +532,10 @@ def expand_language_extensions(
         The raw template dictionary
     parameter_values : dict, optional
         Template parameter values (may include pseudo-parameters like AWS::Region)
+    enabled : bool
+        Required keyword. When False, returns a passthrough result without
+        inspecting the template (silent pre-1.160.0 behavior). When True,
+        runs the full Phase 1 pipeline if the template uses AWS::LanguageExtensions.
 
     Returns
     -------
@@ -509,6 +548,14 @@ def expand_language_extensions(
     InvalidSamDocumentException
         If the template contains invalid language extension syntax
     """
+    if not enabled:
+        return LanguageExtensionResult(
+            expanded_template=template,
+            original_template=template,
+            dynamic_artifact_properties=[],
+            had_language_extensions=False,
+        )
+
     if not check_using_language_extension(template):
         return LanguageExtensionResult(
             expanded_template=template,

@@ -99,6 +99,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             container_dns=self.container_dns,
         )
@@ -228,6 +229,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             invoke_image=self.invoke_image,
             hook_name=self.hook_name,
+            language_extensions=None,
             ssl_cert_file=self.ssl_cert_file,
             ssl_key_file=self.ssl_key_file,
             disable_authorizer=self.disable_authorizer,
