@@ -2645,7 +2645,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 return_value=lang_ext_result,
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2702,7 +2702,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 return_value=no_ext_result,
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2748,7 +2748,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 side_effect=InvalidSamDocumentException("expansion failed"),
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2792,7 +2792,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 side_effect=TypeError("unexpected bug"),
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2987,7 +2987,7 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
                 "Parameters": {"ServiceNames": "Users,Orders,Products"},
             }
 
-            with patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock:
+            with patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock:
                 # Short-circuit: make expand return a "no-LE" result so do_export
                 # proceeds via the non-extension path (which doesn't upload since
                 # we'll intercept the inner Template).
@@ -3128,7 +3128,7 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
         try:
             child_path = self._write_child(tmpdir)
             with (
-                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
+                patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock,
                 patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
                 self.assertLogs("samcli.lib.package.artifact_exporter", level="WARNING") as log_ctx,
             ):
@@ -3150,7 +3150,7 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
         try:
             child_path = self._write_child(tmpdir)
             with (
-                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
+                patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock,
                 patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
                 self.assertLogs("samcli.lib.package.artifact_exporter", level="ERROR") as log_ctx,
             ):

@@ -24,8 +24,14 @@ from botocore.utils import set_value_from_jmespath
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.commands.package import exceptions
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.code_signer import CodeSigner
+from samcli.lib.package.language_extensions_packaging import (
+    generate_and_apply_artifact_mappings,
+    merge_language_extensions_s3_uris,
+)
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
     GLOBAL_TRANSFORM_EXPORTS,
@@ -182,15 +188,6 @@ class CloudFormationStackResource(ResourceZip):
         The S3 URIs are then merged back into the original template
         (preserving the Fn::ForEach structure) before uploading.
         """
-        from samcli.lib.cfn_language_extensions.sam_integration import (
-            expand_language_extensions,
-        )
-        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-        from samcli.lib.package.language_extensions_packaging import (
-            generate_and_apply_artifact_mappings,
-            merge_language_extensions_s3_uris,
-        )
-
         template_path = resource_dict.get(self.PROPERTY_NAME, None)
 
         if template_path is None or is_s3_url(template_path):
