@@ -96,21 +96,21 @@ class LocalLambdaHttpService(BaseLocalService):
 
         # Durable functions endpoints
         self._app.add_url_rule(
-            "/2025-12-01/durable-executions/<durable_execution_arn>",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>",
             endpoint="get_durable_execution",
             view_func=self._get_durable_execution_handler,
             methods=["GET"],
         )
 
         self._app.add_url_rule(
-            "/2025-12-01/durable-executions/<durable_execution_arn>/history",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>/history",
             endpoint="get_durable_execution_history",
             view_func=self._get_durable_execution_history_handler,
             methods=["GET"],
         )
 
         self._app.add_url_rule(
-            "/2025-12-01/durable-executions/<durable_execution_arn>/stop",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>/stop",
             endpoint="stop_durable_execution",
             view_func=self._stop_durable_execution_handler,
             methods=["POST"],
@@ -118,21 +118,21 @@ class LocalLambdaHttpService(BaseLocalService):
 
         # Callback endpoints
         self._app.add_url_rule(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/succeed",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/succeed",
             endpoint="send_callback_success",
             view_func=self._send_callback_success_handler,
             methods=["POST"],
         )
 
         self._app.add_url_rule(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/fail",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/fail",
             endpoint="send_callback_failure",
             view_func=self._send_callback_failure_handler,
             methods=["POST"],
         )
 
         self._app.add_url_rule(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/heartbeat",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/heartbeat",
             endpoint="send_callback_heartbeat",
             view_func=self._send_callback_heartbeat_handler,
             methods=["POST"],
