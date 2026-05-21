@@ -1206,6 +1206,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
+                language_extensions_enabled=False,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1387,6 +1388,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
+                language_extensions_enabled=False,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -3165,3 +3167,39 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
             import shutil
 
             shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+class TestTemplateLanguageExtensionsKwarg(unittest.TestCase):
+    """Tests for Template.__init__ language_extensions_enabled kwarg."""
+
+    def test_disabled_passes_enabled_false(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+            language_extensions_enabled=False,
+        )
+        self.assertFalse(template.language_extensions_enabled)
+
+    def test_enabled_passes_enabled_true(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+            language_extensions_enabled=True,
+        )
+        self.assertTrue(template.language_extensions_enabled)
+
+    def test_default_is_false(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+        )
+        self.assertFalse(template.language_extensions_enabled)

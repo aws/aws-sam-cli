@@ -2168,7 +2168,7 @@ class TestBuildWithLanguageExtensions(BuildIntegBase):
     template = "language-extensions.yaml"
 
     def test_validation_does_not_error_out(self):
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list() + ["--language-extensions"]
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(process_execute.process.returncode, 0)
         self.assertIn("template.yaml", os.listdir(self.default_build_dir))
