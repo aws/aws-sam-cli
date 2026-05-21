@@ -24,8 +24,12 @@ import boto3
 import click
 
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
-from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
+from samcli.lib.cfn_language_extensions.sam_integration import (
+    expand_language_extensions,
+    resolve_language_extensions_enabled,
+)
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template, _export_global_artifacts_pass
 from samcli.lib.package.code_signer import CodeSigner
