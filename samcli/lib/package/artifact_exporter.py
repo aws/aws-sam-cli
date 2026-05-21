@@ -207,9 +207,7 @@ class CloudFormationStackResource(ResourceZip):
                 resource_dict,
             )
         else:
-            exported_template_dict = self._do_export_without_language_extensions(
-                resource_id, template_path, parent_dir
-            )
+            exported_template_dict = self._do_export_without_language_extensions(resource_id, template_path, parent_dir)
 
         exported_template_str = yaml_dump(exported_template_dict)
 
@@ -224,9 +222,7 @@ class CloudFormationStackResource(ResourceZip):
             s3_path_url = self.uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
             set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, s3_path_url)
 
-    def _do_export_without_language_extensions(
-        self, resource_id: str, template_path: str, parent_dir: str
-    ) -> Dict:
+    def _do_export_without_language_extensions(self, resource_id: str, template_path: str, parent_dir: str) -> Dict:
         """LE-off branch: legacy path-based Template construction.
 
         Template.export() runs its own internal _export_global_artifacts so
@@ -293,9 +289,7 @@ class CloudFormationStackResource(ResourceZip):
         parent_parameter_values = dict(self.parent_parameter_values or {})
 
         nested_params = resource_dict.get("Parameters", {}) or {}
-        resolved_nested_params = _resolve_nested_stack_parameters(
-            nested_params, parent_parameter_values
-        )
+        resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
 
         parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(parent_parameter_values)

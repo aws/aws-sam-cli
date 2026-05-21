@@ -3234,9 +3234,7 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
         uploaders_mock = Mock()
         uploaders_mock.get.return_value = Mock()
         uploaders_mock.get.return_value.upload.return_value = "s3://bucket/key"
-        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = (
-            "http://s3.amazonaws.com/bucket/key"
-        )
+        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = "http://s3.amazonaws.com/bucket/key"
         code_signer_mock = Mock()
         code_signer_mock.should_sign_package.return_value = False
         return CloudFormationStackResource(uploaders_mock, code_signer_mock)
@@ -3257,15 +3255,11 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
         try:
             child_path = self._write_minimal_child(tmpdir)
             with (
-                patch(
-                    "samcli.lib.package.artifact_exporter.expand_language_extensions"
-                ) as mock_expand,
+                patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as mock_expand,
                 patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
             ):
                 TemplateMock.return_value.export.return_value = {"Resources": {}}
-                stack_resource.do_export(
-                    "ChildStack", {"TemplateURL": child_path}, tmpdir
-                )
+                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
 
             mock_expand.assert_not_called()
         finally:
@@ -3288,15 +3282,11 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
         try:
             child_path = self._write_minimal_child(tmpdir)
             with (
-                patch(
-                    "samcli.lib.package.artifact_exporter._export_global_artifacts_pass"
-                ) as mock_pre_pass,
+                patch("samcli.lib.package.artifact_exporter._export_global_artifacts_pass") as mock_pre_pass,
                 patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
             ):
                 TemplateMock.return_value.export.return_value = {"Resources": {}}
-                stack_resource.do_export(
-                    "ChildStack", {"TemplateURL": child_path}, tmpdir
-                )
+                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
 
             mock_pre_pass.assert_not_called()
         finally:
