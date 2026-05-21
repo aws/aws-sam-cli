@@ -3111,6 +3111,140 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
 
             shutil.rmtree(tmpdir, ignore_errors=True)
 
+    def test_parent_param_does_not_leak_into_child_with_same_name(self):
+        """Parent stack has parameter_values = {"Foo": "parent_foo"} but the
+        nested-stack Parameters: block does NOT rebind Foo. The captured
+        parameter_values passed to expand_language_extensions must NOT
+        contain Foo — CFN's contract is that non-rebound parent params
+        don't reach the child.
+        """
+        stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
+
+        child_template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"Foo": {"Type": "String"}},
+            "Resources": {},
+        }
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = os.path.join(tmpdir, "child.yaml")
+            from samcli.yamlhelper import yaml_dump
+
+            with open(child_path, "w", encoding="utf-8") as f:
+                f.write(yaml_dump(child_template))
+
+            # Parent has a non-pseudo Foo with a value — this is the leak source.
+            stack_resource.parent_parameter_values = {
+                "AWS::Region": "us-east-1",
+                "AWS::AccountId": "123456789012",
+                "Foo": "parent_foo",
+            }
+            # Nested-stack Parameters: does NOT rebind Foo.
+            resource_dict = {
+                "TemplateURL": child_path,
+                "Parameters": {},
+            }
+
+            with patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock:
+                expand_mock.return_value = Mock(had_language_extensions=False)
+                with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+                    TemplateMock.return_value.export.return_value = {"Resources": {}}
+                    stack_resource.do_export("ChildStack", resource_dict, tmpdir)
+
+            call_args = expand_mock.call_args[0]
+            call_kwargs = expand_mock.call_args[1]
+            passed_params = call_args[1] if len(call_args) > 1 else call_kwargs.get("parameter_values", {})
+
+            self.assertNotIn(
+                "Foo",
+                passed_params,
+                "Non-pseudo parent param leaked into child's parameter_values " "(CFN-parity violation).",
+            )
+            # Pseudos still propagate.
+            self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
+            self.assertEqual(passed_params.get("AWS::AccountId"), "123456789012")
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_child_default_still_resolves_via_resolver_fallback(self):
+        """Child template declares Parameters.Bar with a Default. Parent does
+        not rebind Bar. After we drop the bulk parent-set copy, Bar still
+        resolves to its Default at expansion time via the LE expander's
+        parsed_template fallback (resolvers/fn_ref.py:_resolve_parameter).
+
+        This test is the load-bearing guard for the design decision to NOT
+        fold child Defaults into the helper. If the resolver fallback
+        regresses or stops firing (e.g., parsed_template wiring changes),
+        this test fails and tells us to revisit the helper.
+
+        Real end-to-end: expand_language_extensions is NOT mocked.
+        """
+        stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
+
+        child_template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"Bar": {"Type": "CommaDelimitedList", "Default": "bar_default"}},
+            "Resources": {
+                "Fn::ForEach::Vals": [
+                    "Item",
+                    {"Ref": "Bar"},
+                    {"${Item}Topic": {"Type": "AWS::SNS::Topic", "Properties": {}}},
+                ]
+            },
+        }
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            child_path = os.path.join(tmpdir, "child.yaml")
+            from samcli.yamlhelper import yaml_dump
+
+            with open(child_path, "w", encoding="utf-8") as f:
+                f.write(yaml_dump(child_template))
+
+            stack_resource.parent_parameter_values = {
+                "AWS::Region": "us-east-1",
+                "AWS::AccountId": "123456789012",
+            }
+            resource_dict = {
+                "TemplateURL": child_path,
+                "Parameters": {},
+            }
+
+            captured = {}
+
+            def capture_template_dict(*args, **kwargs):
+                captured["template_dict"] = kwargs.get("template_dict")
+                inner = Mock()
+                inner.export.return_value = {"Resources": {}}
+                return inner
+
+            with patch(
+                "samcli.lib.package.artifact_exporter.Template",
+                side_effect=capture_template_dict,
+            ):
+                stack_resource.do_export("ChildStack", resource_dict, tmpdir)
+
+            expanded = captured.get("template_dict") or {}
+            resources = expanded.get("Resources", {})
+            # Default "bar_default" should have been substituted into the
+            # ForEach loop, producing a "bar_defaultTopic" resource.
+            self.assertIn(
+                "bar_defaultTopic",
+                resources,
+                "Child Default did not resolve via resolver fallback. " "Expanded Resources: %r" % (resources,),
+            )
+        finally:
+            import shutil
+
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
 
 class TestCloudFormationStackResourceBuriedAWSInclude(unittest.TestCase):
     """Nested-stack child template containing AWS::Include buried inside an

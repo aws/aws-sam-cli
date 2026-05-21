@@ -315,23 +315,15 @@ class CloudFormationStackResource(ResourceZip):
             child_template_dir,
         )
 
-        # Merge pseudo-parameters with:
-        #  1) values propagated from the parent Template (parent stack's own params
-        #     + CLI --parameter-overrides + pseudo-params), used to resolve intrinsics
-        #     in the nested stack's Parameters property;
-        #  2) the nested stack's Parameters property on the parent resource, which is
-        #     the authoritative source for the child's parameter values at deploy time.
-        # Child-local values override parent-propagated ones on key conflict, which
-        # matches CloudFormation's behavior (a child parameter shadows a same-named
-        # parent parameter unless explicitly wired).
-        parent_parameter_values = dict(self.parent_parameter_values or {})
-
-        nested_params = resource_dict.get("Parameters", {}) or {}
-        resolved_nested_params = _resolve_nested_stack_parameters(nested_params, parent_parameter_values)
-
-        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
-        parameter_values.update(parent_parameter_values)
-        parameter_values.update(resolved_nested_params)
+        # Build the child stack's parameter_values dict with CFN-parity scope:
+        # pseudo-params (parent overrides honored for pseudo names) and
+        # parent-rebound values via the nested-stack Parameters property.
+        # Child Defaults are read by the LE expander itself from
+        # parsed_template.parameters[X].Default — see _build_child_parameter_values.
+        parameter_values = _build_child_parameter_values(
+            self.parent_parameter_values,
+            resource_dict.get("Parameters", {}) or {},
+        )
 
         try:
             result = expand_language_extensions(
