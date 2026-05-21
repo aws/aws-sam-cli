@@ -178,92 +178,23 @@ class PackageContext:
             raise PackageFailedError(template_file=self.template_file, ex=str(ex)) from ex
 
     def _export(self, template_path, use_json):
-        from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
-        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
-
-        # Read the original template
+        # Read + parse once. Branch methods receive the parsed dict and
+        # return the output dict; this dispatcher owns the I/O bookends.
         with open(template_path, "r", encoding="utf-8") as f:
             original_template_dict = yaml_parse(f.read())
 
-        # Process AWS::Include (and other global Fn::Transform exporters) on the
-        # original template before language-extension expansion. This mirrors
-        # CloudFormation's server-side transform ordering and prevents LE
-        # functions like Fn::ToJsonString from collapsing structural Fn::Transform
-        # nodes into JSON-string literals before the exporter can reach them.
-        # See aws/aws-sam-cli#9027.
-        #
-        # NOTE: this mutates original_template_dict in place. The mutation must
-        # happen before expand_language_extensions snapshots the tree, so both
-        # result.original_template and result.expanded_template see the rewrite.
-        template_dir = os.path.dirname(os.path.abspath(template_path))
-        _export_global_artifacts_pass(
-            original_template_dict,
-            self.uploaders.get(Destination.S3),
-            template_dir,
-        )
-
-        # Build combined parameter values for expand_language_extensions
-        parameter_values = {}
-        parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
-        if self.parameter_overrides:
-            parameter_values.update(self.parameter_overrides)
-        if self._global_parameter_overrides:
-            parameter_values.update(self._global_parameter_overrides)
-
-        # Use the canonical expand_language_extensions() entry point (Phase 1)
-        try:
-            result = expand_language_extensions(
-                original_template_dict, parameter_values, enabled=self._language_extensions_enabled
-            )
-        except InvalidSamDocumentException as e:
-            raise PackageFailedError(template_file=self.template_file, ex=str(e)) from e
-
-        uses_language_extensions = result.had_language_extensions
-        dynamic_properties = result.dynamic_artifact_properties
-
-        # Create Template with the (possibly expanded) template dict directly,
-        # avoiding a yaml_dump → yaml_parse round-trip.
-        template = Template(
-            template_path,
-            os.getcwd(),
-            self.uploaders,
-            self.code_signer,
-            normalize_template=True,
-            normalize_parameters=True,
-            template_dict=copy.deepcopy(result.expanded_template),
-            parameter_values=parameter_values,
-            language_extensions_enabled=self._language_extensions_enabled,
-        )
-
-        exported_template = template.export()
-
-        # If using language extensions, we need to preserve the original Fn::ForEach structure
-        # but update the artifact URIs (CodeUri, ContentUri, etc.) with the S3 locations
-        if uses_language_extensions:
-            LOG.debug("Template uses language extensions, preserving Fn::ForEach structure")
-            output_template = merge_language_extensions_s3_uris(
-                result.original_template, exported_template, dynamic_properties
-            )
-
-            # Generate Mappings for dynamic artifact properties
-            if dynamic_properties:
-                LOG.debug("Generating Mappings for %d dynamic artifact properties", len(dynamic_properties))
-
-                template_dir = os.path.dirname(os.path.abspath(template_path))
-                exported_resources = exported_template.get("Resources", {})
-
-                output_template = generate_and_apply_artifact_mappings(
-                    output_template, dynamic_properties, exported_resources, template_dir
-                )
+        # Structural fork on the opt-in flag (#9033). When LE is disabled
+        # we never invoke any LE machinery — no expand_language_extensions,
+        # no pre-LE _export_global_artifacts_pass, no merge or Mappings.
+        # See aws/aws-sam-cli#9027 for why the on path needs the pre-LE pass.
+        if self._language_extensions_enabled:
+            output_template = self._export_with_language_extensions(template_path, original_template_dict)
         else:
-            output_template = exported_template
+            output_template = self._export_without_language_extensions(template_path, original_template_dict)
 
         if use_json:
-            exported_str = json.dumps(output_template, indent=4, ensure_ascii=False)
-        else:
-            exported_str = yaml_dump(output_template)
-
-        return exported_str
+            return json.dumps(output_template, indent=4, ensure_ascii=False)
+        return yaml_dump(output_template)
 
     def _export_without_language_extensions(self, template_path, original_template_dict):
         """Export a template with AWS::LanguageExtensions opt-in disabled.
