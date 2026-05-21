@@ -1,5 +1,6 @@
 """Test sam package command"""
 
+import os
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock, call, ANY
 from parameterized import parameterized
@@ -27,9 +28,11 @@ from samcli.lib.package.language_extensions_packaging import (
     _apply_artifact_mappings_to_template,
     _replace_dynamic_artifact_with_findmap,
 )
+from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
+from samcli.yamlhelper import yaml_parse
 
 
 class TestPackageCommand(TestCase):
@@ -4475,12 +4478,6 @@ class TestPackageContextBuriedAWSInclude(TestCase):
     """
 
     def setUp(self):
-        import os
-        import tempfile
-
-        from samcli.commands.package.package_context import PackageContext
-        from samcli.lib.package.uploaders import Destination, Uploaders
-
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
 
@@ -4530,8 +4527,6 @@ class TestPackageContextBuriedAWSInclude(TestCase):
         self.ctx._language_extensions_enabled = True
 
     def test_buried_aws_include_location_is_rewritten(self):
-        from samcli.yamlhelper import yaml_parse
-
         exported_str = self.ctx._export(self.template_path, use_json=False)
 
         exported = yaml_parse(exported_str)
