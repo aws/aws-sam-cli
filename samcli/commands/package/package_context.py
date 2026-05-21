@@ -287,6 +287,73 @@ class PackageContext:
         )
         return template.export()
 
+    def _export_with_language_extensions(self, template_path, original_template_dict):
+        """Export a template with AWS::LanguageExtensions processing enabled.
+
+        Order matters here:
+          1. Run AWS::Include (and any other GLOBAL_TRANSFORM_EXPORTS) on the
+             original template *before* LE expansion. LE functions like
+             Fn::ToJsonString json.dumps() their argument and collapse any
+             structural Fn::Transform subtree into a JSON-string literal,
+             which would hide the include from the post-export walker.
+             See aws/aws-sam-cli#9027.
+          2. Run expand_language_extensions to materialize Fn::ForEach,
+             Fn::ToJsonString, etc. into a flat resource list.
+          3. Run Template.export() on the expanded copy.
+          4. Merge the S3 URIs back into the original Fn::ForEach structure
+             and apply Mappings for any dynamic artifact properties.
+        """
+        template_dir = os.path.dirname(os.path.abspath(template_path))
+        _export_global_artifacts_pass(
+            original_template_dict,
+            self.uploaders.get(Destination.S3),
+            template_dir,
+        )
+
+        parameter_values = {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES}
+        if self.parameter_overrides:
+            parameter_values.update(self.parameter_overrides)
+        if self._global_parameter_overrides:
+            parameter_values.update(self._global_parameter_overrides)
+
+        try:
+            result = expand_language_extensions(original_template_dict, parameter_values, enabled=True)
+        except InvalidSamDocumentException as e:
+            raise PackageFailedError(template_file=self.template_file, ex=str(e)) from e
+
+        template = Template(
+            template_path,
+            os.getcwd(),
+            self.uploaders,
+            self.code_signer,
+            normalize_template=True,
+            normalize_parameters=True,
+            template_dict=copy.deepcopy(result.expanded_template),
+            parameter_values=parameter_values,
+            language_extensions_enabled=True,
+        )
+        exported_template = template.export()
+
+        if not result.had_language_extensions:
+            return exported_template
+
+        LOG.debug("Template uses language extensions, preserving Fn::ForEach structure")
+        output_template = merge_language_extensions_s3_uris(
+            result.original_template, exported_template, result.dynamic_artifact_properties
+        )
+        if result.dynamic_artifact_properties:
+            LOG.debug(
+                "Generating Mappings for %d dynamic artifact properties",
+                len(result.dynamic_artifact_properties),
+            )
+            output_template = generate_and_apply_artifact_mappings(
+                output_template,
+                result.dynamic_artifact_properties,
+                exported_template.get("Resources", {}),
+                template_dir,
+            )
+        return output_template
+
     @staticmethod
     def _warn_preview_runtime(stacks: List[Stack]) -> None:
         for stack in stacks:
