@@ -53,7 +53,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
         """Test that sam build expands Fn::ForEach and builds each generated function."""
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
 
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
@@ -71,7 +71,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
 
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
@@ -237,7 +237,7 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
 
         runtime = self._get_python_version()
         overrides = {"Runtime": runtime}
-        cmdlist = self.get_command_list(parameter_overrides=overrides)
+        cmdlist = self.get_command_list(parameter_overrides=overrides) + ["--language-extensions"]
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 0, f"Build failed: {command_result.stderr.decode('utf-8')}")
@@ -265,3 +265,28 @@ class TestBuildCommand_LanguageExtensions(BuildIntegBase):
             for svc in ["Users", "Orders"]:
                 func_dir = self.default_build_dir.joinpath(f"{env}{svc}Function")
                 self.assertTrue(func_dir.exists(), f"Build artifact for {env}{svc}Function should exist")
+
+    def test_build_without_flag_does_not_expand_foreach(self):
+        """Without --language-extensions, sam build does not expand Fn::ForEach."""
+        runtime = self._get_python_version()
+        overrides = {"Runtime": runtime}
+        cmdlist = self.get_command_list(parameter_overrides=overrides)
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        if command_result.process.returncode == 0:
+            build_dir_files = os.listdir(str(self.default_build_dir))
+            for function_name in self.FOREACH_GENERATED_FUNCTIONS:
+                self.assertNotIn(
+                    function_name,
+                    build_dir_files,
+                    f"{function_name} should not exist when --language-extensions is off",
+                )
+        else:
+            # Build failed because SAM transform cannot process unexpanded
+            # Fn::ForEach — this is acceptable opt-out behavior.
+            stderr = command_result.stderr.decode("utf-8", errors="replace")
+            self.assertTrue(
+                "ForEach" in stderr or "Invalid" in stderr or "Error" in stderr,
+                f"Build failure should relate to unexpanded template, got: {stderr[:200]}",
+            )

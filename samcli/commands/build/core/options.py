@@ -38,7 +38,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "base_dir",
 ]
 
-TEMPLATE_OPTIONS: List[str] = ["parameter_overrides"]
+TEMPLATE_OPTIONS: List[str] = ["parameter_overrides", "language_extensions"]
 
 TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_project_root_path"]
 
