@@ -2070,7 +2070,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
 
-            result = expand_language_extensions(template_dict, parameter_values)
+            result = expand_language_extensions(template_dict, parameter_values, enabled=True)
             self.assertTrue(result.had_language_extensions)
 
             template = Template(
@@ -2168,7 +2168,7 @@ class TestArtifactExporter(unittest.TestCase):
 
             parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
 
-            result = expand_language_extensions(template_dict, parameter_values)
+            result = expand_language_extensions(template_dict, parameter_values, enabled=True)
             self.assertTrue(result.had_language_extensions)
 
             template = Template(

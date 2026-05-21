@@ -4524,6 +4524,10 @@ class TestPackageContextBuriedAWSInclude(TestCase):
         self.ctx.code_signer = MagicMock()
         self.ctx.parameter_overrides = {}
         self.ctx._global_parameter_overrides = {}
+        # Language Extensions is opt-in (#9033); the buried-AWS::Include regression
+        # test exercises a template that uses Transform: AWS::LanguageExtensions,
+        # so enable LE expansion explicitly.
+        self.ctx._language_extensions_enabled = True
 
     def test_buried_aws_include_location_is_rewritten(self):
         from samcli.yamlhelper import yaml_parse
