@@ -1,8 +1,10 @@
 import functools
+import inspect
 import json
 import os
 import platform
 import random
+import shutil
 import string
 import tempfile
 import unittest
@@ -23,7 +25,9 @@ from samcli.lib.package.artifact_exporter import (
     CloudFormationStackResource,
     CloudFormationStackSetResource,
     ServerlessApplicationResource,
+    _build_child_parameter_values,
 )
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.packageable_resources import (
     GraphQLApiCodeResource,
     GraphQLApiSchemaResource,
@@ -70,6 +74,7 @@ from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
+from samcli.yamlhelper import yaml_dump
 from tests.testing_utils import FileCreator
 
 
@@ -2952,8 +2957,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
 
     def test_excludes_non_pseudo_parent_params(self):
         """Non-pseudo parent names must not leak into the child's scope."""
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-
         result = _build_child_parameter_values(
             parent_parameter_values={"Foo": "parent_foo", "AWS::Region": "us-east-1"},
             nested_stack_parameters={},
@@ -2965,8 +2968,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
 
     def test_includes_pseudo_overrides_from_parent(self):
         """Parent's override of a pseudo name must propagate to the child."""
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-
         result = _build_child_parameter_values(
             parent_parameter_values={"AWS::Region": "eu-west-1"},
             nested_stack_parameters={},
@@ -2976,8 +2977,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
 
     def test_resolved_nested_rebinding_appears_in_result(self):
         """Parent-rebound values reach the child."""
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-
         result = _build_child_parameter_values(
             parent_parameter_values={"ParentBar": "rebound"},
             nested_stack_parameters={"Bar": {"Ref": "ParentBar"}},
@@ -2991,8 +2990,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
         the merge order). Preserves existing _resolve_nested_stack_parameters
         semantics.
         """
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-
         result = _build_child_parameter_values(
             parent_parameter_values={"AWS::Region": "us-east-1", "MyRegion": "ap-south-1"},
             nested_stack_parameters={"AWS::Region": {"Ref": "MyRegion"}},
@@ -3003,9 +3000,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
     def test_no_parent_parameter_values_uses_defaults(self):
         """parent_parameter_values=None must not crash and must yield exactly
         the default pseudo-param baseline."""
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-
         result = _build_child_parameter_values(
             parent_parameter_values=None,
             nested_stack_parameters={},
@@ -3020,9 +3014,6 @@ class TestBuildChildParameterValues(unittest.TestCase):
         here. If a future contributor adds Default-folding to this helper,
         this test prevents that drift.
         """
-        from samcli.lib.package.artifact_exporter import _build_child_parameter_values
-        import inspect
-
         sig = inspect.signature(_build_child_parameter_values)
         self.assertEqual(
             list(sig.parameters.keys()),
@@ -3125,8 +3116,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
         tmpdir = tempfile.mkdtemp()
         try:
             child_path = os.path.join(tmpdir, "child.yaml")
-            from samcli.yamlhelper import yaml_dump
-
             with open(child_path, "w", encoding="utf-8") as f:
                 f.write(yaml_dump(child_template))
 
@@ -3161,8 +3150,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
             self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
             self.assertEqual(passed_params.get("AWS::AccountId"), "123456789012")
         finally:
-            import shutil
-
             shutil.rmtree(tmpdir, ignore_errors=True)
 
     def test_child_default_still_resolves_via_resolver_fallback(self):
@@ -3185,8 +3172,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
         tmpdir = tempfile.mkdtemp()
         try:
             child_path = os.path.join(tmpdir, "child.yaml")
-            from samcli.yamlhelper import yaml_dump
-
             with open(child_path, "w", encoding="utf-8") as f:
                 f.write(yaml_dump(child_template))
 
@@ -3223,8 +3208,6 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
                 "Child Default did not resolve via resolver fallback. " "Expanded Resources: %r" % (resources,),
             )
         finally:
-            import shutil
-
             shutil.rmtree(tmpdir, ignore_errors=True)
 
 
