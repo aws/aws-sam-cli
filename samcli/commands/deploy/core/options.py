@@ -43,6 +43,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ADDITIONAL_OPTIONS: List[str] = [
+    "language_extensions",
     "no_progressbar",
     "signing_profiles",
     "template_file",

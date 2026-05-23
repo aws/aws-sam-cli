@@ -29,6 +29,7 @@ from samcli.commands._utils.options import (
     image_repositories_option,
     image_repository_option,
     kms_key_id_option,
+    language_extensions_option,
     metadata_option,
     notification_arns_option,
     parameter_override_option,
@@ -47,6 +48,7 @@ from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
 from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.providers.provider import (
     ResourceIdentifier,
@@ -179,6 +181,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @notification_arns_option
 @tags_option
 @capabilities_option(default=DEFAULT_CAPABILITIES)  # pylint: disable=E1120
+@language_extensions_option
 @save_params_option
 @pass_context
 @track_command
@@ -219,6 +222,7 @@ def cli(
     build_image: Optional[Tuple[str]],
     build_in_source: Optional[bool],
     watch_exclude: Optional[Dict[str, List[str]]],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     `sam sync` command entry point
@@ -257,6 +261,7 @@ def cli(
         config_env,
         build_in_source,
         watch_exclude,
+        language_extensions,
     )  # pragma: no cover
 
 
@@ -291,6 +296,7 @@ def do_cli(
     config_env: str,
     build_in_source: Optional[bool],
     watch_exclude: Optional[Dict[str, List[str]]],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -312,7 +318,7 @@ def do_cli(
     s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
     if dependency_layer is True:
-        dependency_layer = check_enable_dependency_layer(template_file)
+        dependency_layer = check_enable_dependency_layer(template_file, language_extensions)
 
     # Note: ADL with use-container is not supported yet. Remove this logic once its supported.
     if use_container and dependency_layer:
@@ -345,6 +351,7 @@ def do_cli(
         locate_layer_nested=True,
         build_in_source=build_in_source,
         build_images=processed_build_images,
+        language_extensions=language_extensions,
     ) as build_context:
         built_template = os.path.join(build_dir, DEFAULT_TEMPLATE_NAME)
 
@@ -363,6 +370,7 @@ def do_cli(
                 profile=profile,
                 use_json=False,
                 force_upload=True,
+                language_extensions=language_extensions,
             ) as package_context:
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5
@@ -399,12 +407,14 @@ def do_cli(
                     poll_delay=poll_delay,
                     on_failure=None,
                     max_wait_duration=60,
+                    language_extensions=language_extensions,
                 ) as deploy_context:
                     with SyncContext(
                         dependency_layer,
                         build_context.build_dir,
                         build_context.cache_dir,
                         skip_deploy_sync,
+                        language_extensions=language_extensions,
                     ) as sync_context:
                         if watch:
                             watch_excludes_filter = watch_exclude or {}
@@ -507,7 +517,9 @@ def execute_code_sync(
     use_built_resources: bool
         Boolean flag to whether to use pre-build resources from BuildContext or build resources from scratch
     """
-    stacks = SamLocalStackProvider.get_stacks(template)[0]
+    stacks = SamLocalStackProvider.get_stacks(
+        template, language_extensions_enabled=sync_context.language_extensions_enabled
+    )[0]
     factory = SyncFlowFactory(build_context, deploy_context, sync_context, stacks, auto_dependency_layer)
     factory.load_physical_id_mapping()
     executor = SyncFlowExecutor()
@@ -573,13 +585,15 @@ def execute_watch(
     watch_manager.start()
 
 
-def check_enable_dependency_layer(template_file: str):
+def check_enable_dependency_layer(template_file: str, language_extensions: Optional[bool] = None):
     """
     Check if auto dependency layer should be enabled
     :param template_file: template file string
+    :param language_extensions: language extensions flag
     :return: True if ADL should be enabled, False otherwise
     """
-    stacks, _ = SamLocalStackProvider.get_stacks(template_file)
+    language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+    stacks, _ = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=language_extensions_enabled)
     for stack in stacks:
         esbuild = EsbuildBundlerManager(stack)
         if esbuild.esbuild_configured():

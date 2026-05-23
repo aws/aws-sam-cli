@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for CloudFormation Language Extensions with API Gateway.
+  Demonstrates Fn::ForEach usage for generating multiple API endpoints.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.12
+    Description: Python runtime version for Lambda functions
+
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+    Runtime: !Ref Runtime
+
+Resources:
+  # Test Fn::ForEach generating multiple Lambda functions with API events
+  # This generates AlphaFunction and BetaFunction with /alpha and /beta endpoints
+  Fn::ForEach::ApiFunctions:
+    - FunctionName
+    - - alpha
+      - beta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: .
+          Events:
+            ApiEvent:
+              Type: Api
+              Properties:
+                Path: !Sub /${FunctionName}
+                Method: get
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}

@@ -1,0 +1,69 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "Stage": {
+      "Type": "String",
+      "Default": "prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "Key": "Value"
+      },
+      "us-west-1" : {
+        "Key": "Value"
+      },
+      "{}": {
+        "Key": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "test-bucket"
+      }
+    },
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": {
+            "map": {
+              "Fn::FindInMap" : [
+                "RegionMap",
+                { "Fn::ToJsonString": {} },
+                "Key"
+              ]
+            },
+            "if": { "Fn::If": ["IsProd", { "Fn::ToJsonString": { "key": "value" } }, "Delete" ] },
+            "base64": { "Fn::Base64": { "Fn::ToJsonString": { "key": { "Fn::Base64": "SomeValueToEncode" } } } },
+            "join": { "Fn::Join": [ ":", [ "a", { "Fn::ToJsonString": { "key": "value" } }, "c" ] ] },
+            "select": { "Fn::Select" : [ "1", [ "apples", { "Fn::ToJsonString": { "key": "value" } }, "oranges", "mangoes" ] ] },
+            "split": { "Fn::Split": [ ",", { "Fn::ToJsonString": { "key": "value", "key2": "value2" } } ] },
+            "sub": {
+              "Fn::Sub" : [
+                "${jsonString}",
+                {
+                  "jsonString": {
+                    "Fn::ToJsonString": { "key": "value" }
+                  }
+                }
+              ]
+            },
+            "length": { "Fn::Length" : [ { "Fn::ToJsonString": { "key": "value" } }, [ "apples", "grapes", "oranges", "mangoes" ] ] }
+          }
+        }
+      }
+    }
+  }
+}

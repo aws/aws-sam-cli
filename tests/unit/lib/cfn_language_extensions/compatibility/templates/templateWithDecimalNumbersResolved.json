@@ -1,0 +1,30 @@
+{
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "MaxVal": {
+      "Type": "Number",
+      "Default": 99999999999.99
+    }
+  },
+  "Resources": {
+    "NullResource": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "Metadata": {
+        "RandomSmallInteger": 10,
+        "EmbeddedValue": 99999999999.99,
+        "ParameterReference": 99999999999.99,
+        "IncludedTransform": {
+          "Fn::Transform": {
+            "Name": "AWS::Include",
+            "Parameters": {
+              "maximum": 99999999999.99
+            }
+          }
+        }
+      }
+    },
+    "Outputs":{},
+    "AWSTemplateFormatVersion":"2010-09-09",
+    "Hooks":{}
+  }
+}

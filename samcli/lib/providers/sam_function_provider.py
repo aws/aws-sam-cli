@@ -893,6 +893,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        language_extensions_enabled: bool = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -924,6 +925,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         self._ignore_code_extraction_warnings = ignore_code_extraction_warnings
         self._parameter_overrides = parameter_overrides
         self._global_parameter_overrides = global_parameter_overrides
+        self._language_extensions_enabled = language_extensions_enabled
         self.parent_templates_paths = []
         for stack in self._stacks:
             if stack.is_root_stack:
@@ -1011,6 +1013,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         Applies the same function filter during refresh.
         """
         LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+
         self._stacks = []
 
         for template_file in self.parent_templates_paths:
@@ -1019,6 +1022,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                     template_file,
                     parameter_overrides=self._parameter_overrides,
                     global_parameter_overrides=self._global_parameter_overrides,
+                    language_extensions_enabled=self._language_extensions_enabled,
                 )
                 self._stacks += template_stacks
             except (TemplateNotFoundException, TemplateFailedParsingException) as ex:

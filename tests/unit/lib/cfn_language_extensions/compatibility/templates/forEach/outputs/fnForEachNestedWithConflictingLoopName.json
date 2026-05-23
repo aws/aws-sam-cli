@@ -1,0 +1,68 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  },
+  "Outputs": {
+    "Fn::ForEach::UniqueLoopName": [
+      "param1",
+      ["1"],
+      {
+        "Output${param1}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${param1}"}
+        },
+        "Fn::ForEach::UniqueLoopName2": [
+          "param2",
+          ["A"],
+          {
+            "Output${param1}${param2}": {
+              "Description": "MyDescription",
+              "Value": {"Fn::Sub": "Topic${param1}${param2}"}
+            },
+            "Fn::ForEach::UniqueLoopName3": [
+              "param3",
+              ["2"],
+              {
+                "Output${param1}${param2}${param3}": {
+                  "Description": "MyDescription",
+                  "Value": {"Fn::Sub": "Topic${param1}${param2}${param3}"}
+                },
+                "Fn::ForEach::UniqueLoopName4": [
+                  "param4",
+                  ["B"],
+                  {
+                    "Output${param1}${param2}${param3}${param4}": {
+                      "Description": "MyDescription",
+                      "Value": {"Fn::Sub": "Topic${param1}${param2}${param3}${param4}"}
+                    },
+                    "Fn::ForEach::UniqueLoopName": [
+                      "param5",
+                      ["3"],
+                      {
+                        "Output${param1}${param2}${param3}${param4}${param5}": {
+                          "Description": "MyDescription",
+                          "Value": {"Fn::Sub": "Topic${param1}${param2}${param3}${param4}${param5}"}
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "Output0": {
+      "Description": "MyDescription",
+      "Value": {"Ref": "Topic0"}
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "parameter1": {
+      "Type": "String"
+    }
+  },
+  "Resources": {
+    "EC2Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "BlockDeviceMappings": {
+          "DeviceName": "/dev/xvda",
+          "Ebs": {
+            "DeleteOnTermination": "true",
+            "VolumeSize": "30",
+            "VolumeType": "gp2"
+          }
+        },
+        "InstanceType": "t2.large"
+      }
+    }
+  },
+  "Outputs": {
+    "InstanceID": {
+      "Description": "The Instance ID",
+      "Value": {
+        "Fn::Join": [
+          "-",
+          [
+            {
+              "Ref": "EC2Instance"
+            },
+            {
+              "Fn::Select": [
+                {"Fn::Length": [1, 2, 3]},
+                ["", "", "", "test"]
+              ]
+            }
+          ]
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Join": [
+            "-",
+            ["1", "2",
+              {
+                "Fn::Select": [
+                  {"Fn::Length": [1, 2]},
+                  ["", "", "test"]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Parameter1Output": {
+      "Description": "Output parameter",
+      "Value": {"Fn::Join": [
+        "-",
+        [{"Ref": "parameter1"}, "test"]
+      ]}
+    }
+  }
+}

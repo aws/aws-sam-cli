@@ -88,6 +88,7 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             container_dns=self.container_dns,
             tenant_id=self.tenant_id,
@@ -128,6 +129,7 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             container_dns=self.container_dns,
         )
@@ -177,6 +179,7 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             container_dns=self.container_dns,
         )
@@ -361,6 +364,7 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             container_dns=self.container_dns,
             tenant_id=tenant_id,
