@@ -218,6 +218,15 @@ def non_interactive_validation(func):
     required=False,
 )
 @click.option(
+    "--checkout",
+    default=None,
+    help="Branch, tag or commit to checkout after git clone.",
+    required=False,
+    cls=ClickMutex,
+    incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
+)
+@click.option(
     "--tracing/--no-tracing",
     default=None,
     help="Enable AWS X-Ray tracing for application.",
@@ -253,6 +262,7 @@ def cli(
     app_template,
     no_input,
     extra_context,
+    checkout,
     tracing,
     application_insights,
     structured_logging,
@@ -278,6 +288,7 @@ def cli(
         app_template,
         no_input,
         extra_context,
+        checkout,
         tracing,
         application_insights,
         structured_logging,
@@ -300,6 +311,7 @@ def do_cli(
     app_template,
     no_input,
     extra_context,
+    checkout,
     tracing,
     application_insights,
     structured_logging,
@@ -356,6 +368,7 @@ def do_cli(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
     else:
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
@@ -377,6 +390,7 @@ def do_cli(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
 
 

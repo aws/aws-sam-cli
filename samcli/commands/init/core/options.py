@@ -22,7 +22,7 @@ APPLICATION_OPTIONS: List[str] = [
 ]
 
 # Can be used instead of the options in the first list
-NON_INTERACTIVE_OPTIONS: List[str] = ["no_interactive", "no_input", "extra_context"]
+NON_INTERACTIVE_OPTIONS: List[str] = ["no_interactive", "no_input", "extra_context", "checkout"]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
