@@ -142,7 +142,7 @@ Make sure you are in the same virtual environment as the one you are using with 
 ```sh
 source <sam-cli-directory-path>/.venv/bin/activate  # if you chose to use venv to setup the virtual environment
 # or
-pyenv activate samcli38  # if you chose to use pyenv to setup the virtual environment
+pyenv activate samcli310  # if you chose to use pyenv to setup the virtual environment
 ```
 
 Install the SAM Transformer in editable mode so that 
