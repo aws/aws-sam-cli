@@ -43,7 +43,7 @@ Contributions via pull requests are much appreciated. Before sending us a pull r
 1. You are working against the latest source on the *develop* branch.
 2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
 3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
-4. The change works in Python3 (see supported Python Versions in setup.py)
+4. The change works in supported Python versions (see `pyproject.toml` and CI workflows)
 5. Does the PR have updated/added unit, functional, and integration tests?
 6. PR is merged submitted to merge into develop.
 
