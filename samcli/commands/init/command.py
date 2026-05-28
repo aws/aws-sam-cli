@@ -262,13 +262,13 @@ def cli(
     app_template,
     no_input,
     extra_context,
-    checkout,
     tracing,
     application_insights,
     structured_logging,
     save_params,
     config_file,
     config_env,
+    checkout,
 ):
     """
     `sam init` command entry point
@@ -288,10 +288,10 @@ def cli(
         app_template,
         no_input,
         extra_context,
-        checkout,
         tracing,
         application_insights,
         structured_logging,
+        checkout,
     )  # pragma: no cover
 
 
@@ -311,10 +311,10 @@ def do_cli(
     app_template,
     no_input,
     extra_context,
-    checkout,
     tracing,
     application_insights,
     structured_logging,
+    checkout,
 ):
     """
     Implementation of the ``cli`` method

@@ -82,8 +82,8 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 '{"key": "value", "key2": "value2"}',
                 None,
-                None,
                 ANY,
+                None,
                 None,
             )
 
