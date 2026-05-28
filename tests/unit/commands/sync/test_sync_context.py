@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from unittest import TestCase, mock
 from unittest.mock import mock_open, call, patch, Mock, MagicMock
@@ -488,3 +489,27 @@ sync_time = 1733267435.345701
         current_time = datetime.now(timezone.utc)
         time_diff = current_time - sync_state.latest_infra_sync_time
         self.assertIsNotNone(time_diff)
+
+
+class TestSyncContextLanguageExtensions(TestCase):
+    """Tests for language_extensions_enabled property"""
+
+    def _ctx(self, **kwargs):
+        defaults = dict(
+            dependency_layer=False,
+            build_dir="build",
+            cache_dir=".cache",
+            skip_deploy_sync=False,
+        )
+        defaults.update(kwargs)
+        return SyncContext(**defaults)
+
+    def test_default_is_false(self):
+        assert self._ctx().language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        assert self._ctx(language_extensions=True).language_extensions_enabled is True
+
+    def test_explicit_false_overrides_env(self):
+        with mock.patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False):
+            assert self._ctx(language_extensions=False).language_extensions_enabled is False

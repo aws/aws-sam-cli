@@ -23,6 +23,7 @@ from samcli.commands._utils.options import (
     container_env_var_file_option,
     docker_common_options,
     hook_name_click_option,
+    language_extensions_option,
     manifest_option,
     mount_symlinks_option,
     parameter_override_option,
@@ -87,6 +88,7 @@ DESCRIPTION = """
 @use_container_build_option
 @use_buildkit_option
 @build_in_source_option
+@language_extensions_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -166,6 +168,7 @@ def cli(
     build_in_source: Optional[bool],
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -199,6 +202,7 @@ def cli(
         mount_with,
         mount_symlinks,
         use_buildkit,
+        language_extensions,
     )  # pragma: no cover
 
 
@@ -227,6 +231,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mount_with: str,
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -268,6 +273,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mount_with=mount_with,
         mount_symlinks=mount_symlinks,
         use_buildkit=use_buildkit,
+        language_extensions=language_extensions,
     ) as ctx:
         ctx.run()
 

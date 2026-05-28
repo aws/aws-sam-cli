@@ -218,6 +218,7 @@ class SamLocalStackProvider(SamBaseProvider):
         metadata: Optional[Dict] = None,
         template_dictionary: Optional[Dict] = None,
         use_sam_transform: bool = True,
+        language_extensions_enabled: bool = False,
     ) -> Tuple[List[Stack], List[str]]:
         """
         Recursively extract stacks from a template file.
@@ -243,6 +244,12 @@ class SamLocalStackProvider(SamBaseProvider):
             dictionary representing the sam template. Only one of either template_dict or template_file is required
         use_sam_transform: bool
             Whether to transform the given template with Serverless Application Model. Default is True
+        language_extensions_enabled: bool
+            Whether to run AWS::LanguageExtensions Phase 1 expansion locally.
+            Off by default (matches pre-1.160.0 behavior). Callers at the SAM
+            CLI command boundary (BuildContext, PackageContext, DeployContext,
+            SyncContext, InvokeContext) resolve this via
+            resolve_language_extensions_enabled().
 
         Returns
         -------
@@ -271,7 +278,9 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(merged_params or {})
 
-        lang_ext_result = expand_language_extensions(template_dict, parameter_values=parameter_values)
+        lang_ext_result = expand_language_extensions(
+            template_dict, parameter_values=parameter_values, enabled=language_extensions_enabled
+        )
         processed_template_dict = lang_ext_result.expanded_template
 
         # Store the original template (before language extensions processing) for CloudFormation deployment
@@ -311,6 +320,7 @@ class SamLocalStackProvider(SamBaseProvider):
                 global_parameter_overrides,
                 child_stack.metadata,
                 use_sam_transform=use_sam_transform,
+                language_extensions_enabled=language_extensions_enabled,
             )
             stacks.extend(stacks_in_child)
             remote_stack_full_paths.extend(remote_stack_full_paths_in_child)

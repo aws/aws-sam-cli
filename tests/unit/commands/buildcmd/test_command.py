@@ -41,6 +41,7 @@ class TestDoCli(TestCase):
             mount_with=MountMode.READ,
             mount_symlinks=True,
             use_buildkit=False,
+            language_extensions=None,
         )
 
         BuildContextMock.assert_called_with(
@@ -68,6 +69,7 @@ class TestDoCli(TestCase):
             mount_with=MountMode.READ,
             mount_symlinks=True,
             use_buildkit=False,
+            language_extensions=None,
         )
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)

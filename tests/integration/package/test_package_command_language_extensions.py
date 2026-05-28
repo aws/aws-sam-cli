@@ -41,6 +41,7 @@ class TestPackageLanguageExtensions(PackageIntegBase):
                 output_template_file=output_template.name,
                 force_upload=True,
             )
+            command_list.append("--language-extensions")
 
             process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:
@@ -86,6 +87,7 @@ class TestPackageLanguageExtensions(PackageIntegBase):
                 output_template_file=output_template.name,
                 force_upload=True,
             )
+            command_list.append("--language-extensions")
 
             process = Popen(command_list, stdout=PIPE, stderr=PIPE)
             try:

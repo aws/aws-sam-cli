@@ -127,6 +127,7 @@ class CloudFormationStackResource(ResourceZip):
     RESOURCE_TYPE = AWS_CLOUDFORMATION_STACK
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     parent_parameter_values: Optional[Dict] = None
+    language_extensions_enabled: bool = False
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
@@ -186,7 +187,9 @@ class CloudFormationStackResource(ResourceZip):
         parameter_values.update(resolved_nested_params)
 
         try:
-            result = expand_language_extensions(child_template_dict, parameter_values)
+            result = expand_language_extensions(
+                child_template_dict, parameter_values, enabled=self.language_extensions_enabled
+            )
         except InvalidSamDocumentException as e:
             # Expected failure path: the child template triggered the
             # AWS::LanguageExtensions transform but SAM CLI could not expand it
@@ -232,6 +235,7 @@ class CloudFormationStackResource(ResourceZip):
                 parent_stack_id=resource_id,
                 template_dict=copy.deepcopy(result.expanded_template),
                 parameter_values=parameter_values,
+                language_extensions_enabled=self.language_extensions_enabled,
             )
 
             exported_template = template.export()
@@ -265,6 +269,7 @@ class CloudFormationStackResource(ResourceZip):
                 normalize_parameters=True,
                 parent_stack_id=resource_id,
                 parameter_values=parameter_values,
+                language_extensions_enabled=self.language_extensions_enabled,
             ).export()
 
         exported_template_str = yaml_dump(exported_template_dict)
@@ -357,6 +362,7 @@ class Template:
         parent_stack_id: str = "",
         parameter_values: Optional[Dict] = None,
         template_dict: Optional[Dict] = None,
+        language_extensions_enabled: bool = False,
     ):
         """
         Reads the template and makes it ready for export
@@ -400,6 +406,7 @@ class Template:
         # Parameter values to pass down to child-template expansion (e.g. Fn::ForEach
         # collections that Ref a parameter). None preserves pre-existing behavior.
         self.parameter_values = parameter_values
+        self.language_extensions_enabled = language_extensions_enabled
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """
@@ -493,6 +500,7 @@ class Template:
                 exporter = exporter_class(self.uploaders, self.code_signer, cache)
                 exporter.parent_parameter_values = self.parameter_values
                 exporter.resource_metadata = resource.get("Metadata")
+                exporter.language_extensions_enabled = self.language_extensions_enabled
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict

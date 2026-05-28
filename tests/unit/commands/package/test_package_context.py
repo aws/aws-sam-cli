@@ -2522,6 +2522,7 @@ class TestPackageContextExportIntegration(TestCase):
             metadata={},
             region=None,
             profile=None,
+            language_extensions=True,
         )
         # Mock uploaders and code_signer which are set in run()
         package_context.uploaders = Mock()
@@ -2629,6 +2630,7 @@ class TestPackageContextExportIntegration(TestCase):
             metadata={},
             region=None,
             profile=None,
+            language_extensions=True,
         )
         # Mock uploaders and code_signer which are set in run()
         package_context.uploaders = Mock()
@@ -3019,6 +3021,7 @@ class TestPackageContextParameterBasedCollectionWarning(TestCase):
             region=None,
             profile=None,
             parameter_overrides={"ServiceNames": "Users,Orders"},
+            language_extensions=True,
         )
         # Mock uploaders and code_signer which are set in run()
         package_context.uploaders = Mock()

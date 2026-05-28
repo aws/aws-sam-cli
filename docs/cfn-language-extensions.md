@@ -4,14 +4,72 @@ SAM CLI now supports templates that use the `AWS::LanguageExtensions` transform,
 
 ## How it works
 
-When SAM CLI detects `AWS::LanguageExtensions` in a template's `Transform` section, it expands language extension constructs locally before running SAM transforms. This enables `sam build`, `sam package`, `sam deploy`, `sam sync`, `sam validate`, `sam local invoke`, and `sam local start-api` to work with templates that use these constructs.
+When SAM CLI detects `AWS::LanguageExtensions` in a template's `Transform` section *and* the customer has opted in to local processing, it expands language extension constructs locally before running SAM transforms. This enables `sam build`, `sam package`, `sam deploy`, `sam sync`, `sam validate`, `sam local invoke`, `sam local start-api`, and `sam local start-lambda` to work with templates that use these constructs.
 
-The expansion happens in two phases:
+**Local processing is off by default.** When off, SAM CLI passes the template through unchanged; CloudFormation processes the `AWS::LanguageExtensions` transform server-side at deploy time (the pre-1.160.0 behavior).
+
+The expansion happens in two phases when enabled:
 
 1. **Phase 1 (Language Extensions)** — `Fn::ForEach` loops are expanded, intrinsic functions are resolved where possible, and the template is converted to standard CloudFormation.
 2. **Phase 2 (SAM Transform)** — The expanded template is processed by the SAM Translator as usual.
 
 The original template (with `Fn::ForEach` intact) is preserved for CloudFormation deployment, since CloudFormation processes the `AWS::LanguageExtensions` transform server-side.
+
+## Enabling Language Extensions
+
+Local processing of `AWS::LanguageExtensions` is opt-in per command. Three activation methods, in priority order (highest first):
+
+1. **CLI flag** — pass `--language-extensions` on a single invocation:
+
+   ```bash
+   sam build --language-extensions
+   sam package --language-extensions ...
+   sam deploy --language-extensions ...
+   ```
+
+   `--no-language-extensions` explicitly disables, overriding both samconfig.toml and the env var below.
+
+2. **`samconfig.toml`** — persist the choice per project:
+
+   ```toml
+   [default.build.parameters]
+   language_extensions = true
+
+   [default.package.parameters]
+   language_extensions = true
+
+   [default.deploy.parameters]
+   language_extensions = true
+
+   [default.sync.parameters]
+   language_extensions = true
+
+   [default.local_invoke.parameters]
+   language_extensions = true
+
+   [default.local_start_api.parameters]
+   language_extensions = true
+
+   [default.local_start_lambda.parameters]
+   language_extensions = true
+
+   [default.validate.parameters]
+   language_extensions = true
+   ```
+
+   A `samconfig.toml` entry is loaded into Click's defaults, so it takes effect as if the flag were passed — and therefore wins over the env var.
+
+3. **Environment variable** — set `SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1` to enable for the current shell:
+
+   ```bash
+   export SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1
+   sam build
+   sam local invoke MyFunction
+   ```
+
+   Truthy values (case-insensitive): `1`, `true`, `yes`. Anything else, including empty string, is off. The env var is consulted only when neither the CLI flag nor samconfig.toml sets a value.
+
+**Each command needs its own activation.** Passing `--language-extensions` to `sam build` does not propagate to a later `sam local invoke` — local processing is decided per command invocation. Use the env var or samconfig entry to enable across commands without repeating the flag.
 
 ## Fn::ForEach
 
@@ -286,4 +344,4 @@ The following template issues are caught locally before the SAM transform runs:
 
 ## Telemetry
 
-SAM CLI tracks usage of `AWS::LanguageExtensions` via the `CFNLanguageExtensions` telemetry feature flag. No template content is transmitted.
+SAM CLI emits a `CFNLanguageExtensions` telemetry event when a command is invoked with `--language-extensions` (or its env-var equivalent) **and** the template declares the `AWS::LanguageExtensions` transform. The event fires once per invocation; no template content is transmitted. When local processing is off (the default), no event fires.
