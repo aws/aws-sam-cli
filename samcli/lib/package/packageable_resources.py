@@ -5,7 +5,8 @@ Code for all Package-able resources
 import logging
 import os
 import shutil
-from typing import Dict, Optional, Union, cast
+from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Type, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -814,7 +815,29 @@ RESOURCES_EXPORT_LIST = [
     GraphQLApiCodeResource,
 ]
 
-METADATA_EXPORT_LIST = [ServerlessRepoApplicationReadme, ServerlessRepoApplicationLicense]
+
+@dataclass(frozen=True)
+class MetadataExportSpec:
+    """How a top-level Metadata.<type> entry is exported and merged back.
+
+    Used by Template._export_metadata to route entries to their exporter
+    classes, and by merge_language_extensions_s3_uris to copy rewritten
+    property values back into the original (Fn::ForEach-preserving)
+    child-stack template after LE expansion.
+    """
+
+    metadata_type: str
+    property_names: List[str]
+    exporters: List[Type["Resource"]] = field(default_factory=list)
+
+
+METADATA_EXPORTS: List[MetadataExportSpec] = [
+    MetadataExportSpec(
+        metadata_type=AWS_SERVERLESSREPO_APPLICATION,
+        property_names=["LicenseUrl", "ReadmeUrl"],
+        exporters=[ServerlessRepoApplicationLicense, ServerlessRepoApplicationReadme],
+    ),
+]
 
 
 def include_transform_export_handler(template_dict, uploader, parent_dir):
@@ -838,4 +861,29 @@ def include_transform_export_handler(template_dict, uploader, parent_dir):
     return template_dict
 
 
-GLOBAL_EXPORT_DICT = {"Fn::Transform": include_transform_export_handler}
+@dataclass(frozen=True)
+class GlobalTransformExportSpec:
+    """How a global (anywhere-in-the-tree) export hook is invoked.
+
+    The discriminator decides whether a given dict node matches this spec
+    (dispatch on Fn::Transform's "Name" field today; ready for future
+    Fn::Transform variants). The handler receives the matched node and
+    mutates it in place to rewrite local paths to S3 URLs.
+    """
+
+    template_key: str
+    discriminator: Callable[[object], bool]
+    handler: Callable
+
+
+def _is_aws_include(node: object) -> bool:
+    return isinstance(node, dict) and node.get("Name") == "AWS::Include"
+
+
+GLOBAL_TRANSFORM_EXPORTS: List[GlobalTransformExportSpec] = [
+    GlobalTransformExportSpec(
+        template_key="Fn::Transform",
+        discriminator=_is_aws_include,
+        handler=include_transform_export_handler,
+    ),
+]
