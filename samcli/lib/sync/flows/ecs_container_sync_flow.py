@@ -9,7 +9,7 @@ from docker.client import DockerClient
 from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.build.build_graph import ContainerBuildDefinition
 from samcli.lib.package.ecr_uploader import ECRUploader
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack
 from samcli.lib.providers.sam_container_provider import SamContainerServiceProvider
 from samcli.lib.sync.sync_flow import ApiCallTypes, ResourceAPICall, SyncFlow
 from samcli.local.docker.utils import get_validated_container_client
@@ -109,11 +109,7 @@ class ECSContainerSyncFlow(SyncFlow):
         )
 
         builder = ApplicationBuilder(
-            (
-                self._build_context.collect_build_resources(self._resource_identifier)
-                if hasattr(self._build_context, "collect_build_resources")
-                else self._build_context.get_resources_to_build()
-            ),
+            ResourcesToBuildCollector(),
             self._build_context.build_dir,
             self._build_context.base_dir,
             self._build_context.cache_dir,
