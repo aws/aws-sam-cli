@@ -10,7 +10,9 @@ Fn::Select format: {"Fn::Select": [index, [list, of, items]]}
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnSelectResolver(IntrinsicFunctionResolver):
@@ -72,6 +74,18 @@ class FnSelectResolver(IntrinsicFunctionResolver):
         # Resolve any nested intrinsic functions in the index
         if self.parent is not None:
             index = self.parent.resolve_value(index)
+
+        # In PARTIAL mode, if the index resolved to a deferred parameter Ref,
+        # preserve the call. Resource refs / GetAtt / etc. still raise.
+        # We must still resolve the source list below in case it contains
+        # resolvable intrinsics — that way, partial expansion makes maximal
+        # progress.
+        if is_unresolved_param_or_pseudo_ref(index, self.context):
+            if self.context.resolution_mode != ResolutionMode.PARTIAL:
+                raise InvalidTemplateException("Fn::Select layout is incorrect")
+            if self.parent is not None:
+                source_list = self.parent.resolve_value(source_list)
+            return {"Fn::Select": [index, source_list]}
 
         # Validate index is an integer (or can be converted to one)
         if isinstance(index, str):

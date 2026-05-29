@@ -10,7 +10,9 @@ Fn::Join format: {"Fn::Join": [delimiter, [list, of, items]]}
 from typing import Any, Dict
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.models import ResolutionMode
 from samcli.lib.cfn_language_extensions.resolvers.base import IntrinsicFunctionResolver
+from samcli.lib.cfn_language_extensions.utils import is_unresolved_param_or_pseudo_ref
 
 
 class FnJoinResolver(IntrinsicFunctionResolver):
@@ -37,7 +39,7 @@ class FnJoinResolver(IntrinsicFunctionResolver):
 
     _EXPECTED_ARGS = 2
 
-    def resolve(self, value: Dict[str, Any]) -> str:
+    def resolve(self, value: Dict[str, Any]) -> Any:
         """
         Resolve the Fn::Join intrinsic function.
 
@@ -50,7 +52,9 @@ class FnJoinResolver(IntrinsicFunctionResolver):
                    E.g., {"Fn::Join": [",", ["a", "b", "c"]]}
 
         Returns:
-            A string with all list elements joined by the delimiter.
+            A string with all list elements joined by the delimiter, or - in
+            PARTIAL mode when an arg is an unresolved parameter Ref - the
+            preserved Fn::Join call as a dict.
 
         Raises:
             InvalidTemplateException: If the layout is incorrect.
@@ -70,13 +74,24 @@ class FnJoinResolver(IntrinsicFunctionResolver):
         if self.parent is not None:
             delimiter = self.parent.resolve_value(delimiter)
 
-        # Validate delimiter is a string
-        if not isinstance(delimiter, str):
-            raise InvalidTemplateException("Fn::Join layout is incorrect")
-
         # Resolve any nested intrinsic functions in the list
         if self.parent is not None:
             list_to_join = self.parent.resolve_value(list_to_join)
+
+        # In PARTIAL mode, preserve the call when either argument is still an
+        # unresolved Ref to a declared template parameter or a pseudo-parameter
+        # (i.e. CloudFormation will resolve it at deploy time). Resource refs
+        # and other intrinsics still raise — they aren't valid Fn::Join inputs.
+        delim_is_param_ref = is_unresolved_param_or_pseudo_ref(delimiter, self.context)
+        list_is_param_ref = is_unresolved_param_or_pseudo_ref(list_to_join, self.context)
+        if delim_is_param_ref or list_is_param_ref:
+            if self.context.resolution_mode == ResolutionMode.PARTIAL:
+                return {"Fn::Join": [delimiter, list_to_join]}
+            raise InvalidTemplateException("Fn::Join layout is incorrect")
+
+        # Validate delimiter is a string
+        if not isinstance(delimiter, str):
+            raise InvalidTemplateException("Fn::Join layout is incorrect")
 
         # Validate the list
         if not isinstance(list_to_join, list):

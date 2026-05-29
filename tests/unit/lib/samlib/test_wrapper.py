@@ -140,7 +140,7 @@ class TestProcessLanguageExtensions(TestCase):
         }
         mock_process.return_value = expected_output
 
-        result = expand_language_extensions(input_template, parameter_values={"AWS::Region": "us-east-1"})
+        result = expand_language_extensions(input_template, parameter_values={"AWS::Region": "us-east-1"}, enabled=True)
 
         self.assertTrue(result.had_language_extensions)
         self.assertEqual(result.expanded_template, expected_output)
@@ -159,7 +159,7 @@ class TestProcessLanguageExtensions(TestCase):
         }
         mock_process.return_value = template
 
-        result = expand_language_extensions(template, parameter_values=parameter_values)
+        result = expand_language_extensions(template, parameter_values=parameter_values, enabled=True)
 
         self.assertTrue(result.had_language_extensions)
         # Verify process_template_for_sam_cli was called with correct arguments
@@ -180,7 +180,7 @@ class TestProcessLanguageExtensions(TestCase):
         mock_process.side_effect = LangExtInvalidTemplateException("Invalid Fn::ForEach syntax")
 
         with self.assertRaises(InvalidSamDocumentException) as context:
-            expand_language_extensions(template)
+            expand_language_extensions(template, enabled=True)
 
         self.assertIn("Invalid Fn::ForEach syntax", str(context.exception))
 

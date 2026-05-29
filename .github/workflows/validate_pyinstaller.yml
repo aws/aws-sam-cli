@@ -8,6 +8,9 @@ on:
 env:
   CI_OVERRIDE: "1"
 
+permissions:
+  contents: read
+
 jobs:
   build-for-linux:
     name: build-pyinstaller-linux

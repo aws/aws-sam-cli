@@ -14,6 +14,8 @@ from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
 import click
+import jmespath
+from botocore.utils import set_value_from_jmespath
 
 from samcli.lib.cfn_language_extensions.models import (
     PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES,
@@ -25,6 +27,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     substitute_loop_variable,
 )
 from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
+from samcli.lib.package.packageable_resources import METADATA_EXPORTS
 
 LOG = logging.getLogger(__name__)
 
@@ -80,6 +83,8 @@ def merge_language_extensions_s3_uris(
 
     _update_resources_with_s3_uris(original_resources, exported_resources, dynamic_prop_keys)
 
+    _merge_metadata(result.get("Metadata", {}), exported_template.get("Metadata", {}))
+
     return result
 
 
@@ -118,9 +123,85 @@ def generate_and_apply_artifact_mappings(
     return _apply_artifact_mappings_to_template(template, mappings, dynamic_properties, property_to_mapping)
 
 
+def _get_prop_value(props: Dict[str, Any], prop_name: str) -> Optional[Any]:
+    """Read a property by jmespath path. Supports flat keys ("CodeUri") and
+    dotted paths ("Command.ScriptLocation"). Returns None if missing.
+    """
+    return jmespath.search(prop_name, props)
+
+
+def _set_prop_value(props: Dict[str, Any], prop_name: str, value: Any) -> None:
+    """Write a property by jmespath path. Creates intermediate dicts as needed.
+    Supports flat keys and dotted paths.
+    """
+    set_value_from_jmespath(props, prop_name, value)
+
+
+def _leaf_prop_name(prop_name: str) -> str:
+    """Return the last segment of a jmespath property name.
+
+    CloudFormation Mapping names must be alphanumeric, and the third argument of
+    Fn::FindInMap and the keys of Mapping value-dicts must match each other as
+    plain strings. Dotted property names (e.g. "Command.ScriptLocation") are
+    used to *address* the property on a resource, but the *identifier* used in
+    Mapping names and FindInMap lookups must use only the leaf segment so the
+    generated CloudFormation is well-formed.
+    """
+    return prop_name.rsplit(".", 1)[-1]
+
+
+def _resolve_property_paths(prop_names: List[str], properties: Dict[str, Any]) -> List[str]:
+    """Filter ``prop_names`` so a parent path is dropped when a more specific
+    child path is present in ``properties``.
+
+    Some resource types declare multiple alternative artifact paths in
+    ``PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES``. For example,
+    ``AWS::Lambda::Function`` lists ``Code`` (used for ZIP packages) and
+    ``Code.ImageUri`` (used for image packages). A given user template uses
+    only one of these shapes, but ``Code`` is a prefix of ``Code.ImageUri``,
+    so a naive iteration would address both paths and treat the same nested
+    value twice. Returning only the most specific resolved path picks the
+    correct interpretation for the user's actual property shape.
+    """
+    # Sort longest-first so child paths win over their parents.
+    sorted_paths = sorted(prop_names, key=lambda p: -p.count("."))
+    consumed_prefixes: set = set()
+    selected: List[str] = []
+    for path in sorted_paths:
+        if _get_prop_value(properties, path) is None:
+            continue
+        # If a more specific path under this prefix has already been selected, skip.
+        if any(other.startswith(path + ".") for other in consumed_prefixes):
+            continue
+        selected.append(path)
+        consumed_prefixes.add(path)
+    # Preserve original ordering for callers that care.
+    order = {p: i for i, p in enumerate(prop_names)}
+    selected.sort(key=lambda p: order.get(p, 0))
+    return selected
+
+
 # ---------------------------------------------------------------------------
 # Merge helpers
 # ---------------------------------------------------------------------------
+
+
+def _merge_metadata(
+    original_metadata: Dict[str, Any],
+    exported_metadata: Dict[str, Any],
+) -> None:
+    """Copy rewritten property values from exported_metadata into
+    original_metadata for every (metadata_type, property_name) declared
+    in METADATA_EXPORTS. Mutates original_metadata in place.
+    """
+    for spec in METADATA_EXPORTS:
+        original_entry = original_metadata.get(spec.metadata_type)
+        exported_entry = exported_metadata.get(spec.metadata_type)
+        if not isinstance(original_entry, dict) or not isinstance(exported_entry, dict):
+            continue
+        for prop_name in spec.property_names:
+            if prop_name in exported_entry:
+                original_entry[prop_name] = exported_entry[prop_name]
 
 
 def _update_resources_with_s3_uris(
@@ -253,11 +334,12 @@ def _copy_artifact_uris_for_type(
 
     copied = False
     for prop_name in prop_names:
-        if prop_name not in exported_props:
+        exported_value = _get_prop_value(exported_props, prop_name)
+        if exported_value is None:
             continue
         if dynamic_prop_keys and foreach_key and (foreach_key, prop_name) in dynamic_prop_keys:
             continue
-        original_props[prop_name] = exported_props[prop_name]
+        _set_prop_value(original_props, prop_name, exported_value)
         copied = True
 
     return copied
@@ -313,8 +395,15 @@ def _compute_mapping_name(
     compatibility.
     """
     npath = _nesting_path(prop)
-    base_name = f"SAM{prop.property_name}{npath}"
-    key = (npath, prop.property_name)
+    # Use the leaf segment for the Mapping name so dotted property paths (e.g.
+    # "Command.ScriptLocation") yield well-formed alphanumeric Mapping names.
+    leaf = _leaf_prop_name(prop.property_name)
+    base_name = f"SAM{leaf}{npath}"
+    # Collision detection must also key on the leaf — two resources with
+    # different dotted paths but the same leaf (e.g. "ImageUri" vs
+    # "Code.ImageUri") would otherwise generate identical Mapping names and
+    # silently overwrite each other.
+    key = (npath, leaf)
     if collision_groups.get(key, 0) <= 1:
         return base_name
     suffix = _sanitize_resource_key_for_mapping(prop.resource_key)
@@ -337,15 +426,21 @@ def _generate_artifact_mappings(
     mappings: Dict[str, Dict[str, Dict[str, str]]] = {}
     property_to_mapping: Dict[Tuple, str] = {}
 
-    # Pre-pass: detect collisions where multiple resources share (nesting_path, property_name)
+    # Pre-pass: detect collisions where multiple resources share (nesting_path, leaf).
+    # Keyed on the leaf so dotted paths that share a leaf (e.g. "ImageUri" vs
+    # "Code.ImageUri") are detected as colliding and get a resource-key suffix.
     collision_groups: Dict[Tuple[str, str], int] = Counter(
-        (_nesting_path(p), p.property_name) for p in dynamic_properties
+        (_nesting_path(p), _leaf_prop_name(p.property_name)) for p in dynamic_properties
     )
 
     for prop in dynamic_properties:
         _validate_mapping_key_compatibility(prop)
 
         mapping_name = _compute_mapping_name(prop, collision_groups)
+        # The Mapping value-dict key and the third FindInMap argument must use
+        # the leaf segment so dotted property paths produce well-formed
+        # CloudFormation (Mappings can't contain dots in either name or keys).
+        leaf_name = _leaf_prop_name(prop.property_name)
 
         if mapping_name not in mappings:
             mappings[mapping_name] = {}
@@ -377,7 +472,7 @@ def _generate_artifact_mappings(
                 )
 
                 if s3_uri:
-                    mappings[mapping_name][compound_key] = {prop.property_name: s3_uri}
+                    mappings[mapping_name][compound_key] = {leaf_name: s3_uri}
                 else:
                     LOG.warning(
                         "Could not find S3 URI for %s in expanded resource %s",
@@ -404,7 +499,7 @@ def _generate_artifact_mappings(
                 )
 
                 if s3_uri:
-                    mappings[mapping_name][collection_value] = {prop.property_name: s3_uri}
+                    mappings[mapping_name][collection_value] = {leaf_name: s3_uri}
                 else:
                     LOG.warning(
                         "Could not find S3 URI for %s in expanded resource %s",
@@ -448,7 +543,8 @@ def _find_artifact_uri_for_resource(
     Find the artifact URI for a specific resource and property from the exported resources.
 
     Handles all artifact property export formats (string URIs, {S3Bucket, S3Key},
-    {Bucket, Key}, {ImageUri}).
+    {Bucket, Key}, {ImageUri}). ``property_name`` may be a jmespath dotted path
+    (e.g. "Command.ScriptLocation").
     """
     resource = exported_resources.get(resource_key)
     if not isinstance(resource, dict):
@@ -461,7 +557,7 @@ def _find_artifact_uri_for_resource(
     if not isinstance(properties, dict):
         return None
 
-    artifact_uri = properties.get(property_name)
+    artifact_uri = _get_prop_value(properties, property_name)
 
     if isinstance(artifact_uri, str):
         return artifact_uri
@@ -514,7 +610,8 @@ def _replace_dynamic_artifact_with_findmap(
     Replace a dynamic artifact property value with Fn::FindInMap reference.
     """
     if mapping_name is None:
-        mapping_name = f"SAM{prop.property_name}{_nesting_path(prop)}"
+        # Use the leaf segment so dotted paths produce alphanumeric Mapping names.
+        mapping_name = f"SAM{_leaf_prop_name(prop.property_name)}{_nesting_path(prop)}"
 
     current_scope = resources
     if prop.outer_loops:
@@ -564,13 +661,20 @@ def _replace_dynamic_artifact_with_findmap(
     else:
         lookup_key = {"Ref": prop.loop_variable}
 
-    properties[prop.property_name] = {
-        "Fn::FindInMap": [
-            mapping_name,
-            lookup_key,
-            prop.property_name,
-        ]
-    }
+    # Address the property at its dotted location (creating intermediate dicts
+    # if needed) and use the leaf segment as the FindInMap third argument so
+    # the lookup matches the Mapping value-dict key.
+    _set_prop_value(
+        properties,
+        prop.property_name,
+        {
+            "Fn::FindInMap": [
+                mapping_name,
+                lookup_key,
+                _leaf_prop_name(prop.property_name),
+            ]
+        },
+    )
 
     LOG.debug(
         "Replaced %s in %s/%s with Fn::FindInMap reference to %s",

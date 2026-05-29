@@ -13,6 +13,7 @@ from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
     hook_name_click_option,
+    language_extensions_option,
     skip_prepare_infra_option,
     terraform_plan_file_option,
 )
@@ -64,6 +65,7 @@ DESCRIPTION = """
 )
 @skip_prepare_infra_option
 @service_common_options(3001)
+@language_extensions_option
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
@@ -108,6 +110,7 @@ def cli(
     skip_prepare_infra,
     terraform_plan_file,
     no_watch,
+    language_extensions,
     no_memory_limit,
     container_dns,
 ):
@@ -142,6 +145,7 @@ def cli(
         add_host,
         invoke_image,
         hook_name,
+        language_extensions,
         no_memory_limit,
         no_watch,
         container_dns,
@@ -174,6 +178,7 @@ def do_cli(  # pylint: disable=R0914
     add_host,
     invoke_image,
     hook_name,
+    language_extensions,
     no_mem_limit,
     no_watch,
     container_dns,
@@ -223,6 +228,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             invoke_images=processed_invoke_images,
             function_logical_ids=function_logical_ids,
+            language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
             no_watch=no_watch,
             container_dns=container_dns,

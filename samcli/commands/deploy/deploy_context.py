@@ -29,6 +29,7 @@ from samcli.commands.deploy.utils import (
     print_deploy_args,
     sanitize_parameter_overrides,
 )
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -75,6 +76,7 @@ class DeployContext:
         poll_delay,
         on_failure,
         max_wait_duration,
+        language_extensions: Optional[bool] = None,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -99,7 +101,7 @@ class DeployContext:
         self.region = region
         self.profile = profile
         self.s3_uploader = None
-        self.deployer = None
+        self.deployer: Optional[Deployer] = None
         self.confirm_changeset = confirm_changeset
         self.signing_profiles = signing_profiles
         self.use_changeset = use_changeset
@@ -108,12 +110,17 @@ class DeployContext:
         self.on_failure = FailureMode(on_failure) if on_failure else FailureMode.ROLLBACK
         self._max_template_size = 51200
         self.max_wait_duration = max_wait_duration
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         pass
+
+    @property
+    def language_extensions_enabled(self) -> bool:
+        return self._language_extensions_enabled
 
     def run(self):
         """
@@ -239,6 +246,7 @@ class DeployContext:
             self.template_file,
             parameter_overrides=sanitize_parameter_overrides(self.parameter_overrides),
             global_parameter_overrides=self.global_parameter_overrides,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
         auth_required_per_resource = auth_per_resource(stacks)
 
@@ -246,6 +254,7 @@ class DeployContext:
             if not authorization_required:
                 click.secho(f"{resource} has no authentication.", fg="yellow")
 
+        assert self.deployer is not None
         if use_changeset:
             try:
                 result, changeset_type = self.deployer.create_and_wait_for_changeset(
@@ -296,7 +305,7 @@ class DeployContext:
                     role_arn=role_arn,
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
-                    tags=tags,
+                    tags=tags,  # type: ignore[arg-type]
                     on_failure=self.on_failure,
                 )
                 LOG.debug(result)

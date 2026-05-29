@@ -14,6 +14,7 @@ from tomlkit.items import Item
 from tomlkit.toml_document import TOMLDocument
 
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.utils.osutils import rmtree_if_exists
 
 LOG = logging.getLogger(__name__)
@@ -202,6 +203,7 @@ class SyncContext:
     _cache_dir: Path
     _file_path: Path
     skip_deploy_sync: bool
+    _language_extensions_enabled: bool
 
     def __init__(
         self,
@@ -209,6 +211,7 @@ class SyncContext:
         build_dir: str,
         cache_dir: str,
         skip_deploy_sync: bool,
+        language_extensions: Optional[bool] = None,
     ):
         self._current_state = SyncState(dependency_layer, dict(), None)
         self._previous_state = None
@@ -216,6 +219,7 @@ class SyncContext:
         self._build_dir = Path(build_dir)
         self._cache_dir = Path(cache_dir)
         self._file_path = Path(build_dir).parent.joinpath(DEFAULT_SYNC_STATE_FILE_NAME)
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
     def __enter__(self) -> "SyncContext":
         with _lock:
@@ -330,3 +334,8 @@ class SyncContext:
         dependencies_dir = Path(DEFAULT_DEPENDENCIES_DIR)
         LOG.debug("Cleaning up dependencies directory: %s", dependencies_dir)
         rmtree_if_exists(dependencies_dir)
+
+    @property
+    def language_extensions_enabled(self) -> bool:
+        """Whether language extensions are enabled for this sync context."""
+        return self._language_extensions_enabled

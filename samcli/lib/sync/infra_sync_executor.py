@@ -587,7 +587,7 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
         """
         from samcli.lib.cfn_language_extensions.sam_integration import check_using_language_extension
 
-        if not check_using_language_extension(current_template):
+        if not self._sync_context.language_extensions_enabled or not check_using_language_extension(current_template):
             return
 
         from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
@@ -607,10 +607,14 @@ an infra sync will be executed for an CloudFormation deployment to improve perfo
                     deployed_params[param_name] = param_def["Default"]
 
             current_expanded = expand_language_extensions(
-                current_template, parameter_values=current_params
+                current_template,
+                parameter_values=current_params,
+                enabled=self._sync_context.language_extensions_enabled,
             ).expanded_template
             deployed_expanded = expand_language_extensions(
-                last_deployed_template, parameter_values=deployed_params
+                last_deployed_template,
+                parameter_values=deployed_params,
+                enabled=self._sync_context.language_extensions_enabled,
             ).expanded_template
         except Exception as e:
             LOG.warning(

@@ -17,6 +17,7 @@ from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -104,6 +105,7 @@ class InvokeContext:
         no_watch: Optional[bool] = False,
         container_dns: Optional[Tuple[str]] = None,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        language_extensions: Optional[bool] = None,
     ) -> None:
         """
         Initialize the context
@@ -227,6 +229,8 @@ class InvokeContext:
         self._no_mem_limit = no_mem_limit
         self._no_watch = no_watch
 
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
         # it is only used in the context (after __enter__ is called)
@@ -284,6 +288,9 @@ class InvokeContext:
 
         if self._no_watch and self._containers_mode == ContainersMode.WARM:
             _function_providers_kwargs["no_watch"] = True
+            
+        if self._containers_mode == ContainersMode.WARM:
+            _function_providers_kwargs["language_extensions_enabled"] = self._language_extensions_enabled
 
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode], **_function_providers_kwargs
@@ -580,6 +587,15 @@ class InvokeContext:
         )
 
     @property
+    def language_extensions_enabled(self) -> bool:
+        """
+        Returns whether CloudFormation language extensions are enabled.
+
+        :return bool: True if language extensions should be processed, False otherwise
+        """
+        return self._language_extensions_enabled
+
+    @property
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
             layer_downloader = LayerDownloader(
@@ -720,6 +736,7 @@ class InvokeContext:
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
+                language_extensions_enabled=self._language_extensions_enabled,
             )
             return stacks
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:

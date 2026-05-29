@@ -1,13 +1,17 @@
+import copy
 import functools
+import inspect
 import json
 import os
 import platform
 import random
+import shutil
 import string
 import tempfile
 import unittest
 import zipfile
 from contextlib import contextmanager, closing
+from pathlib import Path
 from typing import Optional, Dict
 from unittest import mock
 from unittest.mock import call, patch, Mock, MagicMock
@@ -16,6 +20,10 @@ from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ExportFailedError
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.sam_integration import (
+    LanguageExtensionResult,
+    expand_language_extensions,
+)
 from samcli.lib.package.artifact_exporter import (
     is_local_folder,
     make_abs_path,
@@ -23,13 +31,20 @@ from samcli.lib.package.artifact_exporter import (
     CloudFormationStackResource,
     CloudFormationStackSetResource,
     ServerlessApplicationResource,
+    _build_child_parameter_values,
+    _export_global_artifacts_pass,
+    _resolve_nested_stack_parameters,
 )
+from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.packageable_resources import (
     GraphQLApiCodeResource,
     GraphQLApiSchemaResource,
     is_s3_protocol_url,
     is_local_file,
     upload_local_artifacts,
+    METADATA_EXPORTS,
+    MetadataExportSpec,
     Resource,
     ResourceWithS3UrlDict,
     ServerlessApiResource,
@@ -41,7 +56,8 @@ from samcli.lib.package.packageable_resources import (
     LambdaLayerVersionResource,
     copy_to_temp_dir,
     include_transform_export_handler,
-    GLOBAL_EXPORT_DICT,
+    GLOBAL_TRANSFORM_EXPORTS,
+    GlobalTransformExportSpec,
     ServerlessLayerVersionResource,
     ServerlessRepoApplicationLicense,
     ServerlessRepoApplicationReadme,
@@ -69,7 +85,10 @@ from samcli.lib.package.uploaders import Destination
 from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
+from samcli.yamlhelper import yaml_dump
 from tests.testing_utils import FileCreator
+
+TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 
 class TestArtifactExporter(unittest.TestCase):
@@ -1171,6 +1190,7 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_cloudformation_stack(self, TemplateMock):
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -1205,6 +1225,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
+                language_extensions_enabled=True,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1352,6 +1373,7 @@ class TestArtifactExporter(unittest.TestCase):
     @patch("samcli.lib.package.artifact_exporter.Template")
     def test_export_serverless_application(self, TemplateMock):
         stack_resource = ServerlessApplicationResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "id"
         property_name = stack_resource.PROPERTY_NAME
@@ -1386,6 +1408,7 @@ class TestArtifactExporter(unittest.TestCase):
                 normalize_template=True,
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
+                language_extensions_enabled=True,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1476,7 +1499,18 @@ class TestArtifactExporter(unittest.TestCase):
         metadata_type2_instance = Mock()
         metadata_type2_class.return_value = metadata_type2_instance
 
-        metadata_to_export = [metadata_type1_class, metadata_type2_class]
+        metadata_to_export = [
+            MetadataExportSpec(
+                metadata_type="metadata_type1",
+                property_names=["property_1"],
+                exporters=[metadata_type1_class],
+            ),
+            MetadataExportSpec(
+                metadata_type="metadata_type2",
+                property_names=["property_2"],
+                exporters=[metadata_type2_class],
+            ),
+        ]
 
         template_dict = {"Metadata": {"metadata_type1": {"property_1": "abc"}, "metadata_type2": {"property_2": "def"}}}
         open_mock = mock.mock_open()
@@ -1852,8 +1886,13 @@ class TestArtifactExporter(unittest.TestCase):
         }
         yaml_parse_mock.return_value = template_dict
 
+        mock_spec = GlobalTransformExportSpec(
+            template_key="Fn::Transform",
+            discriminator=lambda v: isinstance(v, dict),
+            handler=include_transform_export_handler_mock,
+        )
         with patch("samcli.lib.package.artifact_exporter.open", open_mock(read_data=template_str)) as open_mock:
-            with patch.dict(GLOBAL_EXPORT_DICT, {"Fn::Transform": include_transform_export_handler_mock}):
+            with patch("samcli.lib.package.artifact_exporter.GLOBAL_TRANSFORM_EXPORTS", [mock_spec]):
                 template_exporter = Template(template_path, parent_dir, self.uploaders_mock, resources_to_export)
                 exported_template = template_exporter._export_global_artifacts(template_exporter.template_dict)
 
@@ -1969,6 +2008,186 @@ class TestArtifactExporter(unittest.TestCase):
         )
         self.s3_uploader_mock.upload_with_dedup.assert_not_called()
         self.assertEqual(handler_output, {"Name": "AWS::OtherTransform", "Parameters": {"Location": "foo.yaml"}})
+
+    def test_le_template_with_top_level_aws_include_merges_location(self):
+        """End-to-end regression: an LE template with a top-level AWS::Include
+        in Outputs (outside any Fn::ForEach body) must end up with its
+        Location rewritten to the uploader's S3 URL after the
+        package_context._export-equivalent flow:
+
+            _export_global_artifacts_pass(template_dict, ...)
+              -> expand_language_extensions(...)
+              -> Template(template_dict=expanded).export()
+              -> merge_language_extensions_s3_uris(original, exported, dynamic)
+
+        The pre-LE global-transform pass is what now rewrites AWS::Include
+        Locations; the merge pass only handles resource artifact properties
+        and Metadata. See aws/aws-sam-cli#9027.
+        """
+        # Predictable upload URL keyed on basename so we can assert on it later.
+        # upload_with_dedup is invoked with absolute paths (for AWS::Include) and
+        # with absolute paths to temp zips (for ServerlessFunctionResource folder
+        # uploads); both forms have a basename we can use.
+        self.s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+
+        # Real files on disk so is_local_file / is_local_folder return True
+        # without needing to mock them. extra.yaml is the AWS::Include target;
+        # code/ is the CodeUri folder for the (post-expansion) functions.
+        parent_dir = str(TEST_DATA_PATH / "le_top_level_include")
+
+        template_dict = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Services": [
+                    "Name",
+                    ["A", "B"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./code",
+                                "Handler": "index.handler",
+                                "Runtime": "python3.11",
+                            },
+                        }
+                    },
+                ]
+            },
+            "Outputs": {
+                "Extra": {
+                    "Value": {
+                        "Fn::Transform": {
+                            "Name": "AWS::Include",
+                            "Parameters": {"Location": "./extra.yaml"},
+                        }
+                    }
+                }
+            },
+        }
+
+        # Mirror PackageContext._export's flow: run the pre-LE
+        # global-transform pass on the original template before
+        # language-extension expansion.
+        _export_global_artifacts_pass(template_dict, self.s3_uploader_mock, parent_dir)
+
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+        result = expand_language_extensions(template_dict, parameter_values, enabled=True)
+        self.assertTrue(result.had_language_extensions)
+
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=parent_dir,
+            uploaders=self.uploaders_mock,
+            code_signer=self.code_signer_mock,
+            normalize_template=True,
+            normalize_parameters=True,
+            template_dict=copy.deepcopy(result.expanded_template),
+            parameter_values=parameter_values,
+        )
+        exported_template = template.export()
+
+        output = merge_language_extensions_s3_uris(
+            result.original_template, exported_template, result.dynamic_artifact_properties
+        )
+
+        # The original Fn::ForEach is preserved (not re-expanded) in the merged output.
+        self.assertIn("Fn::ForEach::Services", output["Resources"])
+
+        # The top-level AWS::Include Location is rewritten to the uploader's S3 URL.
+        out_location = output["Outputs"]["Extra"]["Value"]["Fn::Transform"]["Parameters"]["Location"]
+        self.assertEqual(out_location, "s3://bucket/extra.yaml-md5")
+
+    def test_le_template_with_serverless_repo_metadata_merges_license_url(self):
+        """End-to-end regression: an LE template with
+        AWS::ServerlessRepo::Application metadata containing local
+        LicenseUrl/ReadmeUrl paths must end up with both rewritten to
+        S3 URLs after the package_context._export-equivalent flow:
+
+            expand_language_extensions(...)
+              -> Template(template_dict=expanded).export()
+              -> merge_language_extensions_s3_uris(original, exported, dynamic)
+
+        This covers the Metadata merge pass (Task 4) wired into the
+        artifact-exporter's export plumbing.
+        """
+        # SAR exporters extend ResourceZip, whose do_export ultimately
+        # routes through upload_local_artifacts -> uploader.upload_with_dedup.
+        # Same lambda as Task 7: a predictable URL keyed on basename.
+        self.s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+
+        # Real files on disk for the SAR exporters (LicenseUrl / ReadmeUrl)
+        # and for the Fn::ForEach-expanded SAM function's CodeUri.
+        parent_dir = str(TEST_DATA_PATH / "le_sar_metadata")
+
+        template_dict = {
+            "Transform": "AWS::LanguageExtensions",
+            "Metadata": {
+                "AWS::ServerlessRepo::Application": {
+                    "Name": "MyApp",
+                    "Description": "Test app",
+                    "Author": "Test",
+                    "SemanticVersion": "1.0.0",
+                    "LicenseUrl": "./LICENSE.txt",
+                    "ReadmeUrl": "./README.md",
+                }
+            },
+            "Resources": {
+                "Fn::ForEach::Services": [
+                    "Name",
+                    ["A"],
+                    {
+                        "${Name}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {
+                                "CodeUri": "./code",
+                                "Handler": "index.handler",
+                                "Runtime": "python3.11",
+                            },
+                        }
+                    },
+                ]
+            },
+        }
+
+        parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
+
+        result = expand_language_extensions(template_dict, parameter_values, enabled=True)
+        self.assertTrue(result.had_language_extensions)
+
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=parent_dir,
+            uploaders=self.uploaders_mock,
+            code_signer=self.code_signer_mock,
+            normalize_template=True,
+            normalize_parameters=True,
+            template_dict=copy.deepcopy(result.expanded_template),
+            parameter_values=parameter_values,
+        )
+        exported_template = template.export()
+
+        output = merge_language_extensions_s3_uris(
+            result.original_template, exported_template, result.dynamic_artifact_properties
+        )
+
+        # SAR LicenseUrl and ReadmeUrl must both be rewritten to S3 URLs.
+        sar = output["Metadata"]["AWS::ServerlessRepo::Application"]
+        self.assertTrue(sar["LicenseUrl"].startswith("s3://"), f"LicenseUrl: {sar['LicenseUrl']!r}")
+        self.assertTrue(sar["ReadmeUrl"].startswith("s3://"), f"ReadmeUrl: {sar['ReadmeUrl']!r}")
+        # The basenames identify which file was uploaded to which property,
+        # confirming the SAR exporter fired once for License and once for Readme.
+        self.assertIn("LICENSE.txt", sar["LicenseUrl"])
+        self.assertIn("README.md", sar["ReadmeUrl"])
+        # Unrelated SAR metadata is preserved untouched.
+        self.assertEqual(sar["Name"], "MyApp")
+        self.assertEqual(sar["SemanticVersion"], "1.0.0")
+        # The original Fn::ForEach is preserved (not re-expanded) in the merged output.
+        self.assertIn("Fn::ForEach::Services", output["Resources"])
 
     def test_template_export_path_be_folder(self):
         template_path = "/path/foo"
@@ -2311,9 +2530,8 @@ class TestArtifactExporter(unittest.TestCase):
         When a child template uses Fn::ForEach, do_export should expand it,
         export the expanded template, then merge S3 URIs back.
         """
-        from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
-
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2414,7 +2632,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 return_value=lang_ext_result,
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2432,14 +2650,14 @@ class TestArtifactExporter(unittest.TestCase):
             os.remove(template_path)
 
     @patch("samcli.lib.package.artifact_exporter.Template")
-    def test_export_cloudformation_stack_without_language_extensions(self, TemplateMock):
+    def test_export_cloudformation_stack_language_extensions_no_le_in_template(self, TemplateMock):
         """
-        When a child template does NOT use language extensions,
-        do_export should use the original flow (no expansion).
+        When LE is opted-in but the child template uses no LE, do_export
+        should still go through the LE-on branch and exit via the
+        no-extension sub-path.
         """
-        from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
-
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2471,7 +2689,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 return_value=no_ext_result,
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2493,6 +2711,7 @@ class TestArtifactExporter(unittest.TestCase):
         do_export should fall back to the original flow.
         """
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2517,7 +2736,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 side_effect=InvalidSamDocumentException("expansion failed"),
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2537,6 +2756,7 @@ class TestArtifactExporter(unittest.TestCase):
         it should fall back gracefully to the non-extension flow (not abort the parent packaging).
         """
         stack_resource = CloudFormationStackResource(self.uploaders_mock, self.code_signer_mock)
+        stack_resource.language_extensions_enabled = True
 
         resource_id = "NestedStack"
         property_name = stack_resource.PROPERTY_NAME
@@ -2561,7 +2781,7 @@ class TestArtifactExporter(unittest.TestCase):
             parent_dir = tempfile.gettempdir()
 
             with patch(
-                "samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions",
+                "samcli.lib.package.artifact_exporter.expand_language_extensions",
                 side_effect=TypeError("unexpected bug"),
             ):
                 stack_resource.export(resource_id, resource_dict, parent_dir)
@@ -2570,6 +2790,31 @@ class TestArtifactExporter(unittest.TestCase):
             self.assertEqual(resource_dict[property_name], result_path_style_s3_url)
         finally:
             os.remove(template_path)
+
+    def test_metadata_exports_registry_shape(self):
+        self.assertTrue(all(isinstance(s, MetadataExportSpec) for s in METADATA_EXPORTS))
+
+        by_type = {s.metadata_type: s for s in METADATA_EXPORTS}
+        spec = by_type["AWS::ServerlessRepo::Application"]
+
+        self.assertEqual(sorted(spec.property_names), ["LicenseUrl", "ReadmeUrl"])
+        self.assertIn(ServerlessRepoApplicationLicense, spec.exporters)
+        self.assertIn(ServerlessRepoApplicationReadme, spec.exporters)
+
+    def test_global_transform_exports_registry_shape(self):
+        self.assertTrue(all(isinstance(s, GlobalTransformExportSpec) for s in GLOBAL_TRANSFORM_EXPORTS))
+
+        aws_include = next(
+            s for s in GLOBAL_TRANSFORM_EXPORTS if s.discriminator({"Name": "AWS::Include", "Parameters": {}})
+        )
+
+        self.assertEqual(aws_include.template_key, "Fn::Transform")
+        self.assertIs(aws_include.handler, include_transform_export_handler)
+
+        # Discriminator must reject non-AWS::Include transforms and non-dict inputs
+        self.assertFalse(aws_include.discriminator({"Name": "AWS::OtherTransform"}))
+        self.assertFalse(aws_include.discriminator(None))
+        self.assertFalse(aws_include.discriminator("not-a-dict"))
 
 
 class TestResolveNestedStackParameters(unittest.TestCase):
@@ -2582,16 +2827,12 @@ class TestResolveNestedStackParameters(unittest.TestCase):
     """
 
     def test_literal_values_pass_through(self):
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         resolved = _resolve_nested_stack_parameters(
             {"ServiceNames": "Users,Orders,Products"}, parent_parameter_values={}
         )
         self.assertEqual(resolved, {"ServiceNames": "Users,Orders,Products"})
 
     def test_ref_to_parent_parameter_resolves(self):
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         resolved = _resolve_nested_stack_parameters(
             {"ServiceNames": {"Ref": "TopLevelServices"}},
             parent_parameter_values={"TopLevelServices": "Users,Orders"},
@@ -2599,8 +2840,6 @@ class TestResolveNestedStackParameters(unittest.TestCase):
         self.assertEqual(resolved, {"ServiceNames": "Users,Orders"})
 
     def test_unresolvable_getatt_is_dropped(self):
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         resolved = _resolve_nested_stack_parameters(
             {"TopicArn": {"Fn::GetAtt": ["SomeResource", "Arn"]}}, parent_parameter_values={}
         )
@@ -2609,15 +2848,11 @@ class TestResolveNestedStackParameters(unittest.TestCase):
         self.assertEqual(resolved, {})
 
     def test_empty_input(self):
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         self.assertEqual(_resolve_nested_stack_parameters({}, {}), {})
         self.assertEqual(_resolve_nested_stack_parameters(None, {}), {})
 
     def test_unresolvable_ref_to_resource_is_dropped(self):
         """Ref to a resource (not a parameter) raises UnresolvableReferenceError and is dropped."""
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         # Ref to "MyBucket" — not in parameter_values, not a pseudo-param → resource ref → preserved
         # as {"Ref": "MyBucket"} by partial resolver → dropped by the intrinsic-detection heuristic
         resolved = _resolve_nested_stack_parameters({"BucketName": {"Ref": "MyBucket"}}, parent_parameter_values={})
@@ -2625,8 +2860,6 @@ class TestResolveNestedStackParameters(unittest.TestCase):
 
     def test_fn_sub_partially_resolves(self):
         """Fn::Sub with resolvable parts produces a string (not dropped)."""
-        from samcli.lib.package.artifact_exporter import _resolve_nested_stack_parameters
-
         resolved = _resolve_nested_stack_parameters(
             {"Endpoint": {"Fn::Sub": "https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com"}},
             parent_parameter_values={"AWS::Region": "us-east-1"},
@@ -2668,6 +2901,84 @@ class TestTemplateInitWithTemplateDict(unittest.TestCase):
         self.assertEqual(t.template_dict["Resources"]["MyTopic"]["Type"], "AWS::SNS::Topic")
 
 
+class TestBuildChildParameterValues(unittest.TestCase):
+    """Unit tests for _build_child_parameter_values, the CFN-parity helper that
+    builds the parameter_values dict threaded into expand_language_extensions
+    for a nested child stack.
+
+    Contract: result contains pseudo-params (with parent overrides for pseudo
+    NAMES only) and parent-rebound values from the nested-stack `Parameters:`
+    property. Non-pseudo parent names are NOT copied. Child template Defaults
+    are NOT folded in — the LE expander reads them from
+    parsed_template.parameters[X].Default at resolve time.
+    """
+
+    def test_excludes_non_pseudo_parent_params(self):
+        """Non-pseudo parent names must not leak into the child's scope."""
+        result = _build_child_parameter_values(
+            parent_parameter_values={"Foo": "parent_foo", "AWS::Region": "us-east-1"},
+            nested_stack_parameters={},
+        )
+
+        self.assertNotIn("Foo", result)
+        # Pseudo baseline is present.
+        self.assertEqual(result.get("AWS::Region"), "us-east-1")
+
+    def test_includes_pseudo_overrides_from_parent(self):
+        """Parent's override of a pseudo name must propagate to the child."""
+        result = _build_child_parameter_values(
+            parent_parameter_values={"AWS::Region": "eu-west-1"},
+            nested_stack_parameters={},
+        )
+
+        self.assertEqual(result["AWS::Region"], "eu-west-1")
+
+    def test_resolved_nested_rebinding_appears_in_result(self):
+        """Parent-rebound values reach the child."""
+        result = _build_child_parameter_values(
+            parent_parameter_values={"ParentBar": "rebound"},
+            nested_stack_parameters={"Bar": {"Ref": "ParentBar"}},
+        )
+
+        self.assertEqual(result["Bar"], "rebound")
+
+    def test_resolved_nested_rebinding_can_override_pseudo_named_key(self):
+        """Edge case: explicit nested-stack rebinding of a pseudo name wins
+        over the parent's pseudo-name override (step 3 dominates step 2 in
+        the merge order). Preserves existing _resolve_nested_stack_parameters
+        semantics.
+        """
+        result = _build_child_parameter_values(
+            parent_parameter_values={"AWS::Region": "us-east-1", "MyRegion": "ap-south-1"},
+            nested_stack_parameters={"AWS::Region": {"Ref": "MyRegion"}},
+        )
+
+        self.assertEqual(result["AWS::Region"], "ap-south-1")
+
+    def test_no_parent_parameter_values_uses_defaults(self):
+        """parent_parameter_values=None must not crash and must yield exactly
+        the default pseudo-param baseline."""
+        result = _build_child_parameter_values(
+            parent_parameter_values=None,
+            nested_stack_parameters={},
+        )
+
+        self.assertEqual(result, dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES))
+
+    def test_does_not_fold_child_defaults(self):
+        """Helper signature does not take a child template dict. Documents the
+        design choice that child Defaults are picked up by the LE expander's
+        resolver via parsed_template.parameters[X].Default — not folded in
+        here. If a future contributor adds Default-folding to this helper,
+        this test prevents that drift.
+        """
+        sig = inspect.signature(_build_child_parameter_values)
+        self.assertEqual(
+            list(sig.parameters.keys()),
+            ["parent_parameter_values", "nested_stack_parameters"],
+        )
+
+
 class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
     """End-to-end test for threading parent params into child template expansion.
 
@@ -2689,64 +3000,165 @@ class TestCloudFormationStackResourceChildExpansion(unittest.TestCase):
 
     def test_child_template_receives_parent_parameters(self):
         stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
 
-        # Child template: Fn::ForEach driven by a child parameter.
-        child_template = {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Transform": "AWS::LanguageExtensions",
-            "Parameters": {"ServiceNames": {"Type": "CommaDelimitedList"}},
-            "Resources": {
-                "Fn::ForEach::Services": [
-                    "Name",
-                    {"Ref": "ServiceNames"},
-                    {"${Name}Topic": {"Type": "AWS::SNS::Topic", "Properties": {}}},
-                ]
-            },
+        parent_dir = str(TEST_DATA_PATH / "child_servicenames")
+        child_path = str(TEST_DATA_PATH / "child_servicenames" / "child.yaml")
+
+        # Parent-propagated values (what PackageContext._export would send)
+        stack_resource.parent_parameter_values = {
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "123456789012",
         }
 
-        tmpdir = tempfile.mkdtemp()
-        try:
-            child_path = os.path.join(tmpdir, "child.yaml")
-            from samcli.yamlhelper import yaml_dump
+        # Parent's nested-stack resource: Parameters literal list
+        resource_dict = {
+            "TemplateURL": child_path,
+            "Parameters": {"ServiceNames": "Users,Orders,Products"},
+        }
 
-            with open(child_path, "w", encoding="utf-8") as f:
-                f.write(yaml_dump(child_template))
+        with patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock:
+            # Short-circuit: make expand return a "no-LE" result so do_export
+            # proceeds via the non-extension path (which doesn't upload since
+            # we'll intercept the inner Template).
+            expand_mock.return_value = Mock(had_language_extensions=False)
+            with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+                inner_template = Mock()
+                inner_template.export.return_value = {"Resources": {}}
+                TemplateMock.return_value = inner_template
+                stack_resource.do_export("ChildStack", resource_dict, parent_dir)
 
-            # Parent-propagated values (what PackageContext._export would send)
-            stack_resource.parent_parameter_values = {
-                "AWS::Region": "us-east-1",
-                "AWS::AccountId": "123456789012",
-            }
+        # Verify the parameter_values threaded into expand_language_extensions
+        # contains the nested-stack Parameters values.
+        call_args = expand_mock.call_args[0]
+        call_kwargs = expand_mock.call_args[1]
+        passed_params = call_args[1] if len(call_args) > 1 else call_kwargs.get("parameter_values", {})
+        self.assertEqual(passed_params.get("ServiceNames"), "Users,Orders,Products")
+        # And still carries propagated parent/pseudo values:
+        self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
 
-            # Parent's nested-stack resource: Parameters literal list
-            resource_dict = {
-                "TemplateURL": child_path,
-                "Parameters": {"ServiceNames": "Users,Orders,Products"},
-            }
+    def test_parent_param_does_not_leak_into_child_with_same_name(self):
+        stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
 
-            with patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock:
-                # Short-circuit: make expand return a "no-LE" result so do_export
-                # proceeds via the non-extension path (which doesn't upload since
-                # we'll intercept the inner Template).
-                expand_mock.return_value = Mock(had_language_extensions=False)
-                with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
-                    inner_template = Mock()
-                    inner_template.export.return_value = {"Resources": {}}
-                    TemplateMock.return_value = inner_template
-                    stack_resource.do_export("ChildStack", resource_dict, tmpdir)
+        parent_dir = str(TEST_DATA_PATH / "child_foo_param")
+        child_path = str(TEST_DATA_PATH / "child_foo_param" / "child.yaml")
 
-            # Verify the parameter_values threaded into expand_language_extensions
-            # contains the nested-stack Parameters values.
-            call_args = expand_mock.call_args[0]
-            call_kwargs = expand_mock.call_args[1]
-            passed_params = call_args[1] if len(call_args) > 1 else call_kwargs.get("parameter_values", {})
-            self.assertEqual(passed_params.get("ServiceNames"), "Users,Orders,Products")
-            # And still carries propagated parent/pseudo values:
-            self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
-        finally:
-            import shutil
+        # Parent has a non-pseudo Foo with a value — this is the leak source.
+        stack_resource.parent_parameter_values = {
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "123456789012",
+            "Foo": "parent_foo",
+        }
+        # Nested-stack Parameters: does NOT rebind Foo.
+        resource_dict = {
+            "TemplateURL": child_path,
+            "Parameters": {},
+        }
 
-            shutil.rmtree(tmpdir, ignore_errors=True)
+        with patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock:
+            expand_mock.return_value = Mock(had_language_extensions=False)
+            with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+                TemplateMock.return_value.export.return_value = {"Resources": {}}
+                stack_resource.do_export("ChildStack", resource_dict, parent_dir)
+
+        call_args = expand_mock.call_args[0]
+        call_kwargs = expand_mock.call_args[1]
+        passed_params = call_args[1] if len(call_args) > 1 else call_kwargs.get("parameter_values", {})
+
+        self.assertNotIn(
+            "Foo",
+            passed_params,
+            "Non-pseudo parent param leaked into child's parameter_values " "(CFN-parity violation).",
+        )
+        # Pseudos still propagate.
+        self.assertEqual(passed_params.get("AWS::Region"), "us-east-1")
+        self.assertEqual(passed_params.get("AWS::AccountId"), "123456789012")
+
+    def test_child_default_still_resolves_via_resolver_fallback(self):
+        stack_resource, _ = self._make_stack_resource()
+        stack_resource.language_extensions_enabled = True
+
+        parent_dir = str(TEST_DATA_PATH / "child_bar_default")
+        child_path = str(TEST_DATA_PATH / "child_bar_default" / "child.yaml")
+
+        stack_resource.parent_parameter_values = {
+            "AWS::Region": "us-east-1",
+            "AWS::AccountId": "123456789012",
+        }
+        resource_dict = {
+            "TemplateURL": child_path,
+            "Parameters": {},
+        }
+
+        captured = {}
+
+        def capture_template_dict(*args, **kwargs):
+            captured["template_dict"] = kwargs.get("template_dict")
+            inner = Mock()
+            inner.export.return_value = {"Resources": {}}
+            return inner
+
+        with patch(
+            "samcli.lib.package.artifact_exporter.Template",
+            side_effect=capture_template_dict,
+        ):
+            stack_resource.do_export("ChildStack", resource_dict, parent_dir)
+
+        expanded = captured.get("template_dict") or {}
+        resources = expanded.get("Resources", {})
+        # Default "bar_default" should have been substituted into the
+        # ForEach loop, producing a "bar_defaultTopic" resource.
+        self.assertIn(
+            "bar_defaultTopic",
+            resources,
+            "Child Default did not resolve via resolver fallback. " "Expanded Resources: %r" % (resources,),
+        )
+
+
+class TestCloudFormationStackResourceBuriedAWSInclude(unittest.TestCase):
+    """Nested-stack child template containing AWS::Include buried inside an
+    LE function (e.g. Fn::ToJsonString) must have the include's Location
+    rewritten by the pre-LE global-transform pass in
+    CloudFormationStackResource.do_export, before LE expansion would have
+    collapsed the structural Fn::Transform into a JSON-string literal.
+
+    Regression coverage for https://github.com/aws/aws-sam-cli/issues/9027.
+    Root-flow coverage lives in tests/unit/commands/package/
+    test_package_context.py.
+    """
+
+    def test_buried_aws_include_in_le_child_is_rewritten(self):
+        uploaders_mock = Mock()
+        s3_uploader_mock = Mock()
+        s3_uploader_mock.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://bucket/{os.path.basename(local_path)}-md5"
+        )
+        # Template upload (the child template itself) — give it a deterministic URL.
+        s3_uploader_mock.upload.return_value = "s3://bucket/child-template-md5"
+        s3_uploader_mock.to_path_style_s3_url.return_value = "https://s3.amazonaws.com/bucket/child-template-md5"
+        uploaders_mock.get.return_value = s3_uploader_mock
+
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+
+        stack_resource = CloudFormationStackResource(uploaders_mock, code_signer_mock)
+        stack_resource.language_extensions_enabled = True
+
+        # Fixture mirrors the issue #9027 reporter's shape: Fn::ToJsonString
+        # over Fn::Transform: AWS::Include, buried inside
+        # AWS::SSM::Parameter.Properties.Value, under
+        # Transform: AWS::LanguageExtensions so the LE branch is taken.
+        parent_dir = str(TEST_DATA_PATH / "buried_aws_include")
+        child_path = str(TEST_DATA_PATH / "buried_aws_include" / "child.yaml")
+        include_path = str(TEST_DATA_PATH / "buried_aws_include" / "export-events.json")
+
+        resource_dict = {"TemplateURL": child_path}
+        stack_resource.do_export("ChildStack", resource_dict, parent_dir)
+
+        # Walk every upload_with_dedup call to confirm the include was uploaded.
+        uploaded_files = [call_args[0][0] for call_args in s3_uploader_mock.upload_with_dedup.call_args_list]
+        self.assertIn(include_path, uploaded_files)
 
 
 class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
@@ -2769,61 +3181,139 @@ class TestCloudFormationStackResourceExpansionErrorHandling(unittest.TestCase):
         code_signer_mock.should_sign_package.return_value = False
         return CloudFormationStackResource(uploaders_mock, code_signer_mock)
 
-    def _write_child(self, tmpdir):
-        child = {
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Transform": "AWS::LanguageExtensions",
-            "Resources": {"Dummy": {"Type": "AWS::SNS::Topic", "Properties": {}}},
-        }
-        from samcli.yamlhelper import yaml_dump
-
-        path = os.path.join(tmpdir, "child.yaml")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(yaml_dump(child))
-        return path
-
     def test_invalid_sam_document_exception_logs_warning_and_falls_back(self):
         stack_resource = self._make_stack_resource()
-        tmpdir = tempfile.mkdtemp()
-        try:
-            child_path = self._write_child(tmpdir)
-            with (
-                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
-                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
-                self.assertLogs("samcli.lib.package.artifact_exporter", level="WARNING") as log_ctx,
-            ):
-                expand_mock.side_effect = InvalidSamDocumentException("bad template")
-                TemplateMock.return_value.export.return_value = {"Resources": {}}
-                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
+        stack_resource.language_extensions_enabled = True
+        parent_dir = str(TEST_DATA_PATH / "child_minimal_le")
+        child_path = str(TEST_DATA_PATH / "child_minimal_le" / "child.yaml")
+        with (
+            patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock,
+            patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+            self.assertLogs("samcli.lib.package.artifact_exporter", level="WARNING") as log_ctx,
+        ):
+            expand_mock.side_effect = InvalidSamDocumentException("bad template")
+            TemplateMock.return_value.export.return_value = {"Resources": {}}
+            stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
 
-            # Warning emitted (not error) and fallback path taken.
-            self.assertTrue(any("Language extensions expansion failed" in m for m in log_ctx.output))
-            TemplateMock.assert_called_once()  # non-extension fallback constructor
-        finally:
-            import shutil
-
-            shutil.rmtree(tmpdir, ignore_errors=True)
+        # Warning emitted (not error) and fallback path taken.
+        self.assertTrue(any("Language extensions expansion failed" in m for m in log_ctx.output))
+        TemplateMock.assert_called_once()  # non-extension fallback constructor
 
     def test_unexpected_exception_logs_error_and_falls_back(self):
         stack_resource = self._make_stack_resource()
-        tmpdir = tempfile.mkdtemp()
-        try:
-            child_path = self._write_child(tmpdir)
-            with (
-                patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions") as expand_mock,
-                patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
-                self.assertLogs("samcli.lib.package.artifact_exporter", level="ERROR") as log_ctx,
-            ):
-                expand_mock.side_effect = AttributeError("unexpected bug")
-                TemplateMock.return_value.export.return_value = {"Resources": {}}
-                stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, tmpdir)
+        stack_resource.language_extensions_enabled = True
+        parent_dir = str(TEST_DATA_PATH / "child_minimal_le")
+        child_path = str(TEST_DATA_PATH / "child_minimal_le" / "child.yaml")
+        with (
+            patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as expand_mock,
+            patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+            self.assertLogs("samcli.lib.package.artifact_exporter", level="ERROR") as log_ctx,
+        ):
+            expand_mock.side_effect = AttributeError("unexpected bug")
+            TemplateMock.return_value.export.return_value = {"Resources": {}}
+            stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
 
-            # ERROR-level log containing the bug-report pointer; fallback still taken.
-            joined = "\n".join(log_ctx.output)
-            self.assertIn("Internal error expanding language extensions", joined)
-            self.assertIn("github.com/aws/aws-sam-cli/issues", joined)
-            TemplateMock.assert_called_once()
-        finally:
-            import shutil
+        # ERROR-level log containing the bug-report pointer; fallback still taken.
+        joined = "\n".join(log_ctx.output)
+        self.assertIn("Internal error expanding language extensions", joined)
+        self.assertIn("github.com/aws/aws-sam-cli/issues", joined)
+        TemplateMock.assert_called_once()
 
-            shutil.rmtree(tmpdir, ignore_errors=True)
+
+class TestTemplateLanguageExtensionsKwarg(unittest.TestCase):
+    """Tests for Template.__init__ language_extensions_enabled kwarg."""
+
+    def test_disabled_passes_enabled_false(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+            language_extensions_enabled=False,
+        )
+        self.assertFalse(template.language_extensions_enabled)
+
+    def test_enabled_passes_enabled_true(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+            language_extensions_enabled=True,
+        )
+        self.assertTrue(template.language_extensions_enabled)
+
+    def test_default_is_false(self):
+        template = Template(
+            template_path="template.yaml",
+            parent_dir=os.path.abspath(os.getcwd()),
+            uploaders=mock.MagicMock(),
+            code_signer=mock.MagicMock(),
+            template_dict={"Resources": {}},
+        )
+        self.assertFalse(template.language_extensions_enabled)
+
+
+class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
+    """Structural-gate guarantees for CloudFormationStackResource.do_export().
+
+    When language_extensions_enabled is False (the default), do_export must not
+    invoke any LE machinery: no expand_language_extensions call, no pre-LE
+    AWS::Include pass, no pseudo-param plumbing. The flag is a hard correctness
+    boundary, not a passthrough.
+
+    Patch targets are use-site (samcli.lib.package.artifact_exporter.*) per the
+    lesson from PR #9030's 45dea4b7b — hoisting an import freezes the use-site
+    binding, so source-module patches stop intercepting and tests fail only
+    under CI's deterministic collection order.
+    """
+
+    def _make_stack_resource(self):
+        uploaders_mock = Mock()
+        uploaders_mock.get.return_value = Mock()
+        uploaders_mock.get.return_value.upload.return_value = "s3://bucket/key"
+        uploaders_mock.get.return_value.to_path_style_s3_url.return_value = "http://s3.amazonaws.com/bucket/key"
+        code_signer_mock = Mock()
+        code_signer_mock.should_sign_package.return_value = False
+        return CloudFormationStackResource(uploaders_mock, code_signer_mock)
+
+    def test_off_path_does_not_invoke_expand_language_extensions(self):
+        """LE-off: dispatcher must NOT call expand_language_extensions."""
+        stack_resource = self._make_stack_resource()
+        # Default state: language_extensions_enabled is False.
+        self.assertFalse(stack_resource.language_extensions_enabled)
+
+        parent_dir = str(TEST_DATA_PATH / "child_minimal_no_le")
+        child_path = str(TEST_DATA_PATH / "child_minimal_no_le" / "child.yaml")
+        with (
+            patch("samcli.lib.package.artifact_exporter.expand_language_extensions") as mock_expand,
+            patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+        ):
+            TemplateMock.return_value.export.return_value = {"Resources": {}}
+            stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
+
+        mock_expand.assert_not_called()
+
+    def test_off_path_does_not_invoke_pre_le_global_transform_pass(self):
+        """LE-off: dispatcher / off branch must NOT call _export_global_artifacts_pass.
+
+        Note: Template.export() runs its own internal _export_global_artifacts_pass,
+        but here Template is patched, so any call to the patched
+        _export_global_artifacts_pass would be from the do_export call site
+        (which we want to NOT happen on the off path).
+        """
+        stack_resource = self._make_stack_resource()
+        self.assertFalse(stack_resource.language_extensions_enabled)
+
+        parent_dir = str(TEST_DATA_PATH / "child_minimal_no_le")
+        child_path = str(TEST_DATA_PATH / "child_minimal_no_le" / "child.yaml")
+        with (
+            patch("samcli.lib.package.artifact_exporter._export_global_artifacts_pass") as mock_pre_pass,
+            patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock,
+        ):
+            TemplateMock.return_value.export.return_value = {"Resources": {}}
+            stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
+
+        mock_pre_pass.assert_not_called()

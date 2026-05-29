@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
+    "language_extensions",
 ]
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]

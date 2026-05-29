@@ -27,6 +27,7 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
     "tags",
     "metadata",
     "build_image",
+    "language_extensions",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS

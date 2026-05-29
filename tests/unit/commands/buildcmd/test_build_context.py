@@ -1,6 +1,6 @@
 import os
 from unittest import TestCase
-from unittest.mock import MagicMock, patch, Mock, ANY, call
+from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from parameterized import parameterized
 
@@ -9,10 +9,10 @@ from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBu
 from samcli.commands.build.utils import MountMode
 from samcli.commands.exceptions import UserException
 from samcli.lib.build.app_builder import (
-    BuildError,
-    UnsupportedBuilderLibraryVersionError,
-    BuildInsideContainerError,
     ApplicationBuildResult,
+    BuildError,
+    BuildInsideContainerError,
+    UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
@@ -20,9 +20,8 @@ from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.providers.provider import Function, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
-from samcli.lib.utils.packagetype import ZIP, IMAGE
-from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.lambdafn.exceptions import ResourceNotFound
+from samcli.lib.utils.packagetype import IMAGE, ZIP
+from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
 
 class DeepWrap(Exception):
@@ -164,6 +163,7 @@ class TestBuildContext__enter__(TestCase):
             "template_file",
             parameter_overrides={"overrides": "value"},
             global_parameter_overrides={"AWS::Region": "any_aws_region"},
+            language_extensions_enabled=False,
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -499,7 +499,10 @@ class TestBuildContext__enter__(TestCase):
         self.assertEqual(resources_to_build.functions, [func1, func2, func6])
         self.assertEqual(resources_to_build.layers, [layer1])
         get_buildable_stacks_mock.assert_called_once_with(
-            "template_file", parameter_overrides={"overrides": "value"}, global_parameter_overrides=None
+            "template_file",
+            parameter_overrides={"overrides": "value"},
+            global_parameter_overrides=None,
+            language_extensions_enabled=False,
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
@@ -1502,6 +1505,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """When stack has original_template_dict, return a copy of it with updated paths."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Fn::ForEach::Functions": [
@@ -1538,7 +1542,7 @@ class TestBuildContext_get_template_for_output(TestCase):
                 },
             }
         }
-        artifacts = {}
+        artifacts = {"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1555,6 +1559,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """Ensure the original template is deep copied and not modified in place."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Function": {
@@ -1576,7 +1581,8 @@ class TestBuildContext_get_template_for_output(TestCase):
                 }
             }
         }
-        artifacts = {}
+        # Function was built — ensure the merge is not skipped by the #9029 guard.
+        artifacts = {"Function": "/path/to/built/Function"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1589,6 +1595,7 @@ class TestBuildContext_get_template_for_output(TestCase):
         """When Fn::ForEach has dynamic CodeUri, the output template should have Mappings."""
         stack = Mock()
         stack.location = "/path/to/template.yaml"
+        stack.stack_path = ""
         original_template = {
             "Resources": {
                 "Fn::ForEach::Functions": [
@@ -1625,7 +1632,7 @@ class TestBuildContext_get_template_for_output(TestCase):
                 },
             }
         }
-        artifacts = {}
+        artifacts = {"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"}
 
         result = self.build_context._get_template_for_output(stack, modified_template, artifacts)
 
@@ -1691,7 +1698,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Static CodeUri: should be updated to first matching expanded resource's path
         self.assertEqual(foreach_value[2]["${Name}Function"]["Properties"]["CodeUri"], "../build/AlphaFunction")
@@ -1732,7 +1744,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
 
         # Mappings should be generated
         self.assertIn("SAMCodeUriFunctions", mappings)
@@ -1788,7 +1805,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             }
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Layer1Layer": "/built/Layer1Layer", "Layer2Layer": "/built/Layer2Layer"},
+        )
 
         self.assertEqual(foreach_value[2]["${Name}Layer"]["Properties"]["ContentUri"], "../build/Layer1Layer")
         self.assertEqual(mappings, {})
@@ -1827,7 +1849,12 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"UsersService": "/built/UsersService", "OrdersService": "/built/OrdersService"},
+        )
 
         self.assertIn("SAMCodeUriServices", mappings)
         self.assertEqual(mappings["SAMCodeUriServices"]["Users"]["CodeUri"], "UsersService")
@@ -1877,6 +1904,7 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             modified_resources,
             template=template,
             parameter_values=parameter_values,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
         )
 
         # Should resolve the Ref collection and generate mappings
@@ -1954,7 +1982,17 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "DevApiFunction": "/built/DevApiFunction",
+                "DevWorkerFunction": "/built/DevWorkerFunction",
+                "ProdApiFunction": "/built/ProdApiFunction",
+                "ProdWorkerFunction": "/built/ProdWorkerFunction",
+            },
+        )
 
         # Mappings should use compound keys (outer-inner) and nesting path
         self.assertIn("SAMCodeUriEnvsServices", mappings)
@@ -2019,7 +2057,17 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
             },
         }
 
-        mappings = self.build_context._update_foreach_artifact_paths(foreach_key, foreach_value, modified_resources)
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "DevApiFunction": "/built/DevApiFunction",
+                "DevWorkerFunction": "/built/DevWorkerFunction",
+                "ProdApiFunction": "/built/ProdApiFunction",
+                "ProdWorkerFunction": "/built/ProdWorkerFunction",
+            },
+        )
 
         # Mappings should use simple keys (inner only) and nesting path
         self.assertIn("SAMCodeUriEnvsServices", mappings)
@@ -2032,6 +2080,223 @@ class TestBuildContext_update_foreach_artifact_paths(TestCase):
         code_uri = inner_body["${Env}${Svc}Function"]["Properties"]["CodeUri"]
         find_in_map = code_uri["Fn::FindInMap"]
         self.assertEqual(find_in_map[1], {"Ref": "Svc"})
+
+    def test_static_dotted_glue_script_location(self):
+        """Static Command.ScriptLocation must be copied via dotted path (no clobbering siblings)."""
+
+        foreach_key = "Fn::ForEach::Jobs"
+        foreach_value = [
+            "Name",
+            ["Etl1", "Etl2"],
+            {
+                "${Name}Job": {
+                    "Type": "AWS::Glue::Job",
+                    "Properties": {
+                        "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/job.py"},
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "Etl1Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "../build/Etl1Job/job.py"}},
+            },
+            "Etl2Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "../build/Etl2Job/job.py"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Etl1Job": "/built/Etl1Job", "Etl2Job": "/built/Etl2Job"},
+        )
+
+        body = foreach_value[2]
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"], "../build/Etl1Job/job.py")
+        # Sibling key preserved
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        # No literal "Command.ScriptLocation" key was created
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+        # Static path: no Mapping
+        self.assertEqual(mappings, {})
+
+    def test_dynamic_dotted_glue_script_location_generates_mapping(self):
+        """Dynamic Command.ScriptLocation generates a Mapping with the leaf name and a FindInMap reference."""
+
+        foreach_key = "Fn::ForEach::Jobs"
+        foreach_value = [
+            "Name",
+            ["Etl1", "Etl2"],
+            {
+                "${Name}Job": {
+                    "Type": "AWS::Glue::Job",
+                    "Properties": {
+                        "Command": {"Name": "glueetl", "ScriptLocation": "./scripts/${Name}.py"},
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "Etl1Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "Etl1.py"}},
+            },
+            "Etl2Job": {
+                "Type": "AWS::Glue::Job",
+                "Properties": {"Command": {"Name": "glueetl", "ScriptLocation": "Etl2.py"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"Etl1Job": "/built/Etl1Job", "Etl2Job": "/built/Etl2Job"},
+        )
+
+        # Mapping name uses the leaf "ScriptLocation", not "Command.ScriptLocation"
+        self.assertIn("SAMScriptLocationJobs", mappings)
+        self.assertEqual(mappings["SAMScriptLocationJobs"]["Etl1"], {"ScriptLocation": "Etl1.py"})
+        self.assertEqual(mappings["SAMScriptLocationJobs"]["Etl2"], {"ScriptLocation": "Etl2.py"})
+
+        # ScriptLocation should be replaced with Fn::FindInMap at the dotted path
+        body = foreach_value[2]
+        script_location = body["${Name}Job"]["Properties"]["Command"]["ScriptLocation"]
+        self.assertEqual(
+            script_location, {"Fn::FindInMap": ["SAMScriptLocationJobs", {"Ref": "Name"}, "ScriptLocation"]}
+        )
+        # Sibling key preserved
+        self.assertEqual(body["${Name}Job"]["Properties"]["Command"]["Name"], "glueetl")
+        # No literal "Command.ScriptLocation" key
+        self.assertNotIn("Command.ScriptLocation", body["${Name}Job"]["Properties"])
+
+    def test_dynamic_dotted_lambda_image_uri_generates_mapping(self):
+        """Dynamic Code.ImageUri (Lambda image function) generates a leaf-named Mapping."""
+
+        foreach_key = "Fn::ForEach::Funcs"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Function": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {"ImageUri": "local-image-${Name}:latest"},
+                        "PackageType": "Image",
+                    },
+                }
+            },
+        ]
+        modified_resources = {
+            "AlphaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"},
+                    "PackageType": "Image",
+                },
+            },
+            "BetaFunction": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {
+                    "Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Beta"},
+                    "PackageType": "Image",
+                },
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={"AlphaFunction": "/built/AlphaFunction", "BetaFunction": "/built/BetaFunction"},
+        )
+
+        # Mapping name uses leaf "ImageUri", not "Code.ImageUri"
+        self.assertIn("SAMImageUriFuncs", mappings)
+        self.assertEqual(
+            mappings["SAMImageUriFuncs"]["Alpha"], {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/r:Alpha"}
+        )
+
+        body = foreach_value[2]
+        image_uri = body["${Name}Function"]["Properties"]["Code"]["ImageUri"]
+        self.assertEqual(image_uri, {"Fn::FindInMap": ["SAMImageUriFuncs", {"Ref": "Name"}, "ImageUri"]})
+        # PackageType sibling preserved
+        self.assertEqual(body["${Name}Function"]["Properties"]["PackageType"], "Image")
+
+    def test_leaf_collision_across_resource_types_disambiguates_mapping_name(self):
+        """A Serverless::Function (ImageUri) and a Lambda::Function (Code.ImageUri) in the
+        same ForEach body share the same leaf "ImageUri" but different dotted paths.
+        Their generated Mapping names must NOT collide — the resource-key suffix should
+        be applied so neither set of entries silently overwrites the other.
+        """
+        foreach_key = "Fn::ForEach::Funcs"
+        foreach_value = [
+            "Name",
+            ["Alpha", "Beta"],
+            {
+                "${Name}Sam": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "ImageUri": "sam-${Name}:latest",
+                        "PackageType": "Image",
+                    },
+                },
+                "${Name}Lambda": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {
+                        "Code": {"ImageUri": "lambda-${Name}:latest"},
+                        "PackageType": "Image",
+                    },
+                },
+            },
+        ]
+        modified_resources = {
+            "AlphaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Alpha"},
+            },
+            "BetaSam": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/sam:Beta"},
+            },
+            "AlphaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Alpha"}},
+            },
+            "BetaLambda": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"ImageUri": "111.dkr.ecr.us-east-1.amazonaws.com/lambda:Beta"}},
+            },
+        }
+
+        mappings = self.build_context._update_foreach_artifact_paths(
+            foreach_key,
+            foreach_value,
+            modified_resources,
+            artifacts={
+                "AlphaSam": "/built/AlphaSam",
+                "BetaSam": "/built/BetaSam",
+                "AlphaLambda": "/built/AlphaLambda",
+                "BetaLambda": "/built/BetaLambda",
+            },
+        )
+
+        # Two distinct Mapping names should exist — one per resource — disambiguated
+        # by the resource-key suffix because both leaf to "ImageUri".
+        sam_image_mappings = sorted(name for name in mappings if name.startswith("SAMImageUriFuncs"))
+        self.assertEqual(
+            len(sam_image_mappings),
+            2,
+            f"Expected two distinct SAMImageUriFuncs* mappings (one per resource type); got {sam_image_mappings}.",
+        )
+        # And neither set of entries should be lost: every collection value appears
+        # exactly once in each of the two distinct mappings.
+        for name in sam_image_mappings:
+            self.assertEqual(set(mappings[name].keys()), {"Alpha", "Beta"})
 
 
 class TestBuildContext_contains_loop_variable(TestCase):
@@ -2085,3 +2350,41 @@ class TestBuildContext_substitute_loop_variable(TestCase):
         from samcli.lib.cfn_language_extensions.sam_integration import substitute_loop_variable
 
         self.assertEqual(substitute_loop_variable("StaticFunction", "Name", "Alpha"), "StaticFunction")
+
+
+class TestBuildContextLanguageExtensions(TestCase):
+    """language_extensions kwarg resolves to a bool stored on the context."""
+
+    def _ctx(self, **kwargs):
+        from samcli.commands.build.build_context import BuildContext
+
+        defaults = dict(
+            resource_identifier=None,
+            template_file="template.yaml",
+            base_dir=None,
+            build_dir="build",
+            cache_dir=".cache",
+            cached=False,
+            parallel=False,
+            mode=None,
+        )
+        defaults.update(kwargs)
+        return BuildContext(**defaults)
+
+    def test_default_is_false(self):
+        ctx = self._ctx()
+        assert ctx.language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        ctx = self._ctx(language_extensions=True)
+        assert ctx.language_extensions_enabled is True
+
+    def test_explicit_false_overrides_env(self):
+        with patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "1"}, clear=False):
+            ctx = self._ctx(language_extensions=False)
+            assert ctx.language_extensions_enabled is False
+
+    def test_none_with_env_truthy(self):
+        with patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "true"}, clear=False):
+            ctx = self._ctx(language_extensions=None)
+            assert ctx.language_extensions_enabled is True

@@ -57,7 +57,13 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions
-      Handler: wait.wait_with_name.handler
+      Handler: wait.wait_30_seconds.handler
       DurableConfig:
         ExecutionTimeout: 5
         RetentionPeriodInDays: 7
+
+  WaitForCallbackShortTimeout:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions
+      Handler: wait_for_callback.wait_for_callback_short_timeout.handler
