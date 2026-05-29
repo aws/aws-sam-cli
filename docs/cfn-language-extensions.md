@@ -17,7 +17,7 @@ The original template (with `Fn::ForEach` intact) is preserved for CloudFormatio
 
 ## Enabling Language Extensions
 
-Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equivalent activation methods, in priority order:
+Local processing of `AWS::LanguageExtensions` is opt-in per command. Three activation methods, in priority order (highest first):
 
 1. **CLI flag** — pass `--language-extensions` on a single invocation:
 
@@ -27,19 +27,9 @@ Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equiv
    sam deploy --language-extensions ...
    ```
 
-   `--no-language-extensions` explicitly disables, overriding the env var below.
+   `--no-language-extensions` explicitly disables, overriding both samconfig.toml and the env var below.
 
-2. **Environment variable** — set `SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1` to enable for the current shell:
-
-   ```bash
-   export SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1
-   sam build
-   sam local invoke MyFunction
-   ```
-
-   Truthy values (case-insensitive): `1`, `true`, `yes`. Anything else, including empty string, is off.
-
-3. **`samconfig.toml`** — persist the choice per project:
+2. **`samconfig.toml`** — persist the choice per project:
 
    ```toml
    [default.build.parameters]
@@ -66,6 +56,18 @@ Local processing of `AWS::LanguageExtensions` is opt-in per command. Three equiv
    [default.validate.parameters]
    language_extensions = true
    ```
+
+   A `samconfig.toml` entry is loaded into Click's defaults, so it takes effect as if the flag were passed — and therefore wins over the env var.
+
+3. **Environment variable** — set `SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1` to enable for the current shell:
+
+   ```bash
+   export SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1
+   sam build
+   sam local invoke MyFunction
+   ```
+
+   Truthy values (case-insensitive): `1`, `true`, `yes`. Anything else, including empty string, is off. The env var is consulted only when neither the CLI flag nor samconfig.toml sets a value.
 
 **Each command needs its own activation.** Passing `--language-extensions` to `sam build` does not propagate to a later `sam local invoke` — local processing is decided per command invocation. Use the env var or samconfig entry to enable across commands without repeating the flag.
 
@@ -319,6 +321,22 @@ The following intrinsic functions are resolved locally during expansion:
 
 Functions that require deployed resources (`Fn::GetAtt`, `Fn::ImportValue`, `Fn::GetAZs`) are preserved for CloudFormation to resolve at deploy time.
 
+## AWS::Include processing order
+
+When a template uses both `Fn::Transform: AWS::Include` and
+`Transform: AWS::LanguageExtensions`, SAM CLI processes the inline
+`AWS::Include` macros **before** running language-extension expansion
+locally. This mirrors CloudFormation's server-side transform pipeline,
+where `Fn::Transform` macros are resolved before
+`AWS::LanguageExtensions`.
+
+The practical effect is that `AWS::Include` `Location` rewrites work
+correctly even when the include lives buried inside language-extension
+functions like `Fn::ToJsonString` or `Fn::ForEach` bodies, because the
+include is rewritten while still structurally visible — before
+`Fn::ToJsonString` collapses subtrees into JSON-string literals or
+`Fn::ForEach` expands resources.
+
 ## Validation errors
 
 The following template issues are caught locally before the SAM transform runs:
@@ -328,7 +346,7 @@ The following template issues are caught locally before the SAM transform runs:
 | The `Fn::ForEach` value is malformed — not a list, doesn't have exactly 3 elements, or has a non-string loop identifier. | `Fn::ForEach::<key> layout is incorrect` (raised as `InvalidTemplateException`; see `samcli/lib/cfn_language_extensions/processors/foreach.py`). |
 | More than 5 levels of `Fn::ForEach` are nested. | `Fn::ForEach nesting depth of <N> exceeds the maximum allowed depth of 5. CloudFormation supports up to 5 nested Fn::ForEach loops.` |
 | The collection resolves to an empty list (e.g., a `CommaDelimitedList` parameter with `Default: ""`). | No error — the loop is silently skipped and no resources are emitted. |
-| The `!Ref` in the collection points at a parameter that is not declared in the template. | No error in the typical `sam build` / `sam package` flow. SAM CLI runs intrinsic resolution in PARTIAL mode and preserves the unresolved `{"Ref": "<name>"}`. CloudFormation will reject the unresolved ref at deploy time. |
+| The `!Ref` in the collection points at a parameter that is not declared in the template. | No error in the typical `sam build` / `sam package` flow. SAM CLI runs intrinsic resolution in PARTIAL mode and preserves the unresolved `{"Ref": "<name>"}`. At deploy time, CloudFormation will resolve it server side. |
 
 ## Limitations
 

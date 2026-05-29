@@ -581,7 +581,7 @@ class TestCallersUseExpandLanguageExtensions(TestCase):
 
     @patch("samcli.commands.package.package_context.yaml_parse")
     @patch("builtins.open", create=True)
-    @patch("samcli.lib.cfn_language_extensions.sam_integration.expand_language_extensions")
+    @patch("samcli.commands.package.package_context.expand_language_extensions")
     def test_package_context_export_calls_expand_language_extensions(self, mock_expand, mock_open, mock_yaml_parse):
         """PackageContext._export() calls expand_language_extensions()."""
         from samcli.commands.package.package_context import PackageContext
