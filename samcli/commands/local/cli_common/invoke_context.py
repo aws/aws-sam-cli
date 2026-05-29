@@ -288,7 +288,7 @@ class InvokeContext:
 
         if self._no_watch and self._containers_mode == ContainersMode.WARM:
             _function_providers_kwargs["no_watch"] = True
-            
+
         if self._containers_mode == ContainersMode.WARM:
             _function_providers_kwargs["language_extensions_enabled"] = self._language_extensions_enabled
 

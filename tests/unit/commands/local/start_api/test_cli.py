@@ -160,6 +160,7 @@ class TestCli(TestCase):
             container_host_interface=self.container_host_interface,
             add_host=self.add_host,
             invoke_images={},
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             no_watch=True,  # Verify this is True
             container_dns=self.container_dns,

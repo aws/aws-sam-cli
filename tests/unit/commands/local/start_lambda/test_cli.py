@@ -141,6 +141,7 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={},
             function_logical_ids=(),
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
             no_watch=True,  # Verify this is True
             container_dns=self.container_dns,
