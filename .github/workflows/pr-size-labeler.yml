@@ -1,0 +1,60 @@
+name: "PR Size Labeler"
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+# Cancel in-flight runs on rapid pushes; the latest push is what matters.
+concurrency:
+  group: pr-size-labeler-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  size-label:
+    name: Size label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Compute size, label, and gate
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // ---- Buckets (sorted ascending by lower bound). ----
+            const BUCKETS = [
+              { label: 'size/XS',  min: 0,    max: 9 },
+              { label: 'size/S',   min: 10,   max: 29 },
+              { label: 'size/M',   min: 30,   max: 99 },
+              { label: 'size/L',   min: 100,  max: 499 },
+              { label: 'size/XL',  min: 500,  max: 999 },
+              { label: 'size/XXL', min: 1000, max: Infinity },
+            ];
+            const SIZE_LABELS = BUCKETS.map(b => b.label);
+            const OVERRIDE_LABEL = 'size/override';
+            const STICKY_MARKER = '<!-- pr-size-labeler -->';
+
+            // ---- Exclusion globs. Files matching ANY glob are excluded
+            //      from the size count. Edit this list to tune. ----
+            const EXCLUDE_GLOBS = [
+              '**/*.lock',
+              '**/package-lock.json',
+              '**/poetry.lock',
+              '**/yarn.lock',
+              '**/Pipfile.lock',
+              '**/uv.lock',
+              '**/requirements*.txt',
+              'schema/**',
+              '**/__snapshots__/**',
+              '**/*.snap',
+              '**/*.svg',
+              '**/*.png',
+              '**/*.jpg',
+              '**/*.jpeg',
+              '**/*.gif',
+              '**/*.ico',
+              '**/*.pdf',
+            ];
+
+            core.info(`Configured ${BUCKETS.length} buckets, ${EXCLUDE_GLOBS.length} exclusion globs.`);
