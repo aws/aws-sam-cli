@@ -35,8 +35,6 @@ jobs:
             const OVERRIDE_LABEL = 'size/override';
             const STICKY_MARKER = '<!-- pr-size-labeler -->';
 
-            // ---- Exclusion globs. Files matching ANY glob are excluded
-            //      from the size count. Edit this list to tune. ----
             const EXCLUDE_GLOBS = [
               '**/*.lock',
               '**/package-lock.json',
@@ -57,84 +55,17 @@ jobs:
               '**/*.pdf',
             ];
 
-            core.info(`Configured ${BUCKETS.length} buckets, ${EXCLUDE_GLOBS.length} exclusion globs.`);
-
             const minimatch = require('minimatch');
             const { owner, repo } = context.repo;
             const pull_number = context.payload.pull_request.number;
 
-            // True if `filename` matches ANY exclusion glob.
             function shouldExclude(filename) {
               return EXCLUDE_GLOBS.some(g => minimatch(filename, g, { dot: true }));
             }
-
-            // Pick the first bucket whose [min, max] contains `n`.
             function pickBucket(n) {
               return BUCKETS.find(b => n >= b.min && n <= b.max);
             }
 
-            // ---- Fetch all changed files (paginated, capped at 3000 by GitHub). ----
-            const files = await github.paginate(github.rest.pulls.listFiles, {
-              owner,
-              repo,
-              pull_number,
-              per_page: 100,
-            });
-
-            const truncated = files.length === 3000;
-            if (truncated) {
-              core.warning('Pull-request files response hit GitHub\'s 3000-file cap; counting partial sum. The PR is XXL regardless.');
-            }
-
-            let total = 0;
-            let excludedFiles = 0;
-            for (const f of files) {
-              if (shouldExclude(f.filename)) {
-                excludedFiles += 1;
-                continue;
-              }
-              total += (f.additions || 0) + (f.deletions || 0);
-            }
-
-            const bucket = pickBucket(total);
-            core.info(`PR #${pull_number}: ${total} changed lines (excluded ${excludedFiles}/${files.length} files) -> ${bucket.label}`);
-            await core.summary
-              .addHeading('PR size')
-              .addRaw(`**${bucket.label}** — ${total} changed lines (excluded ${excludedFiles}/${files.length} files)${truncated ? ' _(file list was truncated)_' : ''}`)
-              .write();
-
-            // ---- Apply the chosen size label; remove stale size labels. ----
-            const currentLabels = (context.payload.pull_request.labels || []).map(l => l.name);
-            const stale = currentLabels.filter(n => SIZE_LABELS.includes(n) && n !== bucket.label);
-            const alreadyApplied = currentLabels.includes(bucket.label);
-
-            if (!alreadyApplied) {
-              await github.rest.issues.addLabels({
-                owner,
-                repo,
-                issue_number: pull_number,
-                labels: [bucket.label],
-              });
-              core.info(`Applied label ${bucket.label}`);
-            }
-
-            for (const name of stale) {
-              try {
-                await github.rest.issues.removeLabel({
-                  owner,
-                  repo,
-                  issue_number: pull_number,
-                  name,
-                });
-                core.info(`Removed stale label ${name}`);
-              } catch (err) {
-                // 404 = label was already removed by another run. Ignore.
-                if (err.status !== 404) throw err;
-              }
-            }
-
-            // ---- Sticky comment helper. Identifies our comment by the
-            //      HTML marker on its first line. ----
             async function upsertStickyComment(body) {
               const fullBody = `${STICKY_MARKER}\n${body}`;
               const comments = await github.paginate(github.rest.issues.listComments, {
@@ -161,7 +92,76 @@ jobs:
               }
             }
 
-            // ---- XXL gate. ----
+            let bucket;
+            let total = 0;
+            let currentLabels = [];
+
+            try {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number,
+                per_page: 100,
+              });
+              const truncated = files.length === 3000;
+              if (truncated) {
+                core.warning('Pull-request files response hit GitHub\'s 3000-file cap; counting partial sum. The PR is XXL regardless.');
+              }
+
+              let excludedFiles = 0;
+              for (const f of files) {
+                if (shouldExclude(f.filename)) {
+                  excludedFiles += 1;
+                  continue;
+                }
+                total += (f.additions || 0) + (f.deletions || 0);
+              }
+
+              bucket = pickBucket(total);
+              core.info(`PR #${pull_number}: ${total} changed lines (excluded ${excludedFiles}/${files.length} files) -> ${bucket.label}`);
+              await core.summary
+                .addHeading('PR size')
+                .addRaw(`**${bucket.label}** — ${total} changed lines (excluded ${excludedFiles}/${files.length} files)${truncated ? ' _(file list was truncated)_' : ''}`)
+                .write();
+
+              currentLabels = (context.payload.pull_request.labels || []).map(l => l.name);
+              const stale = currentLabels.filter(n => SIZE_LABELS.includes(n) && n !== bucket.label);
+              const alreadyApplied = currentLabels.includes(bucket.label);
+
+              if (!alreadyApplied) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  labels: [bucket.label],
+                });
+                core.info(`Applied label ${bucket.label}`);
+              }
+              for (const name of stale) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: pull_number,
+                    name,
+                  });
+                  core.info(`Removed stale label ${name}`);
+                } catch (err) {
+                  if (err.status !== 404) throw err;
+                }
+              }
+            } catch (err) {
+              // Sizing infra should not block PRs when GitHub's API is flaky.
+              // The intentional XXL-without-override failure happens AFTER this
+              // catch and is therefore unaffected.
+              core.warning(`PR size labeler: non-fatal error during sizing/labeling: ${err.message}`);
+              await core.summary
+                .addRaw(`PR size labeler hit a non-fatal error: \`${err.message}\``)
+                .write();
+              return;  // Skip the gate when we can't trust `bucket` / `currentLabels`.
+            }
+
+            // ---- XXL gate (outside try/catch). ----
             if (bucket.label === 'size/XXL') {
               const overrideActive = currentLabels.includes(OVERRIDE_LABEL);
               const overrideParagraph = overrideActive
