@@ -102,3 +102,33 @@ jobs:
               .addHeading('PR size')
               .addRaw(`**${bucket.label}** — ${total} changed lines (excluded ${excludedFiles}/${files.length} files)${truncated ? ' _(file list was truncated)_' : ''}`)
               .write();
+
+            // ---- Apply the chosen size label; remove stale size labels. ----
+            const currentLabels = (context.payload.pull_request.labels || []).map(l => l.name);
+            const stale = currentLabels.filter(n => SIZE_LABELS.includes(n) && n !== bucket.label);
+            const alreadyApplied = currentLabels.includes(bucket.label);
+
+            if (!alreadyApplied) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number: pull_number,
+                labels: [bucket.label],
+              });
+              core.info(`Applied label ${bucket.label}`);
+            }
+
+            for (const name of stale) {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  name,
+                });
+                core.info(`Removed stale label ${name}`);
+              } catch (err) {
+                // 404 = label was already removed by another run. Ignore.
+                if (err.status !== 404) throw err;
+              }
+            }
