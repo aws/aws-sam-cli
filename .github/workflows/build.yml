@@ -197,7 +197,6 @@ jobs:
         run: pytest -vv ${{ matrix.tests_config.params }}
         env:
           FORCE_RUN_DOCKER_TEST: ${{ matrix.tests_config.name == 'durable-functions' && '1' || '' }}
-          DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG: ${{ matrix.tests_config.name == 'durable-functions' && 'v1.1.1' || '' }}
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
