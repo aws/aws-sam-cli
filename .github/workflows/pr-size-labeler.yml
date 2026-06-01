@@ -132,3 +132,55 @@ jobs:
                 if (err.status !== 404) throw err;
               }
             }
+
+            // ---- Sticky comment helper. Identifies our comment by the
+            //      HTML marker on its first line. ----
+            async function upsertStickyComment(body) {
+              const fullBody = `${STICKY_MARKER}\n${body}`;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: pull_number,
+                per_page: 100,
+              });
+              const existing = comments.find(c => c.body && c.body.startsWith(STICKY_MARKER));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body: fullBody,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  body: fullBody,
+                });
+              }
+            }
+
+            // ---- XXL gate. ----
+            if (bucket.label === 'size/XXL') {
+              const overrideActive = currentLabels.includes(OVERRIDE_LABEL);
+              const overrideParagraph = overrideActive
+                ? `A maintainer applied \`${OVERRIDE_LABEL}\`; this PR is allowed despite its size. Remove the label to re-arm the gate.`
+                : `A maintainer can apply the \`${OVERRIDE_LABEL}\` label to bypass this check.`;
+              const body = [
+                `**PR size: \`XXL\` (${total} changed lines)**`,
+                ``,
+                `This PR exceeds the 1,000-line threshold. Smaller PRs get reviewed faster and are easier to revert.`,
+                ``,
+                overrideParagraph,
+                ``,
+                `_Excluded from the count: lockfiles, schema, snapshots, images. See \`.github/workflows/pr-size-labeler.yml\` to adjust._`,
+              ].join('\n');
+              await upsertStickyComment(body);
+
+              if (!overrideActive) {
+                core.setFailed(
+                  `PR has ${total} changed lines (>= 1000). Apply the \`${OVERRIDE_LABEL}\` label to bypass.`,
+                );
+              }
+            }
