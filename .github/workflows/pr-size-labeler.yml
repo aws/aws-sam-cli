@@ -58,3 +58,47 @@ jobs:
             ];
 
             core.info(`Configured ${BUCKETS.length} buckets, ${EXCLUDE_GLOBS.length} exclusion globs.`);
+
+            const minimatch = require('minimatch');
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+
+            // True if `filename` matches ANY exclusion glob.
+            function shouldExclude(filename) {
+              return EXCLUDE_GLOBS.some(g => minimatch(filename, g, { dot: true }));
+            }
+
+            // Pick the first bucket whose [min, max] contains `n`.
+            function pickBucket(n) {
+              return BUCKETS.find(b => n >= b.min && n <= b.max);
+            }
+
+            // ---- Fetch all changed files (paginated, capped at 3000 by GitHub). ----
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number,
+              per_page: 100,
+            });
+
+            const truncated = files.length === 3000;
+            if (truncated) {
+              core.warning('Pull-request files response hit GitHub\'s 3000-file cap; counting partial sum. The PR is XXL regardless.');
+            }
+
+            let total = 0;
+            let excludedFiles = 0;
+            for (const f of files) {
+              if (shouldExclude(f.filename)) {
+                excludedFiles += 1;
+                continue;
+              }
+              total += (f.additions || 0) + (f.deletions || 0);
+            }
+
+            const bucket = pickBucket(total);
+            core.info(`PR #${pull_number}: ${total} changed lines (excluded ${excludedFiles}/${files.length} files) -> ${bucket.label}`);
+            await core.summary
+              .addHeading('PR size')
+              .addRaw(`**${bucket.label}** — ${total} changed lines (excluded ${excludedFiles}/${files.length} files)${truncated ? ' _(file list was truncated)_' : ''}`)
+              .write();
