@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  AlphaFunction:
+    Properties:
+      Code: <<BUILT_ARTIFACT>>
+      Handler: app.handler
+      Role:
+        Fn::GetAtt:
+        - AlphaFunctionRole
+        - Arn
+      Runtime: python3.11
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::Lambda::Function
+  AlphaFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
+  BetaFunction:
+    Properties:
+      Code: <<BUILT_ARTIFACT>>
+      Handler: app.handler
+      Role:
+        Fn::GetAtt:
+        - BetaFunctionRole
+        - Arn
+      Runtime: python3.11
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::Lambda::Function
+  BetaFunctionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Tags:
+      - Key: lambda:createdBy
+        Value: SAM
+    Type: AWS::IAM::Role
