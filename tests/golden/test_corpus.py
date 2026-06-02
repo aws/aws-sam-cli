@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from tests.golden.harness import run_build_pipeline, run_package_pipeline
+from tests.golden.harness import run_build_and_package
 from tests.golden.normalize import normalize
 from tests.golden.update_goldens import _read_metadata, _resolve_le_default
 
@@ -24,7 +24,8 @@ def _hint(case_dir: Path) -> str:
 def test_build_output_matches_golden(golden_case):
     meta = _read_metadata(golden_case)
     le_enabled = _resolve_le_default(golden_case, meta)
-    actual = normalize(run_build_pipeline(golden_case / "template.yaml", language_extensions=le_enabled))
+    build_dict, _ = run_build_and_package(golden_case / "template.yaml", language_extensions=le_enabled)
+    actual = normalize(build_dict)
     expected_path = golden_case / "expected.build.yaml"
     assert expected_path.exists(), f"missing {expected_path}; run update_goldens.py --new"
     expected = expected_path.read_text(encoding="utf-8")
@@ -34,8 +35,8 @@ def test_build_output_matches_golden(golden_case):
 def test_package_output_matches_golden(golden_case):
     meta = _read_metadata(golden_case)
     le_enabled = _resolve_le_default(golden_case, meta)
-    build_out = run_build_pipeline(golden_case / "template.yaml", language_extensions=le_enabled)
-    actual = normalize(run_package_pipeline(golden_case / "template.yaml", build_out))
+    _, pkg_dict = run_build_and_package(golden_case / "template.yaml", language_extensions=le_enabled)
+    actual = normalize(pkg_dict)
     expected_path = golden_case / "expected.package.yaml"
     assert expected_path.exists(), f"missing {expected_path}; run update_goldens.py --new"
     expected = expected_path.read_text(encoding="utf-8")

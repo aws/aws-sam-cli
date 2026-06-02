@@ -30,7 +30,7 @@ from typing import Iterable, List, Optional, Tuple
 
 import yaml
 
-from tests.golden.harness import run_build_pipeline, run_package_pipeline
+from tests.golden.harness import run_build_and_package
 from tests.golden.normalize import normalize
 
 TEMPLATES_ROOT = Path(__file__).parent / "templates"
@@ -55,8 +55,7 @@ def _generate(case_dir: Path) -> Tuple[str, str]:
     """Return (build_yaml, package_yaml) strings for one case."""
     meta = _read_metadata(case_dir)
     le_enabled = _resolve_le_default(case_dir, meta)
-    build_dict = run_build_pipeline(case_dir / "template.yaml", language_extensions=le_enabled)
-    pkg_dict = run_package_pipeline(case_dir / "template.yaml", build_dict)
+    build_dict, pkg_dict = run_build_and_package(case_dir / "template.yaml", language_extensions=le_enabled)
     return normalize(build_dict), normalize(pkg_dict)
 
 

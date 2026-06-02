@@ -1,4 +1,18 @@
-"""Unit tests for run_build_pipeline."""
+"""Unit tests for run_build_pipeline.
+
+The pipeline drives the real :class:`BuildContext`; these tests assert that
+the in-process flow matches what real ``sam build`` writes to
+``.aws-sam/build/template.yaml``:
+
+- SAM templates: ``AWS::Serverless::Function`` is preserved, ``CodeUri``
+  is rewritten to the build-artifact placeholder. The SAM transform runs
+  server-side at deploy time, not at build time, so no auto-generated
+  IAM Role appears in the build output.
+- Raw CFN ``AWS::Lambda::Function``: ``Code`` is rewritten to the
+  placeholder; the resource type is preserved.
+- LE ``Fn::ForEach`` templates: the ForEach key is preserved at the top
+  of ``Resources``; the body's artifact property is the placeholder.
+"""
 
 from pathlib import Path
 
@@ -7,13 +21,15 @@ from tests.golden.harness import run_build_pipeline
 CASES_ROOT = Path(__file__).parent / "templates"
 
 
-def test_build_sam_case_replaces_codeuri_with_placeholder():
+def test_build_sam_case_preserves_serverless_function():
     case = CASES_ROOT / "sam_resources" / "serverless_function_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=False)
     func = result["Resources"]["HelloFunction"]
-    # SAM transform converts AWS::Serverless::Function to AWS::Lambda::Function
-    assert func["Type"] == "AWS::Lambda::Function"
-    assert func["Properties"]["Code"] == "<<BUILT_ARTIFACT>>"
+    # SAM transform is server-side; build output keeps AWS::Serverless::Function.
+    assert func["Type"] == "AWS::Serverless::Function"
+    assert func["Properties"]["CodeUri"] == "<<BUILT_ARTIFACT>>"
+    # No auto-generated IAM Role at build time.
+    assert "HelloFunctionRole" not in result["Resources"]
 
 
 def test_build_le_case_preserves_foreach():
@@ -48,17 +64,9 @@ def test_build_le_case_preserves_foreach():
     assert body_resource["Properties"]["CodeUri"] == "<<BUILT_ARTIFACT>>"
 
 
-def test_build_le_case_skipped_when_disabled():
-    case = CASES_ROOT / "language_extensions" / "foreach_static_zip"
-    result = run_build_pipeline(case / "template.yaml", language_extensions=False)
-    # ForEach key preserved
-    assert any(k.startswith("Fn::ForEach") for k in result["Resources"])
-
-
-def test_build_cfn_case_replaces_code_path():
+def test_build_cfn_case_replaces_code_with_placeholder():
     case = CASES_ROOT / "packageable_resources" / "lambda_function_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=False)
     func = result["Resources"]["HelloFunction"]
-    # Build pipeline does not rewrite raw CFN Lambda Code paths (that's package's job)
-    # but it does load the template through SAM's parser, so verify shape.
     assert func["Type"] == "AWS::Lambda::Function"
+    assert func["Properties"]["Code"] == "<<BUILT_ARTIFACT>>"
