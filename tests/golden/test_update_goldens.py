@@ -102,3 +102,14 @@ def test_new_short_circuits_when_all_pins_exist(isolated_corpus, monkeypatch):
     monkeypatch.setattr(update_goldens, "_generate", boom)
     rc = update_goldens.main(["--new"])
     assert rc == 0
+
+
+def test_check_and_diff_are_mutually_exclusive(capsys):
+    """--check and --diff are documented as alternatives. Reject the
+    combination at the parser, symmetric with the existing --new mutex
+    checks."""
+    with pytest.raises(SystemExit) as excinfo:
+        update_goldens.main(["--check", "--diff"])
+    assert excinfo.value.code == 2  # argparse parser.error exits 2
+    err = capsys.readouterr().err
+    assert "--check and --diff are mutually exclusive" in err

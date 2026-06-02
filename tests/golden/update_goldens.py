@@ -106,6 +106,12 @@ def main(argv: Optional[List[str]] = None) -> int:
         parser.error("--check and --new are mutually exclusive")
     if args.diff and args.new:
         parser.error("--diff and --new are mutually exclusive")
+    if args.check and args.diff:
+        # The implementation tolerates this (both imply dry_run, --diff
+        # wins on output), but the docstring describes them as
+        # alternatives. Reject at the parser, symmetric with the --new
+        # checks above.
+        parser.error("--check and --diff are mutually exclusive")
 
     dry_run = args.check or args.diff
     any_diff = False
