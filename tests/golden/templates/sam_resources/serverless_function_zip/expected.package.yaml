@@ -4,7 +4,7 @@ Resources:
     Properties:
       Code:
         S3Bucket: golden-bucket
-        S3Key: cbe90f4157bf2048dddade15fccab9bb6ea1ff37413fe0f78b7543e206e8910d
+        S3Key: 17c3a49c87d6d228b7f4e7b016472d9da14ad548c986f67d3cc3c42365dabcf4
       Handler: app.handler
       MemorySize: 128
       Role:

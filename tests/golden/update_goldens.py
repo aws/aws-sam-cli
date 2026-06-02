@@ -111,14 +111,26 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     for case_dir in _iter_cases(args.filter):
         case_rel = str(case_dir.relative_to(TEMPLATES_ROOT))
+
+        # --new fast path: if both pins already exist, skip the build+package
+        # pipeline entirely. Only invoke _generate when at least one pin is
+        # missing, then write only the missing files.
+        if args.new:
+            build_existing = _existing(case_dir, "build")
+            pkg_existing = _existing(case_dir, "package")
+            if build_existing is not None and pkg_existing is not None:
+                continue
+            build_yaml, pkg_yaml = _generate(case_dir)
+            if build_existing is None:
+                (case_dir / "expected.build.yaml").write_text(build_yaml, encoding="utf-8")
+            if pkg_existing is None:
+                (case_dir / "expected.package.yaml").write_text(pkg_yaml, encoding="utf-8")
+            continue
+
         build_yaml, pkg_yaml = _generate(case_dir)
 
         for kind, generated in (("build", build_yaml), ("package", pkg_yaml)):
             existing = _existing(case_dir, kind)
-            if args.new:
-                if existing is None:
-                    (case_dir / f"expected.{kind}.yaml").write_text(generated, encoding="utf-8")
-                continue
             if dry_run:
                 if existing != generated:
                     any_diff = True

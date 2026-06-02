@@ -88,3 +88,17 @@ def test_new_only_writes_missing_pins(isolated_corpus):
     assert (sam_case / "expected.build.yaml").exists()
     # LE case stays stale (--new does not touch existing pins)
     assert le_pin.read_text() == "STALE\n"
+
+
+def test_new_short_circuits_when_all_pins_exist(isolated_corpus, monkeypatch):
+    """When every case is fully pinned, --new must not invoke _generate."""
+    # Pre-pin everything (uses real _generate).
+    update_goldens.main([])
+
+    # Now poison _generate so a single call would blow up.
+    def boom(*_args, **_kwargs):
+        raise AssertionError("_generate must not be called when all pins exist under --new")
+
+    monkeypatch.setattr(update_goldens, "_generate", boom)
+    rc = update_goldens.main(["--new"])
+    assert rc == 0

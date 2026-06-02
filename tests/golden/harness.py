@@ -347,25 +347,31 @@ def _rewrite_artifacts_to_s3(template: Dict[str, Any], uploader, template_dir: s
     walker only triggers when the current value is a plain string
     (placeholder or path) — intrinsic function dicts (Fn::Sub etc.) survive.
     """
-    for _resource_id, prop_path, resource in _walk_artifact_properties(template):
+    for resource_id, prop_path, resource in _walk_artifact_properties(template):
         current = _get_at_path(resource, prop_path)
         # Skip if not a path or placeholder; intrinsic dicts (Fn::Sub) etc. survive.
         if not isinstance(current, str):
             continue
         rtype = resource.get("Type")
-        replacement = _packageable_replacement(rtype, prop_path, current, template_dir)
+        replacement = _packageable_replacement(
+            rtype, prop_path, current, template_dir, resource_id
+        )
         _set_at_path(resource, prop_path, replacement)
 
 
 def _packageable_replacement(
-    rtype: str, prop_path: str, current: Any, template_dir: str
+    rtype: str, prop_path: str, current: Any, template_dir: str, resource_id: str
 ) -> Any:
     """Compute the deterministic replacement for an artifact property.
 
     Returns either a dict ({"S3Bucket": ..., "S3Key": ...}) or a string
     ("s3://...") depending on the resource type. Sentinel: hashes
-    "<current>|<rtype>|<prop_path>" so each case has a stable URI without
-    needing real file content.
+    "<current>|<rtype>|<prop_path>|<resource_id>" so each resource gets a
+    distinct URI even when ``current`` is the constant
+    ``BUILT_ARTIFACT_PLACEHOLDER`` after the build pass. Including
+    ``resource_id`` is what makes the digest content-aware: without it,
+    every Lambda Code in the corpus would collapse to the same S3Key and a
+    regression that swapped two functions' artifacts would go undetected.
 
     Shapes covered (extend as new corpus cases require new shapes):
       - AWS::Lambda::Function .Code      -> {"S3Bucket": ..., "S3Key": ...}
@@ -374,7 +380,7 @@ def _packageable_replacement(
       - All other artifact properties     -> "s3://<bucket>/<sha256>"
     """
     digest = hashlib.sha256(
-        f"{current}|{rtype}|{prop_path}".encode("utf-8")
+        f"{current}|{rtype}|{prop_path}|{resource_id}".encode("utf-8")
     ).hexdigest()
     # Lambda image — must check before the .Code dict shape
     if rtype == "AWS::Lambda::Function" and prop_path == "Code.ImageUri":
