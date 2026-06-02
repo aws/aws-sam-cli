@@ -31,7 +31,9 @@ jobs:
         with:
           python-version: "3.11"
       - name: Run semver gate
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
           python tests/golden/check_semver_bump.py \
-            --base "origin/${{ github.base_ref }}" \
+            --base "origin/${BASE_REF}" \
             --head HEAD
