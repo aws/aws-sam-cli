@@ -7,7 +7,7 @@ from tests.golden.harness import run_build_pipeline
 CASES_ROOT = Path(__file__).parent / "templates"
 
 
-def test_build_sam_case_replaces_codeuri_with_placeholder(tmp_path):
+def test_build_sam_case_replaces_codeuri_with_placeholder():
     case = CASES_ROOT / "sam_resources" / "serverless_function_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=False)
     func = result["Resources"]["HelloFunction"]
@@ -16,7 +16,7 @@ def test_build_sam_case_replaces_codeuri_with_placeholder(tmp_path):
     assert func["Properties"]["Code"] == "<<BUILT_ARTIFACT>>"
 
 
-def test_build_le_case_expands_foreach(tmp_path):
+def test_build_le_case_expands_foreach():
     case = CASES_ROOT / "language_extensions" / "foreach_static_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=True)
     assert "AlphaFunction" in result["Resources"]

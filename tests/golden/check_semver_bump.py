@@ -12,10 +12,12 @@ from __future__ import annotations
 # When run as a script, Python does not auto-add the repo root to sys.path,
 # so absolute imports rooted at `tests.golden...` would fail. This script
 # happens to have no such imports today, but keep the guard symmetrical with
-# update_goldens.py so future imports do not silently regress the script form.
+# update_goldens.py so future imports do not silently regress the script
+# form. mypy treats the __main__ guard as always-False, hence the
+# `type: ignore`.
 if __name__ == "__main__" and __package__ is None:
-    import sys
-    from pathlib import Path
+    import sys  # type: ignore[unreachable]  # noqa: E402
+    from pathlib import Path  # noqa: E402
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 

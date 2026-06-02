@@ -13,10 +13,11 @@ from __future__ import annotations
 # Allow direct script invocation (`python tests/golden/update_goldens.py`)
 # in addition to module form (`python -m tests.golden.update_goldens`).
 # When run as a script, Python does not auto-add the repo root to sys.path,
-# so the absolute `from tests.golden...` imports below would fail.
+# so the absolute `from tests.golden...` imports below would fail. mypy
+# treats the __main__ guard as always-False, hence the `type: ignore`.
 if __name__ == "__main__" and __package__ is None:
-    import sys
-    from pathlib import Path
+    import sys  # type: ignore[unreachable]  # noqa: E402
+    from pathlib import Path  # noqa: E402
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 

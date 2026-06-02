@@ -13,8 +13,8 @@ def test_package_sam_case_rewrites_code_to_s3_uri():
     pkg_out = run_package_pipeline(case / "template.yaml", build_out)
     code = pkg_out["Resources"]["HelloFunction"]["Properties"]["Code"]
     assert isinstance(code, dict)  # CFN Lambda Code becomes S3Bucket/S3Key dict
-    s3_uri_field = code.get("S3Bucket") or code.get("ImageUri") or ""
-    assert s3_uri_field == "golden-bucket"
+    assert code["S3Bucket"] == "golden-bucket"
+    assert "S3Key" in code
 
 
 def test_package_le_case_rewrites_each_expanded_codeuri():

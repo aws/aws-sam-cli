@@ -36,6 +36,30 @@ Compromises (documented inline):
   matches the user-visible behavior of ``sam build`` on such a template
   (the LE construct is preserved verbatim for CloudFormation server-side
   expansion).
+
+Known limitations (deferred to follow-up PRs / corpus growth):
+
+- Image-based Lambdas / ECR artifacts: ``_packageable_replacement`` always
+  rewrites ``AWS::Lambda::Function`` ``Code`` to an S3Bucket/S3Key dict and
+  ``Code.ImageUri`` to an ECR URI string, but it does not enforce that
+  exactly one of those properties is set on a given resource. A template
+  with both shapes will be over-rewritten. No image sentinel exists yet to
+  surface this — PR 2's corpus expansion will add one.
+- ``_stub_local_uris_for_translator`` duplicates the rewrite logic in
+  ``SamTemplateValidator._replace_local_codeuri``. The two will drift if
+  upstream extends the validator's set of properties or recognized URI
+  shapes. Until the harness can call the validator without pulling in
+  AWS-credential side-effects (boto Session at construction time), this
+  duplication is accepted.
+- ``GoldenS3Uploader`` reimplements the surface ``S3Uploader`` exposes
+  rather than subclassing it, to keep the harness off the boto Session
+  path. If the package code starts using S3Uploader methods we have not
+  stubbed, the next failure will say so. Subclassing is the cleaner long
+  term fix.
+- No ``AWS::Include`` sentinel: the ``_export_global_artifacts_pass`` call
+  in ``run_package_pipeline`` is exercised only indirectly. A corpus case
+  with ``AWS::Include`` should be added so that pass has explicit
+  coverage; deferred to follow-up.
 """
 
 from __future__ import annotations
@@ -43,7 +67,7 @@ from __future__ import annotations
 import copy
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -64,9 +88,11 @@ def _load_template(template_path: Path) -> Dict[str, Any]:
         return yaml.safe_load(f) or {}
 
 
-def _walk_artifact_properties(template: Dict[str, Any]) -> List:
+def _walk_artifact_properties(
+    template: Dict[str, Any],
+) -> List[Tuple[str, str, Dict[str, Any]]]:
     """Collect (resource_id, property_path, resource_dict) for every packageable artifact."""
-    results = []
+    results: List[Tuple[str, str, Dict[str, Any]]] = []
     resources = template.get("Resources", {}) or {}
     for resource_id, resource in resources.items():
         if not isinstance(resource, dict):
@@ -312,28 +338,22 @@ def run_package_pipeline(
 ) -> Dict[str, Any]:
     """In-process equivalent of `sam package` for one template + build output.
 
-    1. Run _export_global_artifacts_pass on the original template (the pre-LE
-       AWS::Include pass added in PR #9030).
-    2. Walk packageable artifact properties on the build output and replace
+    1. Walk packageable artifact properties on the build output and replace
        each local path with an s3://golden-bucket/<sha256> URI.
-    3. Re-run _export_global_artifacts_pass on the result to handle any
-       AWS::Include nested in the LE-expanded template.
-    4. Return the final dict.
+    2. Run _export_global_artifacts_pass on the rewritten template to
+       handle any AWS::Include structural nodes.
+    3. Return the final dict.
     """
     from samcli.lib.package.artifact_exporter import _export_global_artifacts_pass
 
     template_dir = str(template_path.parent)
     uploader = GoldenS3Uploader(template_dir)
 
-    # Pre-LE AWS::Include pass on the original template's structural form.
-    original = _load_template(template_path)
-    _export_global_artifacts_pass(original, uploader, template_dir)
-
     # Walk build_output's artifact properties and rewrite local paths.
     pkg = copy.deepcopy(build_output)
     _rewrite_artifacts_to_s3(pkg, uploader, template_dir)
 
-    # Post-expansion AWS::Include pass to catch any remaining structural nodes.
+    # AWS::Include pass on the rewritten template.
     _export_global_artifacts_pass(pkg, uploader, template_dir)
     return pkg
 
@@ -353,6 +373,9 @@ def _rewrite_artifacts_to_s3(template: Dict[str, Any], uploader, template_dir: s
         if not isinstance(current, str):
             continue
         rtype = resource.get("Type")
+        if not isinstance(rtype, str):
+            # _walk_artifact_properties already filters, but re-narrow for mypy.
+            continue
         replacement = _packageable_replacement(
             rtype, prop_path, current, template_dir, resource_id
         )
