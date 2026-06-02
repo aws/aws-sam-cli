@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   HelloFunction:
+    Metadata:
+      SamResourceId: HelloFunction
     Properties:
       Code: <<BUILT_ARTIFACT>>
       FunctionName: hello

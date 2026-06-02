@@ -1,35 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   HelloFunction:
+    Metadata:
+      SamResourceId: HelloFunction
     Properties:
-      Code:
-        S3Bucket: golden-bucket
-        S3Key: 17c3a49c87d6d228b7f4e7b016472d9da14ad548c986f67d3cc3c42365dabcf4
+      CodeUri: s3://golden-bucket/7187d20310f5514ad6d32ad02c3f6a8200a0b82949bcb4c63a751bc4ce730095
       Handler: app.handler
       MemorySize: 128
-      Role:
-        Fn::GetAtt:
-        - HelloFunctionRole
-        - Arn
       Runtime: python3.11
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::Lambda::Function
-  HelloFunctionRole:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-        Version: '2012-10-17'
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::IAM::Role
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31

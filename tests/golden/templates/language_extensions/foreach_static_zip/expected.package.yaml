@@ -6,7 +6,7 @@ Resources:
     - Beta
   - ${WorkerName}Function:
       Properties:
-        CodeUri: s3://golden-bucket/a199f4d73e5f32885341a8e279ab4d1ece42eebb187c5cde13ecbb95bcf49481
+        CodeUri: s3://golden-bucket/dd2bf2d87ad97f55f64a8691a0e0c55ec010e7791d6815e0c0f0037348b8d5db
         Handler: app.handler
         Runtime: python3.11
       Type: AWS::Serverless::Function

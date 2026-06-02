@@ -1,33 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
   HelloFunction:
+    Metadata:
+      SamResourceId: HelloFunction
     Properties:
-      Code: <<BUILT_ARTIFACT>>
+      CodeUri: <<BUILT_ARTIFACT>>
       Handler: app.handler
       MemorySize: 128
-      Role:
-        Fn::GetAtt:
-        - HelloFunctionRole
-        - Arn
       Runtime: python3.11
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::Lambda::Function
-  HelloFunctionRole:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-        Version: '2012-10-17'
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::IAM::Role
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
