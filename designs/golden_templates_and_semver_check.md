@@ -29,13 +29,13 @@ What will be changed?
 ---------------------
 
 Add a new `tests/golden/` corpus and harness (per-PR unit tier), a daily
-subprocess-driven tier under `tests/regression/golden_templates/`, and a
+subprocess-driven tier under `tests/integration/golden_templates/`, and a
 tiny standalone GitHub workflow that enforces the semver rule. The corpus
 covers both LE and non-LE templates across four axes: SAM resources,
 packageable CFN resources, LE intrinsics, and cross-cutting features.
 
 The two tiers share `tests/golden/templates/` as their single corpus
-source — the regression tier reads case directories straight from the
+source — the integration tier reads case directories straight from the
 unit tier so authoring a new case lands in both places at once.
 
 Success criteria for the change
@@ -57,7 +57,7 @@ Success criteria for the change
 Out-of-Scope
 ------------
 
-- No deploy step. The regression tier stops at packaged-template output
+- No deploy step. The integration tier stops at packaged-template output
   — no CloudFormation, no real Lambdas.
 - No CFN compatibility check (e.g. `cfn-lint`, `ValidateTemplate`) at this
   stage. The corpus pins what *SAM-CLI* produces; CFN-side parity is a
@@ -143,19 +143,23 @@ tests/golden/                                   # NEW
     ├── language_extensions/<case>/...          # LE axis
     └── cross_cutting/<case>/...                # nested stacks, AWS::Include, etc.
 
-tests/regression/golden_templates/              # NEW
+tests/integration/golden_templates/              # NEW
 ├── test_golden_subprocess.py                   # imports tests/golden/templates as data
 └── structural_compare.py                       # looser comparator for real-CLI output
 ```
 
 The `tests/golden/templates/` directory is the single source of truth for
-the corpus. Both the unit tier (`tests/golden/`) and the regression tier
-(`tests/regression/golden_templates/`) read from it; nothing is duplicated.
+the corpus. Both the unit tier (`tests/golden/`) and the integration tier
+(`tests/integration/golden_templates/`) read from it; nothing is duplicated.
 
-The regression tier sits alongside the existing `tests/regression/deploy/`
-and `tests/regression/package/` suites — they're structurally similar:
-real `sam` subprocess invocation, real AWS credentials via the
-integration-tests workflow's OIDC role, daily-only execution.
+The integration tier sits alongside the existing
+`tests/integration/buildcmd/`, `tests/integration/package/`, and
+`tests/integration/deploy/` suites. ``tests/regression/`` is reserved for
+``sam`` vs ``aws cloudformation`` parity tests — a different semantic
+that compares SAM CLI output against the AWS CLI's current output —
+which is not what the golden corpus asserts. Goldens compare SAM CLI
+against its own pinned past behavior, so they belong under
+``tests/integration/``.
 
 ### Per-case directory layout
 
@@ -206,7 +210,7 @@ no `boto3` stubbing.
 - Single trailing newline.
 
 The harness invokes the same high-level functions the CLI invokes; it does
-not re-implement the pipeline. The regression tier verifies that contract
+not re-implement the pipeline. The integration tier verifies that contract
 holds.
 
 ### Pytest collection
@@ -320,15 +324,21 @@ estimated <30s for ~50 cases. The existing Windows `TEMP=D:\Temp` shim
 already handles temp-dir contention. No new workflow file (the semver gate
 above is its own workflow, but the corpus tests ride on `build.yml`).
 
-### Regression tier
+### Integration tier
 
-Daily run on the existing `integration-tests.yml` workflow. The
-workflow's `other-and-e2e` matrix entry already collects
-`tests/regression/`, so adding `tests/regression/golden_templates/` is
-picked up automatically — **no new matrix entry, no workflow edit**. The
-suite sits alongside the existing `tests/regression/deploy/` and
-`tests/regression/package/` directories, which have the same shape (real
-`sam` subprocess + real AWS credentials, daily-only).
+Daily run on the existing `integration-tests.yml` workflow's matrix
+(one new entry: `golden-templates`). The suite sits alongside the
+existing `tests/integration/buildcmd/`, `tests/integration/package/`,
+and `tests/integration/deploy/` directories — all subprocess-driven
+``sam`` invocations against real AWS resources.
+
+We deliberately do **not** put this under ``tests/regression/``. The
+existing ``tests/regression/`` suites are ``sam`` vs
+``aws cloudformation`` parity tests — they assert SAM CLI's output
+matches AWS CLI's *current* output. Goldens assert the opposite: SAM
+CLI's output matches its own *pinned past* output. Different semantics;
+sharing a directory would invite future contributors to confuse the
+two.
 
 Per case:
 
@@ -347,7 +357,7 @@ Per case:
      dict-vs-string differences (the #9029 bug class).
 
 The comparator lives in
-`tests/regression/golden_templates/structural_compare.py` and is reused
+`tests/integration/golden_templates/structural_compare.py` and is reused
 for both build and package outputs.
 
 #### Why structural, not byte-exact
@@ -359,7 +369,7 @@ output) or constant churn from environmental noise. Structural comparison
 answers "did the user-visible output shape change?" — which is what catches
 the four bugs we just fixed.
 
-If the unit tier passes but the regression tier fails for a case, the
+If the unit tier passes but the integration tier fails for a case, the
 in-process harness has drifted from the CLI surface — investigation, not
 a re-pin.
 
@@ -369,9 +379,9 @@ Each PR is independently reviewable; LOC estimates are upper-bound net diff.
 
 - **PR 0** (this design doc).
 - **PR 1** — Harness skeleton, three sentinel cases, semver gate workflow.
-- **PR 2** — Regression-tier subprocess runner under
-  `tests/regression/golden_templates/`. Picked up by the existing
-  `other-and-e2e` matrix entry — no workflow edit required.
+- **PR 2** — Integration-tier subprocess runner under
+  `tests/integration/golden_templates/`. Adds a new `golden-templates`
+  entry to the existing `integration-tests.yml` matrix.
 - **PR 3** — SAM resources axis: Function variants (~10 cases).
 - **PR 4** — SAM resources axis: Api / HttpApi / StateMachine / others
   (~10 cases).
@@ -404,7 +414,7 @@ Security Considerations
 -----------------------
 
 The harness intentionally invokes only in-process SAM-CLI code; no
-network calls, no credentials, no AWS API access. The regression tier
+network calls, no credentials, no AWS API access. The integration tier
 uses the existing integration-tests workflow's IAM role and S3 bucket;
 no new permissions required.
 
@@ -423,7 +433,7 @@ Subprocess-only harness (no in-process)
 Every golden runs the real `sam` CLI as a subprocess. Rejected: process
 startup × N templates is too slow for a per-PR gate; flakier on Windows;
 deterministic package output without `moto` is hard. Subprocess invocation
-is kept, but only at the daily regression tier where speed and
+is kept, but only at the daily integration tier where speed and
 determinism matter less.
 
 Snapshot plugin (`syrupy`, `pytest-snapshot`)
