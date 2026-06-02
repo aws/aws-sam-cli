@@ -140,6 +140,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     changed = _git_changed_files(args.base, args.head)
+    # Self-gate: short-circuit before reading versions when no corpus pin
+    # changed. _read_version_at_ref raises if the regex misses or if
+    # samcli/__init__.py is absent at the ref, so on the common-case PR
+    # (no corpus pin churn) we skip those reads entirely. The workflow
+    # comment claims "self-gates" — make that literally true here.
+    if not any(_is_corpus_pin(c.path) for c in changed):
+        print("No corpus pin changes; gate passes.")
+        return 0
     base_version = _read_version_at_ref(args.base)
     head_version = _read_version_at_ref(args.head)
     rc, msg = check(changed, base_version, head_version)

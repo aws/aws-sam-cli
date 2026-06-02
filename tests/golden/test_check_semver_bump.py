@@ -145,3 +145,43 @@ def test_template_yaml_changes_ignored_only_expected_yaml_gates():
         head_version="1.161.1",
     )
     assert rc == 0
+
+
+def test_main_short_circuits_before_reading_versions(monkeypatch, capsys):
+    """When no corpus pin changed, main() must NOT call
+    _read_version_at_ref. That fn raises on missing samcli/__init__.py
+    or unparseable __version__, so on the common-case unrelated PR it
+    could fail spuriously. The workflow comment claims 'self-gates' —
+    this test asserts main() actually short-circuits."""
+    # Diff contains only non-corpus changes.
+    fake_diff = "M\tsamcli/lib/foo.py\nM\ttests/golden/harness.py\n"
+    monkeypatch.setattr(csb.subprocess, "check_output", lambda *a, **kw: fake_diff)
+
+    def boom(_ref):
+        raise AssertionError("_read_version_at_ref must not be called when no corpus pin changed")
+
+    monkeypatch.setattr(csb, "_read_version_at_ref", boom)
+    rc = csb.main(["--base", "origin/develop", "--head", "HEAD"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "No corpus pin changes" in out
+
+
+def test_main_reads_versions_when_corpus_pin_changes(monkeypatch):
+    """Counterpart: when a corpus pin DID change, main() must read
+    versions and run the full check — i.e. the short-circuit doesn't
+    over-fire."""
+    fake_diff = "M\ttests/golden/templates/x/case_a/expected.build.yaml\n"
+    monkeypatch.setattr(csb.subprocess, "check_output", lambda *a, **kw: fake_diff)
+
+    calls = []
+
+    def fake_read(ref):
+        calls.append(ref)
+        return "1.161.1" if ref == "base" else "2.0.0"
+
+    monkeypatch.setattr(csb, "_read_version_at_ref", fake_read)
+    rc = csb.main(["--base", "base", "--head", "head"])
+    # Major bump satisfies the gate.
+    assert rc == 0
+    assert calls == ["base", "head"]
