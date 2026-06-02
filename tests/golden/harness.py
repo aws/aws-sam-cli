@@ -284,9 +284,7 @@ def run_build_pipeline(template_path: Path, language_extensions: bool) -> Dict[s
 
     parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
 
-    le_result = expand_language_extensions(
-        template, parameter_values=parameter_values, enabled=language_extensions
-    )
+    le_result = expand_language_extensions(template, parameter_values=parameter_values, enabled=language_extensions)
     expanded = copy.deepcopy(le_result.expanded_template)
 
     transformed = _run_sam_transform(expanded, parameter_values)
@@ -376,15 +374,11 @@ def _rewrite_artifacts_to_s3(template: Dict[str, Any], uploader, template_dir: s
         if not isinstance(rtype, str):
             # _walk_artifact_properties already filters, but re-narrow for mypy.
             continue
-        replacement = _packageable_replacement(
-            rtype, prop_path, current, template_dir, resource_id
-        )
+        replacement = _packageable_replacement(rtype, prop_path, current, template_dir, resource_id)
         _set_at_path(resource, prop_path, replacement)
 
 
-def _packageable_replacement(
-    rtype: str, prop_path: str, current: Any, template_dir: str, resource_id: str
-) -> Any:
+def _packageable_replacement(rtype: str, prop_path: str, current: Any, template_dir: str, resource_id: str) -> Any:
     """Compute the deterministic replacement for an artifact property.
 
     Returns either a dict ({"S3Bucket": ..., "S3Key": ...}) or a string
@@ -402,9 +396,7 @@ def _packageable_replacement(
       - AWS::Serverless::Function .CodeUri (post-transform = Lambda::Function .Code, handled above)
       - All other artifact properties     -> "s3://<bucket>/<sha256>"
     """
-    digest = hashlib.sha256(
-        f"{current}|{rtype}|{prop_path}|{resource_id}".encode("utf-8")
-    ).hexdigest()
+    digest = hashlib.sha256(f"{current}|{rtype}|{prop_path}|{resource_id}".encode("utf-8")).hexdigest()
     # Lambda image — must check before the .Code dict shape
     if rtype == "AWS::Lambda::Function" and prop_path == "Code.ImageUri":
         return f"{GOLDEN_BUCKET}.dkr.ecr.us-east-1.amazonaws.com/golden:{digest[:12]}"

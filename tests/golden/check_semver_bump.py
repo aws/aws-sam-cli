@@ -98,9 +98,7 @@ def check(
 
 def _read_version_at_ref(ref: str) -> str:
     """Read __version__ from samcli/__init__.py at a git ref."""
-    out = subprocess.check_output(
-        ["git", "show", f"{ref}:samcli/__init__.py"], text=True
-    )
+    out = subprocess.check_output(["git", "show", f"{ref}:samcli/__init__.py"], text=True)
     m = re.search(r'__version__\s*=\s*"([^"]+)"', out)
     if not m:
         raise RuntimeError(f"cannot find __version__ at {ref}")
@@ -109,9 +107,7 @@ def _read_version_at_ref(ref: str) -> str:
 
 def _git_changed_files(base: str, head: str) -> List[Change]:
     """Return all files changed between base and head with their git status."""
-    out = subprocess.check_output(
-        ["git", "diff", "--name-status", f"{base}...{head}"], text=True
-    )
+    out = subprocess.check_output(["git", "diff", "--name-status", f"{base}...{head}"], text=True)
     changes: List[Change] = []
     for line in out.splitlines():
         if not line.strip():

@@ -57,6 +57,7 @@ def test_normalize_is_idempotent():
     template = {"Resources": {"A": {"Type": "T"}}}
     once = normalize(template)
     import yaml
+
     twice = normalize(yaml.safe_load(once))
     assert once == twice
 
