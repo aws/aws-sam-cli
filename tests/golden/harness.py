@@ -43,7 +43,7 @@ from __future__ import annotations
 import copy
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yaml
 
@@ -72,6 +72,8 @@ def _walk_artifact_properties(template: Dict[str, Any]) -> List:
         if not isinstance(resource, dict):
             continue
         rtype = resource.get("Type")
+        if not isinstance(rtype, str):
+            continue
         for prop_paths in (
             RESOURCES_WITH_LOCAL_PATHS.get(rtype, []),
             RESOURCES_WITH_IMAGE_COMPONENT.get(rtype, []),
@@ -236,11 +238,12 @@ def _run_sam_transform(template: Dict[str, Any], parameter_values: Dict[str, Any
         boto_session=None,
     )
 
-    return sam_translator.translate(
+    translated: Dict[str, Any] = sam_translator.translate(
         sam_template=template_copy,
         parameter_values=parameter_values,
         get_managed_policy_map=lambda: {},
     )
+    return translated
 
 
 def run_build_pipeline(template_path: Path, language_extensions: bool) -> Dict[str, Any]:
@@ -279,21 +282,24 @@ class GoldenS3Uploader:
         self.bucket_name = GOLDEN_BUCKET
         self.no_progressbar = True
 
-    def upload(self, file_name: str, key: str = None) -> str:
+    def upload(self, file_name: str, key: Optional[str] = None) -> str:
         # Hash the file content so the URI is content-addressed.
         with open(file_name, "rb") as f:
             digest = hashlib.sha256(f.read()).hexdigest()
         return f"s3://{GOLDEN_BUCKET}/{digest}"
 
     def upload_with_dedup(
-        self, file_name: str, extension: str = None, precomputed_md5: str = None
+        self,
+        file_name: str,
+        extension: Optional[str] = None,
+        precomputed_md5: Optional[str] = None,
     ) -> str:
         return self.upload(file_name)
 
     def file_exists(self, key: str) -> bool:
         return False
 
-    def to_path_style_s3_url(self, key: str, version: str = None) -> str:
+    def to_path_style_s3_url(self, key: str, version: Optional[str] = None) -> str:
         return f"https://s3.amazonaws.com/{GOLDEN_BUCKET}/{key}"
 
     def get_version_of_artifact(self, s3_url: str):
