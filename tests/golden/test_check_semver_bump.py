@@ -6,6 +6,9 @@ the lower-level entrypoint.
 
 from tests.golden import check_semver_bump as csb
 
+# A rename emits one D + one A change.
+_RENAME_CHANGE_COUNT = 2
+
 
 def test_no_changes_passes():
     rc, msg = csb.check(
@@ -80,14 +83,13 @@ def test_parser_rename_emits_delete_plus_add(monkeypatch):
     split into a deletion of OLD and an addition of NEW so the gate sees
     the source go away."""
     fake_diff = (
-        "R100\ttests/golden/templates/x/old/expected.build.yaml"
-        "\ttests/golden/templates/x/new/expected.build.yaml\n"
+        "R100\ttests/golden/templates/x/old/expected.build.yaml" "\ttests/golden/templates/x/new/expected.build.yaml\n"
     )
     monkeypatch.setattr(csb.subprocess, "check_output", lambda *a, **kw: fake_diff)
     changes = csb._git_changed_files("base", "head")
     assert csb.Change("tests/golden/templates/x/old/expected.build.yaml", "D") in changes
     assert csb.Change("tests/golden/templates/x/new/expected.build.yaml", "A") in changes
-    assert len(changes) == 2
+    assert len(changes) == _RENAME_CHANGE_COUNT
 
 
 def test_parser_copy_treated_as_addition_only(monkeypatch):
@@ -95,8 +97,7 @@ def test_parser_copy_treated_as_addition_only(monkeypatch):
     the new target is added. The gate must classify this as A only — not
     let it silently bypass via an unrecognized "C" status."""
     fake_diff = (
-        "C100\ttests/golden/templates/x/old/expected.build.yaml"
-        "\ttests/golden/templates/x/new/expected.build.yaml\n"
+        "C100\ttests/golden/templates/x/old/expected.build.yaml" "\ttests/golden/templates/x/new/expected.build.yaml\n"
     )
     monkeypatch.setattr(csb.subprocess, "check_output", lambda *a, **kw: fake_diff)
     changes = csb._git_changed_files("base", "head")
@@ -112,8 +113,7 @@ def test_copy_of_existing_pin_does_not_bypass_gate(monkeypatch):
     addition — feeding only A's through `check()` correctly returns 0,
     but the path must NOT be silently dropped."""
     fake_diff = (
-        "C100\ttests/golden/templates/x/old/expected.build.yaml"
-        "\ttests/golden/templates/x/new/expected.build.yaml\n"
+        "C100\ttests/golden/templates/x/old/expected.build.yaml" "\ttests/golden/templates/x/new/expected.build.yaml\n"
     )
     monkeypatch.setattr(csb.subprocess, "check_output", lambda *a, **kw: fake_diff)
     changes = csb._git_changed_files("base", "head")

@@ -9,6 +9,9 @@ from tests.golden import update_goldens
 
 REPO_CASES = Path(__file__).parent / "templates"
 
+# argparse's parser.error() exits with status 2 (Unix convention for usage error).
+_ARGPARSE_USAGE_ERROR = 2
+
 
 @pytest.fixture
 def isolated_corpus(tmp_path, monkeypatch):
@@ -110,6 +113,6 @@ def test_check_and_diff_are_mutually_exclusive(capsys):
     checks."""
     with pytest.raises(SystemExit) as excinfo:
         update_goldens.main(["--check", "--diff"])
-    assert excinfo.value.code == 2  # argparse parser.error exits 2
+    assert excinfo.value.code == _ARGPARSE_USAGE_ERROR
     err = capsys.readouterr().err
     assert "--check and --diff are mutually exclusive" in err
