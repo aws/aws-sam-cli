@@ -1,3 +1,20 @@
+# PR Size Labeler
+#
+# Labels every PR with one of size/XS, size/S, size/M, size/L, size/XL, size/XXL
+# based on additions+deletions across non-excluded files, and fails the check on
+# size/XXL unless a maintainer applies size/override.
+#
+# ONE-TIME SETUP (a maintainer must run these once after this workflow merges):
+#   gh label create size/XS       --color ededed --description "PR size: 0-9 changed lines"
+#   gh label create size/S        --color c2e0c6 --description "PR size: 10-29 changed lines"
+#   gh label create size/M        --color fef2c0 --description "PR size: 30-99 changed lines"
+#   gh label create size/L        --color fbca04 --description "PR size: 100-499 changed lines"
+#   gh label create size/XL       --color e99695 --description "PR size: 500-999 changed lines"
+#   gh label create size/XXL      --color b60205 --description "PR size: 1000+ changed lines"
+#   gh label create size/override --color 0e8a16 --description "Maintainer override for size/XXL gate"
+#
+# Spec: docs/superpowers/specs/2026-06-01-pr-size-labeler-design.md
+
 name: "PR Size Labeler"
 
 on:
@@ -35,6 +52,8 @@ jobs:
             const OVERRIDE_LABEL = 'size/override';
             const STICKY_MARKER = '<!-- pr-size-labeler -->';
 
+            // ---- Exclusion globs. Files matching ANY glob are excluded
+            //      from the size count. Edit this list to tune. ----
             const EXCLUDE_GLOBS = [
               '**/*.lock',
               '**/package-lock.json',
@@ -147,6 +166,7 @@ jobs:
                   });
                   core.info(`Removed stale label ${name}`);
                 } catch (err) {
+                  // 404 = label was already removed by another run. Ignore.
                   if (err.status !== 404) throw err;
                 }
               }
