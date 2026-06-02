@@ -254,17 +254,24 @@ can never diverge.
 ### The semver gate
 
 Tiny standalone GitHub workflow at
-`.github/workflows/golden-semver-gate.yml`. Fires only when corpus pins or
-the version file change:
+`.github/workflows/golden-semver-gate.yml`. Runs on every PR; the script
+itself returns exit 0 when no corpus pins changed, so it's cheap to run
+unconditionally and posts a definitive status on every PR (which lets
+branch protection mark it as a required check without blocking
+unrelated PRs):
 
 ```yaml
 on:
   pull_request:
     branches: [develop, "feat/*", "feat-*"]
-    paths:
-      - "tests/golden/templates/**/expected.*.yaml"
-      - "samcli/__init__.py"
 ```
+
+The workflow does *not* use `on.pull_request.paths:` filtering. Path
+filtering at the trigger level skips the workflow entirely on PRs that
+touch no matching path — no status posts, and a required check that
+never reports gets treated by branch protection as missing/pending.
+Self-gating in the script (return 0 when there are no relevant changes)
+is the simpler fix and keeps the check eligible to be required.
 
 `check_semver_bump.py` rules:
 
