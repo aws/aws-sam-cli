@@ -4,26 +4,93 @@ Title: Golden Templates and Semver Check
 What is the problem?
 --------------------
 
-PR #8637 (sam-cli 1.160.0) shipped in-tree CloudFormation Language Extensions
-(LE) support. Within weeks, four production regressions surfaced — every one
-a behavior shift in the *expanded-template output* that no automated test
-caught before release:
+SAM CLI processes user templates and writes the result to disk for
+CloudFormation to consume. The output template is the contract with users
+and their tooling — yet the existing test suite has no review surface for
+that output's *shape*. Unit tests verify individual functions in
+isolation; integration tests assert exit codes and a few narrow
+properties (`Resources.X.Type == ...`); neither puts the rendered
+template in front of a human reviewer.
 
-- #9004 — `Fn::FindInMap` / `Join` / `Select` / `Base64` raised on unresolved
-  parameter `Ref`s in PARTIAL mode (fixed in #9010).
-- #9005 — `PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES` had drifted from canonical
-  resource lists; `AWS::Serverless::Application` and seven sibling types
-  failed packaging (fixed in #9009).
-- #9027 — `AWS::Include` buried inside `Fn::ToJsonString` was invisible to the
-  global-transform walker because LE expansion ran first (fixed in #9030).
-- #9029 — LE-aware build merge overwrote `Code: { ZipFile: !Sub ... }` with
-  the LE-resolved value, baking pseudo-param defaults into the built template
-  (fixed in #9031).
+This shows up most painfully in feature PRs that introduce new
+output-shaping behavior. The reviewer can read the code and run the
+tests, but cannot easily see *what the feature produces for representative
+inputs* — the diff in the PR is `samcli/lib/...` Python code, not the
+YAML that customers will deploy. Subtle interactions between pipeline
+stages — LE expansion vs. SAM transform vs. global-transform export
+vs. artifact-path merge — are invisible at review time.
 
-PR #9033 made local LE processing opt-in to give customers a clean migration
-path. The action item from that retrospective: a golden-template corpus that
-pins the expanded output of representative templates, plus a CI gate that
-requires a major-version bump whenever a pin changes.
+PR #8637 (sam-cli 1.160.0, in-tree CFN Language Extensions support) is
+exhibit A. It introduced large new output-shaping behavior across the
+build and package paths. Within weeks of release four bugs surfaced,
+each a behavior shift visible in the post-build or post-package
+template that no automated test caught before release:
+
+- #9004 — `Fn::FindInMap` / `Join` / `Select` / `Base64` raised on
+  unresolved parameter `Ref`s in PARTIAL mode (fixed in #9010).
+- #9005 — `PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES` had drifted from
+  canonical resource lists; `AWS::Serverless::Application` and seven
+  sibling types failed packaging (fixed in #9009).
+- #9027 — `AWS::Include` buried inside `Fn::ToJsonString` was invisible
+  to the global-transform walker because LE expansion ran first (fixed
+  in #9030).
+- #9029 — LE-aware build merge overwrote `Code: { ZipFile: !Sub ... }`
+  with the LE-resolved value, baking pseudo-param defaults into the
+  built template (fixed in #9031).
+
+PR #9033 made local LE processing opt-in to give customers a clean
+migration path.
+
+These bugs didn't slip past #8637 because the test suite was small —
+the LE module shipped with comprehensive unit tests and integration
+tests. They slipped past because nobody was asked, at PR-review time,
+to look at the actual templates `sam build` and `sam package` produce
+for templates exercising each new LE intrinsic. Each bug is a YAML-shape
+diff that a reviewer would have caught on sight — if the diff had been
+visible.
+
+The right moment for that review surface is the feature PR itself.
+#8637 should have shipped with one pinned input/output pair per LE
+intrinsic plus the cross-cutting interactions (LE × nested stacks, LE
+× AWS::Include, LE × Globals). Each iteration on the PR would have
+produced output diffs alongside code diffs; the four bugs would have
+appeared as visible shape changes during development, before the PR
+merged. That same pattern then carries forward: every future feature
+PR pins what it produces, every patch release is auditable for
+behavior changes.
+
+A pinned-output corpus solves only half the problem, though. Behavior
+changes — intentional or not — must also be visible to *consumers* of
+SAM CLI, not just to reviewers. The most impactful changes don't just
+alter output shape: they cause `sam build` or `sam package` to fail
+outright, breaking customer CI/CD pipelines on what was assumed to be
+a routine upgrade. #9004 is the canonical example — `sam build`
+started raising `InvalidTemplateException` on any template that used
+`!FindInMap` over a parameter without a `Default`, blocking every CI
+that consumed such a template until the customer either pinned to
+1.159.x or upgraded past the fix. The 1.159 → 1.160 bump was minor
+per semver, signalling "additive, backwards-compatible" — but local
+LE processing turning on by default broke working pipelines, which
+is the definition of a backwards-incompatible change. The version
+number didn't tell consumers to audit their pipelines, so they
+didn't.
+
+This design proposes:
+
+1. **A golden-template corpus** under `tests/golden/templates/`.
+   For each representative input, pin the post-build and post-package
+   YAML byte-for-byte. The pins live in the repo; PR diffs include
+   both the code change and the resulting output change. Reviewers see
+   what users will see.
+
+2. **A CI semver gate** that requires a major-version bump in
+   `samcli/__init__.py` whenever an existing pinned output is modified
+   or deleted. New pins (corpus growth) are ungated. The gate makes
+   user-visible behavior changes explicit at version-number granularity
+   so downstream tooling can react deliberately.
+
+The two compose: goldens make output changes *visible* to reviewers;
+the semver check makes them *commitments* to consumers.
 
 What will be changed?
 ---------------------
