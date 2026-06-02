@@ -10,6 +10,16 @@ Usage:
 
 from __future__ import annotations
 
+# Allow direct script invocation (`python tests/golden/update_goldens.py`)
+# in addition to module form (`python -m tests.golden.update_goldens`).
+# When run as a script, Python does not auto-add the repo root to sys.path,
+# so the absolute `from tests.golden...` imports below would fail.
+if __name__ == "__main__" and __package__ is None:
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import argparse
 import difflib
 import fnmatch

@@ -7,6 +7,18 @@ Usage (CI):
 
 from __future__ import annotations
 
+# Allow direct script invocation (`python tests/golden/check_semver_bump.py`)
+# in addition to module form (`python -m tests.golden.check_semver_bump`).
+# When run as a script, Python does not auto-add the repo root to sys.path,
+# so absolute imports rooted at `tests.golden...` would fail. This script
+# happens to have no such imports today, but keep the guard symmetrical with
+# update_goldens.py so future imports do not silently regress the script form.
+if __name__ == "__main__" and __package__ is None:
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
 import argparse
 import re
 import subprocess
