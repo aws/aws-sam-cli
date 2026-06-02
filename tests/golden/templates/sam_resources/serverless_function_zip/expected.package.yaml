@@ -4,7 +4,7 @@ Resources:
     Metadata:
       SamResourceId: HelloFunction
     Properties:
-      CodeUri: s3://golden-bucket/7187d20310f5514ad6d32ad02c3f6a8200a0b82949bcb4c63a751bc4ce730095
+      CodeUri: s3://golden-bucket/22186578b8d9d69e7157330653df80d6801d2e1bc7af9c2a7622640de339ae63
       Handler: app.handler
       MemorySize: 128
       Runtime: python3.11

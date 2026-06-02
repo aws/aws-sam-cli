@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, Dict, Optional, Tuple
@@ -140,10 +141,46 @@ def _fake_s3_upload(self: S3Uploader, file_name: str, key: Optional[str] = None)
     URIs, but identical content always produces the same URI. The bucket
     name is fixed to :data:`GOLDEN_BUCKET` regardless of the uploader's own
     bucket attribute so pinned outputs do not depend on local config.
+
+    Zip files (the common artifact shape `sam package` uploads) are hashed
+    over a normalized representation — sorted member names plus each
+    member's content sha256 — instead of the raw zip bytes. Raw zip bytes
+    embed OS-specific metadata (DOS timestamps, Unix mode bits, sometimes
+    path separators) which would otherwise produce different digests on
+    Windows vs. POSIX runners.
     """
-    with open(file_name, "rb") as f:
-        digest = hashlib.sha256(f.read()).hexdigest()
+    digest = _hash_zip_normalized(file_name) if _looks_like_zip(file_name) else _hash_raw_bytes(file_name)
     return f"s3://{GOLDEN_BUCKET}/{digest}"
+
+
+def _looks_like_zip(file_name: str) -> bool:
+    """True if ``file_name`` looks like a zip-format artifact."""
+    try:
+        return zipfile.is_zipfile(file_name)
+    except OSError:
+        return False
+
+
+def _hash_raw_bytes(file_name: str) -> str:
+    with open(file_name, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def _hash_zip_normalized(file_name: str) -> str:
+    """Hash a zip file by its sorted member names + per-member content hashes.
+
+    This skips the zip envelope metadata (DOS timestamps, Unix permission
+    bits, central directory ordering) that varies by OS and makes raw
+    byte-level hashes non-deterministic across runners.
+    """
+    hasher = hashlib.sha256()
+    with zipfile.ZipFile(file_name, "r") as zf:
+        for name in sorted(zf.namelist()):
+            hasher.update(name.encode("utf-8"))
+            hasher.update(b"\x00")
+            with zf.open(name) as member:
+                hasher.update(hashlib.sha256(member.read()).digest())
+    return hasher.hexdigest()
 
 
 def _fake_s3_upload_with_dedup(
