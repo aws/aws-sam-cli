@@ -11,19 +11,23 @@ compute boundaries:
 
 - :class:`samcli.lib.build.app_builder.ApplicationBuilder` ``.build()`` is
   replaced with a stub that returns an :class:`ApplicationBuildResult` with
-  artifacts pointing at a per-resource sentinel directory under
-  ``<build_dir>/__sam_golden_artifact__/<resource_full_path>``. The directory
-  contains a single file whose content is the resource's full path, which
-  makes the downstream content-addressed S3 URI deterministic per resource.
+  one entry per buildable function / layer pointing at a per-resource
+  artifact directory under ``<build_dir>/<resource_full_path>``. The
+  directory contains a single file whose content is the resource's full
+  path, which makes the downstream content-addressed S3 URI deterministic
+  per resource.
 - :meth:`samcli.lib.package.s3_uploader.S3Uploader.upload` and
   ``upload_with_dedup`` are replaced with deterministic stubs returning
   ``s3://golden-bucket/<sha256>`` where the digest is taken over the file
-  content.
+  content (zip-aware: zip envelopes are hashed by sorted member names plus
+  per-member content hashes so the digest is OS-deterministic).
 
-After the build phase, the on-disk ``.aws-sam/build/template.yaml`` is read
-back and any artifact-property string referencing a sentinel artifact
-directory is rewritten to ``BUILT_ARTIFACT_PLACEHOLDER`` so the build pin is
-stable across runs and machines.
+The case directory (``template.yaml`` + ``src/``) is staged into a fresh
+temp dir before driving ``BuildContext``. Real ``sam build`` writes
+``CodeUri`` as ``os.path.relpath(absolute_artifact, template_dir)``; with
+the case staged into a temp tree, ``original_dir`` is the staged template's
+parent and the relpath is the deterministic ``.aws-sam/build/<full_path>``
+that real ``sam build`` produces. No post-build path rewriting is needed.
 
 This keeps the harness narrow and lets every other concern (LE expansion,
 ForEach merge, Mappings generation, AWS::Include export, etc.) flow through
@@ -34,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import shutil
 import zipfile
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -44,13 +49,8 @@ from samcli.commands.build.build_context import BuildContext
 from samcli.commands.package.package_context import PackageContext
 from samcli.lib.build.app_builder import ApplicationBuilder, ApplicationBuildResult
 from samcli.lib.build.build_graph import BuildGraph
-from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.provider import get_full_path
-from samcli.lib.utils.resources import (
-    RESOURCES_WITH_IMAGE_COMPONENT,
-    RESOURCES_WITH_LOCAL_PATHS,
-)
 from samcli.yamlhelper import yaml_parse
 
 
@@ -84,27 +84,25 @@ def _read_template_as_plain_dict(path: Path) -> Dict[str, Any]:
     return parsed
 
 
-BUILT_ARTIFACT_PLACEHOLDER = "<<BUILT_ARTIFACT>>"
 GOLDEN_BUCKET = "golden-bucket"
-
-# Directory name placed under <build_dir> for the stub artifact tree. Kept
-# deliberately verbose so the post-build path-rewriter can identify these
-# paths unambiguously (a substring match on this prefix would be safe even
-# if a real-world resource happened to share the same logical id).
-_ARTIFACT_DIRNAME = "__sam_golden_artifact__"
 
 
 def _stub_application_builder_build(build_dir: str) -> Any:
     """Build a stand-in for ``ApplicationBuilder.build``.
 
-    The returned function captures ``build_dir`` and writes one sentinel
-    directory per buildable function / layer:
+    The returned function captures ``build_dir`` and writes one artifact
+    directory per buildable function / layer at the canonical location
+    real ``sam build`` uses:
 
-      <build_dir>/__sam_golden_artifact__/<full_path>/__golden_placeholder__
+      <build_dir>/<full_path>/__golden_placeholder__
 
     The placeholder file's content is the resource's full path, which makes
     the package phase's content-addressed S3 URI distinct per resource even
-    though no real source code was compiled.
+    though no real source code was compiled. ``ApplicationBuilder.update_template``
+    rewrites these absolute paths to ``relpath(artifact, template_dir)``;
+    when the case is staged under the temp dir before driving
+    ``BuildContext``, the relpath becomes the deterministic
+    ``.aws-sam/build/<full_path>`` string real ``sam build`` produces.
 
     The returned ``ApplicationBuildResult.artifacts`` map is keyed on
     ``get_full_path(stack_path, function_id)`` exactly as real SAM CLI does;
@@ -113,18 +111,17 @@ def _stub_application_builder_build(build_dir: str) -> Any:
 
     def _fake_build(self: ApplicationBuilder) -> ApplicationBuildResult:
         artifacts: Dict[str, str] = {}
-        sentinel_root = Path(build_dir) / _ARTIFACT_DIRNAME
 
         for function in self._resources_to_build.functions:  # type: ignore[attr-defined]
             full_path = get_full_path(function.stack_path, function.function_id)
-            artifact_dir = sentinel_root / full_path.replace("/", os.sep)
+            artifact_dir = Path(build_dir) / full_path.replace("/", os.sep)
             artifact_dir.mkdir(parents=True, exist_ok=True)
             (artifact_dir / "__golden_placeholder__").write_text(full_path, encoding="utf-8")
             artifacts[full_path] = str(artifact_dir)
 
         for layer in self._resources_to_build.layers:  # type: ignore[attr-defined]
             full_path = layer.full_path
-            artifact_dir = sentinel_root / full_path.replace("/", os.sep)
+            artifact_dir = Path(build_dir) / full_path.replace("/", os.sep)
             artifact_dir.mkdir(parents=True, exist_ok=True)
             (artifact_dir / "__golden_placeholder__").write_text(full_path, encoding="utf-8")
             artifacts[full_path] = str(artifact_dir)
@@ -192,111 +189,46 @@ def _fake_s3_upload_with_dedup(
     return _fake_s3_upload(self, file_name)
 
 
-def _walk_artifact_string_values(template: Dict[str, Any]):
-    """Yield ``(setter, value)`` for every artifact-property string in the template.
+_STAGED_CASE_DIRNAME = "case"
 
-    ``setter`` is a callable that, given a new value, replaces the original
-    in place. We use this to swap built-artifact relative paths for the
-    sentinel placeholder string without having to re-parse the YAML.
 
-    The walk handles both top-level resources and resources nested inside
-    ``Fn::ForEach::*`` bodies.
+def _stage_case_dir(case_dir: Path, tmp_root: Path) -> Path:
+    """Copy the case directory (template + src/) into ``tmp_root/case``.
+
+    Real ``sam build`` rewrites artifact paths to
+    ``relpath(absolute_artifact, template_dir)``. Staging the case dir into
+    a known location under the temp root makes that relpath the canonical
+    deterministic ``.aws-sam/build/<full_path>`` string regardless of where
+    the host's tempdir lives.
     """
-    resources = template.get("Resources", {}) or {}
-    for resource_key, resource_value in resources.items():
-        if is_foreach_key(resource_key):
-            yield from _walk_foreach_artifact_strings(resource_value)
-            continue
-        yield from _walk_resource_artifact_strings(resource_value)
-
-
-def _walk_foreach_artifact_strings(foreach_value: Any):
-    if not isinstance(foreach_value, list) or len(foreach_value) < 3:  # noqa: PLR2004
-        return
-    body = foreach_value[2]
-    if not isinstance(body, dict):
-        return
-    for body_key, body_value in body.items():
-        if is_foreach_key(body_key):
-            yield from _walk_foreach_artifact_strings(body_value)
-            continue
-        yield from _walk_resource_artifact_strings(body_value)
-
-
-def _walk_resource_artifact_strings(resource: Any):
-    if not isinstance(resource, dict):
-        return
-    rtype = resource.get("Type")
-    if not isinstance(rtype, str):
-        return
-    properties = resource.get("Properties")
-    if not isinstance(properties, dict):
-        return
-    for paths_dict in (RESOURCES_WITH_LOCAL_PATHS, RESOURCES_WITH_IMAGE_COMPONENT):
-        for prop_path in paths_dict.get(rtype, []):
-            yield from _yield_at_path(properties, prop_path.split("."))
-
-
-def _yield_at_path(container: Any, parts):
-    if not isinstance(container, dict) or not parts:
-        return
-    head, rest = parts[0], parts[1:]
-    if head not in container:
-        return
-    if not rest:
-        value = container[head]
-        if isinstance(value, str):
-
-            def _set(new_value, _container=container, _head=head):
-                _container[_head] = new_value
-
-            yield _set, value
-        return
-    yield from _yield_at_path(container[head], rest)
-
-
-def _replace_artifact_paths_with_placeholder(template: Dict[str, Any], build_dir: str) -> None:
-    """Rewrite every artifact-property string that resolves under the sentinel
-    directory to :data:`BUILT_ARTIFACT_PLACEHOLDER`.
-
-    A value is considered an artifact path if, when joined relative to
-    ``build_dir``, it lands inside ``<build_dir>/__sam_golden_artifact__/``.
-    Both relative and absolute forms are recognized, which covers the two
-    paths SAM CLI may write (``move_template`` rewrites relative; an
-    absolute path survives if Windows cross-drive logic kicked in).
-    """
-    sentinel_root = (Path(build_dir) / _ARTIFACT_DIRNAME).resolve()
-    for setter, value in _walk_artifact_string_values(template):
-        if not isinstance(value, str):
-            continue
-        # Plain string artifact location can be either relative (to build_dir)
-        # or absolute. Resolve once against build_dir to handle both shapes.
-        candidate = (Path(build_dir) / value).resolve() if not os.path.isabs(value) else Path(value).resolve()
-        try:
-            candidate.relative_to(sentinel_root)
-        except ValueError:
-            continue
-        setter(BUILT_ARTIFACT_PLACEHOLDER)
+    staged = tmp_root / _STAGED_CASE_DIRNAME
+    shutil.copytree(case_dir, staged)
+    return staged
 
 
 def run_build_pipeline_to_dir(
-    template_path: Path,
+    staged_template_path: Path,
     language_extensions: bool,
     build_dir: Path,
     cache_dir: Path,
 ) -> Dict[str, Any]:
     """Drive ``BuildContext`` to produce a built template under ``build_dir``.
 
-    Returns the parsed dict read back from
-    ``<build_dir>/template.yaml``. The on-disk file is left in place so
-    callers (notably :func:`run_package_pipeline`) can hand the path to
-    ``PackageContext`` directly.
+    The caller is responsible for staging the case dir under a temp root
+    (see :func:`_stage_case_dir`) and pointing ``staged_template_path`` at
+    the staged copy. ``build_dir`` should sit inside the same staged tree
+    so ``ApplicationBuilder.update_template`` produces the canonical
+    ``.aws-sam/build/<full_path>`` relative paths.
+
+    Returns the parsed dict read back from ``<build_dir>/template.yaml``.
+    The on-disk file is left in place so callers (notably
+    :func:`run_package_pipeline`) can hand the path to ``PackageContext``
+    directly.
     """
-    case_dir = template_path.parent
     bctx = BuildContext(
         resource_identifier=None,
-        template_file=str(template_path),
-        base_dir=str(case_dir),
+        template_file=str(staged_template_path),
+        base_dir=str(staged_template_path.parent),
         build_dir=str(build_dir),
         cache_dir=str(cache_dir),
         cached=False,
@@ -312,46 +244,46 @@ def run_build_pipeline_to_dir(
         with patch.object(ApplicationBuilder, "build", fake_build):
             bctx.run()
 
-    template = _read_template_as_plain_dict(build_dir / "template.yaml")
-    _replace_artifact_paths_with_placeholder(template, str(build_dir))
-    return template
+    return _read_template_as_plain_dict(build_dir / "template.yaml")
 
 
 def run_build_pipeline(template_path: Path, language_extensions: bool) -> Dict[str, Any]:
     """In-process equivalent of ``sam build`` for a single template.
 
-    Allocates a fresh temp dir for the build / cache outputs, drives
-    :class:`BuildContext` end-to-end, post-processes the on-disk
-    ``template.yaml`` to substitute the artifact placeholder, and returns
-    the parsed dict.
+    Stages the case dir (``template.yaml`` + ``src/``) into a fresh temp
+    tree, drives :class:`BuildContext` end-to-end, and returns the parsed
+    built template dict. ``CodeUri`` etc. emerge as the canonical
+    ``.aws-sam/build/<full_path>`` relative path that real ``sam build``
+    writes — no post-processing needed.
     """
     with TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        build_dir = tmp_path / ".aws-sam" / "build"
-        cache_dir = tmp_path / ".aws-sam" / "cache"
-        return run_build_pipeline_to_dir(template_path, language_extensions, build_dir, cache_dir)
+        staged = _stage_case_dir(template_path.parent, tmp_path)
+        build_dir = staged / ".aws-sam" / "build"
+        cache_dir = staged / ".aws-sam" / "cache"
+        return run_build_pipeline_to_dir(staged / template_path.name, language_extensions, build_dir, cache_dir)
 
 
 def run_package_pipeline(template_path: Path, language_extensions: bool) -> Dict[str, Any]:
     """In-process equivalent of ``sam package``.
 
-    Runs the build pipeline first to produce a real on-disk
-    ``.aws-sam/build/template.yaml`` (with artifact directories that the
-    :class:`Template` exporter can actually read), then drives
+    Runs the build pipeline first (against a staged copy of the case dir)
+    to produce a real on-disk ``.aws-sam/build/template.yaml``, then drives
     :class:`PackageContext` against that template. The S3 uploader is
     stubbed for determinism; everything else (LE expansion, ForEach merge,
     Mappings generation, AWS::Include export) runs through real code.
     """
     with TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        build_dir = tmp_path / ".aws-sam" / "build"
-        cache_dir = tmp_path / ".aws-sam" / "cache"
+        staged = _stage_case_dir(template_path.parent, tmp_path)
+        build_dir = staged / ".aws-sam" / "build"
+        cache_dir = staged / ".aws-sam" / "cache"
 
         # Re-run the build phase so we have a freshly built template on
         # disk that PackageContext can read. We can't reuse a previously
         # produced dict because PackageContext re-loads the template from
         # the path itself.
-        run_build_pipeline_to_dir(template_path, language_extensions, build_dir, cache_dir)
+        run_build_pipeline_to_dir(staged / template_path.name, language_extensions, build_dir, cache_dir)
 
         built_template_path = build_dir / "template.yaml"
         output_template_path = tmp_path / "packaged" / "template.yaml"
@@ -395,9 +327,10 @@ def run_build_and_package(template_path: Path, language_extensions: bool) -> Tup
     """
     with TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        build_dir = tmp_path / ".aws-sam" / "build"
-        cache_dir = tmp_path / ".aws-sam" / "cache"
-        build_dict = run_build_pipeline_to_dir(template_path, language_extensions, build_dir, cache_dir)
+        staged = _stage_case_dir(template_path.parent, tmp_path)
+        build_dir = staged / ".aws-sam" / "build"
+        cache_dir = staged / ".aws-sam" / "cache"
+        build_dict = run_build_pipeline_to_dir(staged / template_path.name, language_extensions, build_dir, cache_dir)
 
         built_template_path = build_dir / "template.yaml"
         output_template_path = tmp_path / "packaged" / "template.yaml"

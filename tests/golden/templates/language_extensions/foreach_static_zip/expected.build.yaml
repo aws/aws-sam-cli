@@ -6,7 +6,7 @@ Resources:
     - Beta
   - ${WorkerName}Function:
       Properties:
-        CodeUri: <<BUILT_ARTIFACT>>
+        CodeUri: AlphaFunction
         Handler: app.handler
         Runtime: python3.11
       Type: AWS::Serverless::Function

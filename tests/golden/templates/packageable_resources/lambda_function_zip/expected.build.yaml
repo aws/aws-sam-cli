@@ -4,7 +4,7 @@ Resources:
     Metadata:
       SamResourceId: HelloFunction
     Properties:
-      Code: <<BUILT_ARTIFACT>>
+      Code: HelloFunction
       FunctionName: hello
       Handler: app.handler
       MemorySize: 128

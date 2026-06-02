@@ -5,13 +5,12 @@ the in-process flow matches what real ``sam build`` writes to
 ``.aws-sam/build/template.yaml``:
 
 - SAM templates: ``AWS::Serverless::Function`` is preserved, ``CodeUri``
-  is rewritten to the build-artifact placeholder. The SAM transform runs
-  server-side at deploy time, not at build time, so no auto-generated
-  IAM Role appears in the build output.
-- Raw CFN ``AWS::Lambda::Function``: ``Code`` is rewritten to the
-  placeholder; the resource type is preserved.
+  is the resource's logical id (the canonical relative path real
+  ``sam build`` writes — relative to the output template's directory).
+- Raw CFN ``AWS::Lambda::Function``: ``Code`` is the same logical-id
+  relative path; the resource type is preserved.
 - LE ``Fn::ForEach`` templates: the ForEach key is preserved at the top
-  of ``Resources``; the body's artifact property is the placeholder.
+  of ``Resources``; the body's artifact property is the logical-id path.
 """
 
 from pathlib import Path
@@ -27,7 +26,9 @@ def test_build_sam_case_preserves_serverless_function():
     func = result["Resources"]["HelloFunction"]
     # SAM transform is server-side; build output keeps AWS::Serverless::Function.
     assert func["Type"] == "AWS::Serverless::Function"
-    assert func["Properties"]["CodeUri"] == "<<BUILT_ARTIFACT>>"
+    # CodeUri is the artifact's path relative to the output template's dir
+    # (.aws-sam/build/template.yaml -> .aws-sam/build/HelloFunction/).
+    assert func["Properties"]["CodeUri"] == "HelloFunction"
     # No auto-generated IAM Role at build time.
     assert "HelloFunctionRole" not in result["Resources"]
 
@@ -37,10 +38,10 @@ def test_build_le_case_preserves_foreach():
 
     Real ``sam build`` produces a template that preserves the original
     ``Fn::ForEach`` structure so CloudFormation can re-expand it server-side
-    at deploy time. Inside the body, the artifact property is rewritten to
-    the build placeholder. The body resource type stays
-    ``AWS::Serverless::Function`` because the SAM transform also runs
-    server-side, not at build time. See PR #8637.
+    at deploy time. Inside the body, the artifact property is the artifact
+    directory's relative path (one path per expanded resource). The body
+    resource type stays ``AWS::Serverless::Function`` because the SAM
+    transform also runs server-side, not at build time. See PR #8637.
     """
     case = CASES_ROOT / "language_extensions" / "foreach_static_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=True)
@@ -56,17 +57,18 @@ def test_build_le_case_preserves_foreach():
     assert "BetaFunction" not in result["Resources"]
 
     # Body is still a Serverless::Function (SAM transform runs server-side),
-    # and its CodeUri now points at the placeholder.
+    # and its CodeUri is set to a non-empty relative path string.
     foreach_value = result["Resources"][foreach_keys[0]]
     body = foreach_value[2]
     body_resource = next(iter(body.values()))
     assert body_resource["Type"] == "AWS::Serverless::Function"
-    assert body_resource["Properties"]["CodeUri"] == "<<BUILT_ARTIFACT>>"
+    code_uri = body_resource["Properties"]["CodeUri"]
+    assert isinstance(code_uri, str) and code_uri, "CodeUri must be a non-empty deterministic path"
 
 
-def test_build_cfn_case_replaces_code_with_placeholder():
+def test_build_cfn_case_keeps_lambda_function():
     case = CASES_ROOT / "packageable_resources" / "lambda_function_zip"
     result = run_build_pipeline(case / "template.yaml", language_extensions=False)
     func = result["Resources"]["HelloFunction"]
     assert func["Type"] == "AWS::Lambda::Function"
-    assert func["Properties"]["Code"] == "<<BUILT_ARTIFACT>>"
+    assert func["Properties"]["Code"] == "HelloFunction"
