@@ -30,8 +30,9 @@ from typing import List, Optional, Tuple
 
 EXPECTED_GLOB = re.compile(r"^tests/golden/templates/.+/expected\.(build|package)\.yaml$")
 
-# git diff --name-status emits "R<score>\tOLD\tNEW" for renames (3 fields).
-_RENAME_DIFF_PARTS = 3
+# git diff --name-status emits "R<score>\tOLD\tNEW" for renames or
+# "C<score>\tOLD\tNEW" for copies (3 fields each).
+_RENAME_OR_COPY_PARTS = 3
 
 
 @dataclass(frozen=True)
@@ -114,10 +115,18 @@ def _git_changed_files(base: str, head: str) -> List[Change]:
             continue
         parts = line.split("\t")
         status, path = parts[0], parts[-1]
-        # Renames present as "R<score>\tOLD\tNEW" — split into D + A for our purposes.
-        if status.startswith("R") and len(parts) == _RENAME_DIFF_PARTS:
+        # Renames present as "R<score>\tOLD\tNEW" and copies as
+        # "C<score>\tOLD\tNEW". Note the asymmetry:
+        #   - Rename: source path goes away (D) and target appears (A).
+        #   - Copy:   source persists, only the target is new (A only).
+        # Without this branch, statuses like "R100" / "C100" fall through
+        # to the else and silently bypass the gate's A/M/D filters.
+        if status.startswith(("R", "C")) and len(parts) == _RENAME_OR_COPY_PARTS:
             old, new = parts[1], parts[2]
-            changes.append(Change(old, "D"))
+            if status.startswith("R"):
+                # Pure rename: source goes away.
+                changes.append(Change(old, "D"))
+            # Both rename and copy produce a new path classified as A.
             changes.append(Change(new, "A"))
         else:
             changes.append(Change(path, status[0]))
