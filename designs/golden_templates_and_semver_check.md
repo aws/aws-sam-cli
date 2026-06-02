@@ -334,24 +334,44 @@ can never diverge.
 ### The semver gate
 
 Tiny standalone GitHub workflow at
-`.github/workflows/golden-semver-gate.yml`. Runs on every PR; the script
-itself returns exit 0 when no corpus pins changed, so it's cheap to run
-unconditionally and posts a definitive status on every PR (which lets
-branch protection mark it as a required check without blocking
-unrelated PRs):
+`.github/workflows/golden-semver-gate.yml`. Runs on every PR *and* on
+every merge_group event; the script itself returns exit 0 when no
+corpus pins changed, so it's cheap to run unconditionally and posts a
+definitive status on every event (which lets branch protection mark
+it as a required check without blocking unrelated PRs or merge-queue
+runs):
 
 ```yaml
 on:
   pull_request:
     branches: [develop, "feat/*", "feat-*"]
+  merge_group:
+    types: [checks_requested]
+    branches: [develop, "feat/*", "feat-*"]
 ```
 
-The workflow does *not* use `on.pull_request.paths:` filtering. Path
-filtering at the trigger level skips the workflow entirely on PRs that
-touch no matching path — no status posts, and a required check that
-never reports gets treated by branch protection as missing/pending.
-Self-gating in the script (return 0 when there are no relevant changes)
-is the simpler fix and keeps the check eligible to be required.
+The workflow avoids two flavors of the "skipped but required check"
+pitfall:
+
+1. **No `on.pull_request.paths:` filtering.** Path filtering at the
+   trigger level skips the workflow entirely on PRs that touch no
+   matching path — no status posts, and a required check that never
+   reports gets treated by branch protection as missing/pending.
+   Self-gating in the script (return 0 when there are no relevant
+   changes) is the simpler fix and keeps the check eligible to be
+   required.
+
+2. **Both `pull_request` and `merge_group` triggers.** The repo uses
+   GitHub's merge queue; when a PR enters the queue, GitHub
+   dispatches a `merge_group` event against an ephemeral ref, not
+   `pull_request`. A required check that only listens on
+   `pull_request` never reports a status on the `merge_group` event,
+   so the merge queue treats it as missing/pending — the same failure
+   mode under a different trigger. Mirror `build.yml`'s pattern by
+   listening on both events with the same branch filters. The
+   workflow then resolves the target branch from `github.base_ref` on
+   PR events and from `github.event.merge_group.base_ref` (stripping
+   the `refs/heads/` prefix) on merge-queue events.
 
 `check_semver_bump.py` rules:
 
