@@ -36,6 +36,17 @@ Compromises (documented inline):
   matches the user-visible behavior of ``sam build`` on such a template
   (the LE construct is preserved verbatim for CloudFormation server-side
   expansion).
+- When ``language_extensions=True`` and the template uses LE: the SAM
+  transform is *also* skipped, and the build / package outputs preserve
+  ``Fn::ForEach::*`` with merged artifact values inside the body. This mirrors
+  what real ``sam build`` and ``sam package`` write to disk (PR #8637): the
+  SAM transform runs server-side at deploy time, so the build/package
+  artifacts keep ``AWS::Serverless::Function`` (with ``CodeUri``) — they
+  are not pre-transformed to ``AWS::Lambda::Function`` (with ``Code``).
+  The merge itself delegates to
+  ``BuildContext._get_template_for_output`` (build) and
+  ``merge_language_extensions_s3_uris`` (package), invoked via lightweight
+  shims so the harness does not duplicate the merge logic.
 
 Known limitations (deferred to follow-up PRs / corpus growth):
 
@@ -66,6 +77,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import types
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -74,6 +86,7 @@ import yaml
 from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.providers.provider import get_full_path
 from samcli.lib.utils.resources import (
     RESOURCES_WITH_IMAGE_COMPONENT,
     RESOURCES_WITH_LOCAL_PATHS,
@@ -284,24 +297,112 @@ def _run_sam_transform(template: Dict[str, Any], parameter_values: Dict[str, Any
     return translated
 
 
+def _build_artifacts_map(template: Dict[str, Any]) -> Dict[str, str]:
+    """Build the ``artifacts: Dict[str, str]`` map BuildContext expects.
+
+    Keys are ``<stack_path>/<resource_id>`` full paths (with empty stack_path
+    this collapses to just ``<resource_id>``); values are the placeholder
+    string standing in for an on-disk built artifact location. We only
+    populate entries for resources that actually carry a packageable artifact
+    property — this matches BuildContext's check for whether to merge an
+    expanded resource back into the original ForEach body.
+    """
+    artifacts: Dict[str, str] = {}
+    seen: set = set()
+    for resource_id, _prop_path, _resource in _walk_artifact_properties(template):
+        if resource_id in seen:
+            continue
+        seen.add(resource_id)
+        artifacts[get_full_path("", resource_id)] = BUILT_ARTIFACT_PLACEHOLDER
+    return artifacts
+
+
+def _merge_back_into_original(
+    original_template: Dict[str, Any],
+    modified_template: Dict[str, Any],
+    artifacts: Dict[str, str],
+) -> Dict[str, Any]:
+    """Call ``BuildContext._get_template_for_output`` without instantiating a
+    full BuildContext.
+
+    The method only invokes ``self.*`` for *other* methods on the same class
+    (audited in PR 1). The ``stack`` parameter only reads three attributes:
+    ``original_template_dict``, ``parameters``, ``stack_path``. So we use a
+    ``BuildContext.__new__`` shell as ``self`` and a SimpleNamespace as the
+    stack. No instance state is touched.
+    """
+    # Lazy import: keep the build_context imports out of the harness
+    # module-load path (it pulls in click, telemetry, etc.).
+    from samcli.commands.build.build_context import BuildContext
+
+    stack = types.SimpleNamespace(
+        original_template_dict=original_template,
+        parameters={},
+        stack_path="",
+    )
+    shell = BuildContext.__new__(BuildContext)
+    # mypy: SimpleNamespace is structurally compatible with the three Stack
+    # attributes _get_template_for_output reads (audited above), but it isn't
+    # an actual Stack instance so the static type check rejects it.
+    return BuildContext._get_template_for_output(
+        shell,
+        stack=stack,  # type: ignore[arg-type]
+        modified_template=modified_template,
+        artifacts=artifacts,
+    )
+
+
 def run_build_pipeline(template_path: Path, language_extensions: bool) -> Dict[str, Any]:
     """In-process equivalent of `sam build` for one template.
 
-    1. Load the template.
-    2. Run LE expansion (no-op if disabled or template has no LE transform).
-    3. Run the SAM transform on the expanded template.
-    4. Replace local artifact paths with BUILT_ARTIFACT_PLACEHOLDER.
+    For non-LE templates (and LE-disabled): run SAM transform on the loaded
+    template and rewrite local artifact paths to BUILT_ARTIFACT_PLACEHOLDER.
+
+    For templates that use LanguageExtensions and have it enabled:
+      1. LE-expand to get a flat resource list. This is the modified-template
+         lookup source for the merge.
+      2. Skip the SAM transform on this LE branch. Real ``sam build`` does
+         the same: the transform runs server-side at deploy time so the
+         ``.aws-sam/build/template.yaml`` keeps ``AWS::Serverless::Function``
+         (and its ``CodeUri``). Running the SAM transform here would also
+         break ``BuildContext._update_original_template_paths``, which keys
+         its packageable-property lookup off the *original* ForEach body's
+         resource type — a transformed modified template would carry
+         ``Code`` while the original body still has ``CodeUri``.
+      3. Build the ``artifacts`` map from the LE-expanded resource ids.
+      4. Replace local artifact paths in the LE-expanded copy with
+         BUILT_ARTIFACT_PLACEHOLDER.
+      5. Call ``BuildContext._get_template_for_output`` with the original
+         (still ForEach-shaped) template and the modified expanded copy.
+         This is the same code path real ``sam build`` uses to produce
+         ``.aws-sam/build/template.yaml`` and merges the placeholder values
+         back into the ForEach body.
     """
     template = _load_template(template_path)
 
     parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
 
     le_result = expand_language_extensions(template, parameter_values=parameter_values, enabled=language_extensions)
-    expanded = copy.deepcopy(le_result.expanded_template)
 
-    transformed = _run_sam_transform(expanded, parameter_values)
-    _replace_local_artifact_paths(transformed)
-    return transformed
+    if not le_result.had_language_extensions:
+        # No LE (either disabled or template doesn't use it): the transformed
+        # template is what gets written to disk. Rewrite paths in place.
+        expanded = copy.deepcopy(le_result.expanded_template)
+        transformed = _run_sam_transform(expanded, parameter_values)
+        _replace_local_artifact_paths(transformed)
+        return transformed
+
+    # LE path: do NOT run SAM transform — see docstring above. Build the
+    # artifacts map from the LE-expanded ids, rewrite paths to the
+    # placeholder, then delegate the merge to BuildContext.
+    expanded = copy.deepcopy(le_result.expanded_template)
+    artifacts = _build_artifacts_map(expanded)
+    _replace_local_artifact_paths(expanded)
+    return _merge_back_into_original(
+        original_template=le_result.original_template,
+        modified_template=expanded,
+        artifacts=artifacts,
+    )
 
 
 class GoldenS3Uploader:
@@ -348,24 +449,50 @@ def run_package_pipeline(
 ) -> Dict[str, Any]:
     """In-process equivalent of `sam package` for one template + build output.
 
-    1. Walk packageable artifact properties on the build output and replace
-       each local path with an s3://golden-bucket/<sha256> URI.
-    2. Run _export_global_artifacts_pass on the rewritten template to
-       handle any AWS::Include structural nodes.
-    3. Return the final dict.
+    For non-LE inputs: walk packageable artifact properties on the build
+    output and replace each local path with an s3://golden-bucket/<sha256>
+    URI; then run ``_export_global_artifacts_pass`` for AWS::Include.
+
+    For LE inputs (the build output preserves ``Fn::ForEach::*``): mirror
+    ``PackageContext._export_with_language_extensions`` —
+      1. Run ``_export_global_artifacts_pass`` on a copy of the build_output
+         so AWS::Include nodes resolve before LE expansion collapses
+         structural Fn::Transform subtrees into JSON-string literals.
+      2. LE-expand that copy to get a flat resource view.
+      3. Walk the expanded resources, rewriting each artifact property to an
+         s3://golden-bucket/... URI (or {S3Bucket,S3Key} dict for Lambdas).
+      4. Call ``merge_language_extensions_s3_uris(original=build_output,
+         exported=expanded-with-s3-uris)`` to copy the URIs back into the
+         original ForEach body. The result preserves ``Fn::ForEach::*``.
     """
     from samcli.lib.package.artifact_exporter import _export_global_artifacts_pass
+    from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 
     template_dir = str(template_path.parent)
     uploader = GoldenS3Uploader(template_dir)
 
-    # Walk build_output's artifact properties and rewrite local paths.
     pkg = copy.deepcopy(build_output)
-    _rewrite_artifacts_to_s3(pkg, uploader, template_dir)
 
-    # AWS::Include pass on the rewritten template.
+    # AWS::Include pass before LE expansion (mirrors PackageContext._export_with_language_extensions).
     _export_global_artifacts_pass(pkg, uploader, template_dir)
-    return pkg
+
+    le_result = expand_language_extensions(pkg, parameter_values=None, enabled=True)
+    if not le_result.had_language_extensions:
+        # Plain template (or LE disabled at build time): the build output is
+        # already a flat resource list. Rewrite artifacts in place and return.
+        _rewrite_artifacts_to_s3(pkg, uploader, template_dir)
+        return pkg
+
+    # LE path: rewrite artifacts on the expanded copy, then merge back into the
+    # original (build_output) which still has Fn::ForEach::* intact.
+    expanded = copy.deepcopy(le_result.expanded_template)
+    _rewrite_artifacts_to_s3(expanded, uploader, template_dir)
+
+    return merge_language_extensions_s3_uris(
+        original_template=pkg,
+        exported_template=expanded,
+        dynamic_properties=le_result.dynamic_artifact_properties,
+    )
 
 
 def _rewrite_artifacts_to_s3(template: Dict[str, Any], uploader, template_dir: str) -> None:
