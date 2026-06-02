@@ -251,17 +251,29 @@ def _run_sam_transform(template: Dict[str, Any], parameter_values: Dict[str, Any
     # Lazy imports keep the import graph small and let import-time errors
     # surface in the test that exercises this code path rather than at
     # module load time.
+    import boto3
     from samtranslator.parser.parser import Parser
     from samtranslator.translator.translator import Translator
 
     template_copy = copy.deepcopy(template)
     _stub_local_uris_for_translator(template_copy)
 
+    # The upstream Translator's parameter SDK calls
+    # ``boto3.session.Session()`` and raises ``NoRegionFound`` when the
+    # session has no region. In CI there's no AWS_DEFAULT_REGION env
+    # var and no ~/.aws/config, so we hand the Translator a session
+    # pinned to the same region we feed via ``parameter_values``. This
+    # keeps the harness deterministic across environments without
+    # depending on env vars or boto config files. No AWS calls are
+    # made.
+    region = parameter_values.get("AWS::Region", "us-east-1")
+    boto_session = boto3.session.Session(region_name=region)
+
     sam_translator = Translator(
         managed_policy_map=None,
         sam_parser=Parser(),
         plugins=[],
-        boto_session=None,
+        boto_session=boto_session,
     )
 
     translated: Dict[str, Any] = sam_translator.translate(
