@@ -1,0 +1,37 @@
+name: Golden Templates Semver Gate
+
+# Always run on PRs to develop / feat branches. The check_semver_bump.py
+# script self-gates: it returns exit 0 when no expected.*.yaml files
+# changed, so an unconditional run is cheap and posts a definitive
+# status on every PR. Do NOT use `on.pull_request.paths:` filtering —
+# path filtering skips the whole workflow when no path matches, which
+# means no status is posted, which means branch protection treats a
+# required check as missing/pending and blocks the PR. Self-gating in
+# the script is the canonical fix for the "skipped but required check"
+# pitfall.
+on:
+  pull_request:
+    branches:
+      - develop
+      - "feat/*"
+      - "feat-*"
+
+permissions:
+  contents: read
+
+jobs:
+  semver-gate:
+    if: github.repository_owner == 'aws'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          python-version: "3.11"
+      - name: Run semver gate
+        run: |
+          python tests/golden/check_semver_bump.py \
+            --base "origin/${{ github.base_ref }}" \
+            --head HEAD
