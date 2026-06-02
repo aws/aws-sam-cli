@@ -4,8 +4,6 @@ Avoids actual git invocation by passing changed-files lists directly to
 the lower-level entrypoint.
 """
 
-import pytest
-
 from tests.golden import check_semver_bump as csb
 
 

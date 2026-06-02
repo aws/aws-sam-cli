@@ -16,6 +16,9 @@ from typing import List, Optional, Tuple
 
 EXPECTED_GLOB = re.compile(r"^tests/golden/templates/.+/expected\.(build|package)\.yaml$")
 
+# git diff --name-status emits "R<score>\tOLD\tNEW" for renames (3 fields).
+_RENAME_DIFF_PARTS = 3
+
 
 @dataclass(frozen=True)
 class Change:
@@ -102,7 +105,7 @@ def _git_changed_files(base: str, head: str) -> List[Change]:
         parts = line.split("\t")
         status, path = parts[0], parts[-1]
         # Renames present as "R<score>\tOLD\tNEW" — split into D + A for our purposes.
-        if status.startswith("R") and len(parts) == 3:
+        if status.startswith("R") and len(parts) == _RENAME_DIFF_PARTS:
             old, new = parts[1], parts[2]
             changes.append(Change(old, "D"))
             changes.append(Change(new, "A"))

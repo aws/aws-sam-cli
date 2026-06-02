@@ -6,8 +6,6 @@ test ID (relative path), enabling `pytest -k <name>` selection.
 
 from pathlib import Path
 
-import pytest
-
 TEMPLATES_ROOT = Path(__file__).parent / "templates"
 
 

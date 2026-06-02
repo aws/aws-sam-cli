@@ -1,7 +1,5 @@
 """Unit tests for normalize() — deterministic YAML serialization."""
 
-import pytest
-
 from tests.golden.normalize import normalize
 
 

@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from tests.golden.harness import run_build_pipeline, run_package_pipeline
 from tests.golden.normalize import normalize
 from tests.golden.update_goldens import _read_metadata, _resolve_le_default

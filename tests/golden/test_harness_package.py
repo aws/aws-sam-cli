@@ -2,8 +2,6 @@
 
 from pathlib import Path
 
-import pytest
-
 from tests.golden.harness import run_build_pipeline, run_package_pipeline
 
 CASES_ROOT = Path(__file__).parent / "templates"
