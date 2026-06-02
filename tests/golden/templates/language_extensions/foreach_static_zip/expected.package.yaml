@@ -1,66 +1,15 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Resources:
-  AlphaFunction:
-    Properties:
-      Code:
-        S3Bucket: golden-bucket
-        S3Key: 5e959f785bd23fcb9c18696f2b6855d4c9fbe5130a1e06aff5c4aa4d0091383c
-      Handler: app.handler
-      Role:
-        Fn::GetAtt:
-        - AlphaFunctionRole
-        - Arn
-      Runtime: python3.11
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::Lambda::Function
-  AlphaFunctionRole:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-        Version: '2012-10-17'
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::IAM::Role
-  BetaFunction:
-    Properties:
-      Code:
-        S3Bucket: golden-bucket
-        S3Key: 0169c64c6d32a8001c8f727f32f9b538ba4e1479e47262b4258f969a345a3f51
-      Handler: app.handler
-      Role:
-        Fn::GetAtt:
-        - BetaFunctionRole
-        - Arn
-      Runtime: python3.11
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::Lambda::Function
-  BetaFunctionRole:
-    Properties:
-      AssumeRolePolicyDocument:
-        Statement:
-        - Action:
-          - sts:AssumeRole
-          Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-        Version: '2012-10-17'
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      Tags:
-      - Key: lambda:createdBy
-        Value: SAM
-    Type: AWS::IAM::Role
+  Fn::ForEach::Workers:
+  - WorkerName
+  - - Alpha
+    - Beta
+  - ${WorkerName}Function:
+      Properties:
+        CodeUri: s3://golden-bucket/a199f4d73e5f32885341a8e279ab4d1ece42eebb187c5cde13ecbb95bcf49481
+        Handler: app.handler
+        Runtime: python3.11
+      Type: AWS::Serverless::Function
+Transform:
+- AWS::LanguageExtensions
+- AWS::Serverless-2016-10-31
