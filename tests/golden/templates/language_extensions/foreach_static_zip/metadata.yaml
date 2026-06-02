@@ -1,3 +1,0 @@
-language_extensions: true
-description: "Sentinel: Fn::ForEach over static collection, shared CodeUri."
-issue_refs: []
