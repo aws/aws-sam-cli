@@ -27,6 +27,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     substitute_loop_variable,
 )
 from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
+from samcli.lib.package.packageable_resources import METADATA_EXPORTS
 
 LOG = logging.getLogger(__name__)
 
@@ -81,6 +82,8 @@ def merge_language_extensions_s3_uris(
     exported_resources = exported_template.get("Resources", {})
 
     _update_resources_with_s3_uris(original_resources, exported_resources, dynamic_prop_keys)
+
+    _merge_metadata(result.get("Metadata", {}), exported_template.get("Metadata", {}))
 
     return result
 
@@ -181,6 +184,24 @@ def _resolve_property_paths(prop_names: List[str], properties: Dict[str, Any]) -
 # ---------------------------------------------------------------------------
 # Merge helpers
 # ---------------------------------------------------------------------------
+
+
+def _merge_metadata(
+    original_metadata: Dict[str, Any],
+    exported_metadata: Dict[str, Any],
+) -> None:
+    """Copy rewritten property values from exported_metadata into
+    original_metadata for every (metadata_type, property_name) declared
+    in METADATA_EXPORTS. Mutates original_metadata in place.
+    """
+    for spec in METADATA_EXPORTS:
+        original_entry = original_metadata.get(spec.metadata_type)
+        exported_entry = exported_metadata.get(spec.metadata_type)
+        if not isinstance(original_entry, dict) or not isinstance(exported_entry, dict):
+            continue
+        for prop_name in spec.property_names:
+            if prop_name in exported_entry:
+                original_entry[prop_name] = exported_entry[prop_name]
 
 
 def _update_resources_with_s3_uris(

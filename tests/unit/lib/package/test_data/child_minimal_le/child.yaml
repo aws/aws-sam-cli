@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::LanguageExtensions
+Resources:
+  Dummy:
+    Type: AWS::SNS::Topic
+    Properties: {}
