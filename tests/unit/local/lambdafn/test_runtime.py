@@ -1231,6 +1231,54 @@ class TestWarmLambdaRuntime_create(TestCase):
         self.assertEqual(self.runtime._containers[self.full_path], container)
 
 
+class TestWarmLambdaRuntime_no_watch(TestCase):
+    """Tests that verify --no-watch suppresses observer setup and lifecycle calls."""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.name = "name"
+        self.full_path = "stack/name"
+        self.func_config = FunctionConfig(
+            self.name,
+            self.full_path,
+            "runtime",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "arm64",
+        )
+        self.func_config.env_vars = Mock()
+        self.func_config.env_vars.resolve.return_value = {}
+
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
+    def test_observer_is_not_created_when_no_watch_is_true(self, LambdaFunctionObserverMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+
+        LambdaFunctionObserverMock.assert_not_called()
+        self.assertIsNone(runtime._observer)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_create_does_not_call_watch_or_start_when_no_watch_is_true(self, LambdaContainerMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._get_code_dir = MagicMock(return_value="code-dir")
+        LambdaContainerMock.return_value = Mock()
+
+        # Should not raise even though _observer is None
+        runtime.create(self.func_config, debug_context=None)
+        # Container is still created and tracked
+        self.assertIn(self.full_path, runtime._containers)
+
+    def test_clean_warm_containers_does_not_call_observer_stop_when_no_watch_is_true(self):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._containers = {}
+        # Should be a no-op; should not raise
+        runtime.clean_running_containers_and_related_resources()
+
+
 class TestWarmLambdaRuntime_get_code_dir(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
