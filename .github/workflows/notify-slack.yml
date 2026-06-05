@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Send New Issue Notification
         if: github.event_name == 'issues'
-        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_TITLE: 'Issue Created: ${{ github.event.issue.title }} by ${{ github.event.issue.user.login }}'
