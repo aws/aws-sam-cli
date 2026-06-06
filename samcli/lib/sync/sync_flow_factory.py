@@ -75,6 +75,7 @@ class SyncCodeResources:
         AWS_APIGATEWAY_V2_API,
         AWS_SERVERLESS_STATEMACHINE,
         AWS_STEPFUNCTIONS_STATEMACHINE,
+        AWS_ECS_TASK_DEFINITION,
     ]
 
     @classmethod
@@ -356,6 +357,19 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
             application_build_result,
         )
 
+    def _create_agentcore_flow(
+        self,
+        resource_identifier: ResourceIdentifier,
+        application_build_result: Optional[ApplicationBuildResult],
+    ) -> Optional[SyncFlow]:
+        # AgentCore sync requires UpdateAgentRuntime, which is not yet implemented.
+        LOG.warning(
+            "sam sync is not yet supported for AWS::BedrockAgentCore::Runtime resource '%s'. "
+            "Use sam deploy to update AgentCore resources.",
+            str(resource_identifier),
+        )
+        return None
+
     GeneratorFunction = Callable[
         ["SyncFlowFactory", ResourceIdentifier, Optional[ApplicationBuildResult]], Optional[SyncFlow]
     ]
@@ -371,7 +385,7 @@ class SyncFlowFactory(ResourceTypeBasedFactory[SyncFlow]):  # pylint: disable=E1
         AWS_SERVERLESS_STATEMACHINE: _create_stepfunctions_flow,
         AWS_STEPFUNCTIONS_STATEMACHINE: _create_stepfunctions_flow,
         AWS_ECS_TASK_DEFINITION: _create_ecs_container_flow,
-        AWS_BEDROCK_AGENTCORE_RUNTIME: _create_ecs_container_flow,
+        AWS_BEDROCK_AGENTCORE_RUNTIME: _create_agentcore_flow,
     }
 
     # SyncFlow mapping between resource type and creation function

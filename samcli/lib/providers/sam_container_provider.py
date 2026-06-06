@@ -81,7 +81,7 @@ class SamContainerServiceProvider:
     @staticmethod
     def _has_container_build_metadata(metadata: Optional[Dict]) -> bool:
         """Check if metadata contains the required fields for a container image build."""
-        if not metadata:
+        if not isinstance(metadata, dict):
             return False
         return bool(metadata.get("Dockerfile") and metadata.get("DockerContext"))
 

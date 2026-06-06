@@ -19,6 +19,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_V2_API,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_STEPFUNCTIONS_STATEMACHINE,
+    AWS_ECS_TASK_DEFINITION,
 )
 
 
@@ -275,5 +276,6 @@ class TestSyncCodeResources(TestCase):
             AWS_APIGATEWAY_V2_API,
             AWS_SERVERLESS_STATEMACHINE,
             AWS_STEPFUNCTIONS_STATEMACHINE,
+            AWS_ECS_TASK_DEFINITION,
         ]
         self.assertEqual(expected, output)

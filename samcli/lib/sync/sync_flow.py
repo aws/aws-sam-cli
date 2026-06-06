@@ -43,6 +43,7 @@ class ApiCallTypes(Enum):
     UPDATE_FUNCTION_CONFIGURATION = "UpdateFunctionConfiguration"
     UPDATE_FUNCTION_CODE = "UpdateFunctionCode"
     PUBLISH_VERSION = "PublishVersion"
+    UPDATE_CONTAINER_IMAGE = "UpdateContainerImage"
 
 
 class ResourceAPICall(NamedTuple):

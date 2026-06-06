@@ -420,7 +420,7 @@ class ApplicationBuilder:
         if resource_type == AWS_ECS_TASK_DEFINITION:
             container_defs = resource_properties.get("ContainerDefinitions", [])
             if container_defs:
-                target_name = metadata.get("ContainerName") if metadata else None
+                target_name = metadata.get("ContainerName") if isinstance(metadata, dict) else None
                 if target_name:
                     for container_def in container_defs:
                         if container_def.get("Name") == target_name:
@@ -431,12 +431,17 @@ class ApplicationBuilder:
                             f"Metadata.ContainerName '{target_name}' does not match any "
                             f"container in ContainerDefinitions"
                         )
+                elif len(container_defs) > 1:
+                    raise DockerBuildFailed(
+                        f"TaskDefinition has {len(container_defs)} containers but Metadata.ContainerName is not set. "
+                        f"Add 'ContainerName: <name>' to the resource Metadata to specify which container to build."
+                    )
                 else:
                     container_defs[0]["Image"] = path
         if resource_type == AWS_BEDROCK_AGENTCORE_RUNTIME:
-            artifact = resource_properties.setdefault("AgentRuntimeArtifact", {})
-            container_config = artifact.setdefault("ContainerConfiguration", {})
-            container_config["ContainerUri"] = path
+            resource_properties["AgentRuntimeArtifact"] = {
+                "ContainerConfiguration": {"ContainerUri": path}
+            }
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """

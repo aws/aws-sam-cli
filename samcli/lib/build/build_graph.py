@@ -200,14 +200,12 @@ class BuildGraph:
     # global table build definitions key
     FUNCTION_BUILD_DEFINITIONS = "function_build_definitions"
     LAYER_BUILD_DEFINITIONS = "layer_build_definitions"
-    CONTAINER_BUILD_DEFINITIONS = "container_build_definitions"
 
     def __init__(self, build_dir: str) -> None:
         # put build.toml file inside .aws-sam folder
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._function_build_definitions: List["FunctionBuildDefinition"] = []
         self._layer_build_definitions: List["LayerBuildDefinition"] = []
-        self._container_build_definitions: List["ContainerBuildDefinition"] = []
         self._atomic_read()
 
     def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
@@ -215,21 +213,6 @@ class BuildGraph:
 
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
-
-    def get_container_build_definitions(self) -> Tuple["ContainerBuildDefinition", ...]:
-        return tuple(self._container_build_definitions)
-
-    def put_container_build_definition(self, container_build_definition: "ContainerBuildDefinition") -> None:
-        """
-        Puts the newly read container build definition into existing build graph.
-        Each container build definition is unique per resource identifier.
-        """
-        if container_build_definition not in self._container_build_definitions:
-            LOG.debug(
-                "Adding container build definition: %s",
-                container_build_definition,
-            )
-            self._container_build_definitions.append(container_build_definition)
 
     def get_function_build_definition_with_full_path(
         self, function_full_path: str

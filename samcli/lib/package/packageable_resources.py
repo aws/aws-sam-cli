@@ -694,7 +694,8 @@ class GraphQLApiCodeResource(ResourceZip):
 class ECSTaskDefinitionImageResource(ResourceImage):
     """
     Represents an ECS TaskDefinition with a container image that needs to be pushed to ECR.
-    The image reference is at ContainerDefinitions[0].Image.
+    For single-container TaskDefinitions the first container is used by default; for
+    multi-container TaskDefinitions Metadata.ContainerName must be set.
     """
 
     RESOURCE_TYPE = AWS_ECS_TASK_DEFINITION
@@ -703,8 +704,8 @@ class ECSTaskDefinitionImageResource(ResourceImage):
 
     def _get_target_index(self, container_defs):
         """Find the target container index using ContainerName from Metadata."""
-        metadata = getattr(self, "resource_metadata", None) or {}
-        target_name = metadata.get("ContainerName")
+        metadata = getattr(self, "resource_metadata", None)
+        target_name = metadata.get("ContainerName") if isinstance(metadata, dict) else None
         if target_name:
             for i, cd in enumerate(container_defs):
                 if cd.get("Name") == target_name:
@@ -714,8 +715,14 @@ class ECSTaskDefinitionImageResource(ResourceImage):
                 property_name=self.PROPERTY_NAME,
                 property_value=target_name,
                 ex=ValueError(
-                    f"Metadata.ContainerName '{target_name}' does not match any " f"container in ContainerDefinitions"
+                    f"Metadata.ContainerName '{target_name}' does not match any container in ContainerDefinitions"
                 ),
+            )
+        if len(container_defs) > 1:
+            LOG.warning(
+                "TaskDefinition has multiple containers but Metadata.ContainerName is not set; "
+                "packaging the first container. Add 'ContainerName: <name>' to the resource Metadata "
+                "to avoid ambiguity."
             )
         return 0
 
