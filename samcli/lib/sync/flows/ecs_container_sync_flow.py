@@ -175,9 +175,7 @@ class ECSContainerSyncFlow(SyncFlow):
         try:
             response = ecs_client.describe_task_definition(taskDefinition=physical_id, include=["TAGS"])
         except ClientError:
-            LOG.warning(
-                "%sFailed to describe task definition %s", self.log_prefix, physical_id, exc_info=True
-            )
+            LOG.warning("%sFailed to describe task definition %s", self.log_prefix, physical_id, exc_info=True)
             return None
 
         task_def = response.get("taskDefinition", {})

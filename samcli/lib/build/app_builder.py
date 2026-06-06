@@ -439,9 +439,7 @@ class ApplicationBuilder:
                 else:
                     container_defs[0]["Image"] = path
         if resource_type == AWS_BEDROCK_AGENTCORE_RUNTIME:
-            resource_properties["AgentRuntimeArtifact"] = {
-                "ContainerConfiguration": {"ContainerUri": path}
-            }
+            resource_properties["AgentRuntimeArtifact"] = {"ContainerConfiguration": {"ContainerUri": path}}
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
