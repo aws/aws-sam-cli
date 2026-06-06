@@ -719,10 +719,14 @@ class ECSTaskDefinitionImageResource(ResourceImage):
                 ),
             )
         if len(container_defs) > 1:
-            LOG.warning(
-                "TaskDefinition has multiple containers but Metadata.ContainerName is not set; "
-                "packaging the first container. Add 'ContainerName: <name>' to the resource Metadata "
-                "to avoid ambiguity."
+            raise exceptions.ExportFailedError(
+                resource_id="",
+                property_name=self.PROPERTY_NAME,
+                property_value="",
+                ex=ValueError(
+                    f"TaskDefinition has {len(container_defs)} containers but Metadata.ContainerName is not set. "
+                    f"Add 'ContainerName: <name>' to the resource Metadata to specify which container to package."
+                ),
             )
         return 0
 
