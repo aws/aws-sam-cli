@@ -82,13 +82,12 @@ class TestECSContainerSyncFlowSync(TestCase):
         flow._docker_client = docker_client
         flow._ecs_client = ecs_client
 
-        with patch(
-            "samcli.lib.sync.flows.ecs_container_sync_flow.ECRUploader"
-        ) as MockUploader, patch.object(flow, "_get_container_name", return_value=None):
+        with (
+            patch("samcli.lib.sync.flows.ecs_container_sync_flow.ECRUploader") as MockUploader,
+            patch.object(flow, "_get_container_name", return_value=None),
+        ):
             mock_uploader_instance = MagicMock()
-            mock_uploader_instance.upload.return_value = (
-                "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:newtag"
-            )
+            mock_uploader_instance.upload.return_value = "123456789012.dkr.ecr.us-east-1.amazonaws.com/myrepo:newtag"
             MockUploader.return_value = mock_uploader_instance
 
             flow.sync()
@@ -171,9 +170,7 @@ class TestECSContainerSyncFlowSync(TestCase):
         new_arn = "arn:aws:ecs:us-east-1:123:task-definition/mytask:6"
         flow._update_services_to_task_definition(new_arn)
 
-        ecs_client.update_service.assert_called_once_with(
-            cluster="mycluster", service="mysvc", taskDefinition=new_arn
-        )
+        ecs_client.update_service.assert_called_once_with(cluster="mycluster", service="mysvc", taskDefinition=new_arn)
 
     def test_update_services_skips_mismatched_family(self):
         flow = _make_flow()
