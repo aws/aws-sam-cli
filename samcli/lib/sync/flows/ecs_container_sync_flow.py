@@ -221,7 +221,7 @@ class ECSContainerSyncFlow(SyncFlow):
             LOG.warning("%sFailed to register new task definition revision", self.log_prefix, exc_info=True)
             return None
 
-        new_arn = reg_response.get("taskDefinition", {}).get("taskDefinitionArn")
+        new_arn: Optional[str] = reg_response.get("taskDefinition", {}).get("taskDefinitionArn")
         LOG.info("%sRegistered new task definition revision: %s", self.log_prefix, new_arn)
         return new_arn
 
