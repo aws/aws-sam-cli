@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch, Mock
 from copy import deepcopy
 
 from samcli.lib.build.app_builder import ApplicationBuilder
+from samcli.lib.build.exceptions import DockerBuildFailed
 from samcli.lib.build.build_graph import ContainerBuildDefinition
 from samcli.lib.package.packageable_resources import (
     AgentCoreRuntimeImageResource,
@@ -87,16 +88,15 @@ class TestUpdateBuiltResource(TestCase):
         self.assertEqual(properties["ContainerDefinitions"][0]["Image"], "sidecar:latest")  # unchanged
         self.assertEqual(properties["ContainerDefinitions"][1]["Image"], "myimage:latest")  # updated
 
-    def test_ecs_task_definition_falls_back_to_first_without_container_name(self):
+    def test_ecs_task_definition_raises_when_multi_container_without_container_name(self):
         properties = {
             "ContainerDefinitions": [
                 {"Name": "web", "Image": "placeholder"},
                 {"Name": "sidecar", "Image": "sidecar:latest"},
             ]
         }
-        ApplicationBuilder._update_built_resource("myimage:latest", properties, AWS_ECS_TASK_DEFINITION, "/path")
-        self.assertEqual(properties["ContainerDefinitions"][0]["Image"], "myimage:latest")
-        self.assertEqual(properties["ContainerDefinitions"][1]["Image"], "sidecar:latest")
+        with self.assertRaises(DockerBuildFailed):
+            ApplicationBuilder._update_built_resource("myimage:latest", properties, AWS_ECS_TASK_DEFINITION, "/path")
 
     def test_agentcore_updates_nested_container_uri(self):
         properties = {"AgentRuntimeArtifact": {"ContainerConfiguration": {"ContainerUri": "placeholder"}}}
@@ -151,8 +151,10 @@ class TestSyncFlowFactoryMapping(TestCase):
     def test_agentcore_registered(self):
         self.assertIn(AWS_BEDROCK_AGENTCORE_RUNTIME, SyncFlowFactory.GENERATOR_MAPPING)
 
-    def test_ecs_and_agentcore_use_same_flow_creator(self):
-        self.assertEqual(
+    def test_ecs_and_agentcore_use_different_flow_creators(self):
+        # ECS uses _create_ecs_container_flow; AgentCore uses _create_agentcore_flow
+        # (AgentCore sync is not yet implemented — it logs a warning and returns None)
+        self.assertNotEqual(
             SyncFlowFactory.GENERATOR_MAPPING[AWS_ECS_TASK_DEFINITION],
             SyncFlowFactory.GENERATOR_MAPPING[AWS_BEDROCK_AGENTCORE_RUNTIME],
         )
