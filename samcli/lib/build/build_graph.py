@@ -701,3 +701,67 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.env_vars == other.env_vars
             and self.architecture == other.architecture
         )
+
+
+class ContainerBuildDefinition(AbstractBuildDefinition):
+    """
+    ContainerBuildDefinition holds information about each unique container image build
+    for non-Lambda resources (ECS TaskDefinitions, AgentCore, etc.)
+    """
+
+    def __init__(
+        self,
+        resource_identifier: str,
+        resource_type: str,
+        metadata: Optional[Dict],
+        source_hash: str = "",
+        manifest_hash: str = "",
+        env_vars: Optional[Dict] = None,
+        architecture: str = X86_64,
+    ) -> None:
+        # Allow metadata to override architecture (e.g., "arm64" for AgentCore)
+        if metadata and metadata.get("Architecture"):
+            architecture = metadata["Architecture"]
+        super().__init__(source_hash, manifest_hash, env_vars, architecture)
+        self.resource_identifier = resource_identifier
+        self.resource_type = resource_type
+
+        metadata_copied = deepcopy(metadata) if metadata else {}
+        metadata_copied.pop(SAM_RESOURCE_ID_KEY, "")
+        metadata_copied.pop(SAM_IS_NORMALIZED, "")
+        self.metadata = metadata_copied
+
+    @property
+    def dockerfile(self) -> Optional[str]:
+        return self.metadata.get("Dockerfile") if self.metadata else None
+
+    @property
+    def docker_context(self) -> Optional[str]:
+        return self.metadata.get("DockerContext") if self.metadata else None
+
+    @property
+    def docker_build_args(self) -> Dict:
+        return self.metadata.get("DockerBuildArgs", {}) if self.metadata else {}
+
+    @property
+    def docker_build_target(self) -> Optional[str]:
+        return self.metadata.get("DockerBuildTarget") if self.metadata else None
+
+    def get_resource_full_paths(self) -> str:
+        return self.resource_identifier
+
+    def __str__(self) -> str:
+        return (
+            f"ContainerBuildDefinition({self.resource_identifier}, {self.resource_type}, "
+            f"{self.source_hash}, {self.uuid}, {self.metadata}, {self.architecture})"
+        )
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ContainerBuildDefinition):
+            return False
+        return (
+            self.resource_identifier == other.resource_identifier
+            and self.resource_type == other.resource_type
+            and self.metadata == other.metadata
+            and self.architecture == other.architecture
+        )

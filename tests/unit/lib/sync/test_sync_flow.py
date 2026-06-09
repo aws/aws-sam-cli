@@ -299,7 +299,7 @@ class TestSyncFlow(TestCase):
     def test_api_call_types(self):
         """Test cases for ApiCallTypes enum values"""
         # Test enum members are unique
-        self.assertEqual(len(set(ApiCallTypes)), 4)
+        self.assertEqual(len(set(ApiCallTypes)), 5)
 
         # Test enum members exist
         self.assertTrue(hasattr(ApiCallTypes, "BUILD"))
@@ -310,3 +310,5 @@ class TestSyncFlow(TestCase):
         self.assertEqual(ApiCallTypes.UPDATE_FUNCTION_CODE.value, "UpdateFunctionCode")
         self.assertTrue(hasattr(ApiCallTypes, "PUBLISH_VERSION"))
         self.assertEqual(ApiCallTypes.PUBLISH_VERSION.value, "PublishVersion")
+        self.assertTrue(hasattr(ApiCallTypes, "UPDATE_CONTAINER_IMAGE"))
+        self.assertEqual(ApiCallTypes.UPDATE_CONTAINER_IMAGE.value, "UpdateContainerImage")

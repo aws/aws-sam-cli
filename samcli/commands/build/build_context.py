@@ -30,7 +30,7 @@ from samcli.lib.build.app_builder import (
     BuildError,
     UnsupportedBuilderLibraryVersionError,
 )
-from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
+from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR, ContainerBuildDefinition
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
@@ -55,6 +55,7 @@ from samcli.lib.package.language_extensions_packaging import (
 )
 from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.providers.sam_api_provider import SamApiProvider
+from samcli.lib.providers.sam_container_provider import SamContainerServiceProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -318,6 +319,11 @@ class BuildContext:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
 
             self._build_result = builder.build()
+
+            # Build container images for ECS/AgentCore resources
+            container_artifacts = self._build_container_images(builder)
+            if container_artifacts:
+                self._build_result.artifacts.update(container_artifacts)
 
             self._handle_build_post_processing(builder, self._build_result)
 
@@ -1295,6 +1301,33 @@ Commands you can use next
             ]
         )
         return result
+
+    def _build_container_images(self, builder: ApplicationBuilder) -> Dict[str, str]:
+        """
+        Discover and build container images for ECS/AgentCore resources.
+
+        Returns
+        -------
+        Dict[str, str]
+            Map of resource full_path to built image tag
+        """
+        container_provider = SamContainerServiceProvider(self.stacks)
+        container_services = list(container_provider.get_all())
+        if not container_services:
+            return {}
+
+        LOG.info("Found %d container service resource(s) to build", len(container_services))
+
+        container_build_defs = []
+        for service in container_services:
+            build_def = ContainerBuildDefinition(
+                resource_identifier=service.full_path,
+                resource_type=service.resource_type,
+                metadata=service.metadata,
+            )
+            container_build_defs.append(build_def)
+
+        return builder.build_container_images(container_build_defs)
 
     @property
     def is_building_specific_resource(self) -> bool:

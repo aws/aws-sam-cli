@@ -34,9 +34,11 @@ from samcli.lib.utils.resources import (
     AWS_APPSYNC_FUNCTIONCONFIGURATION,
     AWS_APPSYNC_GRAPHQLSCHEMA,
     AWS_APPSYNC_RESOLVER,
+    AWS_BEDROCK_AGENTCORE_RUNTIME,
     AWS_CLOUDFORMATION_MODULEVERSION,
     AWS_CLOUDFORMATION_RESOURCEVERSION,
     AWS_ECR_REPOSITORY,
+    AWS_ECS_TASK_DEFINITION,
     AWS_ELASTICBEANSTALK_APPLICATIONVERSION,
     AWS_GLUE_JOB,
     AWS_LAMBDA_FUNCTION,
@@ -689,6 +691,110 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+class ECSTaskDefinitionImageResource(ResourceImage):
+    """
+    Represents an ECS TaskDefinition with a container image that needs to be pushed to ECR.
+    For single-container TaskDefinitions the first container is used by default; for
+    multi-container TaskDefinitions Metadata.ContainerName must be set.
+    """
+
+    RESOURCE_TYPE = AWS_ECS_TASK_DEFINITION
+    PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
+    ARTIFACT_TYPE = ZIP  # No PackageType property; defaults to ZIP in the filter
+
+    def _get_target_index(self, container_defs):
+        """Find the target container index using ContainerName from Metadata."""
+        metadata = getattr(self, "resource_metadata", None)
+        target_name = metadata.get("ContainerName") if isinstance(metadata, dict) else None
+        if target_name:
+            for i, cd in enumerate(container_defs):
+                if cd.get("Name") == target_name:
+                    return i
+            raise exceptions.ExportFailedError(
+                resource_id="",
+                property_name=self.PROPERTY_NAME,
+                property_value=target_name,
+                ex=ValueError(
+                    f"Metadata.ContainerName '{target_name}' does not match any container in ContainerDefinitions"
+                ),
+            )
+        if len(container_defs) > 1:
+            raise exceptions.ExportFailedError(
+                resource_id="",
+                property_name=self.PROPERTY_NAME,
+                property_value="",
+                ex=ValueError(
+                    f"TaskDefinition has {len(container_defs)} containers but Metadata.ContainerName is not set. "
+                    f"Add 'ContainerName: <name>' to the resource Metadata to specify which container to package."
+                ),
+            )
+        return 0
+
+    def export(self, resource_id, resource_dict, parent_dir):
+        if resource_dict is None:
+            return
+
+        container_defs = resource_dict.get("ContainerDefinitions", [])
+        if not container_defs:
+            return
+
+        target_idx = self._get_target_index(container_defs)
+        property_value = container_defs[target_idx].get("Image")
+        if not property_value or isinstance(property_value, dict) or is_ecr_url(property_value):
+            return
+
+        try:
+            uploaded_url = self.uploader.upload(property_value, resource_id)
+            container_defs[target_idx]["Image"] = uploaded_url
+        except Exception as ex:
+            LOG.debug("Unable to export", exc_info=ex)
+            raise exceptions.ExportFailedError(
+                resource_id=resource_id,
+                property_name=self.PROPERTY_NAME,
+                property_value=property_value,
+                ex=ex,
+            )
+
+    def delete(self, resource_id, resource_dict):
+        if resource_dict is None:
+            return
+        container_defs = resource_dict.get("ContainerDefinitions", [])
+        if not container_defs:
+            return
+        target_idx = self._get_target_index(container_defs)
+        remote_path = container_defs[target_idx].get("Image")
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
+
+
+class AgentCoreRuntimeImageResource(ResourceImage):
+    """
+    Represents a Bedrock AgentCore Runtime resource with a container image.
+    Property path: AgentRuntimeArtifact.ContainerConfiguration.ContainerUri
+    """
+
+    RESOURCE_TYPE = AWS_BEDROCK_AGENTCORE_RUNTIME
+    PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
+    ARTIFACT_TYPE = ZIP  # No PackageType property; defaults to ZIP in the filter
+
+    def do_export(self, resource_id, resource_dict, parent_dir):
+        uploaded_url = upload_local_image_artifacts(
+            resource_id, resource_dict, self.PROPERTY_NAME, parent_dir, self.uploader
+        )
+        set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, uploaded_url)
+
+    def delete(self, resource_id, resource_dict):
+        if resource_dict is None:
+            return
+        remote_path = jmespath.search(self.PROPERTY_NAME, resource_dict)
+        if isinstance(remote_path, str) and is_ecr_url(remote_path):
+            self.uploader.delete_artifact(
+                image_uri=remote_path, resource_id=resource_id, property_name=self.PROPERTY_NAME
+            )
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -714,6 +820,8 @@ RESOURCES_EXPORT_LIST = [
     CloudFormationModuleVersionModulePackage,
     CloudFormationResourceVersionSchemaHandlerPackage,
     ECRResource,
+    ECSTaskDefinitionImageResource,
+    AgentCoreRuntimeImageResource,
     GraphQLApiSchemaResource,
     GraphQLApiCodeResource,
 ]

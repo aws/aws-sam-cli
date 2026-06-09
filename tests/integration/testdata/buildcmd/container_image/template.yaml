@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Integration test for ECS/AgentCore container builds
+
+Resources:
+  SimpleAgent:
+    Type: AWS::BedrockAgentCore::Runtime
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./agent
+      DockerTag: latest
+    Properties:
+      AgentRuntimeName: test_agent
+      AgentRuntimeArtifact:
+        ContainerConfiguration:
+          ContainerUri: placeholder
+      NetworkConfiguration:
+        NetworkMode: PUBLIC
+      RoleArn: arn:aws:iam::123456789012:role/TestRole
+
+  ECSTask:
+    Type: AWS::ECS::TaskDefinition
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./agent
+      DockerTag: latest
+      ContainerName: web
+    Properties:
+      Family: test-task
+      ContainerDefinitions:
+        - Name: sidecar
+          Image: public.ecr.aws/envoy:latest
+        - Name: web
+          Image: placeholder

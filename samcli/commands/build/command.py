@@ -55,6 +55,8 @@ DESCRIPTION = """
   2. AWS::Lambda::Function\n
   3. AWS::Serverless::LayerVersion\n
   4. AWS::Lambda::LayerVersion\n
+  5. AWS::ECS::TaskDefinition (container image)\n
+  6. AWS::BedrockAgentCore::Runtime (container image)\n
   \b
   Supported Runtimes
   ------------------

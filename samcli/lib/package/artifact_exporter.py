@@ -618,7 +618,9 @@ class Template:
                 # Export code resources
                 exporter = exporter_class(self.uploaders, self.code_signer, cache)
                 exporter.parent_parameter_values = self.parameter_values
+                exporter.resource_metadata = resource.get("Metadata")
                 exporter.language_extensions_enabled = self.language_extensions_enabled
+                exporter.resource_metadata = resource.get("Metadata")
                 exporter.export(full_path, resource_dict, self.template_dir)
 
         return self.template_dict
@@ -646,6 +648,7 @@ class Template:
                         continue
                     # Delete code resources
                     exporter = exporter_class(self.uploaders, None)
+                    exporter.resource_metadata = resource.get("Metadata")
                     exporter.delete(resource_id, resource_dict)
 
     def get_ecr_repos(self):
