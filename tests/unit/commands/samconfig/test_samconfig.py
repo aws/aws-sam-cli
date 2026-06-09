@@ -749,6 +749,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 False,
+                False,
                 (),
             )
 
@@ -816,6 +817,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
                 None,
                 None,
+                False,
                 False,
                 (),
             )
@@ -1469,6 +1471,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 None,
                 False,
+                False,
                 (),
             )
 
@@ -1573,6 +1576,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 None,
                 True,
+                False,
                 (),
             )
 
