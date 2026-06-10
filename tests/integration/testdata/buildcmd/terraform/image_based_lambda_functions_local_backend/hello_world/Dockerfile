@@ -1,4 +1,4 @@
-FROM public.ecr.aws/docker/library/golang:1.26 as build-image
+FROM public.ecr.aws/docker/library/golang:1.16 as build-image
 
 RUN go env -w GOPROXY=direct
 
