@@ -38,7 +38,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel perl-IPC-Cmd
+yum install -y libffi-devel perl-IPC-Cmd perl-Time-Piece
 
 echo "Making Folders"
 mkdir -p .build/src
