@@ -81,7 +81,7 @@ dev = [
     "types-docutils==0.22.3.20260518",
     "types-jsonschema==4.26.0.20260508",
     "types-pyOpenSSL==24.1.0.20240722",
-    "types-requests==2.33.0.20260513",
+    "types-requests==2.33.0.20260518",
     "types-urllib3==1.26.25.14",
     "pytest==9.0.3",
     "parameterized==0.9.0",
