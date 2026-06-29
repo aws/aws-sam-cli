@@ -74,7 +74,7 @@ dev = [
     "types-PyYAML==6.0.12.20260518",
     "types-chevron==0.14.2.20260408",
     "types-psutil==7.2.2.20260518",
-    "types-setuptools==82.0.0.20260508",
+    "types-setuptools==82.0.0.20260518",
     "types-Pygments==2.20.0.20260518",
     "types-colorama==0.4.15.20260508",
     "types-dateparser==1.4.0.20260508",
@@ -92,7 +92,7 @@ dev = [
     "pytest-metadata==3.1.1",
     "pytest-json-report-wip==1.5.1",
     "filelock==3.29.4",
-    "black==26.5.0",
+    "black==26.5.1",
     "psutil==7.2.2",
     "chardet<6",
 ]
