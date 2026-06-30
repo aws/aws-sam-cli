@@ -70,7 +70,7 @@ dev = [
     "coverage==7.14.0",
     "pytest-cov==7.1.0",
     "mypy==2.1.0",
-    "types-pywin32==311.0.0.20260508",
+    "types-pywin32==312.0.0.20260609",
     "types-PyYAML==6.0.12.20260518",
     "types-chevron==0.14.2.20260408",
     "types-psutil==7.2.2.20260518",
