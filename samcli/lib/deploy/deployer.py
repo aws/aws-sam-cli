@@ -749,6 +749,16 @@ class Deployer:
 
             LOG.info(self._colored.color_log(msg=msg, color=Colors.SUCCESS), extra=dict(markup=True))
 
+            if deployment_config:
+                LOG.info(
+                    self._colored.color_log(
+                        msg="\nSync completed with CloudFormation Express mode. "
+                        "Resources may still be stabilizing in the background.\n",
+                        color=Colors.WARNING,
+                    ),
+                    extra=dict(markup=True),
+                )
+
             return result
         except botocore.exceptions.ClientError as ex:
             # Use the helper method to create the appropriate error
