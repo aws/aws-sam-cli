@@ -1893,3 +1893,56 @@ to create a managed default bucket, or run sam deploy --guided",
         finally:
             if os.path.exists(output_template_path):
                 os.unlink(output_template_path)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_express_mode(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            express=True,
+        )
+
+        deploy_process = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+        self.assertIn("Express Mode", deploy_process.stdout.decode())
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_express_mode_with_disable_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            confirm_changeset=False,
+            express=True,
+            disable_rollback=True,
+        )
+
+        deploy_process = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+        self.assertIn("Express Mode", deploy_process.stdout.decode())
