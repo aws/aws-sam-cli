@@ -178,7 +178,16 @@ class Deployer:
             raise e
 
     def create_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        deployment_config=None,
     ):
         """
         Call Cloudformation to create a changeset and wait for it to complete
@@ -221,6 +230,9 @@ class Deployer:
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.now(timezone.utc).isoformat()),
             "Tags": tags,
         }
+
+        if deployment_config:
+            kwargs["DeploymentConfig"] = deployment_config
 
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
         return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
@@ -369,18 +381,20 @@ class Deployer:
 
             raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback, express=False):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
+        :param express: If True, skip DisableRollback (managed by DeploymentConfig on the changeset).
         """
         try:
-            self._client.execute_change_set(
-                ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
-            )
+            kwargs = {"ChangeSetName": changeset_id, "StackName": stack_name}
+            if not express:
+                kwargs["DisableRollback"] = disable_rollback
+            self._client.execute_change_set(**kwargs)
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -595,11 +609,28 @@ class Deployer:
                 raise ex
 
     def create_and_wait_for_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        deployment_config=None,
     ):
         try:
             result, changeset_type = self.create_changeset(
-                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+                stack_name,
+                cfn_template,
+                parameter_values,
+                capabilities,
+                role_arn,
+                notification_arns,
+                s3_uploader,
+                tags,
+                deployment_config=deployment_config,
             )
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)
@@ -646,6 +677,7 @@ class Deployer:
         s3_uploader: Optional[S3Uploader],
         tags: Optional[Dict],
         on_failure: FailureMode,
+        deployment_config=None,
     ):
         """
         Call the sync command to directly update stack or create stack
@@ -686,6 +718,9 @@ class Deployer:
             "Tags": tags,
         }
 
+        if deployment_config:
+            kwargs["DeploymentConfig"] = deployment_config
+
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
@@ -695,7 +730,8 @@ class Deployer:
             msg = ""
 
             if exists:
-                kwargs["DisableRollback"] = disable_rollback  # type: ignore
+                if not deployment_config:
+                    kwargs["DisableRollback"] = disable_rollback  # type: ignore
                 # get the latest stack event, and use 0 in case if the stack does not exist
                 marker_time = self.get_last_event_time(stack_name, 0)
                 result = self.update_stack(**kwargs)
@@ -704,8 +740,8 @@ class Deployer:
                 )
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
-                # Pass string representation of enum
-                kwargs["OnFailure"] = str(on_failure)
+                if not deployment_config:
+                    kwargs["OnFailure"] = str(on_failure)
 
                 result = self.create_stack(**kwargs)
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)

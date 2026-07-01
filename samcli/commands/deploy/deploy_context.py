@@ -77,6 +77,7 @@ class DeployContext:
         on_failure,
         max_wait_duration,
         language_extensions: Optional[bool] = None,
+        express: bool = False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -111,6 +112,7 @@ class DeployContext:
         self._max_template_size = 51200
         self.max_wait_duration = max_wait_duration
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+        self.express = express
 
     def __enter__(self):
         return self
@@ -255,6 +257,11 @@ class DeployContext:
                 click.secho(f"{resource} has no authentication.", fg="yellow")
 
         assert self.deployer is not None
+        if self.express:
+            deployment_config = {"Mode": "EXPRESS", "DisableRollback": disable_rollback}
+        else:
+            deployment_config = None
+
         if use_changeset:
             try:
                 result, changeset_type = self.deployer.create_and_wait_for_changeset(
@@ -266,6 +273,7 @@ class DeployContext:
                     notification_arns=notification_arns,
                     s3_uploader=s3_uploader,
                     tags=tags,
+                    deployment_config=deployment_config,
                 )
                 click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
@@ -279,7 +287,7 @@ class DeployContext:
                         return
 
                 marker_time = self.deployer.get_last_event_time(stack_name, 0)
-                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback)
+                self.deployer.execute_changeset(result["Id"], stack_name, disable_rollback, express=self.express)
                 self.deployer.wait_for_execute(
                     stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
@@ -307,6 +315,7 @@ class DeployContext:
                     s3_uploader=s3_uploader,
                     tags=tags,  # type: ignore[arg-type]
                     on_failure=self.on_failure,
+                    deployment_config=deployment_config,
                 )
                 LOG.debug(result)
 

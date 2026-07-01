@@ -161,6 +161,14 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
     help="This option will skip the initial infrastructure deployment if it is not required"
     " by comparing the local template with the template deployed in cloud.",
 )
+@click.option(
+    "--express/--no-express",
+    default=True,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up infrastructure deployments by completing once resource "
+    "configuration is applied, without waiting for full stabilization. Enabled by default.",
+)
 @container_env_var_file_option(cls=ContainerOptions)
 @watch_exclude_option
 @stack_name_option(required=True)  # pylint: disable=E1120
@@ -216,6 +224,7 @@ def cli(
     metadata: dict,
     use_container: bool,
     container_env_var_file: Optional[str],
+    express: bool,
     save_params: bool,
     config_file: str,
     config_env: str,
@@ -262,6 +271,7 @@ def cli(
         build_in_source,
         watch_exclude,
         language_extensions,
+        express,
     )  # pragma: no cover
 
 
@@ -297,6 +307,7 @@ def do_cli(
     build_in_source: Optional[bool],
     watch_exclude: Optional[Dict[str, List[str]]],
     language_extensions: Optional[bool],
+    express: bool = True,
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -408,6 +419,7 @@ def do_cli(
                     on_failure=None,
                     max_wait_duration=60,
                     language_extensions=language_extensions,
+                    express=express,
                 ) as deploy_context:
                     with SyncContext(
                         dependency_layer,
