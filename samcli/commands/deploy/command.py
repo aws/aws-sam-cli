@@ -143,6 +143,14 @@ LOG = logging.getLogger(__name__)
     type=int,
     help="Maximum duration in minutes to wait for the deployment to complete.",
 )
+@click.option(
+    "--express/--no-express",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up deployments by completing once resource "
+    "configuration is applied, without waiting for full stabilization.",
+)
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
@@ -204,6 +212,7 @@ def cli(
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
 ):
     """
     `sam deploy` command entry point
@@ -241,6 +250,7 @@ def cli(
         disable_rollback,
         on_failure,
         max_wait_duration,
+        express,
     )  # pragma: no cover
 
 
@@ -276,6 +286,7 @@ def do_cli(
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
 ):
     """
     Implementation of the ``cli`` method
@@ -387,5 +398,6 @@ def do_cli(
             on_failure=on_failure,
             max_wait_duration=max_wait_duration,
             language_extensions=language_extensions,
+            express=express,
         ) as deploy_context:
             deploy_context.run()
