@@ -292,6 +292,12 @@ class DeployContext:
                     stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
                 click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
+                if self.express:
+                    click.secho(
+                        "\nDeployed with CloudFormation Express mode. "
+                        "Resources may still be stabilizing in the background.",
+                        fg="yellow",
+                    )
 
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
