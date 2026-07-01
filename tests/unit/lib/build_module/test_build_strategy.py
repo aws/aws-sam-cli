@@ -720,6 +720,58 @@ class TestIncrementalBuildStrategy(TestCase):
         )
 
 
+class TestIncrementalBuildStrategyCleanRedundantDependencies(TestCase):
+    """Tests for _clean_redundant_dependencies using hash-based folder names"""
+
+    @patch("samcli.lib.build.build_strategy.clean_redundant_folders")
+    def test_clean_redundant_dependencies_uses_hash_based_keys(self, mock_clean_folders):
+        """Test that _clean_redundant_dependencies collects hash-based folder names"""
+        mock_build_graph = Mock()
+
+        # Create mock function build definitions with manifest_hash set
+        mock_func_bd1 = Mock()
+        mock_func_bd1.dependencies_dir = ".aws-sam/deps/abc123def456"
+        mock_func_bd2 = Mock()
+        mock_func_bd2.dependencies_dir = ".aws-sam/deps/abc123def456"  # Same as bd1 (shared)
+
+        # Create mock layer build definition with manifest_hash set
+        mock_layer_bd = Mock()
+        mock_layer_bd.dependencies_dir = ".aws-sam/deps/xyz789layer00"
+
+        mock_build_graph.get_function_build_definitions.return_value = [mock_func_bd1, mock_func_bd2]
+        mock_build_graph.get_layer_build_definitions.return_value = [mock_layer_bd]
+
+        build_strategy = IncrementalBuildStrategy(mock_build_graph, Mock(), "base_dir", None)
+
+        build_strategy._clean_redundant_dependencies()
+
+        # Should be called with the hash-based folder names, not UUIDs
+        mock_clean_folders.assert_called_once()
+        call_args = mock_clean_folders.call_args
+        deps_keys = call_args[0][1]
+
+        # Should have 2 unique keys (abc123def456 and xyz789layer00)
+        self.assertEqual(len(deps_keys), 2)
+        self.assertIn("abc123def456", deps_keys)
+        self.assertIn("xyz789layer00", deps_keys)
+
+    @patch("samcli.lib.build.build_strategy.clean_redundant_folders")
+    def test_clean_redundant_dependencies_handles_empty_definitions(self, mock_clean_folders):
+        """Test that _clean_redundant_dependencies handles empty build definitions"""
+        mock_build_graph = Mock()
+        mock_build_graph.get_function_build_definitions.return_value = []
+        mock_build_graph.get_layer_build_definitions.return_value = []
+
+        build_strategy = IncrementalBuildStrategy(mock_build_graph, Mock(), "base_dir", None)
+
+        build_strategy._clean_redundant_dependencies()
+
+        mock_clean_folders.assert_called_once()
+        call_args = mock_clean_folders.call_args
+        deps_keys = call_args[0][1]
+        self.assertEqual(len(deps_keys), 0)
+
+
 @patch("samcli.lib.build.build_graph.BuildGraph._write")
 @patch("samcli.lib.build.build_graph.BuildGraph._read")
 class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):

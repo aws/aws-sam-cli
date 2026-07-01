@@ -504,9 +504,12 @@ class IncrementalBuildStrategy(BuildStrategy):
         is_dependencies_dir_missing = True
         if manifest_hash:
             is_manifest_changed = manifest_hash != build_definition.manifest_hash
+            # FIX for issue #6732: Update manifest_hash BEFORE checking dependencies_dir
+            # so the hash-based deterministic path is used correctly
+            if is_manifest_changed:
+                build_definition.manifest_hash = manifest_hash
             is_dependencies_dir_missing = not os.path.exists(build_definition.dependencies_dir)
             if is_manifest_changed or is_dependencies_dir_missing:
-                build_definition.manifest_hash = manifest_hash
                 LOG.info(
                     "Manifest file is changed (new hash: %s) or dependency folder (%s) is missing for (%s), "
                     "downloading dependencies and copying/building source",
@@ -525,10 +528,18 @@ class IncrementalBuildStrategy(BuildStrategy):
     def _clean_redundant_dependencies(self) -> None:
         """
         Update build definitions with possible new manifest hash information and clean the redundant dependencies folder
+        FIX for issue #6732: Use hash-based folder names instead of UUIDs
         """
-        uuids = {bd.uuid for bd in self._build_graph.get_function_build_definitions()}
-        uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
-        clean_redundant_folders(DEFAULT_DEPENDENCIES_DIR, uuids)
+        deps_keys: Set[str] = set()
+        for bd in self._build_graph.get_function_build_definitions():
+            deps_dir = bd.dependencies_dir
+            if deps_dir and deps_dir != DEFAULT_DEPENDENCIES_DIR:
+                deps_keys.add(pathlib.Path(deps_dir).name)
+        for ld in self._build_graph.get_layer_build_definitions():
+            deps_dir = ld.dependencies_dir
+            if deps_dir and deps_dir != DEFAULT_DEPENDENCIES_DIR:
+                deps_keys.add(pathlib.Path(deps_dir).name)
+        clean_redundant_folders(DEFAULT_DEPENDENCIES_DIR, deps_keys)
 
 
 class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):

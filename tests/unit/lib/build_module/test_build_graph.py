@@ -1031,3 +1031,87 @@ class TestBuildDefinition(TestCase):
         self.assertEqual(len(build_definitions), 2)
         self.assertEqual(len(build_definition1.functions), 1)
         self.assertEqual(len(build_definition2.functions), 1)
+
+    def test_dependencies_dir_uses_uuid_when_no_manifest_hash(self):
+        """Test that dependencies_dir falls back to UUID when manifest_hash is empty"""
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", None, ZIP, X86_64, {}, "handler", "", ""  # empty manifest_hash
+        )
+        # Should use UUID when no manifest_hash
+        self.assertIn(build_definition.uuid, build_definition.dependencies_dir)
+
+    def test_dependencies_dir_uses_hash_key_when_manifest_hash_present(self):
+        """Test that dependencies_dir uses deterministic hash when manifest_hash is set"""
+        build_definition = FunctionBuildDefinition(
+            "nodejs18.x", "codeuri", None, ZIP, X86_64, {}, "handler", "", "fa8267680f5dd92c2b4679c19c34d739"
+        )
+        # Should NOT use UUID when manifest_hash is present
+        self.assertNotIn(build_definition.uuid, build_definition.dependencies_dir)
+        # Should be deterministic
+        self.assertIn("deps", build_definition.dependencies_dir)
+
+    def test_dependencies_dir_is_deterministic_for_same_manifest_runtime_arch(self):
+        """Test that two definitions with same manifest+runtime+arch get same dependencies_dir"""
+        manifest_hash = "fa8267680f5dd92c2b4679c19c34d739"
+        runtime = "nodejs18.x"
+        arch = X86_64
+
+        build_definition1 = FunctionBuildDefinition(
+            runtime, "codeuri1", None, ZIP, arch, {}, "handler1", "", manifest_hash
+        )
+        build_definition2 = FunctionBuildDefinition(
+            runtime, "codeuri2", None, ZIP, arch, {}, "handler2", "", manifest_hash
+        )
+
+        # Both should have the same dependencies_dir (shared deps)
+        self.assertEqual(build_definition1.dependencies_dir, build_definition2.dependencies_dir)
+
+    def test_dependencies_dir_differs_for_different_runtime(self):
+        """Test that definitions with different runtime get different dependencies_dir"""
+        manifest_hash = "fa8267680f5dd92c2b4679c19c34d739"
+
+        build_definition1 = FunctionBuildDefinition(
+            "nodejs18.x", "codeuri", None, ZIP, X86_64, {}, "handler", "", manifest_hash
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "python3.9", "codeuri", None, ZIP, X86_64, {}, "handler", "", manifest_hash
+        )
+
+        self.assertNotEqual(build_definition1.dependencies_dir, build_definition2.dependencies_dir)
+
+    def test_dependencies_dir_differs_for_different_architecture(self):
+        """Test that definitions with different architecture get different dependencies_dir"""
+        manifest_hash = "fa8267680f5dd92c2b4679c19c34d739"
+
+        build_definition1 = FunctionBuildDefinition(
+            "nodejs18.x", "codeuri", None, ZIP, X86_64, {}, "handler", "", manifest_hash
+        )
+        build_definition2 = FunctionBuildDefinition(
+            "nodejs18.x", "codeuri", None, ZIP, ARM64, {}, "handler", "", manifest_hash
+        )
+
+        self.assertNotEqual(build_definition1.dependencies_dir, build_definition2.dependencies_dir)
+
+    def test_layer_dependencies_dir_uses_hash_key_when_manifest_hash_present(self):
+        """Test that LayerBuildDefinition dependencies_dir uses deterministic hash"""
+        layer_definition = LayerBuildDefinition(
+            "layer1", "codeuri", "nodejs18.x", ["nodejs18.x"], X86_64, "", "fa8267680f5dd92c2b4679c19c34d739"
+        )
+        # Should NOT use UUID when manifest_hash is present
+        self.assertNotIn(layer_definition.uuid, layer_definition.dependencies_dir)
+
+    def test_layer_dependencies_dir_is_deterministic_for_same_manifest_method_arch(self):
+        """Test that two layer definitions with same manifest+build_method+arch get same dependencies_dir"""
+        manifest_hash = "fa8267680f5dd92c2b4679c19c34d739"
+        build_method = "nodejs18.x"
+        arch = X86_64
+
+        layer_definition1 = LayerBuildDefinition(
+            "layer1", "codeuri1", build_method, ["nodejs18.x"], arch, "", manifest_hash
+        )
+        layer_definition2 = LayerBuildDefinition(
+            "layer2", "codeuri2", build_method, ["nodejs18.x"], arch, "", manifest_hash
+        )
+
+        # Both should have the same dependencies_dir (shared deps)
+        self.assertEqual(layer_definition1.dependencies_dir, layer_definition2.dependencies_dir)
