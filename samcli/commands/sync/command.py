@@ -163,11 +163,12 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @click.option(
     "--express/--no-express",
-    default=True,
+    default=False,
     required=False,
     is_flag=True,
+    # TODO: Flip default to True after public announcement of express mode support
     help="Use CloudFormation Express mode to speed up infrastructure deployments by completing once resource "
-    "configuration is applied, without waiting for full stabilization. Enabled by default.",
+    "configuration is applied, without waiting for full stabilization.",
 )
 @container_env_var_file_option(cls=ContainerOptions)
 @watch_exclude_option
@@ -307,7 +308,7 @@ def do_cli(
     build_in_source: Optional[bool],
     watch_exclude: Optional[Dict[str, List[str]]],
     language_extensions: Optional[bool],
-    express: bool = True,
+    express: bool = False,
 ) -> None:
     """
     Implementation of the ``cli`` method
