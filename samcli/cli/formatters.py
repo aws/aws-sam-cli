@@ -2,6 +2,7 @@
 Click Help Formatter Classes that are customized for the root command.
 """
 
+import shutil
 from contextlib import contextmanager
 from typing import Iterator, Optional, Sequence
 
@@ -11,9 +12,24 @@ from samcli.cli.root.command_list import SAM_CLI_COMMANDS
 from samcli.cli.row_modifiers import BaseLineRowModifier, RowDefinition
 
 
+def get_terminal_width() -> Optional[int]:
+    """
+    Get the current terminal width.
+
+    Returns
+    -------
+    Optional[int]
+        Terminal width in columns, or None if it cannot be determined.
+    """
+    try:
+        return shutil.get_terminal_size().columns
+    except (AttributeError, ValueError, OSError):
+        return None
+
+
 class RootCommandHelpTextFormatter(HelpFormatter):
     # Picked an additive constant that gives an aesthetically pleasing look.
-    ADDITIVE_JUSTIFICATION = 10
+    ADDITIVE_JUSTIFICATION = 6
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,6 +43,14 @@ class RootCommandHelpTextFormatter(HelpFormatter):
         self.modifiers = [BaseLineRowModifier()]
 
     def write_usage(self, prog: str, args: str = "", prefix: Optional[str] = None) -> None:
+        """Write the usage line with bold and underlined 'Usage:' prefix and a leading blank line."""
+        if prefix is None:
+            prefix = style("Usage:", bold=True, underline=True) + " "
+        else:
+            prefix = style(prefix, bold=True, underline=True)
+
+        # Add a blank line before usage
+        self.write("\n")
         super().write_usage(prog=style(prog, bold=True), args=args, prefix=prefix)
 
     def write_heading(self, heading: str) -> None:
@@ -47,6 +71,28 @@ class RootCommandHelpTextFormatter(HelpFormatter):
             modified_rows.append((modified_row.name, modified_row.text))
 
         super().write_dl(modified_rows, col_max=col_max, col_spacing=col_spacing)
+
+    def write_text_rows(
+        self,
+        rows: Sequence[RowDefinition],
+    ) -> None:
+        """Write single-column text rows without two-column layout constraints.
+
+        This is useful for "examples" or other content that should appear as simple
+        indented text without the padding and wrapping behavior of write_dl.
+
+        Parameters
+        ----------
+        rows : Sequence[RowDefinition]
+            Rows to write. Only the 'name' field and 'extra_row_modifiers' are used.
+        """
+        for row in rows:
+            extra_row_modifiers = row.extra_row_modifiers or []
+            modified_row = row
+            for row_modifier in self.modifiers + extra_row_modifiers:
+                modified_row = row_modifier.apply(row=modified_row, justification_length=self.left_justification_length)
+            # Write the content with current indentation, no padding
+            self.write(f"{'':>{self.current_indent}}{modified_row.name.rstrip()}\n")
 
     @contextmanager
     def section(self, name: str) -> Iterator[None]:

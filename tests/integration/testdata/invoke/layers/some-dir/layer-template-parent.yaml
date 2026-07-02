@@ -19,6 +19,14 @@ Parameters:
     Default: arn:aws:lambda:us-west-2:111111111111:layer:non_existent_layer:1
     Type: String
 
+  LayerAArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer_a:1
+    Type: String
+
+  LayerBArn:
+    Default: arn:aws:lambda:us-west-2:111111111111:layer:layer_b:1
+    Type: String
+
 Resources:
   SubApp:
     Type: AWS::Serverless::Application
@@ -29,3 +37,5 @@ Resources:
         LayerTwoArn: !Ref LayerTwoArn
         ChangedLayerArn: !Ref ChangedLayerArn
         NonExistentLayerArn: !Ref NonExistentLayerArn
+        LayerAArn: !Ref LayerAArn
+        LayerBArn: !Ref LayerBArn

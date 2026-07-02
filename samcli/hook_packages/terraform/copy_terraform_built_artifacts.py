@@ -195,20 +195,11 @@ class Searcher(object):
 
 
 def copytree(src, dst):
-    """Modified copytree method
-    Note: before python3.8 there is no `dir_exists_ok` argument, therefore
-    this function explicitly creates one if it does not exist.
+    """Copy a directory tree from src to dst, merging into dst if it already exists.
+
+    Symbolic links are preserved as symbolic links in the destination.
     """
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-    for item in os.listdir(src):
-        src_item = os.path.join(src, item)
-        dst_item = os.path.join(dst, item)
-        if os.path.isdir(src_item):
-            # recursively call itself.
-            copytree(src_item, dst_item)
-        else:
-            shutil.copy2(src_item, dst_item)
+    shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
 
 
 def cli_exit():
@@ -218,7 +209,7 @@ def cli_exit():
     sys.exit(1)
 
 
-def find_and_copy_assets(directory_path, expression, data_object):
+def find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=False):
     """
     Takes in an expression, directory_path and a json input from the standard input,
     tries to find the appropriate element within the json based on the element. It then takes action to
@@ -264,7 +255,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            unzip(abs_attribute_path, directory_path)
+            unzip(abs_attribute_path, directory_path, mount_symlinks=mount_symlinks)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:
@@ -342,12 +333,19 @@ if __name__ == "__main__":
         required=False,
         help="Terraform output json body. This option is not to be used with --target.",
     )
+    argparser.add_argument(
+        "--mount-symlinks",
+        action="store_true",
+        default=False,
+        help="Allow symlinks pointing outside the extraction directory when unzipping artifacts.",
+    )
 
     arguments = argparser.parse_args()
     directory_path = os.path.abspath(arguments.directory)
     expression = arguments.expression
     target = arguments.target
     json_str = arguments.json
+    mount_symlinks = arguments.mount_symlinks
 
     # validate environment variables do not contain blocked arguments
     validate_environment_variables()
@@ -384,4 +382,4 @@ if __name__ == "__main__":
         cli_exit()
 
     LOG.info("Find and copy built assets")
-    find_and_copy_assets(directory_path, expression, data_object)
+    find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=mount_symlinks)

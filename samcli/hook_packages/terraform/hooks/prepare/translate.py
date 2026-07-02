@@ -152,7 +152,11 @@ def _check_unresolvable_values(root_module: dict, root_tf_module: TFModule) -> N
 
 
 def translate_to_cfn(
-    tf_json: dict, output_directory_path: str, terraform_application_dir: str, project_root_dir: str
+    tf_json: dict,
+    output_directory_path: str,
+    terraform_application_dir: str,
+    project_root_dir: str,
+    mount_symlinks: bool = False,
 ) -> dict:
     """
     Translates the json output of a terraform show into CloudFormation
@@ -339,6 +343,7 @@ def translate_to_cfn(
             terraform_application_dir,
             lambda_resources_to_code_map,
             project_root_dir,
+            mount_symlinks=mount_symlinks,
         )
     else:
         LOG.debug("There is no sam metadata resources, no enrichment or Makefile is required")

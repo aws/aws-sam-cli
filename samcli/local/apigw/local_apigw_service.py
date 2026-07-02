@@ -657,7 +657,9 @@ class LocalApigwService(BaseLocalService):
         route: Route = self._get_current_route(request)
 
         request_origin = request.headers.get("Origin")
-        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin, route.event_type)
+        # Use route-specific CORS if available, otherwise fall back to global API CORS
+        cors = route.cors if route.cors is not None else self.api.cors
+        cors_headers = Cors.cors_to_headers(cors, request_origin, route.event_type)
 
         lambda_authorizer: Optional[Authorizer] = route.authorizer_object
 
@@ -670,7 +672,7 @@ class LocalApigwService(BaseLocalService):
             )
 
         method, endpoint = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS" and self.api.cors:
+        if method == "OPTIONS" and cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
@@ -763,11 +765,11 @@ class LocalApigwService(BaseLocalService):
             if route.event_type == Route.HTTP and (
                 not route.payload_format_version or route.payload_format_version == "2.0"
             ):
-                (status_code, headers, body) = self._parse_v2_payload_format_lambda_output(
+                status_code, headers, body = self._parse_v2_payload_format_lambda_output(
                     lambda_response, self.api.binary_media_types, request
                 )
             else:
-                (status_code, headers, body) = self._parse_v1_payload_format_lambda_output(
+                status_code, headers, body = self._parse_v1_payload_format_lambda_output(
                     lambda_response, self.api.binary_media_types, request, route.event_type
                 )
         except LambdaResponseParseException as ex:

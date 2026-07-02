@@ -862,6 +862,20 @@ def use_container_build_option(f):
     return use_container_build_click_option()(f)
 
 
+def use_buildkit_click_option():
+    return click.option(
+        "--use-buildkit/--no-use-buildkit",
+        required=False,
+        default=False,
+        is_flag=True,
+        help="Enable buildkit for container image builds. Requires Docker with buildx plugin or Finch CLI.",
+    )
+
+
+def use_buildkit_option(f):
+    return use_buildkit_click_option()(f)
+
+
 def mount_symlinks_click_option():
     return click.option(
         "--mount-symlinks/--no-mount-symlinks",
@@ -1060,3 +1074,23 @@ def container_env_var_file_click_option(cls):
 @parameterized_option
 def container_env_var_file_option(f, cls):
     return container_env_var_file_click_option(cls)(f)
+
+
+def language_extensions_click_option():
+    return click.option(
+        "--language-extensions/--no-language-extensions",
+        "language_extensions",
+        required=False,
+        default=None,
+        is_flag=True,
+        help=(
+            "Expand AWS::LanguageExtensions transforms (Fn::ForEach, Fn::Length, "
+            "Fn::ToJsonString, Fn::FindInMap with DefaultValue) locally before "
+            "running SAM transforms. Off by default. "
+            "Equivalent env var: SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS=1."
+        ),
+    )
+
+
+def language_extensions_option(f):
+    return language_extensions_click_option()(f)

@@ -187,9 +187,9 @@ class WindowsHandler(PlatformHandler):
 
 
 _PLATFORM_HANDLERS = {
-    "Darwin": lambda: MacOSHandler(),
-    "Linux": lambda: LinuxHandler(),
-    "Windows": lambda: WindowsHandler(),
+    "Darwin": lambda: MacOSHandler(),  # noqa: PLW0108
+    "Linux": lambda: LinuxHandler(),  # noqa: PLW0108
+    "Windows": lambda: WindowsHandler(),  # noqa: PLW0108
 }
 
 

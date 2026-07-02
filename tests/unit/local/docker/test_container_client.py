@@ -162,8 +162,9 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
     @patch("docker.DockerClient.__init__", return_value=None)
     def test_init_success_no_docker_host(self, mock_docker_init):
         """Test DockerContainerClient init when no DOCKER_HOST is set"""
-        with patch.dict("os.environ", {}, clear=True), patch(
-            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
         ):
             client = DockerContainerClient()
 
@@ -175,8 +176,9 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
     @patch("docker.DockerClient.__init__", return_value=None)
     def test_init_success_with_docker_host(self, mock_docker_init):
         """Test DockerContainerClient init when DOCKER_HOST is set to Docker socket"""
-        with patch.dict("os.environ", {"DOCKER_HOST": self.docker_socket}, clear=True), patch(
-            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        with (
+            patch.dict("os.environ", {"DOCKER_HOST": self.docker_socket}, clear=True),
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
         ):
             client = DockerContainerClient()
 
@@ -188,8 +190,9 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
 
     def test_init_raises_exception_when_docker_host_points_to_finch(self):
         """Test DockerContainerClient init raises exception when DOCKER_HOST points to Finch socket"""
-        with patch.dict("os.environ", {"DOCKER_HOST": self.finch_socket}, clear=True), patch(
-            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        with (
+            patch.dict("os.environ", {"DOCKER_HOST": self.finch_socket}, clear=True),
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
         ):
             with self.assertRaises(ContainerInvalidSocketPathException) as context:
                 DockerContainerClient()
@@ -207,8 +210,9 @@ class TestDockerContainerClientInit(BaseContainerClientTestCase):
     @patch("samcli.local.docker.container_client.LOG")
     def test_init_with_various_docker_host_values(self, docker_host, mock_log, mock_docker_init):
         """Test DockerContainerClient init with various DOCKER_HOST values"""
-        with patch.dict("os.environ", {"DOCKER_HOST": docker_host}, clear=True), patch(
-            "samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket
+        with (
+            patch.dict("os.environ", {"DOCKER_HOST": docker_host}, clear=True),
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
         ):
             client = DockerContainerClient()
 

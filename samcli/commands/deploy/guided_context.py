@@ -62,6 +62,7 @@ class GuidedContext:
         config_env=None,
         config_file=None,
         disable_rollback=None,
+        language_extensions_enabled: bool = False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -93,8 +94,9 @@ class GuidedContext:
         self.start_bold = "\033[1m"
         self.end_bold = "\033[0m"
         self.color = Colored()
-        self.function_provider = None
+        self.function_provider: Optional[SamFunctionProvider] = None
         self.disable_rollback = disable_rollback
+        self._language_extensions_enabled = language_extensions_enabled
 
     @property
     def guided_capabilities(self):
@@ -141,6 +143,7 @@ class GuidedContext:
             self.template_file,
             parameter_overrides=sanitize_parameter_overrides(input_parameter_overrides),
             global_parameter_overrides=global_parameter_overrides,
+            language_extensions_enabled=self._language_extensions_enabled,
         )
 
         click.secho("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy")
@@ -236,7 +239,7 @@ class GuidedContext:
         stacks : List[Stack]
             List of stacks to search functions and layers
         """
-        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(stacks)
+        functions_with_code_sign, layers_with_code_sign = signer_config_per_function(stacks)
 
         # if no function or layer definition found with code signing, skip it
         if not functions_with_code_sign and not layers_with_code_sign:
@@ -260,7 +263,7 @@ class GuidedContext:
         click.echo("\t#Please provide signing profile details for the following functions & layers")
 
         for function_name in functions_with_code_sign:
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            profile_name, profile_owner = extract_profile_name_and_owner_from_existing(
                 function_name, self.signing_profiles
             )
 
@@ -271,7 +274,7 @@ class GuidedContext:
             self.signing_profiles[function_name]["profile_owner"] = "" if not profile_owner else profile_owner
 
         for layer_name, functions_use_this_layer in layers_with_code_sign.items():
-            (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+            profile_name, profile_owner = extract_profile_name_and_owner_from_existing(
                 layer_name, self.signing_profiles
             )
             click.echo(

@@ -94,6 +94,7 @@ def prepare(params: dict) -> dict:
         LOG.debug("The normalized OutputDirPath value is %s", output_dir_path)
 
     skip_prepare_infra = params.get("SkipPrepareInfra", False)
+    mount_symlinks = params.get("MountSymlinks", False)
     metadata_file_path = os.path.join(output_dir_path, TERRAFORM_METADATA_FILE)
 
     plan_file = params.get("PlanFile")
@@ -112,7 +113,9 @@ def prepare(params: dict) -> dict:
 
             # convert terraform to cloudformation
             LOG.info("Generating metadata file")
-            cfn_dict = translate_to_cfn(tf_json, output_dir_path, terraform_application_dir, project_root_dir)
+            cfn_dict = translate_to_cfn(
+                tf_json, output_dir_path, terraform_application_dir, project_root_dir, mount_symlinks=mount_symlinks
+            )
 
             if cfn_dict.get("Resources"):
                 _update_resources_paths(cfn_dict.get("Resources"), terraform_application_dir)  # type: ignore

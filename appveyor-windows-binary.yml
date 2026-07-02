@@ -134,9 +134,8 @@ install:
   - "python --version"
 
   # Install testing pre-reqs without installing sam-cli from source
-  - "pip install -r requirements/pre-dev.txt"
-  - "pip install -r requirements/dev.txt"
-  - "pip install -r requirements/base.txt"
+  - "pip install uv"
+  - "uv pip install --only-deps --extra dev ."
   - "pytest --version"
 
   # Install aws cli

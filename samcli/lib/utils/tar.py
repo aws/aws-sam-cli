@@ -115,6 +115,7 @@ def extract_tarfile(
     tarfile_path: Union[str, os.PathLike] = "",
     file_obj: Optional[IO[bytes]] = None,
     unpack_dir: Union[str, os.PathLike] = "",
+    mount_symlinks: bool = False,
 ) -> None:
     """
     Extracts a tarfile using the provided parameters. If file_obj is specified,
@@ -130,6 +131,10 @@ def extract_tarfile(
 
     unpack_dir Union[str, os.PathLike]
         The directory where the tarfile members will be extracted.
+
+    mount_symlinks bool
+        If True, symlinks pointing outside the extraction directory are allowed.
+        This corresponds to the --mount-symlinks CLI option.
     """
     with tarfile.open(name=tarfile_path, fileobj=file_obj, mode="r") as tar:
         # Makes sure the tar file is sanitized and is free of directory traversal vulnerability
@@ -139,4 +144,18 @@ def extract_tarfile(
             if not _is_within_directory(unpack_dir, member_path):
                 raise tarfile.ExtractError("Attempted Path Traversal in Tar File")
 
-        tar.extractall(unpack_dir)
+        # When mount_symlinks is disabled, use filter='data' to let Python's
+        # built-in extraction filter handle symlink safety (rejects symlinks
+        # pointing outside the extraction directory, among other protections).
+        # When mount_symlinks is enabled, skip the filter so outside-pointing
+        # symlinks are preserved.
+        if not mount_symlinks:
+            if hasattr(tarfile, "data_filter"):
+                tar.extractall(path=unpack_dir, filter="data")
+            else:
+                raise tarfile.ExtractError(
+                    "Your Python version does not support tarfile extraction filters. "
+                    "Please update to Python 3.9.17+ or newer for safe tarfile extraction."
+                )
+        else:
+            tar.extractall(path=unpack_dir)

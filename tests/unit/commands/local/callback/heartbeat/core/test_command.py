@@ -33,6 +33,7 @@ class TestCallbackHeartbeatCommand(TestCase):
         mock_get_params.return_value = [
             MockParams(rv=("callback_id", "Callback ID"), name="callback_id"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
         ]
 
         command = LocalCallbackHeartbeatCommand(name="heartbeat", description="Send heartbeat callback")
@@ -41,9 +42,9 @@ class TestCallbackHeartbeatCommand(TestCase):
                 ("Send heartbeat callback\x1b[1m\n  This command may not require access to AWS credentials.\x1b[0m", "")
             ],
             "Examples": [],
-            "Send heartbeat callback": [("", ""), ("$ sam local callback heartbeat my-callback-id\x1b[0m", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Send heartbeat callback": [("$ sam local callback heartbeat my-callback-id\x1b[0m", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act

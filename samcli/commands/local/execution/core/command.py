@@ -32,9 +32,7 @@ class LocalExecutionBaseCommand(CoreCommand):
         """Override this method in subclasses to provide command-specific examples."""
         pass
 
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
 

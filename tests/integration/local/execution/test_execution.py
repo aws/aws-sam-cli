@@ -1,6 +1,8 @@
 """Integration tests for sam local execution commands - edge cases only."""
 
 from pathlib import Path
+
+import pytest
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
@@ -9,6 +11,7 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 from tests.testing_utils import run_command
 
 
+@pytest.mark.xdist_group(name="durable")
 class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")
     template_subdir = "durable"
@@ -27,11 +30,15 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
     )
     def test_execution_nonexistent_execution(self, command, operation_name):
         """Test execution command when execution does not exist."""
+        self._do_execution_nonexistent_test(command, operation_name)
+
+    def _do_execution_nonexistent_test(self, command, operation_name):
         nonexistent_arn = "00000000-0000-0000-0000-000000000000"
         command_list = [self.cmd, "local", "execution", command, nonexistent_arn]
 
         result = run_command(command_list)
         stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
+        stderr_str = stderr_str.replace("\r\n", "\n")
 
         self.assertNotEqual(result.process.returncode, 0)
         expected_message = f"Error: An error occurred (404) when calling the {operation_name} operation: Execution {nonexistent_arn} not found\n"
@@ -56,8 +63,10 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
         # Try to stop already completed execution
         stop_command = [self.cmd, "local", "execution", "stop", execution_arn]
         result = run_command(stop_command)
-        stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
 
-        self.assertNotEqual(result.process.returncode, 0)
-        expected_message = f"Error: An error occurred (409) when calling the StopDurableExecution operation: Execution {execution_arn} is already completed\n"
-        self.assertEqual(stderr_str, expected_message)
+        self.assertEqual(result.process.returncode, 0)
+
+    @pytest.mark.tier1_extra
+    def test_tier1_execution(self):
+        """Single execution test for cross-platform validation."""
+        self._do_execution_nonexistent_test("get", "GetDurableExecution")

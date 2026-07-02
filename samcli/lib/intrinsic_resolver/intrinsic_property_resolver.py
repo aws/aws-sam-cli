@@ -660,9 +660,9 @@ class IntrinsicResolver:
 
         def resolve_sub_attribute(intrinsic_item, symbol_resolver):
             if "." in intrinsic_item:
-                (logical_id, attribute_type) = intrinsic_item.rsplit(".", 1)
+                logical_id, attribute_type = intrinsic_item.rsplit(".", 1)
             else:
-                (logical_id, attribute_type) = intrinsic_item, IntrinsicResolver.REF
+                logical_id, attribute_type = intrinsic_item, IntrinsicResolver.REF
             return symbol_resolver.resolve_symbols(logical_id, attribute_type, ignore_errors=True)
 
         if isinstance(intrinsic_value, str):

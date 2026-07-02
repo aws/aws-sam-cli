@@ -34,6 +34,7 @@ class TestLocalCallbackSucceedCommand(TestCase):
             MockParams(rv=("callback_id", "Callback ID"), name="callback_id"),
             MockParams(rv=("--result", "Result data"), name="result"),
             MockParams(rv=("--debug", ""), name="debug"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
         ]
 
         command = LocalCallbackSucceedCommand(name="succeed", description="Send success callback")
@@ -43,20 +44,17 @@ class TestLocalCallbackSucceedCommand(TestCase):
             ],
             "Examples": [],
             "Send success callback with no result": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id\x1b[0m", ""),
             ],
             "Send success callback with result": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id --result 'Task completed successfully'\x1b[0m", ""),
             ],
             "Send success callback with short option": [
-                ("", ""),
                 ("$ sam local callback succeed my-callback-id -r 'Success result'\x1b[0m", ""),
             ],
-            "Callback Options": [("", ""), ("--result", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "Callback Options": [("--result", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
 
         # Act

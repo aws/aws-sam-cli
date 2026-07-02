@@ -19,7 +19,8 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v8
+      - name: Apply internal/external label
+        uses: actions/github-script@v9
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
@@ -27,21 +28,21 @@ jobs:
               'aws-sam-cli-bot',
               'seshubaws', 'valerena',
               'Vandita2020', 'roger-zhangg',
-              'vicheey', 'bnusunny', 'tobixlea', 
+              'vicheey', 'bnusunny', 'tobixlea',
               'reedham-aws', 'licjun', 'dependabot[bot]'
-            ]
+            ];
             if (maintainers.includes(context.payload.sender.login)) {
-              github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: ['pr/internal']
-              })
+              });
             } else {
-              github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 labels: ['pr/external', 'stage/needs-triage']
-              })
+              });
             }

@@ -17,6 +17,7 @@ from samcli.lib.build.workflows import (
     NODEJS_NPM_ESBUILD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     PYTHON_PIP_CONFIG,
+    PYTHON_UV_CONFIG,
     RUBY_BUNDLER_CONFIG,
     RUST_CARGO_LAMBDA_CONFIG,
 )
@@ -101,6 +102,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "ruby3.2": "ruby/lib",
         "ruby3.3": "ruby/lib",
         "ruby3.4": "ruby/lib",
+        "ruby4.0": "ruby/lib",
         "java11": "java",
         "java8.al2": "java",
         "java17": "java",
@@ -155,6 +157,7 @@ def get_workflow_config(
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+        "python-uv": BasicWorkflowSelector(PYTHON_UV_CONFIG),
     }
 
     selectors_by_runtime = {
@@ -173,6 +176,7 @@ def get_workflow_config(
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "ruby4.0": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),

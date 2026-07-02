@@ -12,9 +12,7 @@ from samcli.commands.remote.execution.get.core.options import OPTIONS_INFO
 
 
 class RemoteExecutionGetCommand(RemoteExecutionBaseCommand):
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
         self.format_execution_arn_note(formatter)
@@ -32,7 +30,7 @@ class RemoteExecutionGetCommand(RemoteExecutionBaseCommand):
             )
 
             with formatter.indented_section(name="Get execution details", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} '{arn_example}'"),
@@ -42,7 +40,7 @@ class RemoteExecutionGetCommand(RemoteExecutionBaseCommand):
                 )
 
             with formatter.indented_section(name="Get execution details in JSON format", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} '{arn_example}' --format json"),

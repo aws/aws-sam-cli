@@ -70,6 +70,17 @@ class TestSyncInfra(SyncIntegBase):
     @parameterized.expand([["ruby", False], ["python", False], ["python", True]])
     @pytest.mark.flaky(reruns=3)
     def test_sync_infra(self, runtime, use_container):
+        self._do_sync_infra(runtime, use_container)
+
+    @pytest.mark.tier1_extra
+    @pytest.mark.flaky(reruns=3)
+    def test_tier1_sync_infra(self):
+        """Single sync infra test for cross-platform validation."""
+        if IS_WINDOWS:
+            self.skipTest("Skip sync tests in windows")
+        self._do_sync_infra("python", True)
+
+    def _do_sync_infra(self, runtime, use_container):
         template_before = f"infra/template-{runtime}-before.yaml"
         template_path = str(self.test_data_path.joinpath(template_before))
         stack_name = self._method_to_stack_name(self.id())
@@ -332,6 +343,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
     def test_sync_infra_s3_bucket_option(self, template_file):
         template_path = str(self.test_data_path.joinpath(template_file))
         stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
 
         sync_command_list = self.get_sync_command_list(
             template_file=template_path,
@@ -688,3 +700,68 @@ class TestSyncInfraLMI(SyncIntegBase):
         lambda_response_body = self._get_lambda_response(function_name)
         body = json.loads(lambda_response_body)
         self.assertEqual(body["max_concurrency"], "20")  # Updated from 10 to 20
+
+
+@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@parameterized_class([{"dependency_layer": False}])
+class TestSyncInfraExpress(SyncIntegBase):
+    parameter_overrides: Dict[str, str] = {}
+
+    def setUp(self):
+        super().setUp()
+
+        original_test_data_path = Path(__file__).resolve().parents[1].joinpath("testdata", "sync")
+        self.test_data_path = Path(tempfile.mkdtemp())
+        shutil.copytree(original_test_data_path, self.test_data_path, dirs_exist_ok=True)
+
+        self.parameter_overrides = {"HelloWorldLayerName": f"HelloWorldLayer-{uuid.uuid4().hex}"[:140]}
+
+    @pytest.mark.flaky(reruns=3)
+    def test_sync_infra_express_mode(self):
+        template_before = "infra/template-python-before.yaml"
+        template_path = str(self.test_data_path.joinpath(template_before))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            express=True,
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
+
+    @pytest.mark.flaky(reruns=3)
+    def test_sync_infra_no_express_mode(self):
+        template_before = "infra/template-python-before.yaml"
+        template_path = str(self.test_data_path.joinpath(template_before))
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        sync_command_list = self.get_sync_command_list(
+            template_file=template_path,
+            code=False,
+            watch=False,
+            dependency_layer=self.dependency_layer,
+            stack_name=stack_name,
+            parameter_overrides=self.parameter_overrides,
+            image_repository=self.ecr_repo_name,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key,
+            tags="integ=true clarity=yes foo_bar=baz",
+            express=False,
+        )
+
+        sync_process_execute = run_command_with_input(sync_command_list, "y\n".encode(), cwd=self.test_data_path)
+        self.assertEqual(sync_process_execute.process.returncode, 0)
+        self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))

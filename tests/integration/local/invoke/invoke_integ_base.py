@@ -48,6 +48,7 @@ class InvokeIntegBase(TestCase):
         tenant_id=None,
         container_host_interface=None,
         durable_execution_name=None,
+        mount_symlinks=False,
     ):
         command_list = [get_sam_command(), "local", "invoke", function_to_invoke]
 
@@ -62,6 +63,9 @@ class InvokeIntegBase(TestCase):
 
         if no_event:
             command_list = command_list + ["--no-event"]
+
+        if mount_symlinks:
+            command_list = command_list + ["--mount-symlinks"]
 
         if profile:
             command_list = command_list + ["--profile", profile]
@@ -107,7 +111,7 @@ class InvokeIntegBase(TestCase):
     def run_command(self, command_list, env=None, cwd=None):
         process = Popen(command_list, stdout=PIPE, env=env, cwd=cwd)
         try:
-            (stdout, stderr) = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
             return stdout, stderr, process.returncode
         except TimeoutExpired:
             process.kill()

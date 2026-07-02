@@ -21,7 +21,6 @@ from samcli.lib.list.resources.resource_mapping_producer import ResourceMappingP
 from samcli.lib.list.data_to_json_mapper import DataToJsonMapper
 from samcli.commands.list.json_consumer import StringConsumerJsonOutput
 
-
 TRANSLATED_DICT_RETURN = {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "sam-app-hello\nSample SAM Template for sam-app-hello\n",

@@ -33,7 +33,10 @@ from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     DeployStackOutPutFailedError,
     DeployStackStatusMissingError,
+    MissingMappingKeyError,
+    parse_findmap_error,
 )
+from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 from samcli.lib.deploy.utils import DeployColor, FailureMode
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
@@ -95,6 +98,40 @@ class Deployer:
         self.deploy_color = DeployColor()
         self._colored = Colored()
 
+    @staticmethod
+    def _create_deploy_error(stack_name: str, error_message: str) -> Exception:
+        """
+        Create the appropriate deploy error based on the error message.
+
+        This method checks if the error is a Fn::FindInMap key not found error
+        (which typically occurs when deploying with different parameter values
+        than were used during packaging) and returns a more helpful error message.
+
+        Args:
+            stack_name: The name of the stack being deployed
+            error_message: The error message from CloudFormation
+
+        Returns:
+            MissingMappingKeyError if the error is a FindInMap key not found error,
+            DeployFailedError otherwise.
+        """
+        findmap_error = parse_findmap_error(error_message)
+        if findmap_error:
+            missing_key, mapping_name = findmap_error
+            # Only wrap as MissingMappingKeyError when the Mapping name matches
+            # SAM CLI's own naming scheme. Customer-authored Fn::FindInMap
+            # failures (e.g. a RegionMap lookup) must pass through with the
+            # raw CloudFormation message — the SAM-specific re-package guidance
+            # would be misleading otherwise.
+            if is_sam_generated_mapping(mapping_name):
+                return MissingMappingKeyError(
+                    stack_name=stack_name,
+                    missing_key=missing_key,
+                    mapping_name=mapping_name,
+                    original_error=error_message,
+                )
+        return DeployFailedError(stack_name=stack_name, msg=error_message)
+
     # pylint: disable=inconsistent-return-statements
     def has_stack(self, stack_name):
         """
@@ -141,7 +178,16 @@ class Deployer:
             raise e
 
     def create_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        deployment_config=None,
     ):
         """
         Call Cloudformation to create a changeset and wait for it to complete
@@ -184,6 +230,9 @@ class Deployer:
             "Description": "Created by SAM CLI at {0} UTC".format(datetime.now(timezone.utc).isoformat()),
             "Tags": tags,
         }
+
+        if deployment_config:
+            kwargs["DeploymentConfig"] = deployment_config
 
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
         return self._create_change_set(stack_name=stack_name, changeset_type=changeset_type, **kwargs)
@@ -332,18 +381,20 @@ class Deployer:
 
             raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
 
-    def execute_changeset(self, changeset_id, stack_name, disable_rollback):
+    def execute_changeset(self, changeset_id, stack_name, disable_rollback, express=False):
         """
         Calls CloudFormation to execute changeset
 
         :param changeset_id: ID of the changeset
         :param stack_name: Name or ID of the stack
         :param disable_rollback: Preserve the state of previously provisioned resources when an operation fails.
+        :param express: If True, skip DisableRollback (managed by DeploymentConfig on the changeset).
         """
         try:
-            self._client.execute_change_set(
-                ChangeSetName=changeset_id, StackName=stack_name, DisableRollback=disable_rollback
-            )
+            kwargs = {"ChangeSetName": changeset_id, "StackName": stack_name}
+            if not express:
+                kwargs["DisableRollback"] = disable_rollback
+            self._client.execute_change_set(**kwargs)
         except botocore.exceptions.ClientError as ex:
             raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
 
@@ -544,7 +595,9 @@ class Deployer:
                 msg = self._gen_deploy_failed_with_rollback_disabled_msg(stack_name)
                 LOG.info(self._colored.color_log(msg=msg, color=Colors.FAILURE), extra=dict(markup=True))
 
-            raise deploy_exceptions.DeployFailedError(stack_name=stack_name, msg=str(ex))
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         try:
             outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
@@ -556,17 +609,34 @@ class Deployer:
                 raise ex
 
     def create_and_wait_for_changeset(
-        self, stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+        self,
+        stack_name,
+        cfn_template,
+        parameter_values,
+        capabilities,
+        role_arn,
+        notification_arns,
+        s3_uploader,
+        tags,
+        deployment_config=None,
     ):
         try:
             result, changeset_type = self.create_changeset(
-                stack_name, cfn_template, parameter_values, capabilities, role_arn, notification_arns, s3_uploader, tags
+                stack_name,
+                cfn_template,
+                parameter_values,
+                capabilities,
+                role_arn,
+                notification_arns,
+                s3_uploader,
+                tags,
+                deployment_config=deployment_config,
             )
             self.wait_for_changeset(result["Id"], stack_name)
             self.describe_changeset(result["Id"], stack_name)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def create_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -576,11 +646,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to create stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def update_stack(self, **kwargs):
         stack_name = kwargs.get("StackName")
@@ -590,11 +660,11 @@ class Deployer:
         except botocore.exceptions.ClientError as ex:
             if "The bucket you are attempting to access must be addressed using the specified endpoint" in str(ex):
                 raise DeployBucketInDifferentRegionError(f"Failed to create/update stack {stack_name}") from ex
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
         except Exception as ex:
             LOG.debug("Unable to update stack", exc_info=ex)
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     def sync(
         self,
@@ -607,6 +677,7 @@ class Deployer:
         s3_uploader: Optional[S3Uploader],
         tags: Optional[Dict],
         on_failure: FailureMode,
+        deployment_config=None,
     ):
         """
         Call the sync command to directly update stack or create stack
@@ -647,6 +718,9 @@ class Deployer:
             "Tags": tags,
         }
 
+        if deployment_config:
+            kwargs["DeploymentConfig"] = deployment_config
+
         kwargs = self._process_kwargs(kwargs, s3_uploader, capabilities, role_arn, notification_arns)
 
         try:
@@ -656,7 +730,8 @@ class Deployer:
             msg = ""
 
             if exists:
-                kwargs["DisableRollback"] = disable_rollback  # type: ignore
+                if not deployment_config:
+                    kwargs["DisableRollback"] = disable_rollback  # type: ignore
                 # get the latest stack event, and use 0 in case if the stack does not exist
                 marker_time = self.get_last_event_time(stack_name, 0)
                 result = self.update_stack(**kwargs)
@@ -665,8 +740,8 @@ class Deployer:
                 )
                 msg = "\nStack update succeeded. Sync infra completed.\n"
             else:
-                # Pass string representation of enum
-                kwargs["OnFailure"] = str(on_failure)
+                if not deployment_config:
+                    kwargs["OnFailure"] = str(on_failure)
 
                 result = self.create_stack(**kwargs)
                 self.wait_for_execute(stack_name, "CREATE", disable_rollback, on_failure=on_failure)
@@ -674,9 +749,21 @@ class Deployer:
 
             LOG.info(self._colored.color_log(msg=msg, color=Colors.SUCCESS), extra=dict(markup=True))
 
+            if deployment_config:
+                LOG.info(
+                    self._colored.color_log(
+                        msg="\nSync completed with CloudFormation Express mode. "
+                        "Resources may still be stabilizing in the background.\n",
+                        color=Colors.WARNING,
+                    ),
+                    extra=dict(markup=True),
+                )
+
             return result
         except botocore.exceptions.ClientError as ex:
-            raise DeployFailedError(stack_name=stack_name, msg=str(ex)) from ex
+            # Use the helper method to create the appropriate error
+            # This will detect Fn::FindInMap key not found errors and provide a more helpful message
+            raise self._create_deploy_error(stack_name, str(ex)) from ex
 
     @staticmethod
     @pprint_column_names(
@@ -833,6 +920,4 @@ Actions you can take next
 =========================
 [*] Fix issues and try deploying again
 [*] Roll back stack to the last known stable state: aws cloudformation rollback-stack --stack-name {stack_name}
-""".format(
-            stack_name=stack_name
-        )
+""".format(stack_name=stack_name)

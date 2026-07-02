@@ -150,6 +150,7 @@ class TestDoCli(TestCase):
             self.config_env,
             build_in_source=False,
             watch_exclude={},
+            language_extensions=None,
         )
 
         if use_container and auto_dependency_layer:
@@ -175,6 +176,7 @@ class TestDoCli(TestCase):
             locate_layer_nested=True,
             build_in_source=False,
             build_images={},
+            language_extensions=None,
         )
 
         PackageContextMock.assert_called_with(
@@ -191,6 +193,7 @@ class TestDoCli(TestCase):
             profile=self.profile,
             use_json=False,
             force_upload=True,
+            language_extensions=None,
         )
 
         DeployContextMock.assert_called_with(
@@ -219,6 +222,8 @@ class TestDoCli(TestCase):
             poll_delay=10,
             on_failure=None,
             max_wait_duration=60,
+            language_extensions=None,
+            express=False,
         )
 
         execute_infra_mock.assert_called_with(
@@ -318,6 +323,7 @@ class TestDoCli(TestCase):
             self.config_env,
             build_in_source=False,
             watch_exclude={},
+            language_extensions=None,
         )
 
         BuildContextMock.assert_called_with(
@@ -339,6 +345,7 @@ class TestDoCli(TestCase):
             locate_layer_nested=True,
             build_in_source=False,
             build_images={},
+            language_extensions=None,
         )
 
         PackageContextMock.assert_called_with(
@@ -355,6 +362,7 @@ class TestDoCli(TestCase):
             profile=self.profile,
             use_json=False,
             force_upload=True,
+            language_extensions=None,
         )
 
         DeployContextMock.assert_called_with(
@@ -383,6 +391,8 @@ class TestDoCli(TestCase):
             poll_delay=0.5,
             on_failure=None,
             max_wait_duration=60,
+            language_extensions=None,
+            express=False,
         )
         execute_watch_mock.assert_called_once_with(
             template=self.template_file,
@@ -470,6 +480,7 @@ class TestDoCli(TestCase):
             self.config_env,
             build_in_source=None,
             watch_exclude={},
+            language_extensions=None,
         )
         execute_code_sync_mock.assert_called_once_with(
             template=self.template_file,
@@ -860,7 +871,7 @@ class TestDisableADL(TestCase):
             [stack],
             "",
         )
-        self.assertEqual(check_enable_dependency_layer("/template/file"), expected)
+        self.assertEqual(check_enable_dependency_layer("/template/file", None), expected)
 
     @patch("samcli.commands.sync.command.InfraSyncExecutor")
     def test_execute_infra_contexts(self, patch_infra_sync_executor):

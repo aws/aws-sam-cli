@@ -1,12 +1,10 @@
 from pathlib import Path
-from unittest import skipIf
 
+import pytest
 from parameterized import parameterized
 
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUN_BY_CANARY, IS_WINDOWS, get_build_command_list
-
-SKIP_CREDENTIALS_TESTS = IS_WINDOWS or RUNNING_ON_CI or not RUN_BY_CANARY
+from tests.testing_utils import get_build_command_list
 
 
 class CredentialsTestBase(InvokeIntegBase):
@@ -17,7 +15,7 @@ class CredentialsTestBase(InvokeIntegBase):
         self.assertTrue((b'"statusCode": 200' in stdout) or (b'"statusCode":200' in stdout))
 
 
-@skipIf(SKIP_CREDENTIALS_TESTS, "Run credentials test only in Canary")
+@pytest.mark.requires_credential
 class TestWithCredentials(CredentialsTestBase):
     template = Path("credential_tests/inprocess/template.yaml")
 
@@ -40,7 +38,7 @@ class TestWithCredentials(CredentialsTestBase):
         self.invoke_functions_and_validate(function_name)
 
 
-@skipIf(SKIP_CREDENTIALS_TESTS, "Run credentials test only in Canary")
+@pytest.mark.requires_credential
 class TestWithCredentialsBuildUsingContainer(CredentialsTestBase):
     template = Path("credential_tests/incontainer/template.yaml")
 

@@ -521,7 +521,7 @@ class SigningProfilesOptionType(click.ParamType):
                 )
 
             for function_name, param_value in signing_profiles:
-                (signer_profile_name, signer_profile_owner) = self._split_signer_profile_name_owner(
+                signer_profile_name, signer_profile_owner = self._split_signer_profile_name_owner(
                     _unquote_wrapped_quotes(param_value)
                 )
 

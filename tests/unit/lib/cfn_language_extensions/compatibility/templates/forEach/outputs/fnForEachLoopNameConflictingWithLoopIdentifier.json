@@ -1,0 +1,50 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "TopicList": {
+      "Type": "CommaDelimitedList",
+      "Default": "TopicA,TopicB"
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::SameLoopName1": [
+      "SameLoopName2",
+      {
+        "Ref": "TopicList"
+      },
+      {
+        "${SameLoopName2}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "My${SameLoopName2}"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "Outputs": {
+    "Fn::ForEach::SameLoopName1": [
+      "SameLoopName2",
+      ["1", "2"],
+      {
+        "Output${SameLoopName2}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${SameLoopName2}"}
+        }
+      }
+    ],
+    "Fn::ForEach::SameLoopName2": [
+      "SameLoopName1",
+      ["3", "4"],
+      {
+        "Output${SameLoopName1}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${SameLoopName1}"}
+        }
+      }
+    ]
+  }
+}

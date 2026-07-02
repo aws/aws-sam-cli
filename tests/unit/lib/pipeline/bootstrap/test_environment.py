@@ -343,7 +343,7 @@ class TestStage(TestCase):
         session_mock.client.return_value = sm_client_mock
         boto3_mock.Session.return_value = session_mock
 
-        (key, secret) = Stage._get_pipeline_user_secret_pair("dummy_arn", None, "dummy-region")
+        key, secret = Stage._get_pipeline_user_secret_pair("dummy_arn", None, "dummy-region")
         self.assertEqual(key, "AccessKeyId")
         self.assertEqual(secret, "SuperSecretKey")
         sm_client_mock.get_secret_value.assert_called_once_with(SecretId="dummy_arn")

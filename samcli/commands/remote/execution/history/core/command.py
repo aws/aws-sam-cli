@@ -12,9 +12,7 @@ from samcli.commands.remote.execution.history.core.options import OPTIONS_INFO
 
 
 class RemoteExecutionHistoryCommand(RemoteExecutionBaseCommand):
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
         self.format_acronyms(formatter)
@@ -31,7 +29,7 @@ class RemoteExecutionHistoryCommand(RemoteExecutionBaseCommand):
             )
 
             with formatter.indented_section(name="Get execution history", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {arn_example}"),
@@ -41,7 +39,7 @@ class RemoteExecutionHistoryCommand(RemoteExecutionBaseCommand):
                 )
 
             with formatter.indented_section(name="Get execution history in JSON format", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {arn_example} --format json"),
