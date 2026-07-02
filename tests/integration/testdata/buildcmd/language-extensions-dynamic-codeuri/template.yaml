@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for Fn::ForEach with dynamic CodeUri using ${FunctionName}.
+  Each expanded function has its own source directory.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  # Fn::ForEach with dynamic CodeUri - each function gets its own source directory
+  # AlphaFunction -> CodeUri: Alpha/
+  # BetaFunction -> CodeUri: Beta/
+  Fn::ForEach::Functions:
+    - FunctionName
+    - - Alpha
+      - Beta
+    - ${FunctionName}Function:
+        Type: AWS::Serverless::Function
+        Properties:
+          Handler: main.handler
+          CodeUri: ${FunctionName}/
+          FunctionName:
+            Fn::Sub: ${FunctionName}-handler
+          Environment:
+            Variables:
+              FUNCTION_NAME: !Sub ${FunctionName}

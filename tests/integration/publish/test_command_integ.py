@@ -9,7 +9,7 @@ import pytest
 from parameterized import parameterized
 
 from samcli.commands.publish.command import SEMANTIC_VERSION
-from .publish_app_integ_base import PublishAppIntegBase
+from tests.integration.publish.publish_app_integ_base import PublishAppIntegBase
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command
 

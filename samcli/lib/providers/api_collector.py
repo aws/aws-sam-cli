@@ -17,6 +17,9 @@ LOG = logging.getLogger(__name__)
 
 
 class ApiCollector:
+    # Authorizer types that are valid but not Lambda-based, so cannot be emulated locally
+    _NON_LAMBDA_AUTHORIZERS = {"AWS_IAM", "NONE"}
+
     def __init__(self) -> None:
         # Route properties stored per resource.
         self._route_per_resource: Dict[str, List[Route]] = defaultdict(list)
@@ -108,11 +111,19 @@ class ApiCollector:
                     continue
 
                 if not authorizer_object and authorizer_name_lookup:
-                    LOG.info(
-                        "Linking authorizer skipped for route '%s', authorizer '%s' is unsupported or not found",
-                        route.path,
-                        route.authorizer_name,
-                    )
+                    if authorizer_name_lookup in self._NON_LAMBDA_AUTHORIZERS:
+                        LOG.info(
+                            "Authorizer '%s' for route '%s' is not supported for local emulation,"
+                            " requests will not be authorized",
+                            authorizer_name_lookup,
+                            route.path,
+                        )
+                    else:
+                        LOG.warning(
+                            "Authorizer '%s' for route '%s' was not found, skipping",
+                            authorizer_name_lookup,
+                            route.path,
+                        )
 
                     route.authorizer_name = None
 
@@ -249,6 +260,8 @@ Testing application behaviour against authorizers deployed on AWS can be done us
             if config:
                 methods += config.methods
             sorted_methods = sorted(methods)
+            # Prefer route-specific CORS over None
+            cors = route.cors if route.cors is not None else (config.cors if config else None)
             grouped_routes[key] = Route(
                 function_name=route.function_name,
                 path=route.path,
@@ -259,6 +272,7 @@ Testing application behaviour against authorizers deployed on AWS can be done us
                 stack_path=route.stack_path,
                 authorizer_name=route.authorizer_name,
                 authorizer_object=route.authorizer_object,
+                cors=cors,
             )
         return list(grouped_routes.values())
 

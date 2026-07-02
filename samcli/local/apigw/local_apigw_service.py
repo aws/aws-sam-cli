@@ -657,7 +657,9 @@ class LocalApigwService(BaseLocalService):
         route: Route = self._get_current_route(request)
 
         request_origin = request.headers.get("Origin")
-        cors_headers = Cors.cors_to_headers(self.api.cors, request_origin, route.event_type)
+        # Use route-specific CORS if available, otherwise fall back to global API CORS
+        cors = route.cors if route.cors is not None else self.api.cors
+        cors_headers = Cors.cors_to_headers(cors, request_origin, route.event_type)
 
         lambda_authorizer: Optional[Authorizer] = route.authorizer_object
 
@@ -670,7 +672,7 @@ class LocalApigwService(BaseLocalService):
             )
 
         method, endpoint = self.get_request_methods_endpoints(request)
-        if method == "OPTIONS" and self.api.cors:
+        if method == "OPTIONS" and cors:
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 

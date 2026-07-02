@@ -6,6 +6,8 @@ import logging
 import os
 from typing import Dict
 
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
+
 LOG = logging.getLogger(__name__)
 CDK_METADATA_TYPE_VALUE = "AWS::CDK::Metadata"
 CDK_PATH_METADATA_KEY = "aws:cdk:path"
@@ -42,7 +44,9 @@ def _resource_level_metadata_exists(resources: Dict) -> bool:
         Dict of resources to look through
 
     """
-    for _, resource in resources.items():
+    for resource_key, resource in resources.items():
+        if is_foreach_key(resource_key) or not isinstance(resource, dict):
+            continue
         if resource.get("Type", "") == CDK_METADATA_TYPE_VALUE:
             return True
     return False
@@ -58,7 +62,9 @@ def _cdk_path_metadata_exists(resources: Dict) -> bool:
         Dict of resources to look through
 
     """
-    for _, resource in resources.items():
+    for resource_key, resource in resources.items():
+        if is_foreach_key(resource_key) or not isinstance(resource, dict):
+            continue
         metadata = resource.get("Metadata", {})
         if metadata and CDK_PATH_METADATA_KEY in metadata:
             return True

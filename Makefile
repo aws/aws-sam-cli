@@ -6,20 +6,17 @@ SAM_CLI_TELEMETRY ?= 0
 
 # Initialize environment specifically for Github action tests using uv
 init:
-	@if [ "$$GITHUB_ACTIONS" = "true" ]; then \
+	if [ "$$GITHUB_ACTIONS" = "true" ]; then \
 		command -v uv >/dev/null 2>&1 || pip install uv==0.9.1; \
-		SAM_CLI_DEV=1 uv pip install --system -e '.[dev]'; \
+		echo "=== UV_PYTHON resolved to: $$(uv python find $$UV_PYTHON) ==="; \
+		SAM_CLI_DEV=1 uv pip install --system --break-system-packages --python "$$(uv python find $$UV_PYTHON)" -e '.[dev]'; \
 	else \
 		SAM_CLI_DEV=1 pip install -e '.[dev]'; \
 	fi
 
-# Set up a pytest venv with test dependencies
+# Set up a pytest venv with test dependencies (cross-platform)
 setup-pytest:
-	python3.11 -m venv $(HOME)/pytest
-	uv pip install --python $(HOME)/pytest/bin/python3 -r requirements/dev.txt -r requirements/base.txt
-	sudo ln -sf $(HOME)/pytest/bin/pytest /usr/local/bin/pytest
-	pytest --version
-
+	bash tests/setup-pytest.sh
 # Install SAM CLI nightly binary
 init-nightly:
 	bash tests/install-sam-cli-binary.sh sam-cli-nightly
@@ -29,11 +26,20 @@ init-latest-release:
 	bash tests/install-sam-cli-binary.sh
 
 test:
-	# Run unit tests and fail if coverage falls below 94%
+	# Run unit tests (excluding cfn_language_extensions) and fail if coverage falls below 94%
+	@echo "NOTE: Excluding cfn_language_extensions tests. Use 'make test-all' for full coverage."
+	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore=tests/unit/lib/cfn_language_extensions --cov-config=.coveragerc_no_lang_ext
+
+test-lang-ext:
+	# Run cfn_language_extensions unit tests with coverage
+	pytest --cov samcli.lib.cfn_language_extensions --cov-report term-missing --cov-fail-under 94 tests/unit/lib/cfn_language_extensions
+
+test-all:
+	# Run all unit tests including cfn_language_extensions
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
 
 test-cov-report:
-	# Run unit tests with html coverage report
+	# Run all unit tests with html coverage report
 	pytest --cov samcli --cov schema --cov-report html --cov-fail-under 94 tests/unit
 
 integ-test:
@@ -61,17 +67,23 @@ lint:
 	mypy --exclude /testdata/ --exclude /init/templates/ --no-incremental setup.py samcli tests schema
 
 # Command to run everytime you make changes to verify everything works
-dev: lint test
+# Runs test-all if cfn_language_extensions files changed, otherwise test
+dev: lint
+	@if git diff --name-only origin/develop... 2>/dev/null | grep -qE 'cfn_language_extensions/'; then \
+		echo "Detected cfn_language_extensions changes — running all tests"; \
+		$(MAKE) test-all; \
+	else \
+		$(MAKE) test; \
+	fi
+
+# Run full verification including language extensions tests
+dev-all: lint test-all
 
 black:
 	black setup.py samcli tests schema
 
 black-check:
-	@if python -c "import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then \
-		black --check setup.py samcli tests schema; \
-	else \
-		echo "Skipping black check on Python < 3.10"; \
-	fi
+	black --check setup.py samcli tests schema
 
 format: black
 	ruff check samcli --fix
@@ -79,38 +91,15 @@ format: black
 schema:
 	python -m schema.make_schema
 
-# Verifications to run before sending a pull request
-pr: init schema black-check dev
-
-# lucashuy: Linux and MacOS are on the same Python version,
-# however we should follow up in a different change
-# to consider combining these files again
-update-reproducible-linux-reqs:
-	python3.11 -m venv venv-update-reproducible-linux
-	venv-update-reproducible-linux/bin/pip install pip==24.0 pip-tools==7.4.1
-	venv-update-reproducible-linux/bin/pip install -r requirements/base.txt
-	venv-update-reproducible-linux/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-linux.txt
-
-update-reproducible-mac-reqs:
-	python3.11 -m venv venv-update-reproducible-mac
-	venv-update-reproducible-mac/bin/pip install pip==24.0 pip-tools==7.4.1
-	venv-update-reproducible-mac/bin/pip install -r requirements/base.txt
-	venv-update-reproducible-mac/bin/pip-compile --generate-hashes --allow-unsafe -o requirements/reproducible-mac.txt
-
-# note that this should be run on a windows environment with python3.8 as default interpreter
-update-reproducible-win-reqs:
-	python -m venv venv-update-reproducible-win
-	.\venv-update-reproducible-win\Scripts\activate
-	python.exe -m pip install pip==24.0 pip-tools==7.4.1
-	pip install -r requirements\base.txt
-	pip-compile --generate-hashes --allow-unsafe -o requirements\reproducible-win.txt
-
-
-update-reproducible-reqs: update-reproducible-linux-reqs update-reproducible-mac-reqs
+# Verifications to run before sending a pull request — runs ALL tests
+pr: init schema black-check lint test-all
 
 # Update all reproducible requirements using uv (can run from any platform)
-update-reproducible-reqs-uv:
+update-reproducible-reqs:
 	@command -v uv >/dev/null 2>&1 || pip install uv
-	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-linux.txt --python-platform linux --python-version 3.11 --no-cache --no-strip-extras
-	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-mac.txt --python-platform macos --python-version 3.11 --no-cache --no-strip-extras
-	uv pip compile setup.py --generate-hashes --output-file requirements/reproducible-win.txt --python-platform windows --python-version 3.12 --no-cache --no-strip-extras
+	uv pip compile pyproject.toml --generate-hashes --output-file requirements/reproducible-linux.txt --python-platform linux --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile pyproject.toml --generate-hashes --output-file requirements/reproducible-mac.txt --python-platform macos --python-version 3.11 --no-cache --no-strip-extras
+	uv pip compile pyproject.toml --generate-hashes --output-file requirements/reproducible-win.txt --python-platform windows --python-version 3.12 --no-cache --no-strip-extras
+
+# Alias for backwards compatibility
+update-reproducible-reqs-uv: update-reproducible-reqs

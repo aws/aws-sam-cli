@@ -98,9 +98,10 @@ class TestInit(InitIntegBase):
 
         self.assertEqual(init_process_execute.process.returncode, 0)
 
-        with open(EXPECTED_JENKINS_FILE_PATH, "r") as expected, open(
-            os.path.join(".aws-sam", "pipeline", "generated-files", "Jenkinsfile"), "r"
-        ) as output:
+        with (
+            open(EXPECTED_JENKINS_FILE_PATH, "r") as expected,
+            open(os.path.join(".aws-sam", "pipeline", "generated-files", "Jenkinsfile"), "r") as output,
+        ):
             self.assertEqual(expected.read(), output.read())
 
         # also check the Jenkinsfile is not overridden

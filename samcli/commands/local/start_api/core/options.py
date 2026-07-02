@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
+    "language_extensions",
 ]
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
@@ -41,8 +42,10 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "container_host",
     "container_host_interface",
     "add_host",
+    "container_dns",
     "invoke_image",
     "disable_authorizer",
+    "no_watch",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
@@ -81,10 +84,9 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

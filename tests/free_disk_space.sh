@@ -1,7 +1,15 @@
 #!/bin/bash
-# Free up disk space on CI runners if root partition has less than 50GB free.
-# Removes common unused resources that ship with GitHub Actions runners.
+# Free up disk space on CI runners.
+# On Linux: cleans up unused packages if root partition has less than 50GB free.
+# On Windows: just reports disk usage for debugging.
 set -e
+
+# Windows: just show disk usage and exit
+if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+    echo "=== Windows Disk Usage ==="
+    powershell.exe -Command "Get-PSDrive -PSProvider FileSystem | Format-Table Name, @{N='Used(GB)';E={[math]::Round(\$_.Used/1GB,1)}}, @{N='Free(GB)';E={[math]::Round(\$_.Free/1GB,1)}}, @{N='Total(GB)';E={[math]::Round((\$_.Used+\$_.Free)/1GB,1)}} -AutoSize"
+    exit 0
+fi
 
 echo "=== Disk usage before cleanup ==="
 df -h

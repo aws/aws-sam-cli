@@ -30,7 +30,7 @@ class RemoteExecutionGetCommand(RemoteExecutionBaseCommand):
             )
 
             with formatter.indented_section(name="Get execution details", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} '{arn_example}'"),
@@ -40,7 +40,7 @@ class RemoteExecutionGetCommand(RemoteExecutionBaseCommand):
                 )
 
             with formatter.indented_section(name="Get execution details in JSON format", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} '{arn_example}' --format json"),

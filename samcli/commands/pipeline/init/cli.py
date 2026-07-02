@@ -10,6 +10,7 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.cli.main import pass_context
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.pipeline.init.core.command import PipelineInitCommand
 from samcli.commands.pipeline.init.interactive_init_flow import InteractiveInitFlow
 from samcli.lib.telemetry.metric import track_command
 
@@ -24,7 +25,9 @@ file generation process, or refer to resources you have previously created with 
 """
 
 
-@click.command("init", help=HELP_TEXT, short_help=SHORT_HELP)
+@click.command(
+    "init", cls=PipelineInitCommand, help=HELP_TEXT, short_help=SHORT_HELP, description="", requires_credentials=False
+)
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--bootstrap",

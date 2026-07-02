@@ -235,10 +235,14 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.api_service.service_response = make_response_mock
-        self.api_service._get_current_route = MagicMock()
-        self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.api_service._get_current_route.return_value.authorizer_object = None
+
+        route_mock = Route(
+            methods=["OPTIONS"],
+            function_name=self.function_name,
+            path="/",
+            payload_format_version="1.0",
+        )
+        self.api_service._get_current_route = MagicMock(return_value=route_mock)
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -262,10 +266,16 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.http_service.service_response = make_response_mock
-        self.http_service._get_current_route = MagicMock()
-        self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.http_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.http_service._get_current_route.return_value.authorizer_object = None
+
+        # Use actual Route object to get proper default values
+        route_mock = Route(
+            methods=["OPTIONS"],
+            function_name=self.function_name,
+            path="/",
+            event_type=Route.HTTP,
+            payload_format_version="1.0",
+        )
+        self.http_service._get_current_route = MagicMock(return_value=route_mock)
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")

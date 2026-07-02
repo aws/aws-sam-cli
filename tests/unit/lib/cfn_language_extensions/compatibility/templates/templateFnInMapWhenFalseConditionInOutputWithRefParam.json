@@ -1,0 +1,63 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "MyParam": {
+      "Type": "String",
+      "Default": "G"
+    }
+  },
+  "Mappings": {
+    "A": {
+      "B": {
+        "C": "WOW"
+      }
+    }
+  },
+  "Conditions": {
+    "FalseCondition": {
+      "Fn::Equals": [
+        "true",
+        "false"
+      ]
+    },
+    "TrueCondition": {
+      "Fn::Equals": [
+        "true",
+        "true"
+      ]
+    }
+  },
+  "Resources": {
+    "MyTopic": {
+      "Condition": "FalseCondition",
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": {
+          "Fn::FindInMap": [
+            "A",
+            {
+              "Ref": "MyParam"
+            },
+            "C"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "MyOutput": {
+      "Condition": "FalseCondition",
+      "Description": "MyDescription",
+      "Value": {
+        "Fn::FindInMap": [
+          "A",
+          {
+            "Ref": "MyParam"
+          },
+          "C"
+        ]
+      }
+    }
+  }
+}

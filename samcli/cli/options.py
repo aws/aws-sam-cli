@@ -5,7 +5,7 @@ become a repository of options that other commands could use when needed.
 
 import click
 
-from .context import Context
+from samcli.cli.context import Context
 
 
 def debug_option(f):

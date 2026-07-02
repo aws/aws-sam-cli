@@ -113,6 +113,8 @@ class BuildIntegBase(TestCase):
         config_file=None,
         save_params=False,
         project_root_dir=None,
+        use_buildkit=False,
+        mount_symlinks=False,
     ):
         command_list = [self.cmd, "build"]
 
@@ -138,6 +140,9 @@ class BuildIntegBase(TestCase):
 
         if debug:
             command_list += ["--debug"]
+
+        if use_buildkit:
+            command_list += ["--use-buildkit"]
 
         if cached:
             command_list += ["--cached"]
@@ -184,6 +189,9 @@ class BuildIntegBase(TestCase):
 
         if project_root_dir is not None:
             command_list += ["--terraform-project-root-path", project_root_dir]
+
+        if mount_symlinks:
+            command_list += ["--mount-symlinks"]
 
         return command_list
 
@@ -746,7 +754,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         "__init__.py",
         "main.py",
         "numpy",
-        # 'cryptography',
+        "cryptography",
     }
 
     FUNCTION_LOGICAL_ID = "Function"
@@ -1155,7 +1163,7 @@ class BuildIntegRustBase(BuildIntegBase):
         overrides = self.get_override(runtime, code_uri, architecture, handler)
         if binary:
             overrides["Binary"] = binary
-        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides, beta_features=True)
+        cmdlist = self.get_command_list(use_container=use_container, parameter_overrides=overrides)
 
         newenv = os.environ.copy()
         if build_mode:

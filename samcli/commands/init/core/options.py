@@ -35,7 +35,6 @@ ALL_OPTIONS: List[str] = (
 OPTIONS_INFO: Dict[str, Dict] = {
     "Application Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(APPLICATION_OPTIONS)},
-        "extras": [RowDefinition(name="")],
     },
     "Non Interactive Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(NON_INTERACTIVE_OPTIONS)}
@@ -43,10 +42,8 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

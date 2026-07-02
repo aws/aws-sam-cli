@@ -13,6 +13,7 @@ from samcli.cli.types import TenantIdType
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     hook_name_click_option,
+    language_extensions_option,
     mount_symlinks_option,
     skip_prepare_infra_option,
     terraform_plan_file_option,
@@ -29,6 +30,14 @@ from samcli.local.docker.exceptions import (
     DockerContainerCreationFailedException,
     PortAlreadyInUse,
 )
+
+
+class HiddenChoice(click.Choice):
+    """Custom Choice type that hides the list of choices in help text."""
+
+    def get_metavar(self, param):
+        return "RUNTIME"
+
 
 LOG = logging.getLogger(__name__)
 
@@ -71,7 +80,7 @@ STDIN_FILE_NAME = "-"
 @click.option(
     "-r",
     "--runtime",
-    type=click.Choice(get_sorted_runtimes(INIT_RUNTIMES)),
+    type=HiddenChoice(get_sorted_runtimes(INIT_RUNTIMES), case_sensitive=False),
     help="Lambda runtime used to invoke the function."
     + click.style(f"\n\nRuntimes: {', '.join(get_sorted_runtimes(INIT_RUNTIMES))}", bold=True),
 )
@@ -89,6 +98,7 @@ STDIN_FILE_NAME = "-"
     help="Name for the durable execution (for durable functions only).",
 )
 @mount_symlinks_option
+@language_extensions_option
 @invoke_common_options
 @local_common_options
 @cli_framework_options
@@ -130,7 +140,9 @@ def cli(
     terraform_plan_file,
     runtime,
     mount_symlinks,
+    language_extensions,
     no_memory_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -165,7 +177,9 @@ def cli(
         hook_name,
         runtime,
         mount_symlinks,
+        language_extensions,
         no_memory_limit,
+        container_dns,
         tenant_id,
         durable_execution_name,
     )  # pragma: no cover
@@ -197,7 +211,9 @@ def do_cli(  # pylint: disable=R0914
     hook_name,
     runtime,
     mount_symlinks,
+    language_extensions,
     no_mem_limit,
+    container_dns,
     tenant_id,
     durable_execution_name,
 ):
@@ -250,7 +266,9 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
+            language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
+            container_dns=container_dns,
         ) as context:
             # Invoke the function
             context.local_lambda_runner.invoke(

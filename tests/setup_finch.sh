@@ -15,10 +15,10 @@ sudo apt-get autoremove -y || true
 
 echo "=== Installing Finch ==="
 for i in {1..3}; do
-    if curl -fsSL https://artifact.runfinch.com/deb/GPG_KEY.pub | sudo gpg --dearmor -o /usr/share/keyrings/runfinch-finch-archive-keyring.gpg; then
-        break
-    fi
-    sleep 10
+  if curl -fsSL https://artifact.runfinch.com/deb/GPG_KEY.pub | sudo gpg --dearmor -o /usr/share/keyrings/runfinch-finch-archive-keyring.gpg; then
+    break
+  fi
+  sleep 10
 done
 
 echo 'deb [signed-by=/usr/share/keyrings/runfinch-finch-archive-keyring.gpg arch=amd64] https://artifact.runfinch.com/deb noble main' | sudo tee /etc/apt/sources.list.d/runfinch-finch.list
@@ -31,12 +31,16 @@ sudo systemctl enable --now finch-buildkit
 sleep 3
 sudo chmod 666 /var/run/finch.sock
 
+echo "=== Configuring finch for non-root access ==="
+sudo chmod +s /usr/libexec/finch/nerdctl
+sudo chmod +s /usr/bin/finch
+
 echo "=== Waiting for Finch to be ready ==="
 for i in {1..12}; do
-    if sudo finch info >/dev/null 2>&1; then
-        break
-    fi
-    sleep 5
+  if sudo finch info >/dev/null 2>&1; then
+    break
+  fi
+  sleep 5
 done
 
 echo "=== Configuring buildkit sockets ==="
@@ -52,4 +56,5 @@ sudo finch run --privileged --rm tonistiigi/binfmt:master --install all
 
 echo "=== Finch setup complete ==="
 sudo finch info
-sudo finch version
+# Run finch without sudo here to confirm that it's not required
+finch version

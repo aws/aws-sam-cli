@@ -56,6 +56,7 @@ class Runtime(Enum):
     ruby32 = "ruby3.2"
     ruby33 = "ruby3.3"
     ruby34 = "ruby3.4"
+    ruby40 = "ruby4.0"
     java8al2 = "java8.al2"
     java11 = "java11"
     java17 = "java17"
@@ -197,7 +198,10 @@ class LambdaImage:
         tag_prefix = ""
 
         if packagetype == IMAGE:
-            base_image = image
+            if self.invoke_images:
+                base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
+            if not base_image:
+                base_image = image
         elif packagetype == ZIP:
             is_preview = runtime in TEST_RUNTIMES
             runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=is_preview)

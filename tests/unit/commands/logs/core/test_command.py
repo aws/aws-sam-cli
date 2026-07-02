@@ -33,14 +33,19 @@ class TestLogsCommand(unittest.TestCase):
 
         cmd = LogsCommand(name="logs", requires_credentials=True, description=DESCRIPTION)
         expected_output = {
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", "")],
-            "Additional Options": [("", ""), ("--tail", ""), ("", "")],
-            "Beta Options": [("", ""), ("--beta-features", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "AWS Credential Options": [("--region", "")],
+            "Additional Options": [("--tail", "")],
+            "Beta Options": [("--beta-features", "")],
+            "Configuration Options": [
+                (
+                    "Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html.",
+                    "",
+                ),
+                ("--config-file", ""),
+            ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Fetch from Cloudwatch log groups": [
-                ("", ""),
                 (
                     "$ sam logs --cw-log-group "
                     "/aws/lambda/myfunction-123 "
@@ -50,22 +55,18 @@ class TestLogsCommand(unittest.TestCase):
                 ),
             ],
             "Fetch logs from resource defined in nested Cloudformation stack": [
-                ("", ""),
                 ("$ sam " "logs " "---stack-name " "mystack " "-n " "MyNestedStack/HelloWorldFunction\x1b[0m", ""),
             ],
             "Fetch logs from supported resources in Cloudformation stack": [
-                ("", ""),
                 ("$ sam logs " "---stack-name " "mystack\x1b[0m", ""),
             ],
             "Fetch logs with Lambda Function Logical ID and Cloudformation Stack Name": [
-                ("", ""),
                 ("$ " "sam " "logs " "-n " "HelloWorldFunction " "--stack-name " "mystack\x1b[0m", ""),
             ],
-            "Log Identifier Options": [("", ""), ("--stack-name", ""), ("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "Tail new logs": [("", ""), ("$ sam logs -n HelloWorldFunction --stack-name mystack " "--tail\x1b[0m", "")],
+            "Log Identifier Options": [("--stack-name", "")],
+            "Other Options": [("--debug", "")],
+            "Tail new logs": [("$ sam logs -n HelloWorldFunction --stack-name mystack " "--tail\x1b[0m", "")],
             "View logs for specific time range": [
-                ("", ""),
                 ("$ sam logs -n HelloWorldFunction " "--stack-name mystack -s '10min ago' " "-e '2min ago'\x1b[0m", ""),
             ],
         }

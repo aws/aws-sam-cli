@@ -90,6 +90,7 @@ class HookNameOption(click.Option):
             skip_prepare_infra = _read_parameter_value("skip_prepare_infra", opts, ctx, False)
             plan_file = _read_parameter_value("terraform_plan_file", opts, ctx)
             project_root_dir = _read_parameter_value("terraform_project_root_path", opts, ctx)
+            mount_symlinks = _read_parameter_value("mount_symlinks", opts, ctx, False)
 
             metadata_file = iac_hook_wrapper.prepare(
                 output_dir_path,
@@ -100,6 +101,7 @@ class HookNameOption(click.Option):
                 skip_prepare_infra,
                 plan_file,
                 project_root_dir,
+                mount_symlinks,
             )
 
             LOG.info("Prepare hook completed and metadata file generated at: %s", metadata_file)

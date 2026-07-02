@@ -1,0 +1,28 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Conditions": {
+    "ExpectedTrueCondition": {
+      "Fn::Equals": [
+        "0",
+        0
+      ]
+    }
+  },
+  "Resources": {
+    "WaitConditionHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  },
+  "Outputs": {
+    "Output": {
+      "Value": {
+        "Fn::If": [
+          "ExpectedTrueCondition",
+          "ValueIfTrue",
+          "ValueIfFalse"
+        ]
+      }
+    }
+  }
+}

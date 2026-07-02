@@ -6,44 +6,58 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.sync.core.formatters import SyncCommandHelpTextFormatter
-from samcli.commands.sync.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.sync.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class SyncCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = SyncCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                additive_justification=11,
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: SyncCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
-            formatter.write_rd(
-                [
-                    RowDefinition(
-                        text="\n",
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} " f"--watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(f"$ {ctx.command_path} " f"--code --watch --stack-name {{stack}}"),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                    RowDefinition(
-                        name=style(
-                            f"$ {ctx.command_path} "
-                            f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}}"
+            with formatter.indented_section(name="Sync with watch mode", extra_indents=1):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --watch --stack-name {{stack}}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
-                        extra_row_modifiers=[ShowcaseRowModifier()],
-                    ),
-                ],
-            )
+                    ]
+                )
+            with formatter.indented_section(name="Sync code changes with watch mode", extra_indents=1):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --code --watch --stack-name {{stack}}"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
+            with formatter.indented_section(name="Sync code changes for specific resource", extra_indents=1):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} "
+                                f"--code --stack-name {{stack}} --resource-id {{ChildStack}}/{{ResourceId}}"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
 
     @staticmethod
-    def format_acronyms(formatter: SyncCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -80,7 +94,7 @@ class SyncCommand(CoreCommand):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: SyncCommandHelpTextFormatter) -> None:  # type: ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         # NOTE(sriram-mv): `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

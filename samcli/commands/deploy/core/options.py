@@ -38,11 +38,13 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "on_failure",
     "force_upload",
     "max_wait_duration",
+    "express",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ADDITIONAL_OPTIONS: List[str] = [
+    "language_extensions",
     "no_progressbar",
     "signing_profiles",
     "template_file",
@@ -78,10 +80,9 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },
