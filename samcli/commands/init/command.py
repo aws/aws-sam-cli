@@ -223,6 +223,8 @@ def non_interactive_validation(func):
     help="Branch, tag or commit to checkout after git clone.",
     required=False,
     cls=ClickMutex,
+    required_param_lists=[["location"]],
+    required_params_hint="The --checkout option requires --location to specify a git repository.",
     incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
     incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
 )
