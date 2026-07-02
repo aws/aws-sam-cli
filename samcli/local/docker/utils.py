@@ -258,6 +258,8 @@ def safe_decode_docker_message(message):
     >>> safe_decode_docker_message("Port already in use")
     'Port already in use'
     """
+    if message is None:
+        return ""
     if isinstance(message, bytes):
         return message.decode("utf-8")
-    return message
+    return str(message)
