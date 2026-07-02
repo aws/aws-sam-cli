@@ -1043,10 +1043,10 @@ class TestBuildWithDedupBuilds(DedupBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnet6",
+                "Dotnet10",
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
+                "dotnet10",
             ),
             (
                 False,
@@ -1175,10 +1175,10 @@ class TestBuildWithCacheBuilds(CachedBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnet6",
+                "Dotnet10",
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
+                "dotnet10",
             ),
             (
                 False,
@@ -1367,10 +1367,10 @@ class TestParallelBuilds(DedupBuildIntegBase):
             # in process
             (
                 False,
-                "Dotnet6",
+                "Dotnet10",
                 "HelloWorld::HelloWorld.FirstFunction::FunctionHandler",
                 "HelloWorld::HelloWorld.SecondFunction::FunctionHandler",
-                "dotnet6",
+                "dotnet10",
             ),
             (
                 False,
