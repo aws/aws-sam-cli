@@ -52,6 +52,7 @@ class TestDeployCliCommand(TestCase):
         self.disable_rollback = False
         self.on_failure = None
         self.max_wait_duration = 480
+        self.express = False
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
@@ -106,6 +107,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -134,6 +136,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 
@@ -226,6 +229,7 @@ class TestDeployCliCommand(TestCase):
                     disable_rollback=self.disable_rollback,
                     on_failure=self.on_failure,
                     max_wait_duration=self.max_wait_duration,
+                    express=self.express,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -329,6 +333,7 @@ class TestDeployCliCommand(TestCase):
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -357,6 +362,7 @@ class TestDeployCliCommand(TestCase):
                 poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
                 language_extensions=None,
             )
 
@@ -477,6 +483,7 @@ class TestDeployCliCommand(TestCase):
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -505,6 +512,7 @@ class TestDeployCliCommand(TestCase):
                 poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
                 language_extensions=None,
             )
 
@@ -628,6 +636,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -660,6 +669,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 
@@ -791,6 +801,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -819,6 +830,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 
@@ -934,6 +946,7 @@ class TestDeployCliCommand(TestCase):
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -962,6 +975,7 @@ class TestDeployCliCommand(TestCase):
                 poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
                 language_extensions=None,
             )
 
@@ -1014,6 +1028,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1042,6 +1057,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 
@@ -1082,6 +1098,7 @@ class TestDeployCliCommand(TestCase):
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
     @patch("samcli.commands.package.command.click")
@@ -1135,6 +1152,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1163,6 +1181,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 
@@ -1212,6 +1231,7 @@ class TestDeployCliCommand(TestCase):
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1240,6 +1260,7 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
             language_extensions=None,
         )
 

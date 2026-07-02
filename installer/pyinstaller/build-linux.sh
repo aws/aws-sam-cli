@@ -58,7 +58,8 @@ ln -sf /opt/openssl/lib64 /opt/openssl/lib
 cd ../../
 
 echo "Building zlib"
-curl https://www.zlib.net/zlib-${zlib_version}.tar.gz --output zlib.tar.gz
+curl -fL "https://www.zlib.net/zlib-${zlib_version}.tar.gz" --output zlib.tar.gz || \
+    curl -fL "https://github.com/madler/zlib/releases/download/v${zlib_version}/zlib-${zlib_version}.tar.gz" --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-${zlib_version}
 ./configure && make -j8 && make -j8 install

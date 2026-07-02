@@ -223,6 +223,7 @@ class TestDoCli(TestCase):
             on_failure=None,
             max_wait_duration=60,
             language_extensions=None,
+            express=False,
         )
 
         execute_infra_mock.assert_called_with(
@@ -391,6 +392,7 @@ class TestDoCli(TestCase):
             on_failure=None,
             max_wait_duration=60,
             language_extensions=None,
+            express=False,
         )
         execute_watch_mock.assert_called_once_with(
             template=self.template_file,
