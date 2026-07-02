@@ -1,9 +1,13 @@
 """Test sam package command"""
 
+import os
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, Mock, call, ANY
 from parameterized import parameterized
 import tempfile
+
+TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 
 from samcli.commands.package.package_context import PackageContext
@@ -27,9 +31,11 @@ from samcli.lib.package.language_extensions_packaging import (
     _apply_artifact_mappings_to_template,
     _replace_dynamic_artifact_with_findmap,
 )
+from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
+from samcli.yamlhelper import yaml_parse
 
 
 class TestPackageCommand(TestCase):
@@ -4462,3 +4468,124 @@ class TestBuildToPackageFlow(TestCase):
         codeuri = body["${FunctionName}Function"]["Properties"]["CodeUri"]
         self.assertIn("Fn::FindInMap", codeuri)
         self.assertEqual(codeuri["Fn::FindInMap"][0], "SAMCodeUriFunctions")
+
+
+class TestPackageContextBuriedAWSInclude(TestCase):
+    """A root-level template that uses Fn::ToJsonString (a language extension)
+    and contains AWS::Include buried inside AWS::SSM::Parameter must end up
+    with the include's Location rewritten to the s3:// URL the uploader
+    returned, matching the behavior of sam-cli 1.159.0.
+
+    Regression coverage for https://github.com/aws/aws-sam-cli/issues/9027.
+    Nested-stack coverage lives in tests/unit/lib/package/test_artifact_exporter.py.
+    """
+
+    def setUp(self):
+        self.template_path = str(TEST_DATA_PATH / "buried_aws_include" / "template.yaml")
+
+        # Mock uploader with deterministic S3 URL.
+        self.s3_uploader = MagicMock()
+        self.s3_uploader.upload_with_dedup.side_effect = (
+            lambda local_path, **_: f"s3://my-bucket/{os.path.basename(local_path)}-md5"
+        )
+        self.s3_uploader.EXPORT_DESTINATION = Destination.S3
+
+        self.uploaders = MagicMock(spec=Uploaders)
+        self.uploaders.get.return_value = self.s3_uploader
+
+        # Bypass PackageContext.__init__ — wire only the attributes _export reads.
+        self.ctx = PackageContext.__new__(PackageContext)
+        self.ctx.template_file = self.template_path
+        self.ctx.uploaders = self.uploaders
+        self.ctx.code_signer = MagicMock()
+        self.ctx.parameter_overrides = {}
+        self.ctx._global_parameter_overrides = {}
+        # Language Extensions is opt-in (#9033); the buried-AWS::Include regression
+        # test exercises a template that uses Transform: AWS::LanguageExtensions,
+        # so enable LE expansion explicitly.
+        self.ctx._language_extensions_enabled = True
+
+    def test_buried_aws_include_location_is_rewritten(self):
+        exported_str = self.ctx._export(self.template_path, use_json=False)
+
+        exported = yaml_parse(exported_str)
+
+        location = exported["Resources"]["Parameter"]["Properties"]["Value"]["Fn::ToJsonString"]["Fn::Transform"][
+            "Parameters"
+        ]["Location"]
+        self.assertTrue(
+            location.startswith("s3://"),
+            f"Issue #9027: AWS::Include Location must be an S3 URI after sam package, " f"got {location!r}.",
+        )
+        self.assertEqual(location, "s3://my-bucket/export-events.json-md5")
+
+        # Sanity: the LE Transform line is preserved on the root.
+        self.assertEqual(exported.get("Transform"), "AWS::LanguageExtensions")
+
+
+class TestExportLanguageExtensionsStructuralGate(TestCase):
+    """Lock in the contract that --language-extensions is a hard correctness
+    boundary, not a passthrough hint. When disabled, _export() must not invoke
+    any LE machinery (expand_language_extensions, the pre-LE
+    _export_global_artifacts_pass, merge_language_extensions_s3_uris, or
+    generate_and_apply_artifact_mappings).
+    """
+
+    def _make_off_path_context(self):
+        """Build a PackageContext with LE disabled and the attributes _export reads."""
+        ctx = PackageContext.__new__(PackageContext)
+        ctx.template_file = "template.yaml"
+        ctx.uploaders = MagicMock()
+        ctx.code_signer = MagicMock()
+        ctx.parameter_overrides = {}
+        ctx._global_parameter_overrides = {}
+        ctx._language_extensions_enabled = False
+        return ctx
+
+    @patch("samcli.commands.package.package_context.Template")
+    @patch("samcli.commands.package.package_context.yaml_parse")
+    @patch("builtins.open", create=True)
+    @patch("samcli.commands.package.package_context.expand_language_extensions")
+    def test_off_path_does_not_invoke_expand_language_extensions(
+        self, mock_expand, mock_open, mock_yaml_parse, mock_template_class
+    ):
+        """When --language-extensions is off, expand_language_extensions must not be called."""
+        ctx = self._make_off_path_context()
+
+        mock_yaml_parse.return_value = {"Resources": {}}
+        mock_template_instance = MagicMock()
+        mock_template_instance.export.return_value = {"Resources": {}}
+        mock_template_class.return_value = mock_template_instance
+
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+        mock_file.read.return_value = ""
+
+        ctx._export("template.yaml", use_json=False)
+
+        mock_expand.assert_not_called()
+
+    @patch("samcli.commands.package.package_context.Template")
+    @patch("samcli.commands.package.package_context.yaml_parse")
+    @patch("builtins.open", create=True)
+    @patch("samcli.commands.package.package_context._export_global_artifacts_pass")
+    def test_off_path_does_not_invoke_pre_le_global_transform_pass(
+        self, mock_pre_le_pass, mock_open, mock_yaml_parse, mock_template_class
+    ):
+        """When --language-extensions is off, the pre-LE _export_global_artifacts_pass
+        in package_context.py must not be called. Template.export() still runs its own
+        internal _export_global_artifacts pass — that one is not patched here."""
+        ctx = self._make_off_path_context()
+
+        mock_yaml_parse.return_value = {"Resources": {}}
+        mock_template_instance = MagicMock()
+        mock_template_instance.export.return_value = {"Resources": {}}
+        mock_template_class.return_value = mock_template_instance
+
+        mock_file = MagicMock()
+        mock_open.return_value.__enter__.return_value = mock_file
+        mock_file.read.return_value = ""
+
+        ctx._export("template.yaml", use_json=False)
+
+        mock_pre_le_pass.assert_not_called()

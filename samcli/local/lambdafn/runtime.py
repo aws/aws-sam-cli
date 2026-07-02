@@ -526,7 +526,9 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False):
+    def __init__(
+        self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False, no_watch=False
+    ):
         """
         Initialize the Local Lambda runtime
 
@@ -536,14 +538,24 @@ class WarmLambdaRuntime(LambdaRuntime):
             Instance of the ContainerManager class that can run a local Docker container
         image_builder samcli.local.docker.lambda_image.LambdaImage
             Instance of the LambdaImage class that can create am image
-        warm_containers bool
-            Determines if the warm containers is enabled or not.
+        observer
+            Optional observer for file watching
+        mount_symlinks bool
+            Optional. True if symlinks should be mounted in the container
+        no_mem_limit bool
+            Optional. True if memory limit should be disabled
+        no_watch bool
+            Optional. True if file watching should be disabled
         """
         self._function_configs = {}
         self._containers = {}
+        self._no_watch = no_watch
         self._container_lock = threading.Lock()  # Thread-safe container creation
 
-        self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
+        if no_watch:
+            self._observer = None
+        else:
+            self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
         super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
 
@@ -604,7 +616,7 @@ class WarmLambdaRuntime(LambdaRuntime):
                 if container:
                     self._container_manager.stop(container)
                     self._containers.pop(function_path, None)
-                if exist_function_config:
+                if exist_function_config and self._observer is not None:
                     self._observer.unwatch(exist_function_config)
                 container = None
 
@@ -612,9 +624,10 @@ class WarmLambdaRuntime(LambdaRuntime):
             elif container and container.is_created():
                 return container
 
-            # Create new container
-            self._observer.watch(function_config)
-            self._observer.start()
+            # Create new container; only watch/start observer when file watching is enabled
+            if self._observer is not None:
+                self._observer.watch(function_config)
+                self._observer.start()
 
             container = super().create(
                 function_config,
@@ -702,7 +715,8 @@ class WarmLambdaRuntime(LambdaRuntime):
         self._function_configs.clear()
 
         self._clean_decompressed_paths()
-        self._observer.stop()
+        if self._observer is not None:
+            self._observer.stop()
 
     def _on_code_change(self, functions):
         """
@@ -723,7 +737,8 @@ class WarmLambdaRuntime(LambdaRuntime):
                 function_full_path,
                 resource,
             )
-            self._observer.unwatch(function_config)
+            if self._observer is not None:
+                self._observer.unwatch(function_config)
             self._function_configs.pop(function_full_path, None)
             container = self._containers.get(function_full_path, None)
             if container:

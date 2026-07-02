@@ -750,6 +750,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 None,
                 False,
+                False,
                 (),
             )
 
@@ -817,6 +818,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ("image",),
                 None,
                 None,
+                False,
                 False,
                 (),
             )
@@ -942,6 +944,7 @@ class TestSamConfigForAllCommands(TestCase):
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
             "disable_rollback": True,
+            "express": True,
         }
 
         with samconfig_parameters(["deploy"], self.scratch_dir, **config_values) as config_path:
@@ -989,6 +992,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "ROLLBACK",
                 60,
+                True,
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -1105,6 +1109,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 "ROLLBACK",
                 60,
+                False,
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")
@@ -1293,6 +1298,7 @@ class TestSamConfigForAllCommands(TestCase):
             "region": "myregion",
             "signing_profiles": "function=profile:owner",
             "watch_exclude": {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
+            "express": True,
         }
 
         if use_container is not None:
@@ -1343,6 +1349,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 {"HelloWorld": ["file.txt", "other.txt"], "HelloMars": ["single.file"]},
                 None,
+                True,
             )
 
 
@@ -1470,6 +1477,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 None,
                 False,
+                False,
                 (),
             )
 
@@ -1574,6 +1582,7 @@ class TestSamConfigWithOverrides(TestCase):
                 None,
                 None,
                 True,
+                False,
                 (),
             )
 

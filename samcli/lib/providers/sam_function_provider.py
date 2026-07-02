@@ -893,6 +893,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        no_watch: Optional[bool] = False,
         language_extensions_enabled: bool = False,
     ) -> None:
         """
@@ -910,6 +911,8 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
+        :param bool no_watch: If True, skip creating the FileObserver entirely. The provider will not
+            detect template changes and stack/function refreshes will not be triggered.
         """
 
         # Store function_logical_ids before calling super().__init__
@@ -932,9 +935,13 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                 self.parent_templates_paths.append(stack.location)
 
         self.is_changed = False
-        self._observer = FileObserver(self._set_templates_changed)
-        self._observer.start()
-        self._watch_stack_templates(stacks)
+
+        self._observer: Optional[FileObserver] = None
+        # Only initialize file watcher when --no-watch is not set
+        if not no_watch:
+            self._observer = FileObserver(self._set_templates_changed)
+            self._observer.start()
+            self._watch_stack_templates(stacks)
 
     @property
     def stacks(self) -> List[Stack]:
@@ -997,15 +1004,17 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             ", ".join(paths),
         )
         self.is_changed = True
-        for stack in self._stacks:
-            self._observer.unwatch(stack.location)
+        if self._observer:
+            for stack in self._stacks:
+                self._observer.unwatch(stack.location)
 
     def _watch_stack_templates(self, stacks: List[Stack]) -> None:
         """
         initialize the list of stack template watchers
         """
-        for stack in stacks:
-            self._observer.watch(stack.location)
+        if self._observer:
+            for stack in stacks:
+                self._observer.watch(stack.location)
 
     def _refresh_loaded_functions(self) -> None:
         """
@@ -1042,4 +1051,5 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         """
         Stop Observing.
         """
-        self._observer.stop()
+        if self._observer:
+            self._observer.stop()

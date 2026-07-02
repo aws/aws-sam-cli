@@ -64,7 +64,7 @@ jobs:
         mkdir "D:\\Temp"
         echo "TEMP=D:\\Temp" >> $env:GITHUB_ENV  
       if: ${{ matrix.os == 'windows-latest' }}
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
       with:
         python-version: ${{ matrix.python }}
@@ -82,7 +82,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
         with:
           python-version: "3.11"
@@ -152,7 +152,7 @@ jobs:
             tests_config:
               name: "durable-functions"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -197,7 +197,6 @@ jobs:
         run: pytest -vv ${{ matrix.tests_config.params }}
         env:
           FORCE_RUN_DOCKER_TEST: ${{ matrix.tests_config.name == 'durable-functions' && '1' || '' }}
-          DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG: ${{ matrix.tests_config.name == 'durable-functions' && 'v1.1.1' || '' }}
 
   smoke-and-functional-tests:
     name: ${{ matrix.tests_config.name }} / ${{ matrix.tests_config.os }} / ${{ matrix.python }}
@@ -242,7 +241,7 @@ jobs:
             params: "-n 4 tests/smoke tests/functional"
             env_vars: "fourth-quarter"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
@@ -274,7 +273,7 @@ jobs:
           - ubuntu-latest
           - windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Set TEMP to D:/Temp
         run: |
           mkdir "D:\\Temp"
