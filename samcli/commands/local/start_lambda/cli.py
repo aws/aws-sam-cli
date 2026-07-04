@@ -109,6 +109,7 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    no_watch,
     language_extensions,
     no_memory_limit,
     container_dns,
@@ -146,6 +147,7 @@ def cli(
         hook_name,
         language_extensions,
         no_memory_limit,
+        no_watch,
         container_dns,
     )  # pragma: no cover
 
@@ -178,6 +180,7 @@ def do_cli(  # pylint: disable=R0914
     hook_name,
     language_extensions,
     no_mem_limit,
+    no_watch,
     container_dns,
 ):
     """
@@ -227,6 +230,7 @@ def do_cli(  # pylint: disable=R0914
             function_logical_ids=function_logical_ids,
             language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
+            no_watch=no_watch,
             container_dns=container_dns,
         ) as invoke_context:
             service = LocalLambdaService(lambda_invoke_context=invoke_context, port=port, host=host)

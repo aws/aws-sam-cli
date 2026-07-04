@@ -148,6 +148,7 @@ def cli(
     language_extensions,
     ssl_cert_file,
     ssl_key_file,
+    no_watch,
     no_memory_limit,
     container_dns,
 ):
@@ -187,6 +188,7 @@ def cli(
         ssl_cert_file,
         ssl_key_file,
         no_memory_limit,
+        no_watch,
         container_dns,
     )  # pragma: no cover
 
@@ -222,6 +224,7 @@ def do_cli(  # pylint: disable=R0914
     ssl_cert_file,
     ssl_key_file,
     no_mem_limit,
+    no_watch,
     container_dns,
 ):
     """
@@ -270,6 +273,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
+            no_watch=no_watch,
             container_dns=container_dns,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
