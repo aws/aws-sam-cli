@@ -1376,23 +1376,28 @@ Commands you can use next
 
     def _check_build_method_experimental_flag(self) -> None:
         """
-        Prints warning message and confirms if user wants to use beta feature
+        Prompts once per distinct experimental build method used by any function/layer.
         """
         EXPERIMENTAL_BUILD_METHODS = {
             "python-uv": ExperimentalFlag.UvPackageManager,
         }
 
         resources_to_build = self.get_resources_to_build()
-        for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
-                build_method = function.metadata.get("BuildMethod", "")
-                WARNING_MESSAGE = (
-                    f'Build method "{build_method}" is a beta feature.\n'
-                    "Please confirm if you would like to proceed\n"
-                    'You can also enable this beta feature with "sam build --beta-features".'
-                )
+        build_methods = {
+            function.metadata.get("BuildMethod", "") for function in resources_to_build.functions if function.metadata
+        }
+        build_methods.update(layer.build_method for layer in resources_to_build.layers if layer.build_method)
 
-                prompt_experimental(EXPERIMENTAL_BUILD_METHODS[build_method], WARNING_MESSAGE)
+        for build_method in build_methods:
+            if build_method not in EXPERIMENTAL_BUILD_METHODS:
+                continue
+            WARNING_MESSAGE = (
+                f'Build method "{build_method}" is a beta feature.\n'
+                "Please confirm if you would like to proceed\n"
+                'You can also enable this beta feature with "sam build --beta-features".'
+            )
+
+            prompt_experimental(EXPERIMENTAL_BUILD_METHODS[build_method], WARNING_MESSAGE)
 
     @property
     def build_in_source(self) -> Optional[bool]:
