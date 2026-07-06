@@ -678,7 +678,9 @@ class LocalApigwService(BaseLocalService):
 
         # check for LambdaAuthorizer since that is the only authorizer we currently support
         if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(request, route):
-            return ServiceErrorResponses.missing_lambda_auth_identity_sources()
+            return ServiceErrorResponses.missing_lambda_auth_identity_sources(
+                headers=self.api.get_gateway_response_headers("UNAUTHORIZED", 401)
+            )
 
         try:
             route_lambda_event = self._generate_lambda_event(request, route, method, endpoint)
@@ -688,7 +690,9 @@ class LocalApigwService(BaseLocalService):
                 auth_lambda_event = self._generate_lambda_authorizer_event(request, route, lambda_authorizer)
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
-            return ServiceErrorResponses.lambda_failure_response()
+            return ServiceErrorResponses.lambda_failure_response(
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 502)
+            )
 
         lambda_authorizer_exception = None
         try:
@@ -697,10 +701,14 @@ class LocalApigwService(BaseLocalService):
             if lambda_authorizer:
                 self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
         except AuthorizerUnauthorizedRequest as ex:
-            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized()
+            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized(
+                headers=self.api.get_gateway_response_headers("ACCESS_DENIED", 403)
+            )
             lambda_authorizer_exception = ex
         except InvalidLambdaAuthorizerResponse as ex:
-            auth_service_error = ServiceErrorResponses.lambda_failure_response()
+            auth_service_error = ServiceErrorResponses.lambda_failure_response(
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 502)
+            )
             lambda_authorizer_exception = ex
         except FunctionNotFound as ex:
             lambda_authorizer_exception = ex
@@ -750,12 +758,15 @@ class LocalApigwService(BaseLocalService):
                 "Inline code is not supported for sam local commands. Please write your code in a separate file."
             )
         except LambdaResponseParseException:
-            endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response(
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 500)
+            )
         except DockerContainerCreationFailedException as ex:
             endpoint_service_error = ServiceErrorResponses.container_creation_failed(ex.message)
         except MissingFunctionNameException as ex:
             endpoint_service_error = ServiceErrorResponses.lambda_failure_response(
                 f"Failed to execute endpoint. Got an invalid function name ({str(ex)})",
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 502),
             )
 
         if endpoint_service_error:
@@ -774,7 +785,9 @@ class LocalApigwService(BaseLocalService):
                 )
         except LambdaResponseParseException as ex:
             LOG.error("Invalid lambda response received: %s", ex)
-            return ServiceErrorResponses.lambda_failure_response()
+            return ServiceErrorResponses.lambda_failure_response(
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 502)
+            )
 
         # Add CORS headers to the response
         headers.update(cors_headers)

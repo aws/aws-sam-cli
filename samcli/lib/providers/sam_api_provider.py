@@ -140,6 +140,7 @@ class SamApiProvider(CfnBaseApiProvider):
         cors = self.extract_cors(properties.get("Cors", {}))
         stage_name = properties.get("StageName")
         stage_variables = properties.get("Variables")
+        gateway_responses = self._extract_gateway_responses(logical_id, properties.get("GatewayResponses", {}))
         if not body and not uri:
             # Swagger is not found anywhere.
             LOG.debug(
@@ -152,6 +153,7 @@ class SamApiProvider(CfnBaseApiProvider):
         collector.stage_name = stage_name
         collector.stage_variables = stage_variables
         collector.cors = cors
+        collector.gateway_responses = gateway_responses
 
         auth = properties.get(SamApiProvider._AUTH, {})
         if not auth or disable_authorizer:
@@ -163,6 +165,61 @@ class SamApiProvider(CfnBaseApiProvider):
             collector.set_default_authorizer(logical_id, default_authorizer)
 
         self._extract_authorizers_from_props(logical_id, auth, collector, Route.API)
+
+    @staticmethod
+    def _extract_gateway_responses(logical_id: str, gateway_responses: Dict) -> Dict[str, Dict[str, str]]:
+        """
+        Extracts the Headers configured under each GatewayResponse's ResponseParameters so they can be
+        applied to local error responses (e.g. Lambda Authorizer failures, unhandled Lambda exceptions)
+        the same way API Gateway applies them.
+
+        Parameters
+        ----------
+        logical_id: str
+            Logical ID of the AWS::Serverless::Api resource, used for warning messages
+        gateway_responses: dict
+            The GatewayResponses property dictionary, keyed by response type (e.g. "UNAUTHORIZED")
+
+        Returns
+        -------
+        dict
+            Dictionary of response type to a dictionary of header name/value pairs
+        """
+        if not gateway_responses or not isinstance(gateway_responses, dict):
+            return {}
+
+        extracted_responses: Dict[str, Dict[str, str]] = {}
+
+        for response_type, response in gateway_responses.items():
+            if not isinstance(response, dict):
+                LOG.warning(
+                    "Ignoring GatewayResponse '%s' on resource '%s', must be an object", response_type, logical_id
+                )
+                continue
+
+            response_headers = response.get("ResponseParameters", {}).get("Headers", {})
+            if not isinstance(response_headers, dict):
+                continue
+
+            extracted_headers = {}
+            for header_name, header_value in response_headers.items():
+                if not isinstance(header_value, str) or not (
+                    header_value.startswith("'") and header_value.endswith("'")
+                ):
+                    LOG.warning(
+                        "Ignoring GatewayResponses header '%s' for '%s' on resource '%s'. Header values must be "
+                        'a quoted string (i.e. "\'value\'" is correct, but "value" is not).',
+                        header_name,
+                        response_type,
+                        logical_id,
+                    )
+                    continue
+                extracted_headers[header_name] = header_value.strip("'")
+
+            if extracted_headers:
+                extracted_responses[response_type] = extracted_headers
+
+        return extracted_responses
 
     @staticmethod
     def _extract_request_lambda_authorizer(

@@ -1,6 +1,7 @@
 """Class container to hold common Service Responses"""
 
 import logging
+from typing import Optional
 
 from flask import Response, jsonify, make_response
 
@@ -22,7 +23,21 @@ class ServiceErrorResponses:
     HTTP_STATUS_CODE_400 = 400
 
     @staticmethod
-    def lambda_authorizer_unauthorized() -> Response:
+    def _add_headers(response: Response, headers: Optional[dict]) -> Response:
+        """
+        Adds the given headers (e.g. from a template's GatewayResponses configuration) to a Flask response
+
+        Returns
+        -------
+        Response
+            The same Flask Response object, with headers added
+        """
+        if headers:
+            response.headers.update(headers)
+        return response
+
+    @staticmethod
+    def lambda_authorizer_unauthorized(headers: Optional[dict] = None) -> Response:
         """
         Constructs a Flask response for when a route invokes a Lambda Authorizer, but
         is the identity sources provided are not authorized for that method
@@ -33,10 +48,11 @@ class ServiceErrorResponses:
             A Flask Response object
         """
         response_data = jsonify(ServiceErrorResponses._LAMBDA_AUTHORIZER_NOT_AUTHORIZED)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def missing_lambda_auth_identity_sources() -> Response:
+    def missing_lambda_auth_identity_sources(headers: Optional[dict] = None) -> Response:
         """
         Constructs a Flask response for when a route contains a Lambda Authorizer
         but is missing the required identity services
@@ -47,10 +63,11 @@ class ServiceErrorResponses:
             A Flask Response object
         """
         response_data = jsonify(ServiceErrorResponses._MISSING_LAMBDA_AUTH_IDENTITY_SOURCES)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_401)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_401)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def lambda_failure_response(*args):
+    def lambda_failure_response(*args, headers: Optional[dict] = None):
         """
         Helper function to create a Lambda Failure Response
 
@@ -58,17 +75,19 @@ class ServiceErrorResponses:
         """
         LOG.debug("Lambda execution failed %s", args)
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def lambda_body_failure_response(*args):
+    def lambda_body_failure_response(*args, headers: Optional[dict] = None):
         """
         Helper function to create a Lambda Body Failure Response
 
         :return: A Flask Response
         """
         response_data = jsonify(ServiceErrorResponses._LAMBDA_FAILURE)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_500)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_500)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
     def not_implemented_locally(message):
