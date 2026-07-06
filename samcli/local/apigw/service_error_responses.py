@@ -90,7 +90,7 @@ class ServiceErrorResponses:
         return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def not_implemented_locally(message):
+    def not_implemented_locally(message, headers: Optional[dict] = None):
         """
         Constructs a Flask Response for for when a Lambda function functionality is
         not implemented
@@ -99,17 +99,19 @@ class ServiceErrorResponses:
         """
         exception_dict = {"message": message}
         response_data = jsonify(exception_dict)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def lambda_not_found_response(*args):
+    def lambda_not_found_response(*args, headers: Optional[dict] = None):
         """
         Constructs a Flask Response for when a Lambda function is not found for an endpoint
 
         :return: a Flask Response
         """
         response_data = jsonify(ServiceErrorResponses._NO_LAMBDA_INTEGRATION)
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_502)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
     def route_not_found(*args):
@@ -123,16 +125,17 @@ class ServiceErrorResponses:
         return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_403)
 
     @staticmethod
-    def container_creation_failed(message):
+    def container_creation_failed(message, headers: Optional[dict] = None):
         """
         Constuct a Flask Response for when container creation fails for a Lambda Function
         :return: a Flask Response
         """
         response_data = jsonify({"message": message})
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_501)
+        return ServiceErrorResponses._add_headers(response, headers)
 
     @staticmethod
-    def tenant_id_validation_error(message: str) -> Response:
+    def tenant_id_validation_error(message: str, headers: Optional[dict] = None) -> Response:
         """
         Constructs a Flask Response for when tenant ID validation fails
 
@@ -147,4 +150,5 @@ class ServiceErrorResponses:
             A Flask Response object with HTTP 400 status
         """
         response_data = jsonify({"message": message})
-        return make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_400)
+        response = make_response(response_data, ServiceErrorResponses.HTTP_STATUS_CODE_400)
+        return ServiceErrorResponses._add_headers(response, headers)

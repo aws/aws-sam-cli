@@ -197,7 +197,11 @@ class SamApiProvider(CfnBaseApiProvider):
                 )
                 continue
 
-            response_headers = response.get("ResponseParameters", {}).get("Headers", {})
+            response_parameters = response.get("ResponseParameters") or {}
+            if not isinstance(response_parameters, dict):
+                continue
+
+            response_headers = response_parameters.get("Headers") or {}
             if not isinstance(response_headers, dict):
                 continue
 

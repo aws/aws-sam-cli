@@ -750,19 +750,26 @@ class LocalApigwService(BaseLocalService):
             # invoke the route's Lambda function
             lambda_response = self._invoke_lambda_function(route.function_name, route_lambda_event, tenant_id)
         except TenantIdValidationError as e:
-            endpoint_service_error = ServiceErrorResponses.tenant_id_validation_error(str(e))
+            endpoint_service_error = ServiceErrorResponses.tenant_id_validation_error(
+                str(e), headers=self.api.get_gateway_response_headers("DEFAULT_4XX", 400)
+            )
         except FunctionNotFound:
-            endpoint_service_error = ServiceErrorResponses.lambda_not_found_response()
+            endpoint_service_error = ServiceErrorResponses.lambda_not_found_response(
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 502)
+            )
         except UnsupportedInlineCodeError:
             endpoint_service_error = ServiceErrorResponses.not_implemented_locally(
-                "Inline code is not supported for sam local commands. Please write your code in a separate file."
+                "Inline code is not supported for sam local commands. Please write your code in a separate file.",
+                headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 501),
             )
         except LambdaResponseParseException:
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response(
                 headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 500)
             )
         except DockerContainerCreationFailedException as ex:
-            endpoint_service_error = ServiceErrorResponses.container_creation_failed(ex.message)
+            endpoint_service_error = ServiceErrorResponses.container_creation_failed(
+                ex.message, headers=self.api.get_gateway_response_headers("DEFAULT_5XX", 501)
+            )
         except MissingFunctionNameException as ex:
             endpoint_service_error = ServiceErrorResponses.lambda_failure_response(
                 f"Failed to execute endpoint. Got an invalid function name ({str(ex)})",
