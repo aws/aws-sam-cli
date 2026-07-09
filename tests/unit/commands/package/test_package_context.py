@@ -4610,29 +4610,33 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         result = expand_language_extensions(template_dict, param_values, enabled=True)
 
         def fake_image_export(self, resource_id, resource_dict, parent_dir):
-            set_value_from_jmespath(
-                resource_dict, self.PROPERTY_NAME, f"repo:{resource_id}-latest"
-            )
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, f"repo:{resource_id}-latest")
 
         with patch.object(pr.ResourceImage, "do_export", fake_image_export):
             template = Template(
-                "t.yaml", ".", Uploaders(object(), object()), None,
-                normalize_template=True, normalize_parameters=True,
+                "t.yaml",
+                ".",
+                Uploaders(object(), object()),
+                None,
+                normalize_template=True,
+                normalize_parameters=True,
                 template_dict=copy.deepcopy(result.expanded_template),
-                parameter_values=param_values, language_extensions_enabled=True,
+                parameter_values=param_values,
+                language_extensions_enabled=True,
             )
             exported = template.export()
 
         deferred = []
         output = merge_language_extensions_s3_uris(
-            result.original_template, exported, result.dynamic_artifact_properties,
-            parameter_values=param_values, deferred_dynamic=deferred,
+            result.original_template,
+            exported,
+            result.dynamic_artifact_properties,
+            parameter_values=param_values,
+            deferred_dynamic=deferred,
         )
         all_dynamic = list(result.dynamic_artifact_properties or []) + deferred
         if all_dynamic:
-            output = generate_and_apply_artifact_mappings(
-                output, all_dynamic, exported.get("Resources", {}), "."
-            )
+            output = generate_and_apply_artifact_mappings(output, all_dynamic, exported.get("Resources", {}), ".")
         return output
 
     def test_multivalue_ref_image_generates_findinmap(self):
@@ -4653,6 +4657,7 @@ class TestForEachImagePackagingEndToEnd(TestCase):
             },
         }
         from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+
         output = self._run(template, {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES})
 
         body = output["Resources"]["Fn::ForEach::LoopFunction"][2]["${FunctionName}Function"]["Properties"]
@@ -4676,23 +4681,25 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         from samcli.yamlhelper import yaml_dump
         import samcli.lib.package.packageable_resources as pr
 
-        template_str = yaml_dump({
-            "AWSTemplateFormatVersion": "2010-09-09",
-            "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
-            "Parameters": {"FuncType": {"Type": "CommaDelimitedList", "Default": "func1,func2"}},
-            "Resources": {
-                "Fn::ForEach::LoopFunction": [
-                    "FunctionName",
-                    {"Ref": "FuncType"},
-                    {
-                        "${FunctionName}Function": {
-                            "Type": "AWS::Serverless::Function",
-                            "Properties": {"PackageType": "Image", "ImageUri": "foo"},
-                        }
-                    },
-                ]
-            },
-        })
+        template_str = yaml_dump(
+            {
+                "AWSTemplateFormatVersion": "2010-09-09",
+                "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
+                "Parameters": {"FuncType": {"Type": "CommaDelimitedList", "Default": "func1,func2"}},
+                "Resources": {
+                    "Fn::ForEach::LoopFunction": [
+                        "FunctionName",
+                        {"Ref": "FuncType"},
+                        {
+                            "${FunctionName}Function": {
+                                "Type": "AWS::Serverless::Function",
+                                "Properties": {"PackageType": "Image", "ImageUri": "foo"},
+                            }
+                        },
+                    ]
+                },
+            }
+        )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as tf:
             tf.write(template_str)
@@ -4753,27 +4760,34 @@ class TestForEachImagePackagingEndToEnd(TestCase):
 
         with patch.object(pr.ResourceWithS3UrlDict, "do_export", fake_zip_export):
             template = Template(
-                "t.yaml", ".", Uploaders(object(), object()), None,
-                normalize_template=True, normalize_parameters=True,
+                "t.yaml",
+                ".",
+                Uploaders(object(), object()),
+                None,
+                normalize_template=True,
+                normalize_parameters=True,
                 template_dict=copy.deepcopy(result.expanded_template),
-                parameter_values=param_values, language_extensions_enabled=True,
+                parameter_values=param_values,
+                language_extensions_enabled=True,
             )
             exported = template.export()
 
         deferred = []
         output = merge_language_extensions_s3_uris(
-            result.original_template, exported, result.dynamic_artifact_properties,
-            parameter_values=param_values, deferred_dynamic=deferred,
+            result.original_template,
+            exported,
+            result.dynamic_artifact_properties,
+            parameter_values=param_values,
+            deferred_dynamic=deferred,
         )
         all_dynamic = list(result.dynamic_artifact_properties or []) + deferred
         if all_dynamic:
-            output = generate_and_apply_artifact_mappings(
-                output, all_dynamic, exported.get("Resources", {}), "."
-            )
+            output = generate_and_apply_artifact_mappings(output, all_dynamic, exported.get("Resources", {}), ".")
         return output
 
     def test_ref_collection_statemachine_definitionuri_rewritten(self):
         from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+
         template = {
             "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
             "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},

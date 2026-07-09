@@ -361,14 +361,10 @@ def _merge_or_defer_foreach_artifacts(
         # resulting CloudFormation stays valid.
         resolved: List[Tuple[str, Any]] = []
         for value in collection_values:
-            expanded_key = _build_expanded_key(
-                resource_template_key, loop_variable, [value], outer_context
-            )
+            expanded_key = _build_expanded_key(resource_template_key, loop_variable, [value], outer_context)
             if not expanded_key:
                 continue
-            uri = _find_artifact_uri_for_resource(
-                exported_resources, expanded_key, resource_type, prop_name
-            )
+            uri = _find_artifact_uri_for_resource(exported_resources, expanded_key, resource_type, prop_name)
             if uri is None:
                 continue
             exported_resource = exported_resources.get(expanded_key, {})

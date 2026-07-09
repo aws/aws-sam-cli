@@ -1517,14 +1517,15 @@ class TestForEachValueDrivenMerge(TestCase):
     def test_identical_uris_copied_as_static(self):
         foreach_value = self._foreach("CodeUri", "src")
         exported_resources = {
-            "func1Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"CodeUri": "s3://bucket/SAME"}},
-            "func2Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"CodeUri": "s3://bucket/SAME"}},
+            "func1Function": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "s3://bucket/SAME"}},
+            "func2Function": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "s3://bucket/SAME"}},
         }
         deferred = []
         _update_foreach_with_s3_uris(
-            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            None,
             deferred_dynamic=deferred,
         )
         props = foreach_value[2]["${FunctionName}Function"]["Properties"]
@@ -1534,14 +1535,21 @@ class TestForEachValueDrivenMerge(TestCase):
     def test_differing_uris_deferred_not_copied(self):
         foreach_value = self._foreach("ImageUri", "foo")
         exported_resources = {
-            "func1Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"ImageUri": "repo:func1Function-latest"}},
-            "func2Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"ImageUri": "repo:func2Function-latest"}},
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func1Function-latest"},
+            },
+            "func2Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func2Function-latest"},
+            },
         }
         deferred = []
         _update_foreach_with_s3_uris(
-            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            None,
             deferred_dynamic=deferred,
         )
         props = foreach_value[2]["${FunctionName}Function"]["Properties"]
@@ -1555,10 +1563,14 @@ class TestForEachValueDrivenMerge(TestCase):
     def test_differing_uris_without_accumulator_falls_back_to_copy(self):
         foreach_value = self._foreach("ImageUri", "foo")
         exported_resources = {
-            "func1Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"ImageUri": "repo:func1Function-latest"}},
-            "func2Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"ImageUri": "repo:func2Function-latest"}},
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func1Function-latest"},
+            },
+            "func2Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func2Function-latest"},
+            },
         }
         _update_foreach_with_s3_uris("Fn::ForEach::L", foreach_value, exported_resources, None)
         props = foreach_value[2]["${FunctionName}Function"]["Properties"]
@@ -1567,15 +1579,16 @@ class TestForEachValueDrivenMerge(TestCase):
     def test_dynamic_prop_key_still_skipped(self):
         foreach_value = self._foreach("CodeUri", "${FunctionName}/")
         exported_resources = {
-            "func1Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"CodeUri": "s3://bucket/func1"}},
-            "func2Function": {"Type": "AWS::Serverless::Function",
-                              "Properties": {"CodeUri": "s3://bucket/func2"}},
+            "func1Function": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "s3://bucket/func1"}},
+            "func2Function": {"Type": "AWS::Serverless::Function", "Properties": {"CodeUri": "s3://bucket/func2"}},
         }
         deferred = []
         _update_foreach_with_s3_uris(
-            "Fn::ForEach::L", foreach_value, exported_resources,
-            {("Fn::ForEach::L", "CodeUri")}, deferred_dynamic=deferred,
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            {("Fn::ForEach::L", "CodeUri")},
+            deferred_dynamic=deferred,
         )
         props = foreach_value[2]["${FunctionName}Function"]["Properties"]
         self.assertEqual(props["CodeUri"], "${FunctionName}/")
@@ -1595,14 +1608,21 @@ class TestForEachValueDrivenMerge(TestCase):
             },
         ]
         exported_resources = {
-            "func1Function": {"Type": "AWS::Lambda::Function",
-                              "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}}},
-            "func2Function": {"Type": "AWS::Lambda::Function",
-                              "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}}},
+            "func1Function": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}},
+            },
+            "func2Function": {
+                "Type": "AWS::Lambda::Function",
+                "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}},
+            },
         }
         deferred = []
         _update_foreach_with_s3_uris(
-            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            None,
             deferred_dynamic=deferred,
         )
         code = foreach_value[2]["${FunctionName}Function"]["Properties"]["Code"]
@@ -1633,16 +1653,18 @@ class TestMergeThreadsParametersAndDeferred(TestCase):
         }
         exported = {
             "Resources": {
-                "func1Function": {"Type": "AWS::Serverless::Function",
-                                  "Properties": {"ImageUri": "repo:func1Function-latest"}},
-                "func2Function": {"Type": "AWS::Serverless::Function",
-                                  "Properties": {"ImageUri": "repo:func2Function-latest"}},
+                "func1Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"ImageUri": "repo:func1Function-latest"},
+                },
+                "func2Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"ImageUri": "repo:func2Function-latest"},
+                },
             }
         }
         deferred = []
-        result = merge_language_extensions_s3_uris(
-            original, exported, None, deferred_dynamic=deferred
-        )
+        result = merge_language_extensions_s3_uris(original, exported, None, deferred_dynamic=deferred)
         body = result["Resources"]["Fn::ForEach::L"][2]["${FunctionName}Function"]["Properties"]
         # Differing image URIs deferred; body value untouched pre-Mapping.
         self.assertEqual(body["ImageUri"], "foo")
@@ -1676,6 +1698,7 @@ class TestForEachArtifactShapes(TestCase):
                 cur = cur.setdefault(p, {})
             cur[parts[-1]] = v
             return {"Type": resource_type, "Properties": props}
+
         return {"aRes": mk(val_a), "bRes": mk(val_b)}
 
     def _leaf(self, props, prop_path):
@@ -1687,8 +1710,7 @@ class TestForEachArtifactShapes(TestCase):
     # --- string URI shape (CodeUri, DefinitionUri) ---
     def test_string_uri_identical_copies(self):
         fe = self._body("AWS::Serverless::StateMachine", "DefinitionUri", "def.asl.json")
-        exp = self._exported("AWS::Serverless::StateMachine", "DefinitionUri",
-                             "s3://b/SAME", "s3://b/SAME")
+        exp = self._exported("AWS::Serverless::StateMachine", "DefinitionUri", "s3://b/SAME", "s3://b/SAME")
         deferred = []
         _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
         self.assertEqual(self._leaf(fe[2]["${Name}Res"]["Properties"], "DefinitionUri"), "s3://b/SAME")
@@ -1697,8 +1719,7 @@ class TestForEachArtifactShapes(TestCase):
     # --- dotted path shape (Code.ImageUri, Command.ScriptLocation) ---
     def test_dotted_imageuri_differing_defers(self):
         fe = self._body("AWS::Lambda::Function", "Code.ImageUri", "foo")
-        exp = self._exported("AWS::Lambda::Function", "Code.ImageUri",
-                             "repo:aRes", "repo:bRes")
+        exp = self._exported("AWS::Lambda::Function", "Code.ImageUri", "repo:aRes", "repo:bRes")
         deferred = []
         _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
         self.assertEqual(len(deferred), 1)
@@ -1706,8 +1727,7 @@ class TestForEachArtifactShapes(TestCase):
 
     def test_dotted_scriptlocation_identical_copies(self):
         fe = self._body("AWS::Glue::Job", "Command.ScriptLocation", "script.py")
-        exp = self._exported("AWS::Glue::Job", "Command.ScriptLocation",
-                             "s3://b/SAME", "s3://b/SAME")
+        exp = self._exported("AWS::Glue::Job", "Command.ScriptLocation", "s3://b/SAME", "s3://b/SAME")
         deferred = []
         _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
         self.assertEqual(self._leaf(fe[2]["${Name}Res"]["Properties"], "Command.ScriptLocation"), "s3://b/SAME")
@@ -1716,8 +1736,7 @@ class TestForEachArtifactShapes(TestCase):
     # --- image tag shape (ImageUri) ---
     def test_imageuri_differing_defers(self):
         fe = self._body("AWS::Serverless::Function", "ImageUri", "foo")
-        exp = self._exported("AWS::Serverless::Function", "ImageUri",
-                             "repo:aFunc", "repo:bFunc")
+        exp = self._exported("AWS::Serverless::Function", "ImageUri", "repo:aFunc", "repo:bFunc")
         deferred = []
         _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
         self.assertEqual(len(deferred), 1)
@@ -1725,9 +1744,12 @@ class TestForEachArtifactShapes(TestCase):
     # --- structured object shape ({S3Bucket,S3Key}) ---
     def test_structured_content_identical_preserves_object(self):
         fe = self._body("AWS::Lambda::LayerVersion", "Content", "layer/")
-        exp = self._exported("AWS::Lambda::LayerVersion", "Content",
-                             {"S3Bucket": "b", "S3Key": "SAME"},
-                             {"S3Bucket": "b", "S3Key": "SAME"})
+        exp = self._exported(
+            "AWS::Lambda::LayerVersion",
+            "Content",
+            {"S3Bucket": "b", "S3Key": "SAME"},
+            {"S3Bucket": "b", "S3Key": "SAME"},
+        )
         deferred = []
         _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
         # Identical across iterations -> copy the RAW object shape (not a normalized s3:// string).
@@ -1765,15 +1787,17 @@ class TestForEachNestedStaticImageLimitation(TestCase):
             },
         ]
         exported = {
-            "devUsersFunction": {"Type": "AWS::Serverless::Function",
-                                 "Properties": {"ImageUri": "repo:devUsersFunction"}},
-            "devOrdersFunction": {"Type": "AWS::Serverless::Function",
-                                  "Properties": {"ImageUri": "repo:devOrdersFunction"}},
+            "devUsersFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:devUsersFunction"},
+            },
+            "devOrdersFunction": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:devOrdersFunction"},
+            },
         }
         deferred = []
-        _update_foreach_with_s3_uris(
-            "Fn::ForEach::Env", foreach_value, exported, None, deferred_dynamic=deferred
-        )
+        _update_foreach_with_s3_uris("Fn::ForEach::Env", foreach_value, exported, None, deferred_dynamic=deferred)
         inner = foreach_value[2]["Fn::ForEach::Svc"][2]["${Env}${Svc}Function"]["Properties"]
         # Legacy fallback copies the first inner iteration's URI; nothing deferred.
         self.assertEqual(inner["ImageUri"], "repo:devUsersFunction")
