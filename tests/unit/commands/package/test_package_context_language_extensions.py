@@ -1497,3 +1497,114 @@ class TestForEachRefCollectionResolution(TestCase):
         )
         props = foreach_value[2]["${FunctionName}Function"]["Properties"]
         self.assertEqual(props["CodeUri"], "s3://bucket/SAMEHASH")
+
+
+class TestForEachValueDrivenMerge(TestCase):
+    """Per-iteration URI comparison: identical -> copy; differing -> defer to Mappings."""
+
+    def _foreach(self, prop_name, static_value):
+        return [
+            "FunctionName",
+            ["func1", "func2"],
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {prop_name: static_value},
+                }
+            },
+        ]
+
+    def test_identical_uris_copied_as_static(self):
+        foreach_value = self._foreach("CodeUri", "src")
+        exported_resources = {
+            "func1Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"CodeUri": "s3://bucket/SAME"}},
+            "func2Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"CodeUri": "s3://bucket/SAME"}},
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            deferred_dynamic=deferred,
+        )
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["CodeUri"], "s3://bucket/SAME")
+        self.assertEqual(deferred, [])
+
+    def test_differing_uris_deferred_not_copied(self):
+        foreach_value = self._foreach("ImageUri", "foo")
+        exported_resources = {
+            "func1Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"ImageUri": "repo:func1Function-latest"}},
+            "func2Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"ImageUri": "repo:func2Function-latest"}},
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            deferred_dynamic=deferred,
+        )
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["ImageUri"], "foo")
+        self.assertEqual(len(deferred), 1)
+        self.assertEqual(deferred[0].property_name, "ImageUri")
+        self.assertEqual(deferred[0].resource_key, "${FunctionName}Function")
+        self.assertEqual(deferred[0].loop_variable, "FunctionName")
+        self.assertEqual(deferred[0].collection, ["func1", "func2"])
+
+    def test_differing_uris_without_accumulator_falls_back_to_copy(self):
+        foreach_value = self._foreach("ImageUri", "foo")
+        exported_resources = {
+            "func1Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"ImageUri": "repo:func1Function-latest"}},
+            "func2Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"ImageUri": "repo:func2Function-latest"}},
+        }
+        _update_foreach_with_s3_uris("Fn::ForEach::L", foreach_value, exported_resources, None)
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["ImageUri"], "repo:func1Function-latest")
+
+    def test_dynamic_prop_key_still_skipped(self):
+        foreach_value = self._foreach("CodeUri", "${FunctionName}/")
+        exported_resources = {
+            "func1Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"CodeUri": "s3://bucket/func1"}},
+            "func2Function": {"Type": "AWS::Serverless::Function",
+                              "Properties": {"CodeUri": "s3://bucket/func2"}},
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L", foreach_value, exported_resources,
+            {("Fn::ForEach::L", "CodeUri")}, deferred_dynamic=deferred,
+        )
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["CodeUri"], "${FunctionName}/")
+        self.assertEqual(deferred, [])
+
+    def test_identical_dict_form_artifact_preserves_object_shape(self):
+        # Raw AWS::Lambda::Function.Code is a {S3Bucket,S3Key} object, not a string.
+        # Identical across iterations must copy the OBJECT, not a normalized s3:// string.
+        foreach_value = [
+            "FunctionName",
+            ["func1", "func2"],
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Lambda::Function",
+                    "Properties": {"Code": {"S3Bucket": "b", "S3Key": "local"}},
+                }
+            },
+        ]
+        exported_resources = {
+            "func1Function": {"Type": "AWS::Lambda::Function",
+                              "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}}},
+            "func2Function": {"Type": "AWS::Lambda::Function",
+                              "Properties": {"Code": {"S3Bucket": "b", "S3Key": "SAME"}}},
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L", foreach_value, exported_resources, None,
+            deferred_dynamic=deferred,
+        )
+        code = foreach_value[2]["${FunctionName}Function"]["Properties"]["Code"]
+        self.assertEqual(code, {"S3Bucket": "b", "S3Key": "SAME"})
+        self.assertEqual(deferred, [])

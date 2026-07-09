@@ -286,11 +286,98 @@ def _update_foreach_with_s3_uris(
         exported_resource = exported_resources[expanded_key]
         if not isinstance(exported_resource, dict):
             continue
-        exported_props = exported_resource.get("Properties", {})
 
-        _copy_artifact_uris_for_type(
-            properties, exported_props, resource_template.get("Type", ""), foreach_key, dynamic_prop_keys
+        resource_type = resource_template.get("Type", "")
+        _merge_or_defer_foreach_artifacts(
+            properties=properties,
+            resource_type=resource_type,
+            resource_template_key=resource_template_key,
+            foreach_key=foreach_key,
+            loop_variable=loop_variable,
+            collection_values=collection_values,
+            outer_context=outer_context,
+            exported_resources=exported_resources,
+            dynamic_prop_keys=dynamic_prop_keys,
+            deferred_dynamic=deferred_dynamic,
         )
+
+
+def _merge_or_defer_foreach_artifacts(
+    properties: Dict[str, Any],
+    resource_type: str,
+    resource_template_key: str,
+    foreach_key: str,
+    loop_variable: str,
+    collection_values: List[str],
+    outer_context: Optional[List[Tuple[str, List[str]]]],
+    exported_resources: Dict[str, Any],
+    dynamic_prop_keys: Optional[set],
+    deferred_dynamic: Optional[List],
+) -> None:
+    """Decide, per artifact property, whether all Fn::ForEach iterations resolved
+    to the same exported URI (static copy) or to distinct URIs (defer to Mappings).
+
+    - All iterations identical  -> copy the shared raw value onto the ForEach body.
+    - Iterations differ          -> append a synthetic DynamicArtifactProperty to
+      ``deferred_dynamic`` (handled later by generate_and_apply_artifact_mappings)
+      and leave the body value untouched.
+    - No accumulator / nested loop -> fall back to copying the first resolved
+      iteration's value (legacy behavior); nested ForEach with static differing
+      values is a documented limitation.
+    """
+    prop_names = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type)
+    if not prop_names:
+        return
+
+    for prop_name in _resolve_property_paths(prop_names, properties):
+        # Loop-variable properties are handled by the existing dynamic path.
+        if dynamic_prop_keys and (foreach_key, prop_name) in dynamic_prop_keys:
+            continue
+
+        # Track each iteration's normalized URI (for the identical-vs-differing
+        # comparison) paired with the RAW exported value (for copying). The
+        # comparison uses the normalized string, but the value written back must
+        # preserve the original shape (e.g. a {S3Bucket, S3Key} object) so the
+        # resulting CloudFormation stays valid.
+        resolved: List[Tuple[str, Any]] = []
+        for value in collection_values:
+            expanded_key = _build_expanded_key(
+                resource_template_key, loop_variable, [value], outer_context
+            )
+            if not expanded_key:
+                continue
+            uri = _find_artifact_uri_for_resource(
+                exported_resources, expanded_key, resource_type, prop_name
+            )
+            if uri is None:
+                continue
+            exported_resource = exported_resources.get(expanded_key, {})
+            raw = _get_prop_value(exported_resource.get("Properties", {}), prop_name)
+            resolved.append((uri, raw))
+
+        if not resolved:
+            continue
+
+        distinct_uris = {uri for uri, _ in resolved}
+        first_raw = resolved[0][1]
+        if len(distinct_uris) == 1:
+            _set_prop_value(properties, prop_name, first_raw)
+        elif deferred_dynamic is not None and not outer_context:
+            deferred_dynamic.append(
+                DynamicArtifactProperty(
+                    foreach_key=foreach_key,
+                    loop_name=foreach_key.replace("Fn::ForEach::", ""),
+                    loop_variable=loop_variable,
+                    collection=collection_values,
+                    resource_key=resource_template_key,
+                    resource_type=resource_type,
+                    property_name=prop_name,
+                    property_value=_get_prop_value(properties, prop_name),
+                    outer_loops=[],
+                )
+            )
+        else:
+            _set_prop_value(properties, prop_name, first_raw)
 
 
 def _build_expanded_key(
