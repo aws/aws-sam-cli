@@ -1648,3 +1648,91 @@ class TestMergeThreadsParametersAndDeferred(TestCase):
         self.assertEqual(body["ImageUri"], "foo")
         self.assertEqual(len(deferred), 1)
         self.assertEqual(deferred[0].property_name, "ImageUri")
+
+
+class TestForEachArtifactShapes(TestCase):
+    """Decision matrix across the packageable artifact value shapes."""
+
+    def _body(self, resource_type, prop_path, value):
+        # prop_path may be dotted (e.g. "Code.ImageUri"); build nested dict.
+        props: dict = {}
+        cur = props
+        parts = prop_path.split(".")
+        for p in parts[:-1]:
+            cur = cur.setdefault(p, {})
+        cur[parts[-1]] = value
+        return [
+            "Name",
+            ["a", "b"],
+            {"${Name}Res": {"Type": resource_type, "Properties": props}},
+        ]
+
+    def _exported(self, resource_type, prop_path, val_a, val_b):
+        def mk(v):
+            props: dict = {}
+            cur = props
+            parts = prop_path.split(".")
+            for p in parts[:-1]:
+                cur = cur.setdefault(p, {})
+            cur[parts[-1]] = v
+            return {"Type": resource_type, "Properties": props}
+        return {"aRes": mk(val_a), "bRes": mk(val_b)}
+
+    def _leaf(self, props, prop_path):
+        cur = props
+        for p in prop_path.split("."):
+            cur = cur[p]
+        return cur
+
+    # --- string URI shape (CodeUri, DefinitionUri) ---
+    def test_string_uri_identical_copies(self):
+        fe = self._body("AWS::Serverless::StateMachine", "DefinitionUri", "def.asl.json")
+        exp = self._exported("AWS::Serverless::StateMachine", "DefinitionUri",
+                             "s3://b/SAME", "s3://b/SAME")
+        deferred = []
+        _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
+        self.assertEqual(self._leaf(fe[2]["${Name}Res"]["Properties"], "DefinitionUri"), "s3://b/SAME")
+        self.assertEqual(deferred, [])
+
+    # --- dotted path shape (Code.ImageUri, Command.ScriptLocation) ---
+    def test_dotted_imageuri_differing_defers(self):
+        fe = self._body("AWS::Lambda::Function", "Code.ImageUri", "foo")
+        exp = self._exported("AWS::Lambda::Function", "Code.ImageUri",
+                             "repo:aRes", "repo:bRes")
+        deferred = []
+        _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
+        self.assertEqual(len(deferred), 1)
+        self.assertEqual(deferred[0].property_name, "Code.ImageUri")
+
+    def test_dotted_scriptlocation_identical_copies(self):
+        fe = self._body("AWS::Glue::Job", "Command.ScriptLocation", "script.py")
+        exp = self._exported("AWS::Glue::Job", "Command.ScriptLocation",
+                             "s3://b/SAME", "s3://b/SAME")
+        deferred = []
+        _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
+        self.assertEqual(self._leaf(fe[2]["${Name}Res"]["Properties"], "Command.ScriptLocation"), "s3://b/SAME")
+        self.assertEqual(deferred, [])
+
+    # --- image tag shape (ImageUri) ---
+    def test_imageuri_differing_defers(self):
+        fe = self._body("AWS::Serverless::Function", "ImageUri", "foo")
+        exp = self._exported("AWS::Serverless::Function", "ImageUri",
+                             "repo:aFunc", "repo:bFunc")
+        deferred = []
+        _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
+        self.assertEqual(len(deferred), 1)
+
+    # --- structured object shape ({S3Bucket,S3Key}) ---
+    def test_structured_content_identical_preserves_object(self):
+        fe = self._body("AWS::Lambda::LayerVersion", "Content", "layer/")
+        exp = self._exported("AWS::Lambda::LayerVersion", "Content",
+                             {"S3Bucket": "b", "S3Key": "SAME"},
+                             {"S3Bucket": "b", "S3Key": "SAME"})
+        deferred = []
+        _update_foreach_with_s3_uris("Fn::ForEach::L", fe, exp, None, deferred_dynamic=deferred)
+        # Identical across iterations -> copy the RAW object shape (not a normalized s3:// string).
+        self.assertEqual(
+            self._leaf(fe[2]["${Name}Res"]["Properties"], "Content"),
+            {"S3Bucket": "b", "S3Key": "SAME"},
+        )
+        self.assertEqual(deferred, [])
