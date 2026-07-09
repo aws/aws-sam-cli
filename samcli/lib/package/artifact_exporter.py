@@ -375,21 +375,25 @@ class CloudFormationStackResource(ResourceZip):
 
             exported_template = template.export()
 
+            deferred_dynamic: List = []
             exported_template_dict = merge_language_extensions_s3_uris(
                 result.original_template,
                 exported_template,
                 result.dynamic_artifact_properties,
+                parameter_values=parameter_values,
+                deferred_dynamic=deferred_dynamic,
             )
 
-            if result.dynamic_artifact_properties:
+            all_dynamic_properties = list(result.dynamic_artifact_properties or []) + deferred_dynamic
+            if all_dynamic_properties:
                 LOG.debug(
                     "Generating Mappings for %d dynamic artifact properties in child template",
-                    len(result.dynamic_artifact_properties),
+                    len(all_dynamic_properties),
                 )
                 exported_resources = exported_template.get("Resources", {})
                 exported_template_dict = generate_and_apply_artifact_mappings(
                     exported_template_dict,
-                    result.dynamic_artifact_properties,
+                    all_dynamic_properties,
                     exported_resources,
                     child_template_dir,
                 )
