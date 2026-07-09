@@ -23,6 +23,7 @@ from samcli.lib.cfn_language_extensions.models import (
 )
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
+    resolve_collection,
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
@@ -228,6 +229,9 @@ def _update_foreach_with_s3_uris(
     exported_resources: Dict[str, Any],
     dynamic_prop_keys: Optional[set] = None,
     outer_context: Optional[List[Tuple[str, List[str]]]] = None,
+    template: Optional[Dict[str, Any]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> None:
     """
     Update artifact URIs in a Fn::ForEach construct.
@@ -245,9 +249,7 @@ def _update_foreach_with_s3_uris(
     if not isinstance(loop_variable, str) or not isinstance(body, dict):
         return
 
-    collection_values: List[str] = []
-    if isinstance(collection, list):
-        collection_values = [str(item) for item in collection if item is not None]
+    collection_values = resolve_collection(collection, template or {}, parameter_values)
 
     if outer_context is None:
         outer_context = []
@@ -261,6 +263,9 @@ def _update_foreach_with_s3_uris(
                 exported_resources,
                 dynamic_prop_keys,
                 outer_context=current_outer_context,
+                template=template,
+                parameter_values=parameter_values,
+                deferred_dynamic=deferred_dynamic,
             )
             continue
 

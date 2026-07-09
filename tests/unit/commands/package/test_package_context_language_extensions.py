@@ -1436,3 +1436,64 @@ class TestCrossContextCollision(TestCase):
         # No suffixed variants
         self.assertNotIn("SAMDefinitionUriRegionAPIsServicesApi", mappings)
         self.assertNotIn("SAMDefinitionUriEnvAPIsServicesApi", mappings)
+
+
+class TestForEachRefCollectionResolution(TestCase):
+    """Ref-based Fn::ForEach collections must resolve so static artifacts get rewritten."""
+
+    def test_ref_collection_single_value_rewrites_static_imageuri(self):
+        foreach_value = [
+            "FunctionName",
+            {"Ref": "FuncType"},
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"ImageUri": "foo"},
+                }
+            },
+        ]
+        exported_resources = {
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "123.dkr.ecr.us-east-1.amazonaws.com/r:func1Function-latest"},
+            },
+        }
+        template = {"Parameters": {"FuncType": {"Default": "func1"}}}
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::LoopFunction",
+            foreach_value,
+            exported_resources,
+            None,
+            template=template,
+        )
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["ImageUri"], "123.dkr.ecr.us-east-1.amazonaws.com/r:func1Function-latest")
+
+    def test_ref_collection_uses_parameter_overrides(self):
+        foreach_value = [
+            "FunctionName",
+            {"Ref": "FuncType"},
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": "src"},
+                }
+            },
+        ]
+        exported_resources = {
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"CodeUri": "s3://bucket/SAMEHASH"},
+            },
+        }
+        template = {"Parameters": {"FuncType": {"Default": "unused"}}}
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::LoopFunction",
+            foreach_value,
+            exported_resources,
+            None,
+            template=template,
+            parameter_values={"FuncType": ["func1"]},
+        )
+        props = foreach_value[2]["${FunctionName}Function"]["Properties"]
+        self.assertEqual(props["CodeUri"], "s3://bucket/SAMEHASH")
