@@ -271,6 +271,17 @@ def _update_foreach_with_s3_uris(
 
     collection_values = resolve_collection(collection, template or {}, parameter_values)
 
+    # Detect whether the collection is a parameter reference so deferred artifacts
+    # carry the metadata that warn_parameter_based_collections uses to advise
+    # re-packaging (mirrors detect_foreach_dynamic_properties in sam_integration.py).
+    collection_is_parameter_ref = False
+    collection_parameter_name: Optional[str] = None
+    if isinstance(collection, dict) and "Ref" in collection:
+        param_name = collection["Ref"]
+        if param_name in (template or {}).get("Parameters", {}):
+            collection_is_parameter_ref = True
+            collection_parameter_name = param_name
+
     if outer_context is None:
         outer_context = []
     current_outer_context = outer_context + [(loop_variable, collection_values)]
@@ -319,6 +330,8 @@ def _update_foreach_with_s3_uris(
             exported_resources=exported_resources,
             dynamic_prop_keys=dynamic_prop_keys,
             deferred_dynamic=deferred_dynamic,
+            collection_is_parameter_ref=collection_is_parameter_ref,
+            collection_parameter_name=collection_parameter_name,
         )
 
 
@@ -333,6 +346,8 @@ def _merge_or_defer_foreach_artifacts(
     exported_resources: Dict[str, Any],
     dynamic_prop_keys: Optional[set],
     deferred_dynamic: Optional[List],
+    collection_is_parameter_ref: bool = False,
+    collection_parameter_name: Optional[str] = None,
 ) -> None:
     """Decide, per artifact property, whether all Fn::ForEach iterations resolved
     to the same exported URI (static copy) or to distinct URIs (defer to Mappings).
@@ -390,6 +405,8 @@ def _merge_or_defer_foreach_artifacts(
                     property_name=prop_name,
                     property_value=_get_prop_value(properties, prop_name),
                     outer_loops=[],
+                    collection_is_parameter_ref=collection_is_parameter_ref,
+                    collection_parameter_name=collection_parameter_name,
                 )
             )
         else:

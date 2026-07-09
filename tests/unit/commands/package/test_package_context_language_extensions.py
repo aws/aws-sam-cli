@@ -1629,6 +1629,76 @@ class TestForEachValueDrivenMerge(TestCase):
         self.assertEqual(code, {"S3Bucket": "b", "S3Key": "SAME"})
         self.assertEqual(deferred, [])
 
+    def test_deferred_ref_collection_marks_parameter_ref(self):
+        # Deferred artifacts from a !Ref collection must carry the parameter-ref
+        # metadata so warn_parameter_based_collections can advise re-packaging.
+        foreach_value = [
+            "FunctionName",
+            {"Ref": "FuncType"},
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"ImageUri": "foo"},
+                }
+            },
+        ]
+        exported_resources = {
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func1Function-latest"},
+            },
+            "func2Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func2Function-latest"},
+            },
+        }
+        template = {"Parameters": {"FuncType": {"Default": "func1,func2"}}}
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            None,
+            template=template,
+            deferred_dynamic=deferred,
+        )
+        self.assertEqual(len(deferred), 1)
+        self.assertTrue(deferred[0].collection_is_parameter_ref)
+        self.assertEqual(deferred[0].collection_parameter_name, "FuncType")
+
+    def test_deferred_literal_collection_not_parameter_ref(self):
+        foreach_value = [
+            "FunctionName",
+            ["func1", "func2"],
+            {
+                "${FunctionName}Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"ImageUri": "foo"},
+                }
+            },
+        ]
+        exported_resources = {
+            "func1Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func1Function-latest"},
+            },
+            "func2Function": {
+                "Type": "AWS::Serverless::Function",
+                "Properties": {"ImageUri": "repo:func2Function-latest"},
+            },
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::L",
+            foreach_value,
+            exported_resources,
+            None,
+            deferred_dynamic=deferred,
+        )
+        self.assertEqual(len(deferred), 1)
+        self.assertFalse(deferred[0].collection_is_parameter_ref)
+        self.assertIsNone(deferred[0].collection_parameter_name)
+
 
 class TestMergeThreadsParametersAndDeferred(TestCase):
     """merge_language_extensions_s3_uris forwards parameter_values + accumulator."""
