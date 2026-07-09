@@ -121,7 +121,13 @@ class PackageContext:
             stack_name = f"sam-app-{template_basename}"
 
             self.image_repositories = sync_ecr_stack(
-                self.template_file, stack_name, self.region, self.s3_bucket, self.s3_prefix, self.image_repositories
+                self.template_file,
+                stack_name,
+                self.region,
+                self.s3_bucket,
+                self.s3_prefix,
+                self.image_repositories,
+                language_extensions_enabled=self._language_extensions_enabled,
             )
 
         stacks, _ = SamLocalStackProvider.get_stacks(

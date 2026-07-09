@@ -189,7 +189,13 @@ class GuidedContext:
 
         image_repositories = (
             sync_ecr_stack(
-                self.template_file, stack_name, region, managed_s3_bucket, self.s3_prefix, self.image_repositories
+                self.template_file,
+                stack_name,
+                region,
+                managed_s3_bucket,
+                self.s3_prefix,
+                self.image_repositories,
+                language_extensions_enabled=self._language_extensions_enabled,
             )
             if self.resolve_image_repositories
             else self.prompt_image_repository(
