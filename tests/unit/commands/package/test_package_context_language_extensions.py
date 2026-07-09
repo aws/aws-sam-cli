@@ -1608,3 +1608,43 @@ class TestForEachValueDrivenMerge(TestCase):
         code = foreach_value[2]["${FunctionName}Function"]["Properties"]["Code"]
         self.assertEqual(code, {"S3Bucket": "b", "S3Key": "SAME"})
         self.assertEqual(deferred, [])
+
+
+class TestMergeThreadsParametersAndDeferred(TestCase):
+    """merge_language_extensions_s3_uris forwards parameter_values + accumulator."""
+
+    def test_merge_resolves_ref_and_collects_deferred(self):
+        from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
+
+        original = {
+            "Parameters": {"FuncType": {"Default": "func1,func2"}},
+            "Resources": {
+                "Fn::ForEach::L": [
+                    "FunctionName",
+                    {"Ref": "FuncType"},
+                    {
+                        "${FunctionName}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"ImageUri": "foo"},
+                        }
+                    },
+                ]
+            },
+        }
+        exported = {
+            "Resources": {
+                "func1Function": {"Type": "AWS::Serverless::Function",
+                                  "Properties": {"ImageUri": "repo:func1Function-latest"}},
+                "func2Function": {"Type": "AWS::Serverless::Function",
+                                  "Properties": {"ImageUri": "repo:func2Function-latest"}},
+            }
+        }
+        deferred = []
+        result = merge_language_extensions_s3_uris(
+            original, exported, None, deferred_dynamic=deferred
+        )
+        body = result["Resources"]["Fn::ForEach::L"][2]["${FunctionName}Function"]["Properties"]
+        # Differing image URIs deferred; body value untouched pre-Mapping.
+        self.assertEqual(body["ImageUri"], "foo")
+        self.assertEqual(len(deferred), 1)
+        self.assertEqual(deferred[0].property_name, "ImageUri")

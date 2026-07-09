@@ -45,6 +45,8 @@ def merge_language_extensions_s3_uris(
     original_template: Dict[str, Any],
     exported_template: Dict[str, Any],
     dynamic_properties: Optional[List[DynamicArtifactProperty]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> Dict[str, Any]:
     """
     Update the original template (with Fn::ForEach intact) with S3 URIs from the exported template.
@@ -82,7 +84,14 @@ def merge_language_extensions_s3_uris(
     original_resources = result.get("Resources", {})
     exported_resources = exported_template.get("Resources", {})
 
-    _update_resources_with_s3_uris(original_resources, exported_resources, dynamic_prop_keys)
+    _update_resources_with_s3_uris(
+        original_resources,
+        exported_resources,
+        dynamic_prop_keys,
+        template=original_template,
+        parameter_values=parameter_values,
+        deferred_dynamic=deferred_dynamic,
+    )
 
     _merge_metadata(result.get("Metadata", {}), exported_template.get("Metadata", {}))
 
@@ -209,6 +218,9 @@ def _update_resources_with_s3_uris(
     original_resources: Dict[str, Any],
     exported_resources: Dict[str, Any],
     dynamic_prop_keys: Optional[set] = None,
+    template: Optional[Dict[str, Any]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> None:
     """
     Update resources in the original template with S3 URIs from the exported template.
@@ -217,7 +229,15 @@ def _update_resources_with_s3_uris(
     """
     for resource_key, resource_value in original_resources.items():
         if is_foreach_key(resource_key):
-            _update_foreach_with_s3_uris(resource_key, resource_value, exported_resources, dynamic_prop_keys)
+            _update_foreach_with_s3_uris(
+                resource_key,
+                resource_value,
+                exported_resources,
+                dynamic_prop_keys,
+                template=template,
+                parameter_values=parameter_values,
+                deferred_dynamic=deferred_dynamic,
+            )
         elif isinstance(resource_value, dict) and resource_key in exported_resources:
             exported_resource = exported_resources.get(resource_key, {})
             _copy_artifact_uris(resource_value, exported_resource)
