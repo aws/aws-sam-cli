@@ -4732,3 +4732,66 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         mapping = output["Mappings"][mapping_name]
         self.assertEqual(mapping["func1"]["ImageUri"], "repo:func1Function-latest")
         self.assertEqual(mapping["func2"]["ImageUri"], "repo:func2Function-latest")
+
+    def _run_zip(self, template_dict, param_values):
+        import copy
+        from unittest.mock import patch
+        from botocore.utils import set_value_from_jmespath
+        from samcli.lib.package.artifact_exporter import Template
+        from samcli.lib.package.uploaders import Uploaders
+        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
+        from samcli.lib.package.language_extensions_packaging import (
+            merge_language_extensions_s3_uris,
+            generate_and_apply_artifact_mappings,
+        )
+        import samcli.lib.package.packageable_resources as pr
+
+        result = expand_language_extensions(template_dict, param_values, enabled=True)
+
+        def fake_zip_export(self, resource_id, resource_dict, parent_dir):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, "s3://bucket/SAME")
+
+        with patch.object(pr.ResourceWithS3UrlDict, "do_export", fake_zip_export):
+            template = Template(
+                "t.yaml", ".", Uploaders(object(), object()), None,
+                normalize_template=True, normalize_parameters=True,
+                template_dict=copy.deepcopy(result.expanded_template),
+                parameter_values=param_values, language_extensions_enabled=True,
+            )
+            exported = template.export()
+
+        deferred = []
+        output = merge_language_extensions_s3_uris(
+            result.original_template, exported, result.dynamic_artifact_properties,
+            parameter_values=param_values, deferred_dynamic=deferred,
+        )
+        all_dynamic = list(result.dynamic_artifact_properties or []) + deferred
+        if all_dynamic:
+            output = generate_and_apply_artifact_mappings(
+                output, all_dynamic, exported.get("Resources", {}), "."
+            )
+        return output
+
+    def test_ref_collection_statemachine_definitionuri_rewritten(self):
+        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+        template = {
+            "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
+            "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},
+            "Resources": {
+                "Fn::ForEach::SM": [
+                    "Name",
+                    {"Ref": "Names"},
+                    {
+                        "${Name}Machine": {
+                            "Type": "AWS::Serverless::StateMachine",
+                            "Properties": {"DefinitionUri": "sm.asl.json"},
+                        }
+                    },
+                ]
+            },
+        }
+        output = self._run_zip(template, {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES})
+        body = output["Resources"]["Fn::ForEach::SM"][2]["${Name}Machine"]["Properties"]
+        # Identical S3 URI across iterations -> shared static copy, not a Mapping.
+        self.assertEqual(body["DefinitionUri"], "s3://bucket/SAME")
+        self.assertNotIn("Mappings", output)

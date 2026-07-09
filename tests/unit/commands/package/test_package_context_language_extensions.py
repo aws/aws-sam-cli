@@ -1736,3 +1736,45 @@ class TestForEachArtifactShapes(TestCase):
             {"S3Bucket": "b", "S3Key": "SAME"},
         )
         self.assertEqual(deferred, [])
+
+
+class TestForEachNestedStaticImageLimitation(TestCase):
+    """Nested ForEach + static image value falls back to legacy copy (documented limitation).
+
+    Image identity varies by outer AND inner loop, but a static value carries no
+    loop variable, so the walk cannot build compound Mapping keys. This guards the
+    documented fallback. Nested ForEach with dynamic values is unaffected and
+    continues through the existing dynamic path.
+    """
+
+    def test_nested_static_image_falls_back_to_copy(self):
+        foreach_value = [
+            "Env",
+            ["dev", "prod"],
+            {
+                "Fn::ForEach::Svc": [
+                    "Svc",
+                    ["Users", "Orders"],
+                    {
+                        "${Env}${Svc}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"ImageUri": "foo"},
+                        }
+                    },
+                ]
+            },
+        ]
+        exported = {
+            "devUsersFunction": {"Type": "AWS::Serverless::Function",
+                                 "Properties": {"ImageUri": "repo:devUsersFunction"}},
+            "devOrdersFunction": {"Type": "AWS::Serverless::Function",
+                                  "Properties": {"ImageUri": "repo:devOrdersFunction"}},
+        }
+        deferred = []
+        _update_foreach_with_s3_uris(
+            "Fn::ForEach::Env", foreach_value, exported, None, deferred_dynamic=deferred
+        )
+        inner = foreach_value[2]["Fn::ForEach::Svc"][2]["${Env}${Svc}Function"]["Properties"]
+        # Legacy fallback copies the first inner iteration's URI; nothing deferred.
+        self.assertEqual(inner["ImageUri"], "repo:devUsersFunction")
+        self.assertEqual(deferred, [])
