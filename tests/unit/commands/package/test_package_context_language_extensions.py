@@ -10,6 +10,7 @@ from unittest.mock import patch, MagicMock
 
 from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
 from samcli.lib.package.language_extensions_packaging import (
+    merge_language_extensions_s3_uris,
     _compute_mapping_name,
     _copy_artifact_uris_for_type,
     _nesting_path,
@@ -1704,8 +1705,6 @@ class TestMergeThreadsParametersAndDeferred(TestCase):
     """merge_language_extensions_s3_uris forwards parameter_values + accumulator."""
 
     def test_merge_resolves_ref_and_collects_deferred(self):
-        from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
-
         original = {
             "Parameters": {"FuncType": {"Default": "func1,func2"}},
             "Resources": {

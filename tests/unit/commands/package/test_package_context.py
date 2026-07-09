@@ -1,5 +1,6 @@
 """Test sam package command"""
 
+import copy
 import os
 from pathlib import Path
 from unittest import TestCase
@@ -10,14 +11,19 @@ import tempfile
 TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 
+import samcli.lib.package.packageable_resources as pr
+from botocore.utils import set_value_from_jmespath
 from samcli.commands.package.package_context import PackageContext
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
     detect_dynamic_artifact_properties,
+    expand_language_extensions,
 )
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.language_extensions_packaging import (
+    generate_and_apply_artifact_mappings,
     merge_language_extensions_s3_uris,
     warn_parameter_based_collections,
     _update_resources_with_s3_uris,
@@ -35,7 +41,7 @@ from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
-from samcli.yamlhelper import yaml_parse
+from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
 class TestPackageCommand(TestCase):
@@ -4595,18 +4601,6 @@ class TestForEachImagePackagingEndToEnd(TestCase):
     """End-to-end pipeline: Fn::ForEach + !Ref collection + PackageType: Image (#9117)."""
 
     def _run(self, template_dict, param_values):
-        import copy
-        from unittest.mock import patch
-        from botocore.utils import set_value_from_jmespath
-        from samcli.lib.package.artifact_exporter import Template
-        from samcli.lib.package.uploaders import Uploaders
-        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
-        from samcli.lib.package.language_extensions_packaging import (
-            merge_language_extensions_s3_uris,
-            generate_and_apply_artifact_mappings,
-        )
-        import samcli.lib.package.packageable_resources as pr
-
         result = expand_language_extensions(template_dict, param_values, enabled=True)
 
         def fake_image_export(self, resource_id, resource_dict, parent_dir):
@@ -4656,8 +4650,6 @@ class TestForEachImagePackagingEndToEnd(TestCase):
                 ]
             },
         }
-        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-
         output = self._run(template, {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES})
 
         body = output["Resources"]["Fn::ForEach::LoopFunction"][2]["${FunctionName}Function"]["Properties"]
@@ -4672,15 +4664,6 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         # not the helpers directly, so it guards the caller wiring itself:
         # parameter_values passed + deferred_dynamic collected + combined into
         # generate_and_apply_artifact_mappings.
-        import copy
-        import tempfile
-        import os
-        from unittest.mock import patch, MagicMock
-        from botocore.utils import set_value_from_jmespath
-        from samcli.commands._utils.template import yaml_parse
-        from samcli.yamlhelper import yaml_dump
-        import samcli.lib.package.packageable_resources as pr
-
         template_str = yaml_dump(
             {
                 "AWSTemplateFormatVersion": "2010-09-09",
@@ -4741,18 +4724,6 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         self.assertEqual(mapping["func2"]["ImageUri"], "repo:func2Function-latest")
 
     def _run_zip(self, template_dict, param_values):
-        import copy
-        from unittest.mock import patch
-        from botocore.utils import set_value_from_jmespath
-        from samcli.lib.package.artifact_exporter import Template
-        from samcli.lib.package.uploaders import Uploaders
-        from samcli.lib.cfn_language_extensions.sam_integration import expand_language_extensions
-        from samcli.lib.package.language_extensions_packaging import (
-            merge_language_extensions_s3_uris,
-            generate_and_apply_artifact_mappings,
-        )
-        import samcli.lib.package.packageable_resources as pr
-
         result = expand_language_extensions(template_dict, param_values, enabled=True)
 
         def fake_zip_export(self, resource_id, resource_dict, parent_dir):
@@ -4786,8 +4757,6 @@ class TestForEachImagePackagingEndToEnd(TestCase):
         return output
 
     def test_ref_collection_statemachine_definitionuri_rewritten(self):
-        from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-
         template = {
             "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
             "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},
