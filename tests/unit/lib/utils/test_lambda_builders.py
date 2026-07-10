@@ -11,6 +11,9 @@ class TestPatchRuntime(TestCase):
         [
             ("nodejs20.x", "nodejs20.x"),
             ("java8.al2", "java8"),
+            ("java8.al2023", "java8"),
+            ("java11.al2023", "java11"),
+            ("java17.al2023", "java17"),
             ("dotnet6", "dotnet6"),
             ("provided", "provided"),
             ("provided.al2", "provided"),
