@@ -129,7 +129,12 @@ def generate_project(
             "it as a cookiecutter template"
         )
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
-        generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
+        if checkout:
+            generate_non_cookiecutter_project(
+                location=params["template"], output_dir=project_output_dir, checkout=checkout
+            )
+        else:
+            generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
 
     except UnknownRepoType as e:
         raise InvalidLocationError(template=params["template"]) from e

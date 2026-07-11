@@ -155,6 +155,20 @@ class TestInit(TestCase):
 
         generate_non_cookiecutter_project_mock.assert_called_with(location=self.location, output_dir=self.output_dir)
 
+    @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init.generate_non_cookiecutter_project")
+    def test_init_arbitrary_project_passes_checkout_to_non_cookiecutter_project(
+        self, generate_non_cookiecutter_project_mock, cookiecutter_mock, default_samconfig_mock
+    ):
+        cookiecutter_mock.side_effect = RepositoryNotFound("msg")
+
+        generate_project(location=self.location, output_dir=self.output_dir, checkout="feature-branch")
+
+        generate_non_cookiecutter_project_mock.assert_called_with(
+            location=self.location, output_dir=self.output_dir, checkout="feature-branch"
+        )
+
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init.generate_non_cookiecutter_project")
     @patch("samcli.lib.init._create_default_samconfig")

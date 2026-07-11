@@ -47,6 +47,23 @@ class TestGenerateNonCookieCutterProject(TestCase):
             osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
             osutils_mock.mkdir_temp.assert_called_with(ignore_errors=True)
 
+    @patch("samcli.lib.init.arbitrary_project.osutils")
+    def test_support_checkout_for_source_control_repos(self, osutils_mock):
+        abbreviated_location = "gh:awslabs/aws-sam-cli"
+        location = "https://github.com/awslabs/aws-sam-cli.git"
+        checkout_ref = "feature-branch"
+
+        with patch.object(repository, "clone") as clone_mock:
+            clone_mock.return_value = "cloned_dir"
+
+            generate_non_cookiecutter_project(abbreviated_location, self.output_dir, checkout=checkout_ref)
+
+            clone_mock.assert_called_with(
+                repo_url=location, checkout=checkout_ref, no_input=True, clone_to_dir=ANY
+            )
+
+            osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
+
     def test_must_fail_on_local_folders(self):
         location = str(Path("my", "folder"))
 
