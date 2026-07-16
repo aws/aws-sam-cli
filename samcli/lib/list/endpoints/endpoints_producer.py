@@ -322,7 +322,9 @@ class EndpointsProducer(ResourceMappingProducer, Producer):
         sam_template = get_template_data(self.template_file)
 
         translated_dict = self.get_translated_dict(template_file_dict=sam_template)
-        stacks, _ = SamLocalStackProvider.get_stacks(template_file="", template_dictionary=translated_dict)
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            template_file="", template_dictionary=translated_dict, language_extensions_enabled=False
+        )
         validate_stack(stacks)
 
         endpoints_list: list

@@ -38,7 +38,7 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "base_dir",
 ]
 
-TEMPLATE_OPTIONS: List[str] = ["parameter_overrides"]
+TEMPLATE_OPTIONS: List[str] = ["parameter_overrides", "language_extensions"]
 
 TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_project_root_path"]
 
@@ -70,10 +70,9 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

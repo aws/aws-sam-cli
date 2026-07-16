@@ -16,6 +16,9 @@ datas = (
     # cookiecutter 2.2.3 added the version in a file called VERSION.txt which needs to be added
     # for sam init to run cookiecutter using pyinstaller https://github.com/cookiecutter/cookiecutter/releases/tag/2.2.3
     + hooks.collect_all("cookiecutter", include_py_files=False)[0]
+    # binaryornot 0.6.0 moved its binary signature/extension/encoding tables into a binaryornot.data
+    # subpackage that is loaded via importlib.resources.files() at import time
+    + hooks.collect_all("binaryornot", include_py_files=False)[0]
     # Collect ONLY data files.
     + hooks.collect_data_files("samcli")
     + hooks.collect_data_files("samtranslator")

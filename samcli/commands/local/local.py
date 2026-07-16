@@ -18,6 +18,7 @@ from samcli.cli.lazy_group import LazyGroup
         "execution": "samcli.commands.local.execution.cli.cli",
         "callback": "samcli.commands.local.callback.cli.cli",
     },
+    new_commands={"execution", "callback"},
 )
 def cli():
     """

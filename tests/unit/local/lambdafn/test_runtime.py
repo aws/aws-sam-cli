@@ -104,6 +104,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -171,6 +172,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -221,6 +223,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -293,6 +296,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=True,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -361,6 +365,7 @@ class LambdaRuntime_run(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            container_dns=None,
         )
         self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
@@ -479,6 +484,7 @@ class LambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -821,7 +827,7 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         result = self.runtime._get_code_dir(code_path)
         self.assertEqual(result, decompressed_dir)
 
-        unzip_file_mock.assert_called_with(code_path)
+        unzip_file_mock.assert_called_with(code_path, mount_symlinks=False)
         os_mock.path.isfile.assert_called_with(code_path)
 
     @patch("samcli.local.lambdafn.runtime.os")
@@ -844,6 +850,46 @@ class TestLambdaRuntime_get_code_dir(TestCase):
 
         # Because we never unzipped anything, we should never delete
         shutil_mock.rmtree.assert_not_called()
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_warn_when_code_path_does_not_exist(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a path that does not exist on the local machine
+        """
+        code_path = "/nonexistent/path"
+
+        os_mock.path.exists.return_value = False
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        # code path must still be returned as is
+        self.assertEqual(result, code_path)
+
+        unzip_file_mock.assert_not_called()
+        log_mock.warning.assert_called_once()
+        # The warning must include the offending path
+        self.assertIn(code_path, log_mock.warning.call_args[0])
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_not_warn_when_code_path_exists(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a directory that exists, no warning must be logged
+        """
+        code_path = "codedir"
+
+        os_mock.path.exists.return_value = True
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        self.assertEqual(result, code_path)
+
+        log_mock.warning.assert_not_called()
 
 
 class TestLambdaRuntime_unarchived_layer(TestCase):
@@ -961,6 +1007,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -1064,6 +1111,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -1112,6 +1160,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
                 call(
                     self.lang,
@@ -1131,6 +1180,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
             ]
         )
@@ -1214,10 +1264,59 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.full_path], container)
+
+
+class TestWarmLambdaRuntime_no_watch(TestCase):
+    """Tests that verify --no-watch suppresses observer setup and lifecycle calls."""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.name = "name"
+        self.full_path = "stack/name"
+        self.func_config = FunctionConfig(
+            self.name,
+            self.full_path,
+            "runtime",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "arm64",
+        )
+        self.func_config.env_vars = Mock()
+        self.func_config.env_vars.resolve.return_value = {}
+
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
+    def test_observer_is_not_created_when_no_watch_is_true(self, LambdaFunctionObserverMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+
+        LambdaFunctionObserverMock.assert_not_called()
+        self.assertIsNone(runtime._observer)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_create_does_not_call_watch_or_start_when_no_watch_is_true(self, LambdaContainerMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._get_code_dir = MagicMock(return_value="code-dir")
+        LambdaContainerMock.return_value = Mock()
+
+        # Should not raise even though _observer is None
+        runtime.create(self.func_config, debug_context=None)
+        # Container is still created and tracked
+        self.assertIn(self.full_path, runtime._containers)
+
+    def test_clean_warm_containers_does_not_call_observer_stop_when_no_watch_is_true(self):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._containers = {}
+        # Should be a no-op; should not raise
+        runtime.clean_running_containers_and_related_resources()
 
 
 class TestWarmLambdaRuntime_get_code_dir(TestCase):
@@ -1399,7 +1498,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_not_called()  # Assert we do not chmod the temporary directory
 
@@ -1419,7 +1518,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_called_with(tmpdir, 0o755)  # Assert we do chmod the temporary directory
 

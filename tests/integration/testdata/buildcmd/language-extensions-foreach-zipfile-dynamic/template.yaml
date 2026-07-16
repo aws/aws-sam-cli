@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Regression test for #9029, ForEach dynamic-branch (case C). Each expanded
+  Lambda has `Code: {ZipFile: !Sub ...}` whose body references the loop
+  variable. There is no build artifact for `sam build` to merge, so the
+  property must be passed through verbatim. CFN's LanguageExtensions transform
+  expands the ForEach at deploy time and substitutes the loop variable in each
+  per-iteration copy, so the inline body works correctly without a SAM-built
+  artifact.
+
+Resources:
+  Fn::ForEach::Workers:
+    - WorkerName
+    - - Alpha
+      - Beta
+    - ${WorkerName}Worker:
+        Type: AWS::Lambda::Function
+        Properties:
+          FunctionName: !Sub ${WorkerName}-worker
+          Runtime: python3.11
+          Handler: index.handler
+          Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/worker-role'
+          Code:
+            ZipFile: !Sub |
+              import boto3
+              def handler(event, context):
+                  print('worker name: ${WorkerName}')

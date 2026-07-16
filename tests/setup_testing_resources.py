@@ -15,6 +15,7 @@ import subprocess
 import sys
 import time
 
+from datetime import datetime, timezone
 from get_testing_resources import get_testing_credentials, get_managed_test_resource_outputs  # type: ignore[import-not-found]  # noqa: E402
 
 from boto3.session import Session
@@ -103,12 +104,28 @@ def setup_credentials():
             mask_value(value)
             write_env(f"CI_ACCESS_ROLE_{env_key}", value)
 
-    # Get test credentials
-    try:
-        env_vars = get_testing_credentials(skip_role_deletion=True)
-    except Exception:
-        print("First attempt with skip_role_deletion failed, trying without parameter...")
-        env_vars = get_testing_credentials(skip_role_deletion=False)
+    # Log system clock for debugging InvalidSignatureException on Windows
+    print(f"[DEBUG] System clock UTC: {datetime.now(timezone.utc).isoformat()}")
+
+    # Get test credentials with retry for transient OIDC propagation issues
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        try:
+            try:
+                env_vars = get_testing_credentials(skip_role_deletion=True)
+            except Exception:
+                print("First attempt with skip_role_deletion failed, trying without parameter...")
+                env_vars = get_testing_credentials(skip_role_deletion=False)
+            break
+        except Exception as e:
+            if attempt < max_retries:
+                print(f"Credential fetch attempt {attempt}/{max_retries} failed: {e}", file=sys.stderr)
+                print(f"[DEBUG] System clock UTC: {datetime.now(timezone.utc).isoformat()}")
+                print(f"Retrying in 5s...")
+                time.sleep(5)
+            else:
+                print(f"FATAL: Failed to get credentials after {max_retries} attempts.", file=sys.stderr)
+                raise
 
     # Get managed test resources
     test_session = Session(

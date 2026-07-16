@@ -114,6 +114,7 @@ class BuildIntegBase(TestCase):
         save_params=False,
         project_root_dir=None,
         use_buildkit=False,
+        mount_symlinks=False,
     ):
         command_list = [self.cmd, "build"]
 
@@ -188,6 +189,9 @@ class BuildIntegBase(TestCase):
 
         if project_root_dir is not None:
             command_list += ["--terraform-project-root-path", project_root_dir]
+
+        if mount_symlinks:
+            command_list += ["--mount-symlinks"]
 
         return command_list
 

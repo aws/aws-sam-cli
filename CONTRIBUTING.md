@@ -43,7 +43,7 @@ Contributions via pull requests are much appreciated. Before sending us a pull r
 1. You are working against the latest source on the *develop* branch.
 2. You check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
 3. You open an issue to discuss any significant work - we would hate for your time to be wasted.
-4. The change works in Python3 (see supported Python Versions in setup.py)
+4. The change works in supported Python versions (see `pyproject.toml` and CI workflows)
 5. Does the PR have updated/added unit, functional, and integration tests?
 6. PR is merged submitted to merge into develop.
 
@@ -122,6 +122,20 @@ def test_tier1_my_feature_in_container(self):
 3. If the parameter set does NOT exist in any parameterized list (i.e. it's unique to the tier1 method), use `@pytest.mark.tier1`.
 
 4. Each runtime should have one non-container and one container tier 1 test.
+
+### Skipping tests in PR workflow (`pr_skip`)
+
+Tests marked with `@pytest.mark.pr_skip` are excluded from the PR workflow (`.github/workflows/build.yml`) but still run in the integration workflow (`.github/workflows/integration-tests.yml`). Use this marker for tests that are redundant with other tests in the same file or low-risk for PR validation.
+
+```python
+@pytest.mark.pr_skip
+class TestMyRedundantFeature(TestBase):
+    ...
+```
+
+The marker is registered in `pytest.ini`. PR workflow jobs filter with `-m "not pr_skip"`.
+
+Before adding `pr_skip`, verify the test is covered by at least one job in `integration-tests.yml`.
 
 
 ## Finding contributions to work on

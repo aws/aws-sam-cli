@@ -23,6 +23,7 @@ from samcli.commands._utils.options import (
     container_env_var_file_option,
     docker_common_options,
     hook_name_click_option,
+    language_extensions_option,
     manifest_option,
     mount_symlinks_option,
     parameter_override_option,
@@ -59,7 +60,7 @@ DESCRIPTION = """
   ------------------
   1. Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14 using PIP\n
   2. Nodejs 24.x, 22.x, 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
-  3. Ruby 3.2, 3.3, 3.4 using Bundler\n
+  3. Ruby 3.2, 3.3, 3.4, 4.0 using Bundler\n
   4. Java 8, Java 11, Java 17, Java 21, Java 25 using Gradle and Maven\n
   5. Dotnet6, Dotnet8, Dotnet10 using Dotnet CLI\n
   6. Go 1.x using Go Modules (without --use-container)\n
@@ -85,6 +86,7 @@ DESCRIPTION = """
 @use_container_build_option
 @use_buildkit_option
 @build_in_source_option
+@language_extensions_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -164,6 +166,7 @@ def cli(
     build_in_source: Optional[bool],
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     `sam build` command entry point
@@ -197,6 +200,7 @@ def cli(
         mount_with,
         mount_symlinks,
         use_buildkit,
+        language_extensions,
     )  # pragma: no cover
 
 
@@ -225,6 +229,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mount_with: str,
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -266,6 +271,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mount_with=mount_with,
         mount_symlinks=mount_symlinks,
         use_buildkit=use_buildkit,
+        language_extensions=language_extensions,
     ) as ctx:
         ctx.run()
 

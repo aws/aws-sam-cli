@@ -8,6 +8,9 @@ on:
 env:
   CI_OVERRIDE: "1"
 
+permissions:
+  contents: read
+
 jobs:
   build-for-linux:
     name: build-pyinstaller-linux
@@ -16,13 +19,17 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Make installer script executable
         run: chmod +x ./installer/pyinstaller/build-linux.sh
       - name: Build PyInstaller in manylinux container
         run: |
-          docker run --rm -v .:/samcli -w /samcli -e CI_OVERRIDE='1' \
-          quay.io/pypa/manylinux2014_x86_64:latest /samcli/installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip
+          for i in 1 2 3; do
+            docker run --rm -v .:/samcli -w /samcli -e CI_OVERRIDE='1' \
+            quay.io/pypa/manylinux2014_x86_64:latest /samcli/installer/pyinstaller/build-linux.sh aws-sam-cli-linux-x86_64.zip && break
+            echo "Attempt $i failed, retrying..."
+            sleep 10
+          done
       - uses: actions/setup-python@v6
         with:
           python-version: 3.11
@@ -45,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"

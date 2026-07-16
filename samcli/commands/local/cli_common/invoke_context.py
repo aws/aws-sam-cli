@@ -17,6 +17,7 @@ from samcli.commands.exceptions import ContainersInitializationException
 from samcli.commands.local.cli_common.user_exceptions import DebugContextException, InvokeContextException
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.commands.local.lib.local_lambda import LocalLambdaRunner
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.providers.provider import Function, Stack
 from samcli.lib.providers.sam_function_provider import RefreshableSamFunctionProvider, SamFunctionProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -101,7 +102,10 @@ class InvokeContext:
         invoke_images: Optional[str] = None,
         mount_symlinks: Optional[bool] = False,
         no_mem_limit: Optional[bool] = False,
+        no_watch: Optional[bool] = False,
+        container_dns: Optional[Tuple[str]] = None,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        language_extensions: Optional[bool] = None,
     ) -> None:
         """
         Initialize the context
@@ -158,6 +162,8 @@ class InvokeContext:
             Optional. A dictionary that defines the custom invoke image URI of each function
         mount_symlinks bool
             Optional. Indicates if symlinks should be mounted inside the container
+        container_dns tuple
+            Optional. Tuple of DNS server IP addresses for the container
         function_logical_ids tuple(str)
             Optional. Tuple of function logical IDs to filter and make available for local execution.
             Used by 'sam local start-api' and 'sam local start-lambda' commands to limit which
@@ -188,6 +194,7 @@ class InvokeContext:
         self._debug_args = debug_args
         self._debugger_path = debugger_path
         self._container_env_vars_file = container_env_vars_file
+        self._container_dns = container_dns
 
         self._parameter_overrides = parameter_overrides
         # Override certain CloudFormation pseudo-parameters based on values provided by customer
@@ -220,6 +227,9 @@ class InvokeContext:
 
         self._mount_symlinks: Optional[bool] = mount_symlinks
         self._no_mem_limit = no_mem_limit
+        self._no_watch = no_watch
+
+        self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
         # Note(xinhol): despite self._function_provider and self._stacks are initialized as None
         # they will be assigned with a non-None value in __enter__() and
@@ -257,6 +267,15 @@ class InvokeContext:
             ContainersMode.COLD: [self._stacks],
         }
 
+        # --no-watch only applies when --warm-containers is set (RefreshableSamFunctionProvider).
+        # SamFunctionProvider (cold mode) has no file watcher, so the flag is meaningless there.
+        if self._no_watch and self._containers_mode == ContainersMode.COLD:
+            self._no_watch = False
+            LOG.warning(
+                "--no-watch was supplied without --warm-containers; the flag has no effect "
+                "without warm containers and will be ignored."
+            )
+
         # don't resolve the code URI immediately if we passed in docker vol by passing True for use_raw_codeuri
         # this way at the end the code URI will get resolved against the basedir option
         if self._docker_volume_basedir:
@@ -266,6 +285,12 @@ class InvokeContext:
 
         if self._function_logical_ids:
             _function_providers_kwargs["function_logical_ids"] = self._function_logical_ids
+
+        if self._no_watch and self._containers_mode == ContainersMode.WARM:
+            _function_providers_kwargs["no_watch"] = True
+
+        if self._containers_mode == ContainersMode.WARM:
+            _function_providers_kwargs["language_extensions_enabled"] = self._language_extensions_enabled
 
         self._function_provider = _function_providers_class[self._containers_mode](
             *_function_providers_args[self._containers_mode], **_function_providers_kwargs
@@ -356,6 +381,7 @@ class InvokeContext:
                 container_host=self._container_host,
                 container_host_interface=self._container_host_interface,
                 extra_hosts=self._extra_hosts,
+                container_dns=self._container_dns,
             )
 
             # Collect container ID in a thread-safe way
@@ -561,9 +587,20 @@ class InvokeContext:
         )
 
     @property
+    def language_extensions_enabled(self) -> bool:
+        """
+        Returns whether CloudFormation language extensions are enabled.
+
+        :return bool: True if language extensions should be processed, False otherwise
+        """
+        return self._language_extensions_enabled
+
+    @property
     def lambda_runtime(self) -> LambdaRuntime:
         if not self._lambda_runtimes:
-            layer_downloader = LayerDownloader(self._layer_cache_basedir, self.get_cwd(), self._stacks)
+            layer_downloader = LayerDownloader(
+                self._layer_cache_basedir, self.get_cwd(), self._stacks, mount_symlinks=self._mount_symlinks
+            )
             image_builder = LambdaImage(
                 layer_downloader, self._skip_pull_image, self._force_image_build, invoke_images=self._invoke_images
             )
@@ -573,6 +610,7 @@ class InvokeContext:
                     image_builder,
                     mount_symlinks=self._mount_symlinks,
                     no_mem_limit=self._no_mem_limit,
+                    no_watch=self._no_watch,
                 ),
                 ContainersMode.COLD: LambdaRuntime(
                     self._container_manager,
@@ -608,6 +646,7 @@ class InvokeContext:
             container_host=self._container_host,
             container_host_interface=self._container_host_interface,
             extra_hosts=self._extra_hosts,
+            container_dns=self._container_dns,
         )
         return self._local_lambda_runner
 
@@ -697,6 +736,7 @@ class InvokeContext:
                 self._template_file,
                 parameter_overrides=self._parameter_overrides,
                 global_parameter_overrides=self._global_parameter_overrides,
+                language_extensions_enabled=self._language_extensions_enabled,
             )
             return stacks
         except (TemplateNotFoundException, TemplateFailedParsingException) as ex:

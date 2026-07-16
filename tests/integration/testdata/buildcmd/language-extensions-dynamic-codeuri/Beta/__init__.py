@@ -1,0 +1,1 @@
+"""Beta function package."""

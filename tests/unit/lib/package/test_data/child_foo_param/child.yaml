@@ -1,0 +1,6 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::LanguageExtensions
+Parameters:
+  Foo:
+    Type: String
+Resources: {}

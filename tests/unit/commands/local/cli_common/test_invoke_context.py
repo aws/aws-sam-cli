@@ -224,7 +224,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
@@ -318,7 +318,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
@@ -409,7 +409,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context._get_stacks.assert_called_once()
         RefreshableSamFunctionProviderMock.assert_called_with(
-            stacks, parameter_overrides, global_parameter_overrides, True
+            stacks, parameter_overrides, global_parameter_overrides, True, language_extensions_enabled=False
         )
         self.assertEqual(invoke_context._global_parameter_overrides, global_parameter_overrides)
         self.assertEqual(invoke_context._get_env_vars_value.call_count, 2)
@@ -521,6 +521,67 @@ class TestInvokeContext__enter__(TestCase):
         invoke_context.__enter__()
 
         extract_func_mock.assert_called_with([], expected, False, False, None)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
+    @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_no_watch_passed_through_to_provider_when_warm_containers_enabled(
+        self, _add_account_id_to_global_mock, RefreshableSamFunctionProviderMock, ContainerManagerMock
+    ):
+        function_provider = Mock()
+        function_provider.get_all.return_value = []
+        function_provider.functions = {}
+        RefreshableSamFunctionProviderMock.return_value = function_provider
+
+        invoke_context = InvokeContext(
+            template_file="template_file",
+            warm_container_initialization_mode=ContainersInitializationMode.LAZY.value,
+            no_watch=True,
+        )
+
+        invoke_context._get_stacks = Mock(return_value=[])
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        invoke_context.__enter__()
+
+        # no_watch should be forwarded as a kwarg only when warm containers is set
+        _, kwargs = RefreshableSamFunctionProviderMock.call_args
+        self.assertEqual(kwargs.get("no_watch"), True)
+        self.assertTrue(invoke_context._no_watch)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_no_watch_ignored_with_warning_when_warm_containers_disabled(
+        self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock
+    ):
+        function_provider = Mock()
+        function_provider.get_all.return_value = []
+        function_provider.functions = {}
+        SamFunctionProviderMock.return_value = function_provider
+
+        invoke_context = InvokeContext(
+            template_file="template_file",
+            no_watch=True,  # without warm containers => should be ignored
+        )
+
+        invoke_context._get_stacks = Mock(return_value=[])
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        with self.assertLogs("samcli.commands.local.cli_common.invoke_context", level="WARNING") as log_ctx:
+            invoke_context.__enter__()
+
+        # The cold-mode SamFunctionProvider must NOT receive no_watch (it doesn't accept it)
+        _, kwargs = SamFunctionProviderMock.call_args
+        self.assertNotIn("no_watch", kwargs)
+        # Internal flag is reset to avoid downstream effects
+        self.assertFalse(invoke_context._no_watch)
+        # And we surface a warning to the user
+        self.assertTrue(any("--no-watch" in msg and "warm-containers" in msg for msg in log_ctx.output))
 
 
 class TestInvokeContext__exit__(TestCase):
@@ -708,6 +769,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -779,7 +841,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
             self.assertEqual(result, runner_mock)
 
             WarmLambdaRuntimeMock.assert_called_with(
-                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False
+                container_manager_mock, image_mock, mount_symlinks=False, no_mem_limit=False, no_watch=False
             )
             lambda_image_patch.assert_called_once_with(download_mock, True, True, invoke_images=None)
             LocalLambdaMock.assert_called_with(
@@ -794,6 +856,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -886,6 +949,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host="abcdef",
                 container_host_interface="192.168.100.101",
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -981,6 +1045,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                     "prod-na.host": "10.11.12.13",
                     "gamma-na.host": "10.22.23.24",
                 },
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1072,6 +1137,7 @@ class TestInvokeContext_local_lambda_runner(TestCase):
                 container_host=None,
                 container_host_interface=None,
                 extra_hosts=None,
+                container_dns=None,
             )
 
             result = self.context.local_lambda_runner
@@ -1489,7 +1555,10 @@ class TestInvokeContext_get_stacks(TestCase):
         invoke_context = InvokeContext("template_file", aws_region="my-custom-region")
         invoke_context._get_stacks()
         get_stacks_mock.assert_called_with(
-            "template_file", parameter_overrides=None, global_parameter_overrides={"AWS::Region": "my-custom-region"}
+            "template_file",
+            parameter_overrides=None,
+            global_parameter_overrides={"AWS::Region": "my-custom-region"},
+            language_extensions_enabled=False,
         )
 
 
@@ -1636,3 +1705,18 @@ class TestInvokeContext_validate_function_logical_ids(TestCase):
 
         # Should not raise any exception
         invoke_context._validate_function_logical_ids()
+
+
+class TestInvokeContextLanguageExtensions:
+    def _ctx(self, **kwargs):
+        from samcli.commands.local.cli_common.invoke_context import InvokeContext
+
+        defaults = dict(template_file="template.yaml")
+        defaults.update(kwargs)
+        return InvokeContext(**defaults)
+
+    def test_default_is_false(self):
+        assert self._ctx().language_extensions_enabled is False
+
+    def test_explicit_true(self):
+        assert self._ctx(language_extensions=True).language_extensions_enabled is True

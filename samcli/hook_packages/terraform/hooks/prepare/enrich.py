@@ -52,6 +52,7 @@ def enrich_resources_and_generate_makefile(
     terraform_application_dir: str,
     lambda_resources_to_code_map: Dict,
     project_root_dir: str,
+    mount_symlinks: bool = False,
 ) -> None:
     """
     Use the sam metadata resources to enrich the mapped resources and to create a Makefile with a rule for
@@ -111,7 +112,12 @@ def enrich_resources_and_generate_makefile(
 
             # get makefile rule for resource
             makefile_rule = generate_makefile_rule_for_lambda_resource(
-                sam_metadata_resource, logical_id, terraform_application_dir, python_command_name, output_directory_path
+                sam_metadata_resource,
+                logical_id,
+                terraform_application_dir,
+                python_command_name,
+                output_directory_path,
+                mount_symlinks=mount_symlinks,
             )
             makefile_rules.append(makefile_rule)
 

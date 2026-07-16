@@ -11,10 +11,13 @@ import tempfile
 import threading
 from typing import Dict, Optional, Union
 
+from samcli.commands.exceptions import UserException
+from samcli.lib.providers.provider import LayerVersion
 from samcli.lib.telemetry.metric import capture_parameter
 from samcli.lib.utils.file_observer import LambdaFunctionObserver
 from samcli.lib.utils.invocation_type import EVENT, REQUEST_RESPONSE
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
@@ -22,10 +25,7 @@ from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
 from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
-
-from ...lib.providers.provider import LayerVersion
-from ...lib.utils.stream_writer import StreamWriter
-from .zip import unzip
+from samcli.local.lambdafn.zip import unzip
 
 LOG = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
+        container_dns=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -92,6 +93,8 @@ class LambdaRuntime:
             Optional. Interface that Docker host binds ports to
         extra_hosts Dict
             Optional. Dict of hostname to IP resolutions
+        container_dns tuple
+            Optional. Tuple of DNS server IP addresses for the container
 
         Returns
         -------
@@ -135,6 +138,7 @@ class LambdaRuntime:
             "extra_hosts": extra_hosts,
             "function_full_path": function_config.full_path,
             "mount_symlinks": self._mount_symlinks,
+            "container_dns": container_dns,
         }
 
         # Check if this is a durable function and create appropriate container type
@@ -174,6 +178,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
+        container_dns=None,
     ):
         """
         Find the created container for the passed Lambda function, then using the
@@ -194,6 +199,8 @@ class LambdaRuntime:
             Optional. Interface that Docker host binds ports to
         extra_hosts Dict
             Optional. Dict of hostname to IP resolutions
+        container_dns tuple
+            Optional. Tuple of DNS server IP addresses for the container
 
         Returns
         -------
@@ -208,6 +215,7 @@ class LambdaRuntime:
                 container_host=container_host,
                 container_host_interface=container_host_interface,
                 extra_hosts=extra_hosts,
+                container_dns=container_dns,
             )
 
         if container.is_running():
@@ -237,6 +245,7 @@ class LambdaRuntime:
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
+        container_dns=None,
     ) -> Optional[Dict[str, str]]:
         """
         Invoke the given Lambda function locally.
@@ -264,6 +273,8 @@ class LambdaRuntime:
             Interface that Docker host binds ports to
         :param dict extra_hosts: Optional.
             Dict of hostname to IP resolutions
+        :param tuple container_dns: Optional.
+            Tuple of DNS server IP addresses for the container
         :returns: Optional[Dict[str, str]]
             HTTP headers dict if this was a durable function invocation, None otherwise
         :raises Keyboard
@@ -273,7 +284,7 @@ class LambdaRuntime:
         try:
             # Start the container. This call returns immediately after the container starts
             container = self.create(
-                function_config, debug_context, container_host, container_host_interface, extra_hosts
+                function_config, debug_context, container_host, container_host_interface, extra_hosts, container_dns
             )
             container = self.run(
                 container,
@@ -282,6 +293,7 @@ class LambdaRuntime:
                 container_host,
                 container_host_interface,
                 extra_hosts,
+                container_dns,
             )
             # Setup appropriate interrupt - timeout or Ctrl+C - before function starts executing and
             # get callback function to start timeout timer
@@ -414,8 +426,7 @@ class LambdaRuntime:
         This method handles a few different cases for ``code_path``:
             - ``code_path``is a existent zip/jar file: Unzip in a temp directory and return the temp directory
             - ``code_path`` is a existent directory: Return this immediately
-            - ``code_path`` is a file/dir that does not exist: Return it as is. May be this method is not clever to
-                detect the existence of the path
+            - ``code_path`` is a file/dir that does not exist: Log a warning and return it as is
 
         Parameters
         ----------
@@ -429,8 +440,16 @@ class LambdaRuntime:
             Directory containing Lambda function code. It can be mounted directly in container
         """
 
+        if code_path and not os.path.exists(code_path):
+            LOG.warning(
+                "Local code path '%s' does not exist. It will be mounted as an empty directory in the "
+                "container, which will likely cause the invocation to fail. Verify the CodeUri/ContentUri "
+                "of your function or layer, or run 'sam build' if the path is a build artifact.",
+                code_path,
+            )
+
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
-            decompressed_dir: str = _unzip_file(code_path)
+            decompressed_dir: str = _unzip_file(code_path, mount_symlinks=self._mount_symlinks)
             self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
             return decompressed_dir
 
@@ -476,7 +495,9 @@ class LambdaRuntime:
             DurableFunctionsEmulatorContainer: The singleton emulator container
         """
         if self._durable_execution_emulator_container is None:
-            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer()
+            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer(
+                skip_pull_image=self._container_manager.skip_pull_image,
+            )
             self._durable_execution_emulator_container.start_or_attach()
             LOG.debug("Created and started durable functions emulator container")
         return self._durable_execution_emulator_container
@@ -512,7 +533,9 @@ class WarmLambdaRuntime(LambdaRuntime):
     warm containers life cycle.
     """
 
-    def __init__(self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False):
+    def __init__(
+        self, container_manager, image_builder, observer=None, mount_symlinks=False, no_mem_limit=False, no_watch=False
+    ):
         """
         Initialize the Local Lambda runtime
 
@@ -522,14 +545,24 @@ class WarmLambdaRuntime(LambdaRuntime):
             Instance of the ContainerManager class that can run a local Docker container
         image_builder samcli.local.docker.lambda_image.LambdaImage
             Instance of the LambdaImage class that can create am image
-        warm_containers bool
-            Determines if the warm containers is enabled or not.
+        observer
+            Optional observer for file watching
+        mount_symlinks bool
+            Optional. True if symlinks should be mounted in the container
+        no_mem_limit bool
+            Optional. True if memory limit should be disabled
+        no_watch bool
+            Optional. True if file watching should be disabled
         """
         self._function_configs = {}
         self._containers = {}
+        self._no_watch = no_watch
         self._container_lock = threading.Lock()  # Thread-safe container creation
 
-        self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
+        if no_watch:
+            self._observer = None
+        else:
+            self._observer = observer if observer else LambdaFunctionObserver(self._on_code_change)
 
         super().__init__(container_manager, image_builder, mount_symlinks=mount_symlinks, no_mem_limit=no_mem_limit)
 
@@ -540,6 +573,7 @@ class WarmLambdaRuntime(LambdaRuntime):
         container_host=None,
         container_host_interface=None,
         extra_hosts=None,
+        container_dns=None,
     ):
         """
         Create a new Container for the passed function, then store it in a dictionary using the function name,
@@ -556,6 +590,8 @@ class WarmLambdaRuntime(LambdaRuntime):
             Host of locally emulated Lambda container
         container_host_interface string
             Interface that Docker host binds ports to
+        container_dns tuple
+            Optional. Tuple of DNS server IP addresses for the container
 
         Returns
         -------
@@ -587,7 +623,7 @@ class WarmLambdaRuntime(LambdaRuntime):
                 if container:
                     self._container_manager.stop(container)
                     self._containers.pop(function_path, None)
-                if exist_function_config:
+                if exist_function_config and self._observer is not None:
                     self._observer.unwatch(exist_function_config)
                 container = None
 
@@ -595,12 +631,18 @@ class WarmLambdaRuntime(LambdaRuntime):
             elif container and container.is_created():
                 return container
 
-            # Create new container
-            self._observer.watch(function_config)
-            self._observer.start()
+            # Create new container; only watch/start observer when file watching is enabled
+            if self._observer is not None:
+                self._observer.watch(function_config)
+                self._observer.start()
 
             container = super().create(
-                function_config, effective_debug_context, container_host, container_host_interface, extra_hosts
+                function_config,
+                effective_debug_context,
+                container_host,
+                container_host_interface,
+                extra_hosts,
+                container_dns,
             )
 
             # Store container and config
@@ -680,7 +722,8 @@ class WarmLambdaRuntime(LambdaRuntime):
         self._function_configs.clear()
 
         self._clean_decompressed_paths()
-        self._observer.stop()
+        if self._observer is not None:
+            self._observer.stop()
 
     def _on_code_change(self, functions):
         """
@@ -701,7 +744,8 @@ class WarmLambdaRuntime(LambdaRuntime):
                 function_full_path,
                 resource,
             )
-            self._observer.unwatch(function_config)
+            if self._observer is not None:
+                self._observer.unwatch(function_config)
             self._function_configs.pop(function_full_path, None)
             container = self._containers.get(function_full_path, None)
             if container:
@@ -709,11 +753,12 @@ class WarmLambdaRuntime(LambdaRuntime):
                 self._containers.pop(function_full_path, None)
 
 
-def _unzip_file(filepath):
+def _unzip_file(filepath, mount_symlinks=False):
     """
     Helper method to unzip a file to a temporary directory
 
     :param string filepath: Absolute path to this file
+    :param bool mount_symlinks: If True, allow symlinks pointing outside extraction directory
     :return string: Path to the temporary directory where it was unzipped
     """
 
@@ -723,8 +768,10 @@ def _unzip_file(filepath):
         os.chmod(temp_dir, 0o755)
 
     LOG.info("Decompressing %s", filepath)
-
-    unzip(filepath, temp_dir)
+    try:
+        unzip(filepath, temp_dir, mount_symlinks=mount_symlinks)
+    except ValueError as ex:
+        raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
 
     # The directory that Python returns might have symlinks. The Docker File sharing settings will not resolve
     # symlinks. Hence get the real path before passing to Docker.

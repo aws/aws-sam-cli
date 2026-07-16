@@ -52,6 +52,7 @@ class TestDeployCliCommand(TestCase):
         self.disable_rollback = False
         self.on_failure = None
         self.max_wait_duration = 480
+        self.express = False
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
@@ -102,9 +103,11 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -133,6 +136,8 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -220,9 +225,11 @@ class TestDeployCliCommand(TestCase):
                     config_env=self.config_env,
                     config_file=self.config_file,
                     resolve_image_repos=self.resolve_image_repos,
+                    language_extensions=None,
                     disable_rollback=self.disable_rollback,
                     on_failure=self.on_failure,
                     max_wait_duration=self.max_wait_duration,
+                    express=self.express,
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -322,9 +329,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -350,9 +359,11 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -468,9 +479,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -496,9 +509,11 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -617,9 +632,11 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -649,9 +666,11 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -778,9 +797,11 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -806,9 +827,11 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -919,9 +942,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -947,9 +972,11 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
             )
 
             context_mock.run.assert_called_with()
@@ -997,9 +1024,11 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1028,6 +1057,8 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -1063,9 +1094,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
     @patch("samcli.commands.package.command.click")
@@ -1115,9 +1148,11 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1143,9 +1178,11 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()
@@ -1190,9 +1227,11 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
         )
 
         mock_deploy_context.assert_called_with(
@@ -1221,6 +1260,8 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
         )
 
         mock_package_context.assert_called_with(
@@ -1240,6 +1281,7 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             signing_profiles=self.signing_profiles,
             parameter_overrides=self.parameter_overrides,
+            language_extensions=None,
         )
 
         context_mock.run.assert_called_with()

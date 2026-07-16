@@ -1,0 +1,46 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "InstanceList": {
+      "Type": "CommaDelimitedList",
+      "Default": "InstanceA,InstanceB,InstanceC"
+    }
+  },
+  "Resources": {
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "t3.medium",
+        "ImageId": "ami-00ad2436e75246bba",
+        "DisableApiTermination": false
+      }
+    }
+  },
+  "Outputs": {
+    "Output0": {
+      "Description": "MyDescription",
+      "Value": {"Ref": "Topic0"}
+    },
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      ["1", "2"],
+      {
+        "Output${VariableName}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${VariableName}"}
+        }
+      }
+    ],
+    "Fn::ForEach::UniqueLoopName2": [
+      "VariableName",
+      ["3", "4"],
+      {
+        "Output${VariableName}": {
+          "Description": "MyDescription",
+          "Value": {"Fn::Sub": "Topic${VariableName}"}
+        }
+      }
+    ]
+  }
+}

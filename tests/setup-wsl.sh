@@ -34,12 +34,16 @@ powershell.exe -Command "
   } | Out-Null
 "
 
-# ── Step 3: Install and configure WSL 2 ──
-echo "=== Installing WSL 2 with ${DISTRO} ==="
+# ── Step 3: Install and configure WSL 2 (on D: drive to save C: space) ──
+echo "=== Installing WSL 2 with ${DISTRO} on D: drive ==="
 
-# Install WSL and the Ubuntu distribution
+WSL_INSTALL_DIR="D:\\WSL\\${DISTRO}"
+
+# Install WSL and the Ubuntu distribution directly to D: drive
+# --location installs the distro VHD on D: instead of C: to avoid disk pressure
 # --web-download avoids Microsoft Store dependency
-powershell.exe -Command "wsl --install ${DISTRO} --web-download --no-launch" || true
+powershell.exe -Command "New-Item -ItemType Directory -Force -Path '${WSL_INSTALL_DIR}' | Out-Null"
+powershell.exe -Command "wsl --install ${DISTRO} --web-download --no-launch --location '${WSL_INSTALL_DIR}'" || true
 
 # Set WSL 2 as the default version
 powershell.exe -Command "wsl --set-default-version 2"

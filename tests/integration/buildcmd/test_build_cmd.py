@@ -395,7 +395,7 @@ class TestBuildCommand_RubyFunctionsWithGemfileInTheRoot(BuildIntegRubyBase):
         └── template.yaml
         """
         # copy .ruby-version to the root of the project
-        ruby_runtime_path = runtime.replace(".", "").title()  # ruby3.X to Ruby3X
+        ruby_runtime_path = runtime.replace(".", "").title()  # rubyX.Y to RubyXY
         shutil.copyfile(
             Path(self.template_path).parent.joinpath(ruby_runtime_path, ".ruby-version"),
             Path(self.working_dir).joinpath(".ruby-version"),
@@ -2168,7 +2168,7 @@ class TestBuildWithLanguageExtensions(BuildIntegBase):
     template = "language-extensions.yaml"
 
     def test_validation_does_not_error_out(self):
-        cmdlist = self.get_command_list()
+        cmdlist = self.get_command_list() + ["--language-extensions"]
         process_execute = run_command(cmdlist, cwd=self.working_dir)
         self.assertEqual(process_execute.process.returncode, 0)
         self.assertIn("template.yaml", os.listdir(self.default_build_dir))

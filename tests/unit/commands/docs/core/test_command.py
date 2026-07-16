@@ -23,7 +23,7 @@ class TestDocsBaseCommand(TestCase):
                 "Launch the AWS SAM CLI documentation in a browser! "
                 "This command will\n  show information about setting up credentials, "
                 "the\n  AWS SAM CLI lifecycle and other useful details. \n\n  "
-                "The command also be run with sub-commands to open specific pages."
+                "The command can also be run with sub-commands to open specific pages."
             ),
             description[0][0],
         )

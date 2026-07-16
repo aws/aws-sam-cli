@@ -126,7 +126,9 @@ class DurableIntegBase(TestCase):
         Returns:
             tuple: (process, output_lines, thread) where output_lines is a list that gets populated as output arrives
         """
-        process = Popen(command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, env=env, cwd=cwd)
+        process = Popen(
+            command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd
+        )
         output_lines = []
 
         def log_output():
@@ -150,7 +152,7 @@ class DurableIntegBase(TestCase):
 
         self.assertIn("Execution Summary:", stdout_str, f"Expected execution summary in output: {stdout_str}")
 
-        arn_match = re.search(r"ARN:\s+([a-f0-9-]+)", stdout_str)
+        arn_match = re.search(r"ARN:\s+(\S+)", stdout_str)
         self.assertIsNotNone(arn_match, f"Could not find ARN in output: {stdout_str}")
         execution_arn = arn_match.group(1) if arn_match else ""
 

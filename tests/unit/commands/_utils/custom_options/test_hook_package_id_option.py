@@ -99,6 +99,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -139,6 +140,7 @@ class TestHookPackageIdOption(TestCase):
             True,
             "/path/plan/file",
             "/path/path",
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
         record_hook_telemetry_mock.assert_called_once()
@@ -208,6 +210,7 @@ class TestHookPackageIdOption(TestCase):
             True,
             "/path/plan/file",
             "/path/path",
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -280,6 +283,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -324,6 +328,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -438,6 +443,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             "path",
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -484,6 +490,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             "./..",
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 
@@ -527,6 +534,7 @@ class TestHookPackageIdOption(TestCase):
             False,
             None,
             None,
+            False,
         )
         self.assertEqual(opts.get("template_file"), self.metadata_path)
 

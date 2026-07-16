@@ -52,6 +52,7 @@ class TestCli(TestCase):
         self.overide_runtime = None
         self.mount_symlinks = False
         self.no_mem_limit = False
+        self.container_dns = None
         self.tenant_id = None
         self.durable_execution_name = None
 
@@ -87,7 +88,9 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
+            container_dns=self.container_dns,
             tenant_id=self.tenant_id,
         )
 
@@ -126,7 +129,9 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
+            container_dns=self.container_dns,
         )
 
         context_mock.local_lambda_runner.invoke.assert_called_with(
@@ -174,7 +179,9 @@ class TestCli(TestCase):
             add_host=self.add_host,
             invoke_images={None: "amazon/aws-sam-cli-emulation-image-python3.9"},
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
+            container_dns=self.container_dns,
         )
 
         get_event_mock.assert_not_called()
@@ -357,7 +364,9 @@ class TestCli(TestCase):
             hook_name=self.hook_name,
             runtime=self.overide_runtime,
             mount_symlinks=self.mount_symlinks,
+            language_extensions=None,
             no_mem_limit=self.no_mem_limit,
+            container_dns=self.container_dns,
             tenant_id=tenant_id,
             durable_execution_name=self.durable_execution_name,
         )

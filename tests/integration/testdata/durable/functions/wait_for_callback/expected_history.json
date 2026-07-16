@@ -12,7 +12,7 @@
   },
   {
     "EventType": "ContextStarted",
-    "SubType": "RunInChildContext",
+    "SubType": "WaitForCallback",
     "EventId": 2,
     "Name": "external_call",
     "ContextStartedDetails": {}
@@ -60,7 +60,7 @@
   },
   {
     "EventType": "ContextSucceeded",
-    "SubType": "RunInChildContext",
+    "SubType": "WaitForCallback",
     "EventId": 8,
     "Name": "external_call",
     "ContextSucceededDetails": {

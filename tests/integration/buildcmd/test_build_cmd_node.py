@@ -77,6 +77,7 @@ class TestBuildCommand_EsbuildFunctions(BuildIntegEsbuildBase):
         )
 
 
+@pytest.mark.pr_skip
 class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuildBase):
     template = "template_with_metadata_esbuild.yaml"
     MANIFEST_PATH = "Esbuild/npm_manifest/package.json"
@@ -145,6 +146,7 @@ class TestBuildCommand_EsbuildFunctions_With_External_Manifest(BuildIntegEsbuild
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+@pytest.mark.pr_skip
 @parameterized_class(
     ("template",),
     [

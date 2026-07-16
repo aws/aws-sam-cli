@@ -19,6 +19,7 @@ from samcli.commands._utils.options import (
     image_repositories_option,
     image_repository_option,
     kms_key_id_option,
+    language_extensions_option,
     metadata_option,
     no_progressbar_option,
     notification_arns_option,
@@ -38,6 +39,7 @@ from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils import osutils
@@ -141,6 +143,14 @@ LOG = logging.getLogger(__name__)
     type=int,
     help="Maximum duration in minutes to wait for the deployment to complete.",
 )
+@click.option(
+    "--express/--no-express",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up deployments by completing once resource "
+    "configuration is applied, without waiting for full stabilization.",
+)
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
@@ -159,6 +169,7 @@ LOG = logging.getLogger(__name__)
 @signing_profiles_option
 @no_progressbar_option
 @capabilities_option
+@language_extensions_option
 @aws_creds_options
 @common_options
 @save_params_option
@@ -194,12 +205,14 @@ def cli(
     signing_profiles,
     resolve_s3,
     resolve_image_repos,
+    language_extensions,
     save_params,
     config_file,
     config_env,
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
 ):
     """
     `sam deploy` command entry point
@@ -233,9 +246,11 @@ def cli(
         config_file,
         config_env,
         resolve_image_repos,
+        language_extensions,
         disable_rollback,
         on_failure,
         max_wait_duration,
+        express,
     )  # pragma: no cover
 
 
@@ -267,9 +282,11 @@ def do_cli(
     config_file,
     config_env,
     resolve_image_repos,
+    language_extensions,
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
 ):
     """
     Implementation of the ``cli`` method
@@ -278,6 +295,8 @@ def do_cli(
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
     from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.package.package_context import PackageContext
+
+    language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -300,6 +319,7 @@ def do_cli(
             config_env=config_env,
             config_file=config_file,
             disable_rollback=disable_rollback,
+            language_extensions_enabled=language_extensions_enabled,
         )
         guided_context.run()
     else:
@@ -338,6 +358,7 @@ def do_cli(
             profile=profile,
             signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
             parameter_overrides=context_param_overrides,
+            language_extensions=language_extensions,
         ) as package_context:
             package_context.run()
 
@@ -376,5 +397,7 @@ def do_cli(
             poll_delay=poll_delay,
             on_failure=on_failure,
             max_wait_duration=max_wait_duration,
+            language_extensions=language_extensions,
+            express=express,
         ) as deploy_context:
             deploy_context.run()

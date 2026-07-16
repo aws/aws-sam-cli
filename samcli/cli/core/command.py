@@ -26,10 +26,9 @@ class CoreCommand(Command):
 
     def format_description(self, formatter: RootCommandHelpTextFormatter):
         with formatter.indented_section(name="Description", extra_indents=1):
-            formatter.write_rd(
+            formatter.write_text_rows(
                 [
                     RowDefinition(
-                        text="",
                         name=self.description + self.description_addendum,
                     ),
                 ],
@@ -55,17 +54,21 @@ class CoreCommand(Command):
                 ],
                 key=lambda row_def: row_def.rank,
             )
+            extras = options.get("extras", [])
+
+            # Skip section entirely if no options and no extras
+            if not opts and not extras:
+                continue
+
             with formatter.indented_section(name=option_heading, extra_indents=1):
-                formatter.write_rd(options.get("extras", [RowDefinition()]), **write_rd_overrides)
-                formatter.write_rd(
-                    [RowDefinition(name="", text="\n")]
-                    + [
-                        opt
-                        for options in zip(opts, [RowDefinition(name="", text="\n")] * (len(opts)))
-                        for opt in options
-                    ],
-                    **write_rd_overrides,
-                )
+                rows = []
+                if extras:
+                    rows.extend(extras)
+
+                if opts:
+                    rows.extend(opts)
+
+                formatter.write_rd(rows, **write_rd_overrides)
 
     @staticmethod
     def convert_param_to_row_definition(ctx: Context, param: Parameter, rank: int):

@@ -12,8 +12,12 @@ from samtranslator.policy_template_processor.exceptions import TemplateNotFoundE
 from samcli.cli.context import Context
 from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.local.cli_common.user_exceptions import InvalidLayerVersionArn
+from samcli.lib.build.constants import DEPRECATED_RUNTIMES
 from samcli.lib.build.exceptions import MissingFunctionHandlerException
 from samcli.lib.providers.exceptions import InvalidLayerReference, MissingFunctionNameException
+from samcli.lib.providers.provider import Function, LayerVersion, Stack, get_full_path, get_function_build_info
+from samcli.lib.providers.sam_base_provider import SamBaseProvider
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.colors import Colored, Colors
 from samcli.lib.utils.file_observer import FileObserver
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -24,11 +28,6 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
 )
-
-from ..build.constants import DEPRECATED_RUNTIMES
-from .provider import Function, LayerVersion, Stack, get_full_path, get_function_build_info
-from .sam_base_provider import SamBaseProvider
-from .sam_stack_provider import SamLocalStackProvider
 
 LOG = logging.getLogger(__name__)
 
@@ -894,6 +893,8 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         use_raw_codeuri: bool = False,
         ignore_code_extraction_warnings: bool = False,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        no_watch: Optional[bool] = False,
+        language_extensions_enabled: bool = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -910,6 +911,8 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             Note(xinhol): use_raw_codeuri is temporary to fix a bug, and will be removed for a permanent solution.
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
+        :param bool no_watch: If True, skip creating the FileObserver entirely. The provider will not
+            detect template changes and stack/function refreshes will not be triggered.
         """
 
         # Store function_logical_ids before calling super().__init__
@@ -925,15 +928,20 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         self._ignore_code_extraction_warnings = ignore_code_extraction_warnings
         self._parameter_overrides = parameter_overrides
         self._global_parameter_overrides = global_parameter_overrides
+        self._language_extensions_enabled = language_extensions_enabled
         self.parent_templates_paths = []
         for stack in self._stacks:
             if stack.is_root_stack:
                 self.parent_templates_paths.append(stack.location)
 
         self.is_changed = False
-        self._observer = FileObserver(self._set_templates_changed)
-        self._observer.start()
-        self._watch_stack_templates(stacks)
+
+        self._observer: Optional[FileObserver] = None
+        # Only initialize file watcher when --no-watch is not set
+        if not no_watch:
+            self._observer = FileObserver(self._set_templates_changed)
+            self._observer.start()
+            self._watch_stack_templates(stacks)
 
     @property
     def stacks(self) -> List[Stack]:
@@ -996,15 +1004,17 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
             ", ".join(paths),
         )
         self.is_changed = True
-        for stack in self._stacks:
-            self._observer.unwatch(stack.location)
+        if self._observer:
+            for stack in self._stacks:
+                self._observer.unwatch(stack.location)
 
     def _watch_stack_templates(self, stacks: List[Stack]) -> None:
         """
         initialize the list of stack template watchers
         """
-        for stack in stacks:
-            self._observer.watch(stack.location)
+        if self._observer:
+            for stack in stacks:
+                self._observer.watch(stack.location)
 
     def _refresh_loaded_functions(self) -> None:
         """
@@ -1012,6 +1022,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         Applies the same function filter during refresh.
         """
         LOG.debug("A change got detected in one of the stack templates. Reload the lambda function resources")
+
         self._stacks = []
 
         for template_file in self.parent_templates_paths:
@@ -1020,6 +1031,7 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
                     template_file,
                     parameter_overrides=self._parameter_overrides,
                     global_parameter_overrides=self._global_parameter_overrides,
+                    language_extensions_enabled=self._language_extensions_enabled,
                 )
                 self._stacks += template_stacks
             except (TemplateNotFoundException, TemplateFailedParsingException) as ex:
@@ -1039,4 +1051,5 @@ class RefreshableSamFunctionProvider(SamFunctionProvider):
         """
         Stop Observing.
         """
-        self._observer.stop()
+        if self._observer:
+            self._observer.stop()

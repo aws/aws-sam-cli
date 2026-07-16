@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
+    "language_extensions",
 ]
 
 CONTAINER_OPTION_NAMES: List[str] = [
@@ -31,6 +32,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "docker_volume_basedir",
     "skip_pull_image",
     "docker_network",
+    "container_dns",
     "force_image_build",
     "shutdown",
     "container_host",
@@ -38,6 +40,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "add_host",
     "invoke_image",
     "no_memory_limit",
+    "no_watch",
 ]
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
@@ -77,10 +80,9 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: "
+                "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

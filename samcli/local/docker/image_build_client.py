@@ -39,6 +39,7 @@ class ImageBuildClient(ABC):
         platform: Optional[str] = None,
         target: Optional[str] = None,
         rm: bool = True,
+        extra_params: Optional[list[str]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """
         Build a container image from a Dockerfile.
@@ -59,6 +60,8 @@ class ImageBuildClient(ABC):
             Build target stage in multi-stage Dockerfile
         rm : bool
             Remove intermediate containers after build (default: True)
+        extra_params : list of str, optional
+            Extra CLI flags (e.g., ["--ssh", "default"]). Only supported by CLIBuildClient
 
         Yields
         ------
@@ -119,6 +122,7 @@ class SDKBuildClient(ImageBuildClient):
         platform: Optional[str] = None,
         target: Optional[str] = None,
         rm: bool = True,
+        extra_params: Optional[list[str]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """Build image using docker-py SDK"""
         build_kwargs = {
@@ -134,6 +138,12 @@ class SDKBuildClient(ImageBuildClient):
             build_kwargs["platform"] = platform
         if target is not None:
             build_kwargs["target"] = target
+
+        if extra_params:
+            LOG.warning(
+                "DockerBuildExtraParams are not supported with the SDK build client and will be ignored. "
+                "Use --use-buildkit to enable CLI-based builds."
+            )
 
         _, build_logs = self.container_client.images.build(**build_kwargs)
         return build_logs  # type: ignore[no-any-return]
@@ -159,6 +169,7 @@ class CLIBuildClient(ImageBuildClient):
         platform: Optional[str] = None,
         target: Optional[str] = None,
         rm: bool = True,
+        extra_params: Optional[list[str]] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         # Make dockerfile path relative to context if not absolute
         if not os.path.isabs(dockerfile):
@@ -186,6 +197,9 @@ class CLIBuildClient(ImageBuildClient):
 
         if rm:
             cmd.append("--rm")
+
+        if extra_params:
+            cmd.extend(extra_params)
 
         cmd.append(path)
 

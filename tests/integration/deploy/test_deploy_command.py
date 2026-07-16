@@ -12,6 +12,7 @@ from parameterized import parameterized
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, SamConfig
 from samcli.local.docker.utils import get_validated_container_client
+from samcli.yamlhelper import yaml_parse
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import (
     RUNNING_ON_CI,
@@ -19,6 +20,7 @@ from tests.testing_utils import (
     RUN_BY_CANARY,
     SKIP_LMI_TESTS,
     UpdatableSARTemplate,
+    get_sam_command,
 )
 
 # Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
@@ -1716,9 +1718,29 @@ to create a managed default bucket, or run sam deploy --guided",
         stack_name = self._method_to_stack_name(self.id())
         self.stacks.append({"name": stack_name})
 
+        # Build first — sam deploy of a raw ForEach template requires a build step
+        build_dir = tempfile.mkdtemp()
+        build_command_list = [
+            get_sam_command(),
+            "build",
+            "-t",
+            str(template),
+            "-b",
+            build_dir,
+            "--language-extensions",
+        ]
+        build_process = self.run_command(build_command_list)
+        self.assertEqual(build_process.process.returncode, 0, f"Build failed: {build_process.stderr}")
+
+        built_template = Path(build_dir) / "template.yaml"
         deploy_command_list = self.get_deploy_command_list(
-            template_file=template, stack_name=stack_name, s3_prefix=self.s3_prefix, capabilities="CAPABILITY_IAM"
+            template_file=built_template,
+            stack_name=stack_name,
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            capabilities="CAPABILITY_IAM",
         )
+        deploy_command_list.append("--language-extensions")
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
@@ -1788,3 +1810,139 @@ to create a managed default bucket, or run sam deploy --guided",
 
         deploy_process_execute = self.run_command(deploy_command_list)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
+
+    def test_package_and_deploy_language_extensions_dynamic_codeuri(self):
+        """
+        Test the full package→deploy flow with Fn::ForEach and dynamic CodeUri.
+
+        This test verifies:
+        1. sam package preserves Fn::ForEach structure (not expanded)
+        2. A Mappings section is generated for the dynamic CodeUri
+        3. CodeUri is replaced with Fn::FindInMap
+        4. sam deploy succeeds with the packaged template
+        """
+        template_path = self.test_data_path.joinpath("language-extensions-dynamic-codeuri", "template.yaml")
+
+        output_template_path = os.path.join(tempfile.gettempdir(), "test_lang_ext_deploy_output.yaml")
+        try:
+            # Package the template
+            package_command_list = self.get_command_list(
+                template=template_path,
+                s3_bucket=self.s3_bucket.name,
+                s3_prefix=self.s3_prefix,
+                output_template_file=output_template_path,
+            )
+            package_command_list.append("--language-extensions")
+            package_process = self.run_command(command_list=package_command_list)
+            self.assertEqual(package_process.process.returncode, 0)
+
+            # Read and verify the packaged template
+            with open(output_template_path, "r") as f:
+                packaged_template = yaml_parse(f.read())
+
+            # Verify Fn::ForEach structure is preserved
+            resources = packaged_template.get("Resources", {})
+            self.assertIn(
+                "Fn::ForEach::Functions",
+                resources,
+                "Packaged template should preserve Fn::ForEach::Functions structure",
+            )
+
+            # Verify a Mappings section was generated
+            mappings = packaged_template.get("Mappings", {})
+            mapping_name = "SAMCodeUriFunctions"
+            self.assertIn(
+                mapping_name,
+                mappings,
+                f"Packaged template should contain generated Mappings section '{mapping_name}'",
+            )
+
+            # Verify Mappings contains entries for each collection value
+            mapping_entries = mappings[mapping_name]
+            self.assertIn("Alpha", mapping_entries, "Mappings should contain entry for 'Alpha'")
+            self.assertIn("Beta", mapping_entries, "Mappings should contain entry for 'Beta'")
+
+            # Verify CodeUri is replaced with Fn::FindInMap
+            foreach_block = resources["Fn::ForEach::Functions"]
+            body_template = foreach_block[2]
+            function_template = body_template["${FunctionName}Function"]
+            code_uri = function_template["Properties"]["CodeUri"]
+            self.assertIsInstance(code_uri, dict, "CodeUri should be a dict (Fn::FindInMap reference)")
+            self.assertIn("Fn::FindInMap", code_uri, "CodeUri should contain Fn::FindInMap")
+
+            # Deploy the packaged template
+            stack_name = self._method_to_stack_name(self.id())
+            self.stacks.append({"name": stack_name})
+
+            deploy_command_list = self.get_deploy_command_list(
+                template_file=output_template_path,
+                stack_name=stack_name,
+                capabilities="CAPABILITY_IAM",
+                s3_prefix=self.s3_prefix,
+                s3_bucket=self.s3_bucket.name,
+                force_upload=True,
+                notification_arns=self.sns_arn,
+                kms_key_id=self.kms_key,
+                no_execute_changeset=False,
+                tags="integ=true clarity=yes foo_bar=baz",
+                confirm_changeset=False,
+            )
+            deploy_command_list.append("--language-extensions")
+            deploy_process = self.run_command(deploy_command_list)
+            self.assertEqual(deploy_process.process.returncode, 0)
+        finally:
+            if os.path.exists(output_template_path):
+                os.unlink(output_template_path)
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_express_mode(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            express=True,
+        )
+
+        deploy_process = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+        self.assertIn("Express Mode", deploy_process.stdout.decode())
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_deploy_express_mode_with_disable_rollback(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            confirm_changeset=False,
+            express=True,
+            disable_rollback=True,
+        )
+
+        deploy_process = self.run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+        self.assertIn("Express Mode", deploy_process.stdout.decode())
