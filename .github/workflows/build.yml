@@ -164,7 +164,7 @@ jobs:
           cache-python: false
       - name: Install Python versions
         run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 ${{ matrix.python }}
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version: '1.19'
       - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1
