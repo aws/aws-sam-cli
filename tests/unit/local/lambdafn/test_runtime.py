@@ -851,6 +851,46 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         # Because we never unzipped anything, we should never delete
         shutil_mock.rmtree.assert_not_called()
 
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_warn_when_code_path_does_not_exist(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a path that does not exist on the local machine
+        """
+        code_path = "/nonexistent/path"
+
+        os_mock.path.exists.return_value = False
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        # code path must still be returned as is
+        self.assertEqual(result, code_path)
+
+        unzip_file_mock.assert_not_called()
+        log_mock.warning.assert_called_once()
+        # The warning must include the offending path
+        self.assertIn(code_path, log_mock.warning.call_args[0])
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_not_warn_when_code_path_exists(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a directory that exists, no warning must be logged
+        """
+        code_path = "codedir"
+
+        os_mock.path.exists.return_value = True
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        self.assertEqual(result, code_path)
+
+        log_mock.warning.assert_not_called()
+
 
 class TestLambdaRuntime_unarchived_layer(TestCase):
     def setUp(self):
