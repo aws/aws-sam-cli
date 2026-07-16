@@ -65,6 +65,14 @@ LOG = logging.getLogger(__name__)
     default=None,
     required=False,
 )
+@click.option(
+    "--express/--no-express",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up stack deletion by completing once resource "
+    "deletion is initiated, without waiting for full cleanup.",
+)
 @aws_creds_options
 @common_options
 @save_params_option
@@ -79,6 +87,7 @@ def cli(
     no_prompts: bool,
     s3_bucket: str,
     s3_prefix: str,
+    express: bool,
     config_env: str,
     config_file: str,
     save_params: bool,
@@ -95,6 +104,7 @@ def cli(
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,
+        express=express,
     )  # pragma: no cover
 
 
@@ -105,6 +115,7 @@ def do_cli(
     no_prompts: bool,
     s3_bucket: Optional[str],
     s3_prefix: Optional[str],
+    express: bool = False,
 ):
     """
     Implementation of the ``cli`` method
@@ -118,5 +129,6 @@ def do_cli(
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,
+        express=express,
     ) as delete_context:
         delete_context.run()
