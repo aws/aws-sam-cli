@@ -40,6 +40,7 @@ def generate_project(
     tracing=False,
     application_insights=False,
     structured_logging=False,
+    checkout=None,
 ):
     """Generates project using cookiecutter and options given
 
@@ -74,6 +75,8 @@ def generate_project(
             Enable or disable AppInsights Monitoring
     structured_logging: Optional[bool]
         boolean value to determine if Json structured logging should be enabled or not
+    checkout: Optional[str]
+        Branch, tag or commit to checkout after git clone
 
     Raises
     ------
@@ -97,6 +100,9 @@ def generate_project(
 
     if extra_context:
         params["extra_context"] = extra_context
+
+    if checkout:
+        params["checkout"] = checkout
 
     LOG.debug("Parameters dict created with input given")
     LOG.debug("%s", params)
@@ -123,7 +129,12 @@ def generate_project(
             "it as a cookiecutter template"
         )
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
-        generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
+        if checkout:
+            generate_non_cookiecutter_project(
+                location=params["template"], output_dir=project_output_dir, checkout=checkout
+            )
+        else:
+            generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
 
     except UnknownRepoType as e:
         raise InvalidLocationError(template=params["template"]) from e

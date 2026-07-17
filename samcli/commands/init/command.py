@@ -218,6 +218,17 @@ def non_interactive_validation(func):
     required=False,
 )
 @click.option(
+    "--checkout",
+    default=None,
+    help="Branch, tag or commit to checkout after git clone.",
+    required=False,
+    cls=ClickMutex,
+    required_param_lists=[["location"]],
+    required_params_hint="The --checkout option requires --location to specify a git repository.",
+    incompatible_params=["package_type", "runtime", "base_image", "dependency_manager", "app_template"],
+    incompatible_params_hint=INCOMPATIBLE_PARAMS_HINT,
+)
+@click.option(
     "--tracing/--no-tracing",
     default=None,
     help="Enable AWS X-Ray tracing for application.",
@@ -259,6 +270,7 @@ def cli(
     save_params,
     config_file,
     config_env,
+    checkout,
 ):
     """
     `sam init` command entry point
@@ -281,6 +293,7 @@ def cli(
         tracing,
         application_insights,
         structured_logging,
+        checkout,
     )  # pragma: no cover
 
 
@@ -303,6 +316,7 @@ def do_cli(
     tracing,
     application_insights,
     structured_logging,
+    checkout,
 ):
     """
     Implementation of the ``cli`` method
@@ -356,6 +370,7 @@ def do_cli(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
     else:
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
@@ -377,6 +392,7 @@ def do_cli(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
 
 

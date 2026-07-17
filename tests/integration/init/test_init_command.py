@@ -813,6 +813,157 @@ Error: Invalid value for '-p' / '--package-type': 'WrongPT' is not one of 'Zip',
 
             self.assertIn(errmsg.strip(), "\n".join(stderr.strip().splitlines()))
 
+    def test_init_command_checkout_without_location(self):
+        stderr = None
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--checkout",
+                    "some-branch",
+                    "--no-interactive",
+                    "--name",
+                    "sam-app",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 2)
+
+            self.assertIn("Missing required parameters, with --checkout set", stderr)
+
+
+@pytest.mark.xdist_group(name="sam_init")
+class TestInitWithCheckoutOption(TestCase):
+    @pytest.mark.tier2
+    def test_init_command_checkout_with_location_for_cookiecutter_project(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--location",
+                    "https://github.com/aws-samples/cookiecutter-aws-sam-python.git",
+                    "--checkout",
+                    "improv/cleanup",
+                    "--name",
+                    "test-checkout-project",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "test-checkout-project").exists())
+            self.assertFalse(Path(temp, "test-checkout-project", "cookiecutter.json").exists())
+            self.assertFalse(Path(temp, "test-checkout-project", ".env").exists()) #This branch does not have .env files, so they should not exist.
+
+    @pytest.mark.tier2
+    def test_init_command_checkout_with_non_existent_branch(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--location",
+                    "https://github.com/aws/aws-sam-cli-app-templates.git",
+                    "--checkout",
+                    "non-existent-branch",
+                    "--name",
+                    "test-checkout-project",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 1)
+            self.assertIn("could not found", stderr.lower())
+
+    @pytest.mark.tier2
+    def test_init_command_checkout_with_location_for_non_cookiecutter_project(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--location",
+                    "https://github.com/aws/aws-sam-cli.git",
+                    "--checkout",
+                    "master",
+                    "--name",
+                    "test-checkout-project",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            self.assertTrue(Path(temp, "test-checkout-project").exists())
+        
+    @pytest.mark.tier2
+    def test_init_command_checkout_with_incompatible_params(self):
+        stderr = None
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--checkout",
+                    "some-branch",
+                    "--runtime",
+                    "nodejs18.x",
+                    "-o",
+                    temp,
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 2)
+
+            self.assertIn(
+                INCOMPATIBLE_PARAM_MESSAGE.strip().format("checkout", "runtime"),
+                "\n".join(stderr.strip().splitlines()),
+            )
+
 
 @pytest.mark.xdist_group(name="sam_init")
 class TestInitWithArbitraryProject(TestCase):
