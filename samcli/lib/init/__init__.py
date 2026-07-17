@@ -40,6 +40,7 @@ def generate_project(
     tracing=False,
     application_insights=False,
     structured_logging=False,
+    checkout=None,
 ):
     """Generates project using cookiecutter and options given
 
@@ -74,6 +75,8 @@ def generate_project(
             Enable or disable AppInsights Monitoring
     structured_logging: Optional[bool]
         boolean value to determine if Json structured logging should be enabled or not
+    checkout: Optional[str]
+        Branch, tag or commit to checkout after git clone
 
     Raises
     ------
@@ -97,6 +100,9 @@ def generate_project(
 
     if extra_context:
         params["extra_context"] = extra_context
+
+    if checkout:
+        params["checkout"] = checkout
 
     LOG.debug("Parameters dict created with input given")
     LOG.debug("%s", params)

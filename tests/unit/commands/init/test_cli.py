@@ -121,6 +121,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=True,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -138,6 +139,7 @@ class TestCli(TestCase):
             False,
             False,
             True,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -163,6 +165,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -179,6 +182,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -204,6 +208,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -220,6 +225,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -245,6 +251,7 @@ class TestCli(TestCase):
             tracing=True,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -262,6 +269,7 @@ class TestCli(TestCase):
             True,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -287,6 +295,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=True,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -304,6 +313,7 @@ class TestCli(TestCase):
             False,
             True,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -329,6 +339,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=True,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -345,6 +356,7 @@ class TestCli(TestCase):
             False,
             False,
             True,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -370,6 +382,7 @@ class TestCli(TestCase):
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -395,6 +408,7 @@ class TestCli(TestCase):
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -426,6 +440,7 @@ class TestCli(TestCase):
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
             generate_project_patch.assert_called_with(
@@ -469,6 +484,7 @@ class TestCli(TestCase):
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
             generate_project_patch.assert_called_with(
@@ -506,6 +522,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors
@@ -522,6 +539,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -547,6 +565,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -568,6 +587,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -595,6 +615,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN extra_context should have not overridden default_parameters(name, runtime)
@@ -616,6 +637,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -641,6 +663,7 @@ class TestCli(TestCase):
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -665,6 +688,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         # THEN should set default parameter(name, runtime) as extra_context
@@ -686,6 +710,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -710,6 +735,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=True,
+            checkout=None,
         )
 
         # THEN extra_context should be without runtime
@@ -730,6 +756,7 @@ class TestCli(TestCase):
             False,
             False,
             True,
+            None,
         )
 
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -754,6 +781,7 @@ class TestCli(TestCase):
             tracing=False,
             application_insights=False,
             structured_logging=True,
+            checkout=None,
         )
 
         # THEN extra_context should be without name
@@ -774,6 +802,7 @@ class TestCli(TestCase):
             False,
             False,
             True,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -801,6 +830,8 @@ class TestCli(TestCase):
             application_insights= False,
             structured_logging=False
             # fmt: on
+            ,
+            checkout=None,
         )
 
         # THEN we should receive no errors and right extra_context should be passed
@@ -822,6 +853,7 @@ class TestCli(TestCase):
             False,
             False,
             False,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -967,6 +999,7 @@ Y
             False,
             False,
             False,
+            None,
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code_mock(
@@ -1039,6 +1072,7 @@ test-project
             False,
             False,
             True,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1189,6 +1223,7 @@ us-east-1
             False,
             False,
             False,
+            None,
         )
         get_schemas_client_mock.assert_called_once_with("default", "us-east-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code("result.zip", ".", "test-project", ANY)
@@ -1446,6 +1481,7 @@ Y
             False,
             False,
             False,
+            None,
         )
         get_schemas_client_mock.assert_called_once_with(None, "ap-northeast-1")
         do_extract_and_merge_schemas_code_mock.do_extract_and_merge_schemas_code_mock(
@@ -1597,6 +1633,7 @@ Y
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
 
         self.extra_context_as_json["architectures"] = {"value": [ARM64]}
@@ -1613,6 +1650,7 @@ Y
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -1641,6 +1679,7 @@ foo
             ".",
             None,
             False,
+            None,
             None,
             None,
             None,
@@ -1680,7 +1719,7 @@ N
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False, False, False
+            ANY, IMAGE, "python3.8", "pip", ".", "untitled6", True, ANY, False, False, False, None
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1724,6 +1763,7 @@ N
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1767,6 +1807,7 @@ N
                 tracing=False,
                 application_insights=False,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1811,6 +1852,7 @@ N
             tracing=False,
             application_insights=False,
             structured_logging=False,
+            checkout=None,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1824,6 +1866,7 @@ N
             False,
             False,
             False,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1861,6 +1904,7 @@ N
             application_insights=False,
             architecture=None,
             structured_logging=False,
+            checkout=None,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1874,6 +1918,7 @@ N
             False,
             False,
             False,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1911,6 +1956,7 @@ N
             application_insights=False,
             architecture=None,
             structured_logging=False,
+            checkout=None,
         )
         generate_project_patch.assert_called_once_with(
             ANY,  # location
@@ -1924,6 +1970,7 @@ N
             False,
             False,
             False,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -1962,6 +2009,7 @@ N
                 application_insights=False,
                 architecture=None,
                 structured_logging=False,
+                checkout=None,
             )
 
     @patch("samcli.lib.utils.git_repo.GitRepo.clone")
@@ -1991,7 +2039,7 @@ N
         # THEN we should receive no errors
         self.assertFalse(result.exception)
         generate_project_patch.assert_called_once_with(
-            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, None, None, None
+            ANY, IMAGE, "java11", "gradle", ".", "untitled6", True, ANY, None, None, None, None
         )
         PackageType.explicit = (
             False  # Other tests fail after we pass --packge-type in this test, so let's reset this variable
@@ -2086,6 +2134,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -2177,6 +2226,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     def test_must_return_runtime_from_base_image_name(self):
@@ -2358,6 +2408,7 @@ test-project
                 application_insights=False,
                 architecture=X86_64,
                 structured_logging=False,
+                checkout=None,
             )
         expected_error_message = (
             "Lambda Runtime java8.al2 and dependency manager pip does not have an available initialization template."
@@ -2470,6 +2521,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.LOG")
@@ -2687,6 +2739,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch.object(InitTemplates, "__init__", MockInitTemplates.__init__)
@@ -2780,6 +2833,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     def does_template_meet_filter_criteria(self):
@@ -2865,6 +2919,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.local.common.runtime_template.INIT_RUNTIMES")
@@ -2956,6 +3011,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
@@ -3039,6 +3095,7 @@ test-project
             False,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -3126,6 +3183,7 @@ test-project
             True,
             False,
             False,
+            None,
         )
 
     @patch("samcli.commands.init.init_templates.InitTemplates.get_preprocessed_manifest")
@@ -3213,6 +3271,7 @@ test-project
             False,
             True,
             False,
+            None,
         )
 
     @parameterized.expand(

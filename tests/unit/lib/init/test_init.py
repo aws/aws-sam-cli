@@ -229,3 +229,67 @@ class TestInit(TestCase):
         is_file_mock.return_value = True
         _create_default_samconfig("zip", "outdir", "sam-app")
         samconfig_mock.assert_not_called()
+
+    @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.cookiecutter")
+    def test_generate_project_with_checkout_and_git_location(self, cookiecutter_patch, default_samconfig_mock):
+        """Test that checkout is passed to cookiecutter for a git location"""
+        # GIVEN a git location and checkout parameter
+        git_location = "https://github.com/aws-samples/cookiecutter-aws-sam-python.git"
+        checkout_ref = "improv/cleanup"
+
+        # WHEN generate_project is called with checkout and git location
+        generate_project(
+            location=git_location,
+            checkout=checkout_ref,
+            output_dir=self.output_dir,
+            no_input=self.no_input,
+        )
+
+        # THEN cookiecutter should be called with the remote URL and checkout ref
+        cookiecutter_patch.assert_called_once()
+        call_kwargs = cookiecutter_patch.call_args.kwargs
+        self.assertEqual(call_kwargs.get("template"), git_location)
+        self.assertEqual(call_kwargs.get("checkout"), checkout_ref)
+
+    @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.cookiecutter")
+    def test_generate_project_without_checkout_uses_remote_url(self, cookiecutter_patch, default_samconfig_mock):
+        """Test that without checkout, remote URL is passed to cookiecutter"""
+        # GIVEN a git location without checkout parameter
+        git_location = "https://github.com/aws-samples/cookiecutter-aws-sam-python.git"
+
+        # WHEN generate_project is called without checkout
+        generate_project(
+            location=git_location,
+            output_dir=self.output_dir,
+            no_input=self.no_input,
+        )
+
+        # AND cookiecutter should be called with the remote URL and no checkout
+        cookiecutter_patch.assert_called_once()
+        call_kwargs = cookiecutter_patch.call_args.kwargs
+        self.assertEqual(call_kwargs.get("template"), git_location)
+        self.assertFalse(call_kwargs.get("checkout"))
+
+    @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.cookiecutter")
+    def test_generate_project_with_checkout_and_non_git_location(self, cookiecutter_patch, default_samconfig_mock):
+        """Test that checkout is passed to cookiecutter for non-git locations"""
+        # GIVEN a non-git (local) location and checkout parameter
+        local_location = "/path/to/local/template"
+        checkout_ref = "branch-name"
+
+        # WHEN generate_project is called
+        generate_project(
+            location=local_location,
+            checkout=checkout_ref,
+            output_dir=self.output_dir,
+            no_input=self.no_input,
+        )
+
+        # THEN cookiecutter should be called with both the location and checkout parameter
+        cookiecutter_patch.assert_called_once()
+        call_kwargs = cookiecutter_patch.call_args.kwargs
+        self.assertEqual(call_kwargs.get("template"), local_location)
+        self.assertEqual(call_kwargs.get("checkout"), checkout_ref)

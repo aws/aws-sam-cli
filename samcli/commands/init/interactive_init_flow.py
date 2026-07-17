@@ -57,6 +57,7 @@ def do_interactive(
     tracing,
     application_insights,
     structured_logging,
+    checkout=None,
 ):
     """
     Implementation of the ``cli`` method when --interactive is provided.
@@ -85,6 +86,7 @@ def do_interactive(
         tracing,
         application_insights,
         structured_logging,
+        checkout,
     )
 
 
@@ -104,6 +106,7 @@ def generate_application(
     tracing,
     application_insights,
     structured_logging,
+    checkout=None,
 ):  # pylint: disable=too-many-arguments
     """
     The method holds the decision logic for generating an application
@@ -156,6 +159,7 @@ def generate_application(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
 
     else:
@@ -170,6 +174,7 @@ def generate_application(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
 
 
@@ -185,6 +190,7 @@ def _generate_from_location(
     tracing,
     application_insights,
     structured_logging,
+    checkout=None,
 ):
     location = click.prompt("\nTemplate location (git, mercurial, http(s), zip, path)", type=str)
     summary_msg = """
@@ -207,6 +213,7 @@ Output Directory: {output_dir}
         tracing,
         application_insights,
         structured_logging,
+        checkout,
     )
 
 
@@ -225,6 +232,7 @@ def _generate_from_use_case(
     tracing: Optional[bool],
     application_insights: Optional[bool],
     structured_logging: Optional[bool],
+    checkout: Optional[str] = None,
 ) -> None:
     templates = InitTemplates()
     runtime_or_base_image = runtime if runtime else base_image
@@ -315,6 +323,7 @@ def _generate_from_use_case(
         tracing,
         application_insights,
         structured_logging,
+        checkout,
     )
     # executing event_bridge logic if call is for Schema dynamic template
     if is_dynamic_schemas_template:
