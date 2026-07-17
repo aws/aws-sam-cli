@@ -28,6 +28,7 @@ from samcli.commands.init.init_templates import (
     template_does_not_meet_filter_criteria,
 )
 from samcli.commands.init.interactive_init_flow import _get_latest_python_runtime, get_sorted_runtimes
+from samcli.commands.init.init_flow_helpers import compare_runtimes
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.utils import osutils
 from samcli.lib.utils.git_repo import GitRepo
@@ -2874,6 +2875,22 @@ test-project
         expect_result = ["java11", "python3.12", "ruby3.2"]
         actual_result = get_sorted_runtimes(runtime_option_list)
         self.assertEqual(actual_result, expect_result)
+
+    def test_compare_runtimes_al2023_ordering(self):
+        # Base runtime sorts before al2023 variant
+        self.assertLess(compare_runtimes("java17", "java17.al2023"), 0)
+        self.assertGreater(compare_runtimes("java17.al2023", "java17"), 0)
+
+        # al2 sorts before al2023
+        self.assertLess(compare_runtimes("java8.al2", "java8.al2023"), 0)
+        self.assertGreater(compare_runtimes("java8.al2023", "java8.al2"), 0)
+
+        # Same runtime returns 0
+        self.assertEqual(compare_runtimes("java11.al2023", "java11.al2023"), 0)
+
+        # Cross-language not affected
+        self.assertLess(compare_runtimes("java17", "python3.12"), 0)
+        self.assertGreater(compare_runtimes("python3.12", "java17"), 0)
 
     @patch("samcli.commands.init.init_templates.InitTemplates._get_manifest")
     @patch("samcli.commands.init.init_templates.InitTemplates._init_options_from_manifest")
