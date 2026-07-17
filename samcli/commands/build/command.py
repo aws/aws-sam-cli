@@ -129,6 +129,13 @@ DESCRIPTION = """
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
+@click.option(
+    "--output",
+    default="text",
+    help="Output the results from the command in a given output format. "
+    "Supported formats: text (default), json.",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+)
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
@@ -167,6 +174,7 @@ def cli(
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
     language_extensions: Optional[bool],
+    output: str,
 ) -> None:
     """
     `sam build` command entry point
@@ -201,6 +209,7 @@ def cli(
         mount_symlinks,
         use_buildkit,
         language_extensions,
+        output,
     )  # pragma: no cover
 
 
@@ -230,6 +239,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
     language_extensions: Optional[bool],
+    output: str = "text",
 ) -> None:
     """
     Implementation of the ``cli`` method
@@ -272,6 +282,7 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
         mount_symlinks=mount_symlinks,
         use_buildkit=use_buildkit,
         language_extensions=language_extensions,
+        output=output,
     ) as ctx:
         ctx.run()
 

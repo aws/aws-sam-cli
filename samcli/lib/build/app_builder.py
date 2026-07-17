@@ -807,19 +807,23 @@ class ApplicationBuilder:
                         specified_workflow=specified_workflow if supported_specified_workflow else None,
                     )
 
-                return self._build_function_in_process(
-                    config,
-                    code_dir,
-                    artifact_dir,
-                    scratch_dir,
-                    manifest_path,
-                    runtime,
-                    architecture,
-                    options,
-                    dependencies_dir,
-                    download_dependencies,
-                    self._combine_dependencies,
-                )
+                try:
+                    return self._build_function_in_process(
+                        config,
+                        code_dir,
+                        artifact_dir,
+                        scratch_dir,
+                        manifest_path,
+                        runtime,
+                        architecture,
+                        options,
+                        dependencies_dir,
+                        download_dependencies,
+                        self._combine_dependencies,
+                    )
+                except BuildError as ex:
+                    ex.resource_name = function_name
+                    raise
 
         # pylint: disable=fixme
         # FIXME: we need to throw an exception here, packagetype could be something else

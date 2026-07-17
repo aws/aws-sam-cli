@@ -4,10 +4,12 @@ Context object used by build command
 
 import copy
 import itertools
+import json
 import logging
 import os
 import pathlib
 import shutil
+import sys
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -104,6 +106,7 @@ class BuildContext:
         mount_symlinks: Optional[bool] = False,
         use_buildkit: Optional[bool] = False,
         language_extensions: Optional[bool] = None,
+        output: str = "text",
     ) -> None:
         """
         Initialize the class
@@ -213,6 +216,7 @@ class BuildContext:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+        self._output = output
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -269,6 +273,9 @@ class BuildContext:
 
     def run(self) -> None:
         """Runs the building process by creating an ApplicationBuilder."""
+        if self._output == "json":
+            logging.getLogger("samcli").setLevel(logging.WARNING)
+
         if self._is_sam_template():
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
@@ -321,8 +328,6 @@ class BuildContext:
 
             self._handle_build_post_processing(builder, self._build_result)
 
-            click.secho("\nBuild Succeeded", fg="green")
-
             # try to use relpath so the command is easier to understand, however,
             # under Windows, when SAM and (build_dir or output_template_path) are
             # on different drive, relpath() fails.
@@ -336,17 +341,43 @@ class BuildContext:
                 build_dir_in_success_message = self.build_dir
                 output_template_path_in_success_message = out_template_path
 
-            if self._print_success_message:
-                msg = self._gen_success_msg(
-                    build_dir_in_success_message,
-                    output_template_path_in_success_message,
-                    os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-                )
-
-                click.secho(msg, fg="yellow")
+            if self._output == "json":
+                result = {
+                    "status": "success",
+                    "build_dir": build_dir_in_success_message,
+                    "template_file": output_template_path_in_success_message,
+                    "resources": [
+                        {
+                            "logical_id": f.full_path,
+                            "runtime": f.runtime,
+                            "architecture": f.architectures[0] if f.architectures else None,
+                        }
+                        for f in self.get_resources_to_build().functions
+                    ],
+                }
+                click.echo(json.dumps(result, indent=2))
+            else:
+                click.secho("\nBuild Succeeded", fg="green")
+                if self._print_success_message:
+                    msg = self._gen_success_msg(
+                        build_dir_in_success_message,
+                        output_template_path_in_success_message,
+                        os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+                    )
+                    click.secho(msg, fg="yellow")
         except FunctionNotFound as function_not_found_ex:
             caught_exception = function_not_found_ex
 
+            if self._output == "json":
+                error_result = {
+                    "status": "failure",
+                    "error": {
+                        "type": "FunctionNotFound",
+                        "message": str(function_not_found_ex),
+                    },
+                }
+                click.echo(json.dumps(error_result, indent=2))
+                sys.exit(1)
             raise UserException(
                 str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
             ) from function_not_found_ex
@@ -359,6 +390,22 @@ class BuildContext:
             ResourceNotFound,
         ) as ex:
             caught_exception = ex
+
+            if self._output == "json":
+                deep_wrap = getattr(ex, "wrapped_from", None)
+                error_type = deep_wrap if deep_wrap else ex.__class__.__name__
+                error_result = {
+                    "status": "failure",
+                    "error": {
+                        "type": error_type,
+                        "message": str(ex),
+                    },
+                }
+                resource_name = getattr(ex, "resource_name", None)
+                if resource_name:
+                    error_result["error"]["resource"] = resource_name
+                click.echo(json.dumps(error_result, indent=2))
+                sys.exit(1)
 
             click.secho("\nBuild Failed", fg="red")
 
