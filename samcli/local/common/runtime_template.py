@@ -65,12 +65,12 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     "java": [
         {
             "runtimes": [
-                "java8.al2",
                 "java8.al2023",
-                "java11",
+                "java8.al2",
                 "java11.al2023",
-                "java17",
+                "java11",
                 "java17.al2023",
+                "java17",
                 "java21",
                 "java25",
             ],
@@ -80,12 +80,12 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
         },
         {
             "runtimes": [
-                "java8.al2",
                 "java8.al2023",
-                "java11",
+                "java8.al2",
                 "java11.al2023",
-                "java17",
+                "java11",
                 "java17.al2023",
+                "java17",
                 "java21",
                 "java25",
             ],
@@ -133,12 +133,12 @@ INIT_RUNTIMES = [
     # java runtimes in descending order
     "java25",
     "java21",
-    "java17",
     "java17.al2023",
-    "java11",
+    "java17",
     "java11.al2023",
-    "java8.al2",
+    "java11",
     "java8.al2023",
+    "java8.al2",
     # nodejs runtimes in descending order
     "nodejs24.x",
     "nodejs22.x",

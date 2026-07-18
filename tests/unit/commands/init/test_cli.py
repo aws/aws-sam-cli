@@ -2877,13 +2877,13 @@ test-project
         self.assertEqual(actual_result, expect_result)
 
     def test_compare_runtimes_al2023_ordering(self):
-        # Base runtime sorts before al2023 variant
-        self.assertLess(compare_runtimes("java17", "java17.al2023"), 0)
-        self.assertGreater(compare_runtimes("java17.al2023", "java17"), 0)
+        # Newest OS variant sorts first: al2023 before base
+        self.assertGreater(compare_runtimes("java17", "java17.al2023"), 0)
+        self.assertLess(compare_runtimes("java17.al2023", "java17"), 0)
 
-        # al2 sorts before al2023
-        self.assertLess(compare_runtimes("java8.al2", "java8.al2023"), 0)
-        self.assertGreater(compare_runtimes("java8.al2023", "java8.al2"), 0)
+        # al2023 sorts before al2
+        self.assertLess(compare_runtimes("java8.al2023", "java8.al2"), 0)
+        self.assertGreater(compare_runtimes("java8.al2", "java8.al2023"), 0)
 
         # Same runtime returns 0
         self.assertEqual(compare_runtimes("java11.al2023", "java11.al2023"), 0)

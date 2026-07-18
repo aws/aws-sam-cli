@@ -86,10 +86,10 @@ def compare_runtimes(first_runtime, second_runtime):
 
             def _os_variant_rank(r: str) -> int:
                 if r.endswith(".al2023"):
-                    return 2
+                    return 0
                 if r.endswith(".al2"):
                     return 1
-                return 0
+                return 2
 
             return _os_variant_rank(first_runtime) - _os_variant_rank(second_runtime)
         return second_version_number - first_version_number
