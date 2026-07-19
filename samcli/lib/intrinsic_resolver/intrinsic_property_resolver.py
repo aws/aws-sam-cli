@@ -716,23 +716,13 @@ class IntrinsicResolver:
         -------
         This will return value_if_true and value_if_false depending on how the condition is evaluated
         """
-        arguments = self.intrinsic_property_resolver(
-            intrinsic_value, ignore_errors, parent_function=IntrinsicResolver.FN_IF
-        )
-        verify_intrinsic_type_list(arguments, IntrinsicResolver.FN_IF)
-        verify_number_arguments(arguments, IntrinsicResolver.FN_IF, num=3)
+        verify_intrinsic_type_list(intrinsic_value, IntrinsicResolver.FN_IF)
+        verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_IF, num=3)
 
         condition_name = self.intrinsic_property_resolver(
-            arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_IF
+            intrinsic_value[0], ignore_errors, parent_function=IntrinsicResolver.FN_IF
         )
         verify_intrinsic_type_str(condition_name, IntrinsicResolver.FN_IF)
-
-        value_if_true = self.intrinsic_property_resolver(
-            arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_IF
-        )
-        value_if_false = self.intrinsic_property_resolver(
-            arguments[2], ignore_errors, parent_function=IntrinsicResolver.FN_IF
-        )
 
         condition = self._conditions.get(condition_name)
         verify_intrinsic_type_dict(
@@ -750,7 +740,8 @@ class IntrinsicResolver:
             message="The result of {} must evaluate to bool".format(IntrinsicResolver.FN_IF),
         )
 
-        return value_if_true if condition_evaluated else value_if_false
+        selected_value = intrinsic_value[1] if condition_evaluated else intrinsic_value[2]
+        return self.intrinsic_property_resolver(selected_value, ignore_errors, parent_function=IntrinsicResolver.FN_IF)
 
     def handle_fn_equals(self, intrinsic_value, ignore_errors):
         """

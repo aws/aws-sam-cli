@@ -3,7 +3,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from parameterized import parameterized
 
@@ -905,6 +905,38 @@ class TestIntrinsicFnIfResolver(TestCase):
     def test_fn_if_condition_not_bool_fail(self):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
             self.resolver.intrinsic_property_resolver({"Fn::If": ["InvalidCondition", "test", "test"]}, True)
+
+    def test_fn_if_selects_resolvable_true_branch_ignoring_unresolvable_false_branch(self):
+        intrinsic = {"Fn::If": ["TestCondition", "resolved-value", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+        self.assertEqual(result, "resolved-value")
+
+    def test_fn_if_selects_resolvable_false_branch_ignoring_unresolvable_true_branch(self):
+        intrinsic = {"Fn::If": ["NotTestCondition", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}, "resolved-value"]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+        self.assertEqual(result, "resolved-value")
+
+    def test_fn_if_does_not_evaluate_unselected_false_branch(self):
+        mock_handle_fn_getatt = MagicMock()
+        self.resolver.intrinsic_key_function_map[IntrinsicResolver.FN_GET_ATT] = mock_handle_fn_getatt
+        intrinsic = {"Fn::If": ["TestCondition", "resolved-value", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+
+        self.assertEqual(result, "resolved-value")
+        mock_handle_fn_getatt.assert_not_called()
+
+    def test_fn_if_does_not_evaluate_unselected_true_branch(self):
+        mock_handle_fn_getatt = MagicMock()
+        self.resolver.intrinsic_key_function_map[IntrinsicResolver.FN_GET_ATT] = mock_handle_fn_getatt
+        intrinsic = {"Fn::If": ["NotTestCondition", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}, "resolved-value"]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+
+        self.assertEqual(result, "resolved-value")
+        mock_handle_fn_getatt.assert_not_called()
 
 
 class TestIntrinsicAttribteResolution(TestCase):
