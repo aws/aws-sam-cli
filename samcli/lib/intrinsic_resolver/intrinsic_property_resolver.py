@@ -615,7 +615,7 @@ class IntrinsicResolver:
         verify_intrinsic_type_str(logical_id, IntrinsicResolver.FN_GET_ATT)
         verify_intrinsic_type_str(resource_type, IntrinsicResolver.FN_GET_ATT)
 
-        return self._symbol_resolver.resolve_symbols(logical_id, resource_type)
+        return self._symbol_resolver.resolve_symbols(logical_id, resource_type, ignore_errors)
 
     def handle_fn_ref(self, intrinsic_value, ignore_errors):
         """

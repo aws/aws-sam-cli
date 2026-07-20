@@ -468,6 +468,13 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
             self.resolver.intrinsic_property_resolver({"Fn::GetAtt": ["some logical Id", intrinsic]}, True)
 
+    def test_fn_getatt_ignore_errors_forwarded_for_unsupported_attribute(self):
+        intrinsic = {"Fn::GetAtt": ["UnknownResource", "UnknownAttribute"]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
+
+        self.assertEqual(result, "$UnknownResource.UnknownAttribute")
+
 
 class TestIntrinsicFnSubResolver(TestCase):
     def setUp(self):
