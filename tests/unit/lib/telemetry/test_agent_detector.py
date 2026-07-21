@@ -13,6 +13,7 @@ class TestAgentDetector(TestCase):
             (Agent.Codex, "CODEX_SANDBOX", "seatbelt"),
             (Agent.Cursor, "CURSOR_AGENT", "1"),
             (Agent.GeminiCLI, "GEMINI_CLI", "1"),
+            (Agent.Antigravity, "ANTIGRAVITY_AGENT", "1"),
             (Agent.Kiro, "TERM_PROGRAM", "kiro"),
             (Agent.Kiro, "AWS_EXECUTION_ENV", "AmazonQ-For-CLI Version/1.13.3"),
             (Agent.OpenCode, "OPENCODE", "1"),

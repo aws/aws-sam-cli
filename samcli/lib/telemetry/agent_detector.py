@@ -12,6 +12,7 @@ class Agent(Enum):
     Codex = auto()
     Cursor = auto()
     GeminiCLI = auto()
+    Antigravity = auto()
     Kiro = auto()
     OpenCode = auto()
     GitHubCopilot = auto()
@@ -53,6 +54,8 @@ _ENV_VAR_OR_CALLABLE_BY_AGENT: Dict[Agent, Union[str, Callable[[Mapping], bool]]
     Agent.Cursor: "CURSOR_AGENT",
     # exact name, not a prefix, so GEMINI_CLI_HOME / GEMINI_CLI_NO_RELAUNCH don't match
     Agent.GeminiCLI: "GEMINI_CLI",
+    # Google Antigravity CLI (agy); replaces Gemini CLI for consumer users
+    Agent.Antigravity: "ANTIGRAVITY_AGENT",
     Agent.Kiro: _is_kiro,
     # OpenCode sets OPENCODE=1 in its root CLI middleware
     Agent.OpenCode: "OPENCODE",

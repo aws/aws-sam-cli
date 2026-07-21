@@ -26,6 +26,7 @@ _USER_AGENT_NAME_BY_AGENT: Dict[Agent, str] = {
     Agent.Codex: "codex",
     Agent.Cursor: "cursor",
     Agent.GeminiCLI: "gemini-cli",
+    Agent.Antigravity: "antigravity",
     Agent.Kiro: "kiro",
     Agent.OpenCode: "opencode",
     Agent.GitHubCopilot: "github-copilot",
