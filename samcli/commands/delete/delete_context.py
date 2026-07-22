@@ -37,6 +37,7 @@ class DeleteContext:
         no_prompts: bool,
         s3_bucket: Optional[str],
         s3_prefix: Optional[str],
+        express: bool = False,
     ):
         self.stack_name = stack_name
         self.region = region
@@ -44,6 +45,7 @@ class DeleteContext:
         self.no_prompts = no_prompts
         self.s3_bucket = s3_bucket
         self.s3_prefix = s3_prefix
+        self.express = express
         self.cf_utils = None
         self.s3_uploader = None
         self.ecr_uploader = None
@@ -211,14 +213,27 @@ class DeleteContext:
             try:
                 # If delete_stack fails and its status changes to DELETE_FAILED, retain
                 # the user input repositories and delete the stack.
-                self.cf_utils.delete_stack(stack_name=self.companion_stack_name)
+                self.cf_utils.delete_stack(
+                    stack_name=self.companion_stack_name, deployment_config=self._deployment_config
+                )
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
                 LOG.debug("Deleted ECR Companion Stack: %s", self.companion_stack_name)
 
             except CfDeleteFailedStatusError:
                 LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-                self.cf_utils.delete_stack(stack_name=self.companion_stack_name, retain_resources=retain_repos)
+                self.cf_utils.delete_stack(
+                    stack_name=self.companion_stack_name,
+                    retain_resources=retain_repos,
+                    deployment_config=self._deployment_config,
+                )
                 self.cf_utils.wait_for_delete(stack_name=self.companion_stack_name)
+
+    @property
+    def _deployment_config(self) -> Optional[dict]:
+        """CloudFormation DeploymentConfig for delete-stack calls, if express mode is enabled."""
+        if self.express:
+            return {"Mode": "EXPRESS"}
+        return None
 
     def delete(self):
         """
@@ -275,13 +290,17 @@ class DeleteContext:
         # Delete the primary input stack
         try:
             click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
-            self.cf_utils.delete_stack(stack_name=self.stack_name)
+            self.cf_utils.delete_stack(stack_name=self.stack_name, deployment_config=self._deployment_config)
             self.cf_utils.wait_for_delete(self.stack_name)
             LOG.debug("Deleted Cloudformation stack: %s", self.stack_name)
 
         except CfDeleteFailedStatusError:
             LOG.debug("delete_stack resulted failed and so re-try with retain_resources")
-            self.cf_utils.delete_stack(stack_name=self.stack_name, retain_resources=retain_resources)
+            self.cf_utils.delete_stack(
+                stack_name=self.stack_name,
+                retain_resources=retain_resources,
+                deployment_config=self._deployment_config,
+            )
             self.cf_utils.wait_for_delete(self.stack_name)
 
         # Warn the user that s3 information is missing and to use --s3 options
@@ -315,6 +334,12 @@ class DeleteContext:
                 LOG.debug("Input stack is deployed, continue deleting")
                 self.delete()
                 click.echo("\nDeleted successfully")
+                if self.express:
+                    click.secho(
+                        "Deleted with CloudFormation Express mode. "
+                        "Some resources may still be removing in the background.",
+                        fg="yellow",
+                    )
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
                 click.echo(
