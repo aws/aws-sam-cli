@@ -70,6 +70,7 @@ class TestDoCli(TestCase):
             mount_symlinks=True,
             use_buildkit=False,
             language_extensions=None,
+            output="text",
         )
         ctx_mock.run.assert_called_with()
         self.assertEqual(ctx_mock.run.call_count, 1)
