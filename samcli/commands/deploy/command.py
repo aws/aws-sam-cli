@@ -111,6 +111,16 @@ LOG = logging.getLogger(__name__)
     help="Prompt to confirm if the computed changeset is to be deployed by SAM CLI.",
 )
 @click.option(
+    "--save-params-on-failure/--no-save-params-on-failure",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Only applies to guided deploys (--guided). Save the arguments entered during the guided "
+    "prompts to the configuration file even when the deployment fails (e.g. due to invalid or expired "
+    "credentials), overwriting an existing configuration file if one is present. By default, arguments "
+    "are only saved on failure when no configuration file exists yet.",
+)
+@click.option(
     "--disable-rollback/--no-disable-rollback",
     default=False,
     required=False,
@@ -202,6 +212,7 @@ def cli(
     metadata,
     guided,
     confirm_changeset,
+    save_params_on_failure,
     signing_profiles,
     resolve_s3,
     resolve_image_repos,
@@ -239,6 +250,7 @@ def cli(
         metadata,
         guided,
         confirm_changeset,
+        save_params_on_failure,
         ctx.region,
         ctx.profile,
         signing_profiles,
@@ -275,6 +287,7 @@ def do_cli(
     metadata,
     guided,
     confirm_changeset,
+    save_params_on_failure,
     region,
     profile,
     signing_profiles,
@@ -320,6 +333,7 @@ def do_cli(
             config_file=config_file,
             disable_rollback=disable_rollback,
             language_extensions_enabled=language_extensions_enabled,
+            force_save_config=save_params_on_failure,
         )
         guided_context.run()
     else:
