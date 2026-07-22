@@ -1002,3 +1002,177 @@ class TestGuidedContext(TestCase):
             ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.GuidedConfig")
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_run_saves_config_when_manage_stack_fails(
+        self,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patched_auth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_resource_full_path_by_id,
+        patched_guided_config,
+        patched_get_template_parameters,
+    ):
+        # New project (no existing samconfig): the user answers all the prompts, but manage_stack (the
+        # first AWS call requiring credentials) fails, e.g. because of invalid/expired credentials.
+        patched_get_template_parameters.return_value = {}
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_auth_per_resource.return_value = [("HelloWorldFunction", True)]
+        patched_signer_config_per_function.return_value = ({}, {})
+        patched_prompt.side_effect = ["my-stack", "us-west-2", "samconfig.toml", "default"]
+        # Confirm changeset, allow IAM, disable rollback, save to config
+        patched_confirm.side_effect = [True, True, False, True]
+
+        credentials_error = Exception("The security token included in the request is invalid.")
+        patched_manage_stack.side_effect = credentials_error
+
+        guided_config_instance = patched_guided_config.return_value
+        # No pre-existing configuration file.
+        guided_config_instance.config_exists.return_value = False
+
+        # The original error should still propagate up ...
+        with self.assertRaises(Exception) as ctx:
+            self.gc.run()
+        self.assertIs(ctx.exception, credentials_error)
+
+        # ... but the configuration file must have been saved with the answers already collected.
+        guided_config_instance.save_config.assert_called_once()
+        _, save_kwargs = guided_config_instance.save_config.call_args
+        self.assertEqual(save_kwargs["stack_name"], "my-stack")
+        self.assertEqual(save_kwargs["region"], "us-west-2")
+
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.GuidedConfig")
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_run_does_not_overwrite_existing_config_on_failure_by_default(
+        self,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patched_auth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_resource_full_path_by_id,
+        patched_guided_config,
+        patched_get_template_parameters,
+    ):
+        # A samconfig already exists and the user has NOT opted in via --save-params-on-failure.
+        # A failure must NOT overwrite the known-good existing configuration.
+        patched_get_template_parameters.return_value = {}
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_auth_per_resource.return_value = [("HelloWorldFunction", True)]
+        patched_signer_config_per_function.return_value = ({}, {})
+        patched_prompt.side_effect = ["my-stack", "us-west-2", "samconfig.toml", "default"]
+        patched_confirm.side_effect = [True, True, False, True]
+
+        credentials_error = Exception("The security token included in the request is invalid.")
+        patched_manage_stack.side_effect = credentials_error
+
+        guided_config_instance = patched_guided_config.return_value
+        # A configuration file already exists.
+        guided_config_instance.config_exists.return_value = True
+
+        self.gc.force_save_config = False
+
+        with self.assertRaises(Exception) as ctx:
+            self.gc.run()
+        self.assertIs(ctx.exception, credentials_error)
+
+        guided_config_instance.save_config.assert_not_called()
+
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.GuidedConfig")
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_run_overwrites_existing_config_on_failure_when_forced(
+        self,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patched_auth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        patched_get_resource_full_path_by_id,
+        patched_guided_config,
+        patched_get_template_parameters,
+    ):
+        # A samconfig already exists AND the user opted in via --save-params-on-failure.
+        # A failure SHOULD save (overwrite) the configuration.
+        patched_get_template_parameters.return_value = {}
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_auth_per_resource.return_value = [("HelloWorldFunction", True)]
+        patched_signer_config_per_function.return_value = ({}, {})
+        patched_prompt.side_effect = ["my-stack", "us-west-2", "samconfig.toml", "default"]
+        patched_confirm.side_effect = [True, True, False, True]
+
+        credentials_error = Exception("The security token included in the request is invalid.")
+        patched_manage_stack.side_effect = credentials_error
+
+        guided_config_instance = patched_guided_config.return_value
+        guided_config_instance.config_exists.return_value = True
+
+        self.gc.force_save_config = True
+
+        with self.assertRaises(Exception) as ctx:
+            self.gc.run()
+        self.assertIs(ctx.exception, credentials_error)
+
+        guided_config_instance.save_config.assert_called_once()
+
+    @patch("samcli.commands.deploy.guided_context.get_template_parameters")
+    @patch("samcli.commands.deploy.guided_context.GuidedConfig")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    def test_run_does_not_save_config_when_aborted_before_stack_name(
+        self,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patched_prompt,
+        patched_guided_config,
+        patched_get_template_parameters,
+    ):
+        # The user aborts (Ctrl+C) at the very first prompt, before providing any answers.
+        patched_get_template_parameters.return_value = {}
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_prompt.side_effect = click.exceptions.Abort()
+
+        guided_config_instance = patched_guided_config.return_value
+
+        with self.assertRaises(click.exceptions.Abort):
+            self.gc.run()
+
+        # No stack name was collected, so nothing should be saved.
+        guided_config_instance.save_config.assert_not_called()

@@ -63,6 +63,7 @@ class GuidedContext:
         config_file=None,
         disable_rollback=None,
         language_extensions_enabled: bool = False,
+        force_save_config: bool = False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -97,6 +98,7 @@ class GuidedContext:
         self.function_provider: Optional[SamFunctionProvider] = None
         self.disable_rollback = disable_rollback
         self._language_extensions_enabled = language_extensions_enabled
+        self.force_save_config = force_save_config
 
     @property
     def guided_capabilities(self):
@@ -183,6 +185,24 @@ class GuidedContext:
                 type=click.STRING,
             )
 
+        # Persist all the answers the user has provided on the instance *before* making any AWS calls
+        # (manage_stack / sync_ecr_stack below). This way, if those calls fail (e.g. invalid or expired
+        # credentials), GuidedContext.run() can still save these answers to the configuration file so the
+        # user does not have to re-enter everything after fixing their credentials.
+        self.guided_stack_name = stack_name
+        self.guided_s3_prefix = stack_name
+        self.guided_region = region
+        self.guided_profile = self.profile
+        self._capabilities = input_capabilities if input_capabilities else default_capabilities
+        self._parameter_overrides = (
+            input_parameter_overrides if input_parameter_overrides else self.parameter_overrides_from_cmdline
+        )
+        self.save_to_config = save_to_config
+        self.config_env = config_env if config_env else default_config_env
+        self.config_file = config_file if config_file else default_config_file
+        self.confirm_changeset = confirm_changeset
+        self.disable_rollback = disable_rollback
+
         click.echo("\n\tLooking for resources needed for deployment:")
         managed_s3_bucket = manage_stack(profile=self.profile, region=region)
         print_managed_s3_bucket_info(managed_s3_bucket)
@@ -197,25 +217,11 @@ class GuidedContext:
             )
         )
 
-        self.guided_stack_name = stack_name
         self.guided_s3_bucket = managed_s3_bucket
         self.guided_image_repositories = image_repositories
         # NOTE(sriram-mv): The resultant s3 bucket is ALWAYS the managed_s3_bucket. There is no user flow to set it
         # within guided.
         self.resolve_s3 = True if self.guided_s3_bucket else False
-
-        self.guided_s3_prefix = stack_name
-        self.guided_region = region
-        self.guided_profile = self.profile
-        self._capabilities = input_capabilities if input_capabilities else default_capabilities
-        self._parameter_overrides = (
-            input_parameter_overrides if input_parameter_overrides else self.parameter_overrides_from_cmdline
-        )
-        self.save_to_config = save_to_config
-        self.config_env = config_env if config_env else default_config_env
-        self.config_file = config_file if config_file else default_config_file
-        self.confirm_changeset = confirm_changeset
-        self.disable_rollback = disable_rollback
 
     def prompt_authorization(self, stacks: List[Stack]):
         auth_required_per_resource = auth_per_resource(stacks)
@@ -572,25 +578,49 @@ class GuidedContext:
             self.config_file or DEFAULT_CONFIG_FILE_NAME,
         )
 
-        self.guided_prompts(_parameter_override_keys)
+        # Remember whether a configuration file already existed *before* we start prompting. This lets us
+        # decide, on failure, whether it is safe to persist the answers the user just entered.
+        config_already_exists = guided_config.config_exists(self.config_file or DEFAULT_CONFIG_FILE_NAME)
 
-        if self.save_to_config:
-            guided_config.save_config(
-                self._parameter_overrides,
-                self.config_env or DEFAULT_ENV,
-                self.config_file or DEFAULT_CONFIG_FILE_NAME,
-                stack_name=self.guided_stack_name,
-                resolve_s3=self.resolve_s3,
-                s3_prefix=self.guided_s3_prefix,
-                image_repositories=self.guided_image_repositories if not self.resolve_image_repositories else None,
-                resolve_image_repos=self.resolve_image_repositories,
-                region=self.guided_region,
-                profile=self.guided_profile,
-                confirm_changeset=self.confirm_changeset,
-                capabilities=self._capabilities,
-                signing_profiles=self.signing_profiles,
-                disable_rollback=self.disable_rollback,
-            )
+        # guided_prompts() collects the user's answers and then makes AWS calls (manage_stack /
+        # sync_ecr_stack) that require valid credentials. If those calls fail (e.g. invalid or expired
+        # credentials), we still want to persist the answers the user has already entered so they don't
+        # have to re-enter everything after fixing their credentials. All config-relevant answers are set
+        # on the instance before the AWS calls are made, so it is safe to save from the except branch.
+        #
+        # To avoid clobbering a known-good configuration during development, we only auto-save on failure
+        # when there was no pre-existing config file (i.e. a brand new project). If a config file already
+        # exists, the user must opt in via --save-params-on-failure to overwrite it on failure.
+        try:
+            self.guided_prompts(_parameter_override_keys)
+        except Exception:
+            if self._should_save_config() and (not config_already_exists or self.force_save_config):
+                self._save_config(guided_config)
+            raise
+
+        if self._should_save_config():
+            self._save_config(guided_config)
+
+    def _should_save_config(self) -> bool:
+        return bool(self.save_to_config and self.guided_stack_name)
+
+    def _save_config(self, guided_config):
+        guided_config.save_config(
+            self._parameter_overrides,
+            self.config_env or DEFAULT_ENV,
+            self.config_file or DEFAULT_CONFIG_FILE_NAME,
+            stack_name=self.guided_stack_name,
+            resolve_s3=self.resolve_s3,
+            s3_prefix=self.guided_s3_prefix,
+            image_repositories=self.guided_image_repositories if not self.resolve_image_repositories else None,
+            resolve_image_repos=self.resolve_image_repositories,
+            region=self.guided_region,
+            profile=self.guided_profile,
+            confirm_changeset=self.confirm_changeset,
+            capabilities=self._capabilities,
+            signing_profiles=self.signing_profiles,
+            disable_rollback=self.disable_rollback,
+        )
 
     @staticmethod
     def _get_parameter_value(
