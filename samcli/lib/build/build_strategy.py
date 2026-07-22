@@ -20,7 +20,8 @@ from samcli.lib.build.build_graph import (
     LayerBuildDefinition,
 )
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
-from samcli.lib.build.exceptions import BuildError, MissingBuildMethodException
+from samcli.lib.build.exceptions import BuildError, BuildInsideContainerError, MissingBuildMethodException, UnsupportedBuilderLibraryVersionError
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.build.utils import warn_on_invalid_architecture
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
@@ -146,8 +147,8 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         try:
             return self._do_build_single_function_definition(build_definition)
-        except BuildError as ex:
-            if ex.resource_name is None:
+        except (BuildError, UnsupportedRuntimeException, BuildInsideContainerError, UnsupportedBuilderLibraryVersionError) as ex:
+            if getattr(ex, "resource_name", None) is None:
                 ex.resource_name = build_definition.get_full_path()
             raise
 
@@ -223,8 +224,8 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         try:
             return self._do_build_single_layer_definition(layer_definition)
-        except BuildError as ex:
-            if ex.resource_name is None:
+        except (BuildError, UnsupportedRuntimeException, BuildInsideContainerError, UnsupportedBuilderLibraryVersionError) as ex:
+            if getattr(ex, "resource_name", None) is None:
                 ex.resource_name = layer_definition.full_path
             raise
 
