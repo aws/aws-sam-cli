@@ -9,7 +9,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
-    USING_FINCH_RUNTIME,
     run_command_with_input,
 )
 from tests.integration.buildcmd.build_integ_base import (
@@ -21,67 +20,20 @@ LOG = logging.getLogger(__name__)
 
 @pytest.mark.dotnet
 class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
-    @parameterized.expand(
-        [
-            ("provided.al2", "Dotnet7", None, None),
-            ("provided.al2", "Dotnet7", None, MountMode.WRITE),
-            ("provided.al2", "Dotnet", None, None),
-        ]
-    )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
-    def test_dotnet_al2(self, runtime, code_uri, mode, mount_mode):
-        # Skip specific test case when using Finch runtime
-        if (
-            runtime == "provided.al2"
-            and code_uri == "Dotnet7"
-            and mode is None
-            and mount_mode is None
-            and USING_FINCH_RUNTIME
-        ):
-            self.skipTest(
-                "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket"
-            )
-
+    def test_dotnet_al2(self):
         overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
+            "Runtime": "provided.al2",
+            "CodeUri": "Dotnet",
             "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
             "Architectures": "x86_64",
         }
 
-        if mode == "Dotnet":
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
-        else:
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+        self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
 
-        self.validate_build_command(overrides, mode, mount_mode)
+        self.validate_build_command(overrides, None, None)
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED)
-        self.validate_invoke_command(overrides, runtime)
-
-    @parameterized.expand(
-        [
-            ("dotnet6", "Dotnet6", None, None),
-            ("dotnet6", "Dotnet6", None, MountMode.WRITE),
-            ("dotnet6", "Dotnet6", "debug", None),
-            ("dotnet6", "Dotnet6", "debug", MountMode.WRITE),
-        ]
-    )
-    def test_dotnet_6(self, runtime, code_uri, mode, mount_mode):
-        if mount_mode and SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD:
-            self.skipTest(SKIP_DOCKER_MESSAGE)
-
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.validate_build_command(overrides, mode, mount_mode)
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
-
-        if not SKIP_DOCKER_TESTS:
-            self.validate_invoke_command(overrides, runtime)
+        self.validate_invoke_command(overrides, "provided.al2")
 
     @parameterized.expand(
         [
@@ -143,43 +95,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
 class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
     @parameterized.expand(
         [
-            ("provided.al2", "Dotnet7", None),
-        ]
-    )
-    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
-
-        self.validate_build_command(overrides, mode, use_container=True, input="y")
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED)
-        self.validate_invoke_command(overrides, runtime)
-
-    @parameterized.expand(
-        [
-            ("dotnet6", "Dotnet6", None),
-            ("dotnet6", "Dotnet6", "debug"),
-        ]
-    )
-    def test_dotnet_6_in_container(self, runtime, code_uri, mode):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.validate_build_command(overrides, mode, use_container=True, input="y")
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
-        self.validate_invoke_command(overrides, runtime)
-
-    @parameterized.expand(
-        [
             ("dotnet8", "Dotnet8", None),
             ("dotnet8", "Dotnet8", "debug"),
             ("dotnet10", "Dotnet10", None),
@@ -200,7 +115,7 @@ class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST)
         self.validate_invoke_command(overrides, runtime)
 
-    @parameterized.expand([("dotnet6", "Dotnet6"), ("dotnet8", "Dotnet8")])
+    @parameterized.expand([("dotnet10", "Dotnet10"), ("dotnet8", "Dotnet8")])
     def test_must_fail_in_container_mount_without_write_interactive(self, runtime, code_uri):
         use_container = True
         overrides = {
