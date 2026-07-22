@@ -130,7 +130,12 @@ class TestEventTracker(TestCase):
         lock_mock.__exit__.assert_called()
 
     @patch("samcli.lib.telemetry.event.Telemetry")
-    def test_events_get_sent(self, telemetry_mock):
+    @patch("samcli.lib.telemetry.metric.get_user_agent_string")
+    def test_events_get_sent(self, get_user_agent_mock, telemetry_mock):
+        # A detected AI agent adds a "userAgent" field to every metric's common
+        # attributes; pin it to a known value so the exact-equality assertion below
+        # verifies the field is emitted rather than breaking on it.
+        get_user_agent_mock.return_value = "claude-code/1.0"
         # Create fake emit to capture tracked events
         dummy_telemetry = Mock()
         emitted_events = []
@@ -168,6 +173,7 @@ class TestEventTracker(TestCase):
             "samcliVersion": ANY,
             "osPlatform": ANY,
             "commandName": ANY,
+            "userAgent": "claude-code/1.0",
             "metricSpecificAttributes": {
                 "containerEngine": ANY,
                 "events": [
