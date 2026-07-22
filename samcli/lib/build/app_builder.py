@@ -788,26 +788,26 @@ class ApplicationBuilder:
                     scratch_dir=scratch_dir_path,
                 )
                 # By default prefer to build in-process for speed
-                if self._container_manager:
-                    # None represents the global build image for all functions/layers
-                    global_image = self._build_images.get(None)
-                    image = self._build_images.get(function_name, global_image)
-                    # pass to container only when specified workflow is supported to overwrite runtime to get image
-                    supported_specified_workflow = supports_specified_workflow(specified_workflow)
-                    return self._build_function_on_container(
-                        config,
-                        code_dir,
-                        artifact_dir,
-                        manifest_path,
-                        runtime,
-                        architecture,
-                        options,
-                        container_env_vars,
-                        image,
-                        specified_workflow=specified_workflow if supported_specified_workflow else None,
-                    )
-
                 try:
+                    if self._container_manager:
+                        # None represents the global build image for all functions/layers
+                        global_image = self._build_images.get(None)
+                        image = self._build_images.get(function_name, global_image)
+                        # pass to container only when specified workflow is supported to overwrite runtime to get image
+                        supported_specified_workflow = supports_specified_workflow(specified_workflow)
+                        return self._build_function_on_container(
+                            config,
+                            code_dir,
+                            artifact_dir,
+                            manifest_path,
+                            runtime,
+                            architecture,
+                            options,
+                            container_env_vars,
+                            image,
+                            specified_workflow=specified_workflow if supported_specified_workflow else None,
+                        )
+
                     return self._build_function_in_process(
                         config,
                         code_dir,

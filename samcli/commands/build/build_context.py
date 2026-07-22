@@ -9,7 +9,6 @@ import logging
 import os
 import pathlib
 import shutil
-import sys
 from collections import Counter
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -342,18 +341,27 @@ class BuildContext:
                 output_template_path_in_success_message = out_template_path
 
             if self._output == "json":
+                resources = [
+                    {
+                        "resource_id": f.full_path,
+                        "type": "function",
+                        "runtime": f.runtime,
+                        "architecture": f.architectures[0] if f.architectures else None,
+                    }
+                    for f in self.get_resources_to_build().functions
+                ] + [
+                    {
+                        "resource_id": layer.full_path,
+                        "type": "layer",
+                        "compatible_runtimes": layer.compatible_runtimes,
+                    }
+                    for layer in self.get_resources_to_build().layers
+                ]
                 result = {
                     "status": "success",
                     "build_dir": build_dir_in_success_message,
                     "template_file": output_template_path_in_success_message,
-                    "resources": [
-                        {
-                            "logical_id": f.full_path,
-                            "runtime": f.runtime,
-                            "architecture": f.architectures[0] if f.architectures else None,
-                        }
-                        for f in self.get_resources_to_build().functions
-                    ],
+                    "resources": resources,
                 }
                 click.echo(json.dumps(result, indent=2))
             else:
@@ -377,7 +385,6 @@ class BuildContext:
                     },
                 }
                 click.echo(json.dumps(error_result, indent=2))
-                sys.exit(1)
             raise UserException(
                 str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
             ) from function_not_found_ex
@@ -405,9 +412,8 @@ class BuildContext:
                 if resource_name:
                     error_result["error"]["resource"] = resource_name
                 click.echo(json.dumps(error_result, indent=2))
-                sys.exit(1)
-
-            click.secho("\nBuild Failed", fg="red")
+            else:
+                click.secho("\nBuild Failed", fg="red")
 
             # Some Exceptions have a deeper wrapped exception that needs to be surfaced
             # from deeper than just one level down.
