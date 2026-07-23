@@ -6,11 +6,13 @@ This module generates the Makefile for the project and the rules for each of the
 
 import logging
 import os
+import shlex
 import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
 
+from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidTerraformResourceAddressException
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
@@ -62,6 +64,7 @@ def generate_makefile_rule_for_lambda_resource(
             resource_address,
             sam_metadata_resource,
             terraform_application_dir,
+            logical_id,
             mount_symlinks=mount_symlinks,
         )
     )
@@ -130,6 +133,7 @@ def _build_makerule_python_command(
     resource_address: str,
     sam_metadata_resource: SamMetadataResource,
     terraform_application_dir: str,
+    logical_id: str,
     mount_symlinks: bool = False,
 ) -> str:
     """
@@ -148,6 +152,9 @@ def _build_makerule_python_command(
         associated with this sam metadata resource
     terraform_application_dir: str
         the terraform project root directory
+    logical_id: str
+        Logical ID of the lambda resource; used only to identify the affected resource in
+        error messages
 
     Returns
     -------
@@ -156,7 +163,7 @@ def _build_makerule_python_command(
     """
     show_command_template = (
         '{python_command_name} "{terraform_built_artifacts_script_path}" '
-        '--expression "{jpath_string}" --directory "$(ARTIFACTS_DIR)" --target "{resource_address}"'
+        '--expression {jpath_string} --directory "$(ARTIFACTS_DIR)" --target {resource_address}'
     )
     jpath_string = _build_jpath_string(sam_metadata_resource, resource_address)
     terraform_built_artifacts_script_path = convert_path_to_unix_path(
@@ -165,12 +172,59 @@ def _build_makerule_python_command(
     command = show_command_template.format(
         python_command_name=python_command_name,
         terraform_built_artifacts_script_path=terraform_built_artifacts_script_path,
-        jpath_string=jpath_string.replace('"', '\\"'),
-        resource_address=resource_address.replace('"', '\\"'),
+        jpath_string=_make_shell_and_make_safe(jpath_string, logical_id),
+        resource_address=_make_shell_and_make_safe(resource_address, logical_id),
     )
     if mount_symlinks:
         command += " --mount-symlinks"
     return command
+
+
+def _make_shell_and_make_safe(value: str, logical_id: str) -> str:
+    """
+    Safely escapes a value that will be embedded in a Makefile recipe. The recipe line is
+    first macro-expanded by `make` and the result is then handed to `/bin/sh` for execution,
+    so the value must be neutralized against both layers of interpretation.
+
+    Parameters
+    ----------
+    value: str
+        The (potentially untrusted) value to escape
+    logical_id: str
+        Logical ID of the Lambda resource this value is associated with; used only to help
+        identify the affected resource in error messages
+
+    Returns
+    -------
+    str
+        The value, escaped for `make` and quoted for the shell. The returned string already
+        includes any necessary quoting and should not be wrapped in additional quotes.
+
+    Raises
+    ------
+    InvalidTerraformResourceAddressException
+        If the value contains a newline or carriage return. `make` parses Makefiles
+        line-by-line *before* handing a recipe to the shell, so `shlex.quote()` alone cannot
+        neutralize an embedded newline: it would split what should be a single recipe line
+        into multiple physical lines in the generated Makefile, potentially reintroducing a
+        line-based command-injection primitive one layer above the shell.
+    """
+    if "\n" in value or "\r" in value:
+        # Render control characters as visible escape sequences (not raw bytes) so the
+        # offending value is safe to include in an error message without corrupting
+        # terminal or log output.
+        sanitized_preview = value.replace("\n", "\\n").replace("\r", "\\r")
+        raise InvalidTerraformResourceAddressException(
+            logical_id,
+            f"contains invalid characters (newline or carriage return): '{sanitized_preview}'. "
+            f"Please check the Terraform configuration for this resource.",
+        )
+    # Escape make's own macro expansion first ('$' -> '$$'), since make expands the recipe
+    # line before the shell ever sees it.
+    make_safe_value = value.replace("$", "$$")
+    # Then quote the result for the shell so that no shell metacharacters (backticks, $(...),
+    # ${...}, spaces, quotes, etc.) are interpreted.
+    return shlex.quote(make_safe_value)
 
 
 def _get_makefile_build_target(logical_id: str) -> str:

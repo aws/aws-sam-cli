@@ -20,6 +20,19 @@ class InvalidResourceLinkingException(UserException):
         UserException.__init__(self, msg)
 
 
+class InvalidTerraformResourceAddressException(UserException):
+    """
+    Exception raised when a Terraform resource address contains characters that cannot be
+    safely processed (for example, when generating a Makefile recipe to build the resource).
+    """
+
+    fmt = "The Terraform resource address for '{logical_id}' is invalid: {message}"
+
+    def __init__(self, logical_id, message):
+        msg = self.fmt.format(logical_id=logical_id, message=message)
+        UserException.__init__(self, msg)
+
+
 class UnexpectedDestinationResource(InvalidResourceLinkingException):
     """
     Exception that will be thrown while doing terraform linking logic in case if the found destination resource is not
