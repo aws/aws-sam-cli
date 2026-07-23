@@ -8,6 +8,7 @@ from parameterized import parameterized, parameterized_class
 from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.lib.providers.provider import (
+    Api,
     LayerVersion,
     ResourceIdentifier,
     Stack,
@@ -861,6 +862,35 @@ class TestGetResourceFullPathByID(TestCase):
     def test_get_resource_full_path_by_id(self, resource_id, expected_full_path):
         full_path = get_resource_full_path_by_id(self.stacks, resource_id)
         self.assertEqual(expected_full_path, full_path)
+
+
+class TestApiGetGatewayResponseHeaders(TestCase):
+    def test_no_gateway_responses_configured(self):
+        api = Api()
+        self.assertEqual(api.get_gateway_response_headers("UNAUTHORIZED", 401), {})
+
+    def test_specific_response_type_headers_returned(self):
+        api = Api()
+        api.gateway_responses = {
+            "UNAUTHORIZED": {"Access-Control-Allow-Origin": "*"},
+            "DEFAULT_4XX": {"Access-Control-Allow-Origin": "should-not-be-used"},
+        }
+        self.assertEqual(api.get_gateway_response_headers("UNAUTHORIZED", 401), {"Access-Control-Allow-Origin": "*"})
+
+    def test_falls_back_to_default_4xx(self):
+        api = Api()
+        api.gateway_responses = {"DEFAULT_4XX": {"Access-Control-Allow-Origin": "*"}}
+        self.assertEqual(api.get_gateway_response_headers("ACCESS_DENIED", 403), {"Access-Control-Allow-Origin": "*"})
+
+    def test_falls_back_to_default_5xx(self):
+        api = Api()
+        api.gateway_responses = {"DEFAULT_5XX": {"Access-Control-Allow-Origin": "*"}}
+        self.assertEqual(api.get_gateway_response_headers("DEFAULT_5XX", 502), {"Access-Control-Allow-Origin": "*"})
+
+    def test_no_matching_response_type_or_default(self):
+        api = Api()
+        api.gateway_responses = {"DEFAULT_5XX": {"Access-Control-Allow-Origin": "*"}}
+        self.assertEqual(api.get_gateway_response_headers("ACCESS_DENIED", 403), {})
 
 
 class TestGetStack(TestCase):
