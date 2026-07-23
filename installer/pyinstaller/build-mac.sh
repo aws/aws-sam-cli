@@ -62,9 +62,9 @@ cd openssl-"$openssl_version"
 # Openssl configure https://wiki.openssl.org/index.php/Compilation_and_Installation
 ./Configure --prefix=/usr/local --openssldir=/usr/local/openssl no-ssl3 no-ssl3-method no-zlib ${openssl_config_arch} enable-ec_nistp_64_gcc_128
 
-make -j8
+make -j4
 # install_sw installs OpenSSL without manual pages
-sudo make -j8 install_sw
+sudo make -j4 install_sw
 cd ..
 
 # Copying aws-sam-cli source code
@@ -95,8 +95,8 @@ cd Python-"$python_version"
 ./configure \
     --enable-shared \
     --with-openssl=/usr/local
-make -j8
-sudo make -j8 install
+make -j4
+sudo make -j4 install
 cd ..
 
 echo "Installing Python Libraries"
