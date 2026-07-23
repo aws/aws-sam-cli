@@ -410,7 +410,7 @@ class BuildContext:
                 }
                 resource_name = getattr(ex, "resource_name", None)
                 if resource_name:
-                    error_result["error"]["resource"] = resource_name
+                    error_result["error"]["resource"] = resource_name  # type: ignore[index]
                 click.echo(json.dumps(error_result, indent=2))
             else:
                 click.secho("\nBuild Failed", fg="red")

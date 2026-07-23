@@ -132,8 +132,7 @@ DESCRIPTION = """
 @click.option(
     "--output",
     default="text",
-    help="Output the results from the command in a given output format. "
-    "Supported formats: text (default), json.",
+    help="Output the results from the command in a given output format. " "Supported formats: text (default), json.",
     type=click.Choice(["text", "json"], case_sensitive=False),
 )
 @cli_framework_options
