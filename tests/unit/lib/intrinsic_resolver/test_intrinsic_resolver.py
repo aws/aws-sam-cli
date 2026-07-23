@@ -1077,6 +1077,75 @@ class TestResolveTemplate(TestCase):
         resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
         self.assertEqual(resolver.resolve_template(), expected_template)
 
+    def test_output_name_collides_with_comma_delimited_list_parameter(self):
+        # Regression test for https://github.com/aws/aws-sam-cli/issues/8627
+        # When an Output's logical name matches the name of a CommaDelimitedList
+        # parameter, get_translation() returns a list for that name. Previously
+        # this list was used as a dict key in resolve_attribute() and raised
+        # TypeError: unhashable type: 'list'. The processed template must
+        # preserve the original Output key.
+        template = {
+            "Parameters": {"AppName": {"Type": "CommaDelimitedList", "Default": "hello, world"}},
+            "Resources": {
+                "MyFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"Runtime": "python3.12", "Handler": "index.handler"},
+                }
+            },
+            "Outputs": {"AppName": {"Value": {"Ref": "AppName"}}},
+        }
+
+        # Real call sites (e.g. SamBaseProvider) pass resolved parameter
+        # values into logical_id_translator. Mirror that here so
+        # get_translation() actually returns the list form that triggers the
+        # crash on the unfixed code path.
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"AppName": "hello, world"})
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("AppName", processed_template["Outputs"])
+        self.assertEqual(processed_template["Outputs"]["AppName"], {"Value": ["hello", "world"]})
+
+    def test_resource_name_collides_with_comma_delimited_list_parameter(self):
+        # Same root cause as the Output collision above, but exercised against
+        # the Resources branch of resolve_attribute to ensure both call sites
+        # are protected from the unhashable-key crash.
+        template = {
+            "Parameters": {"VpcSubnetIds": {"Type": "CommaDelimitedList", "Default": "subnet-a, subnet-b"}},
+            "Resources": {
+                "VpcSubnetIds": {
+                    "Type": "AWS::SSM::Parameter",
+                    "Properties": {"Type": "StringList", "Value": {"Ref": "VpcSubnetIds"}},
+                }
+            },
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=template, logical_id_translator={"VpcSubnetIds": "subnet-a, subnet-b"}
+        )
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("VpcSubnetIds", processed_template["Resources"])
+
+    def test_resource_logical_id_renaming_still_works(self):
+        # Guard against regressing the legitimate logical-ID renaming that
+        # resolve_attribute relies on. When logical_id_translator maps a
+        # resource key to a string, that string should still become the new
+        # key in the processed template.
+        template = {
+            "Resources": {
+                "OldName": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Name": "api"}},
+            }
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"OldName": "NewName"})
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("NewName", processed_template["Resources"])
+        self.assertNotIn("OldName", processed_template["Resources"])
+
     def load_test_data(self, template_path):
         integration_path = str(Path(__file__).resolve().parents[0].joinpath("test_data", template_path))
         with open(integration_path) as f:
