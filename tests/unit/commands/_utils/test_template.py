@@ -601,36 +601,24 @@ class Test_update_sam_mappings_relative_paths(TestCase):
             new_root = os.path.join(tmpdir, ".aws-sam", "build")
             os.makedirs(new_root, exist_ok=True)
 
-            # Create a fake image archive at the resolved relative path from CWD
-            # _resolve_relative_to computes a path relative to new_root, and
-            # pathlib.Path(updated_path).is_file() checks relative to CWD.
-            # We need the file to exist at the CWD-relative resolved path.
             resolved_relative = os.path.relpath(
                 os.path.join(original_root, "my-image.tar.gz"),
                 new_root,
             )
-            # Create the archive at the CWD-relative resolved path
-            resolved_abs = os.path.join(os.getcwd(), resolved_relative)
-            os.makedirs(os.path.dirname(resolved_abs), exist_ok=True)
-            with open(resolved_abs, "w") as f:
-                f.write("fake archive")
 
-            try:
-                mappings = {
-                    "SAMImageUriFunctions": {
-                        "alpha": {"ImageUri": "my-image.tar.gz"},
-                    }
+            mappings = {
+                "SAMImageUriFunctions": {
+                    "alpha": {"ImageUri": "my-image.tar.gz"},
                 }
+            }
 
+            # Mock is_file() so we don't need to create a real file outside the temp dir
+            with patch("samcli.commands._utils.template.pathlib.Path.is_file", return_value=True):
                 _update_sam_mappings_relative_paths(mappings, original_root, new_root)
 
-                # The path should be updated since it resolves to a real local file
-                updated_uri = mappings["SAMImageUriFunctions"]["alpha"]["ImageUri"]
-                self.assertEqual(updated_uri, resolved_relative)
-            finally:
-                # Clean up the file we created relative to CWD
-                if os.path.exists(resolved_abs):
-                    os.remove(resolved_abs)
+            # The path should be updated since it resolves to a real local file
+            updated_uri = mappings["SAMImageUriFunctions"]["alpha"]["ImageUri"]
+            self.assertEqual(updated_uri, resolved_relative)
 
     def test_move_template_preserves_docker_imageuri_in_sam_mappings(self):
         """End-to-end: move_template should not rewrite Docker image references in SAM ImageUri Mappings."""

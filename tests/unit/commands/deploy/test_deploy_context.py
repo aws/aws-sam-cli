@@ -11,6 +11,7 @@ from samcli.lib.deploy.utils import FailureMode
 from samcli.commands.deploy.exceptions import DeployFailedError
 
 
+@patch("samcli.commands.deploy.deploy_context._ensure_ecr_lambda_pull_policy", MagicMock())
 class TestSamDeployCommand(TestCase):
     def setUp(self):
         self.deploy_command_context = DeployContext(

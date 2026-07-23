@@ -15,11 +15,13 @@ Deploy a SAM stack
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import json
 import logging
 import os
 from typing import Dict, List, Optional
 
 import boto3
+import botocore.exceptions
 import click
 
 from samcli.commands.deploy import exceptions as deploy_exceptions
@@ -39,6 +41,19 @@ from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
+
+_SAM_ECR_POLICY_SID = "SAMCliLambdaECRAccess"
+
+_LAMBDA_ECR_POLICY_STATEMENT = {
+    "Sid": _SAM_ECR_POLICY_SID,
+    "Effect": "Allow",
+    "Principal": {"Service": "lambda.amazonaws.com"},
+    "Action": [
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:GetRepositoryPolicy",
+    ],
+}
 
 
 class DeployContext:
@@ -159,6 +174,14 @@ class DeployContext:
             )
 
         self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)
+
+        if self.image_repositories or self.image_repository:
+            ecr_client = boto3.client("ecr", region_name=self.region if self.region else None, config=boto_config)
+            _ensure_ecr_lambda_pull_policy(
+                ecr_client,
+                self.image_repositories if isinstance(self.image_repositories, dict) else None,
+                self.image_repository or None,
+            )
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
@@ -358,3 +381,98 @@ class DeployContext:
             parameter_values.append(obj)
 
         return parameter_values
+
+
+def _extract_ecr_repo_name(ecr_uri: str) -> str:
+    """
+    Extract the ECR repository name from a full ECR URI.
+
+    Examples
+    --------
+    123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo:latest  ->  my-repo
+    123456789012.dkr.ecr.us-east-1.amazonaws.com/org/my-repo:v1  ->  org/my-repo
+    """
+    parts = ecr_uri.split("/", 1)
+    repo_with_tag = parts[1] if len(parts) > 1 else parts[0]
+    return repo_with_tag.split(":")[0]
+
+
+def _ensure_ecr_lambda_pull_policy(
+    ecr_client,
+    image_repositories: Optional[Dict[str, str]],
+    image_repository: Optional[str],
+) -> None:
+    """
+    Pre-set Lambda pull permissions on all ECR repositories referenced by
+    --image-repositories / --image-repository before the CloudFormation
+    changeset is created.
+
+    This prevents a race condition where CloudFormation's concurrent Lambda
+    resource creation calls SetRepositoryPolicy in parallel, overwriting each
+    other and causing intermittent 403 access errors (GitHub issue #8190).
+    """
+    if not image_repositories and not image_repository:
+        return
+
+    uris = list((image_repositories or {}).values())
+    if image_repository:
+        uris.append(image_repository)
+
+    unique_repo_names = {_extract_ecr_repo_name(uri) for uri in uris if uri}
+
+    for repo_name in unique_repo_names:
+        _upsert_ecr_lambda_policy(ecr_client, repo_name)
+
+
+def _upsert_ecr_lambda_policy(ecr_client, repo_name: str) -> None:
+    """
+    Idempotently upsert a Lambda pull policy statement on a single ECR repo.
+
+    Soft-fails on AccessDenied so users who have manually pre-configured
+    policies or whose IAM principal lacks ecr:SetRepositoryPolicy are not blocked.
+    """
+
+    existing_statements = []
+    try:
+        response = ecr_client.get_repository_policy(repositoryName=repo_name)
+        policy_doc = json.loads(response.get("policyText", "{}"))
+        existing_statements = policy_doc.get("Statement", [])
+    except ecr_client.exceptions.RepositoryPolicyNotFoundException:
+        existing_statements = []
+    except botocore.exceptions.ClientError as ex:
+        error_code = ex.response.get("Error", {}).get("Code", "")
+        if error_code in ("AccessDeniedException", "AuthorizationErrorException"):
+            LOG.warning(
+                "Could not read ECR policy for '%s' (access denied). "
+                "Skipping — ensure ecr:GetRepositoryPolicy permission to prevent "
+                "intermittent Lambda 403 errors during deployment.",
+                repo_name,
+            )
+            return
+        raise deploy_exceptions.ECRPolicySetError(repo_name=repo_name, msg=str(ex)) from ex
+
+    filtered = [s for s in existing_statements if s.get("Sid") != _SAM_ECR_POLICY_SID]
+
+    merged_policy = {
+        "Version": "2012-10-17",
+        "Statement": filtered + [_LAMBDA_ECR_POLICY_STATEMENT],
+    }
+
+    try:
+        ecr_client.set_repository_policy(
+            repositoryName=repo_name,
+            policyText=json.dumps(merged_policy),
+            force=False,
+        )
+        LOG.info("Pre-set Lambda pull policy on ECR repository '%s'", repo_name)
+    except botocore.exceptions.ClientError as ex:
+        error_code = ex.response.get("Error", {}).get("Code", "")
+        if error_code in ("AccessDeniedException", "AuthorizationErrorException"):
+            LOG.warning(
+                "Could not set ECR policy for '%s' (access denied). "
+                "Skipping — ensure ecr:SetRepositoryPolicy permission to prevent "
+                "intermittent Lambda 403 errors during deployment.",
+                repo_name,
+            )
+            return
+        raise deploy_exceptions.ECRPolicySetError(repo_name=repo_name, msg=str(ex)) from ex
