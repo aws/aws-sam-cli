@@ -166,6 +166,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -228,6 +229,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -289,6 +291,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -351,6 +354,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -414,6 +418,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -474,6 +479,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -533,6 +539,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
