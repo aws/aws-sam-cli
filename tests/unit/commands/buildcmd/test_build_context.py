@@ -1431,6 +1431,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = {"BuildMethod": "python-uv"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
@@ -1444,6 +1445,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = {"BuildMethod": "python-pip"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
@@ -1457,11 +1459,58 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = None
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
 
         mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_python_uv_layer(self, mock_get_resources, mock_prompt):
+        mock_layer = Mock()
+        mock_layer.build_method = "python-uv"
+        mock_resources = Mock()
+        mock_resources.functions = []
+        mock_resources.layers = [mock_layer]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_experimental_method_layer(self, mock_get_resources, mock_prompt):
+        mock_layer = Mock()
+        mock_layer.build_method = "python3.13"
+        mock_resources = Mock()
+        mock_resources.functions = []
+        mock_resources.layers = [mock_layer]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_dedupes_shared_build_method(self, mock_get_resources, mock_prompt):
+        mock_function_1 = Mock()
+        mock_function_1.metadata = {"BuildMethod": "python-uv"}
+        mock_function_2 = Mock()
+        mock_function_2.metadata = {"BuildMethod": "python-uv"}
+        mock_layer = Mock()
+        mock_layer.build_method = "python-uv"
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function_1, mock_function_2]
+        mock_resources.layers = [mock_layer]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
 
 
 class TestBuildContext_get_template_for_output(TestCase):
