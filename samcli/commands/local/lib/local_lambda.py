@@ -271,6 +271,46 @@ class LocalLambdaRunner:
 
         return headers
 
+    def invoke_streaming(
+        self,
+        function_identifier: str,
+        event: str,
+        tenant_id: Optional[str] = None,
+        stderr: Optional[StreamWriter] = None,
+        override_runtime: Optional[str] = None,
+        function: Optional[Function] = None,
+    ):
+        """
+        Streaming counterpart of :meth:`invoke`.
+
+        Resolves the function, then asks the underlying LambdaRuntime to
+        perform a streaming invocation. Returns a tuple
+        ``(response, cleanup)`` where ``response`` is the raw streaming
+        :class:`requests.Response` from the local Runtime Interface
+        Emulator (RIE) and ``cleanup`` is a callable the caller MUST run
+        when it has finished consuming the body.
+
+        This is used by the API Gateway local service to forward
+        Lambda response-streaming output (e.g. Server-Sent Events
+        produced by ``awslambda.streamifyResponse`` in Node.js) to the
+        browser without buffering.
+        """
+        if not function:
+            function = self.get_function(function_identifier, tenant_id)
+        config = self.get_invoke_config(function, override_runtime)
+
+        return self.local_runtime.invoke_streaming(
+            config,
+            event,
+            tenant_id,
+            debug_context=self.debug_context,
+            stderr=stderr,
+            container_host=self.container_host,
+            container_host_interface=self.container_host_interface,
+            extra_hosts=self.extra_hosts,
+            container_dns=self.container_dns,
+        )
+
     def is_debugging(self) -> bool:
         """
         Are we debugging the invoke?
