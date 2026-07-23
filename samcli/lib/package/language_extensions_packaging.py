@@ -23,6 +23,7 @@ from samcli.lib.cfn_language_extensions.models import (
 )
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
+    resolve_collection,
     sanitize_resource_key_for_mapping,
     substitute_loop_variable,
 )
@@ -44,6 +45,8 @@ def merge_language_extensions_s3_uris(
     original_template: Dict[str, Any],
     exported_template: Dict[str, Any],
     dynamic_properties: Optional[List[DynamicArtifactProperty]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> Dict[str, Any]:
     """
     Update the original template (with Fn::ForEach intact) with S3 URIs from the exported template.
@@ -81,7 +84,14 @@ def merge_language_extensions_s3_uris(
     original_resources = result.get("Resources", {})
     exported_resources = exported_template.get("Resources", {})
 
-    _update_resources_with_s3_uris(original_resources, exported_resources, dynamic_prop_keys)
+    _update_resources_with_s3_uris(
+        original_resources,
+        exported_resources,
+        dynamic_prop_keys,
+        template=original_template,
+        parameter_values=parameter_values,
+        deferred_dynamic=deferred_dynamic,
+    )
 
     _merge_metadata(result.get("Metadata", {}), exported_template.get("Metadata", {}))
 
@@ -208,6 +218,9 @@ def _update_resources_with_s3_uris(
     original_resources: Dict[str, Any],
     exported_resources: Dict[str, Any],
     dynamic_prop_keys: Optional[set] = None,
+    template: Optional[Dict[str, Any]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> None:
     """
     Update resources in the original template with S3 URIs from the exported template.
@@ -216,7 +229,15 @@ def _update_resources_with_s3_uris(
     """
     for resource_key, resource_value in original_resources.items():
         if is_foreach_key(resource_key):
-            _update_foreach_with_s3_uris(resource_key, resource_value, exported_resources, dynamic_prop_keys)
+            _update_foreach_with_s3_uris(
+                resource_key,
+                resource_value,
+                exported_resources,
+                dynamic_prop_keys,
+                template=template,
+                parameter_values=parameter_values,
+                deferred_dynamic=deferred_dynamic,
+            )
         elif isinstance(resource_value, dict) and resource_key in exported_resources:
             exported_resource = exported_resources.get(resource_key, {})
             _copy_artifact_uris(resource_value, exported_resource)
@@ -228,6 +249,9 @@ def _update_foreach_with_s3_uris(
     exported_resources: Dict[str, Any],
     dynamic_prop_keys: Optional[set] = None,
     outer_context: Optional[List[Tuple[str, List[str]]]] = None,
+    template: Optional[Dict[str, Any]] = None,
+    parameter_values: Optional[Dict[str, Any]] = None,
+    deferred_dynamic: Optional[List] = None,
 ) -> None:
     """
     Update artifact URIs in a Fn::ForEach construct.
@@ -245,9 +269,18 @@ def _update_foreach_with_s3_uris(
     if not isinstance(loop_variable, str) or not isinstance(body, dict):
         return
 
-    collection_values: List[str] = []
-    if isinstance(collection, list):
-        collection_values = [str(item) for item in collection if item is not None]
+    collection_values = resolve_collection(collection, template or {}, parameter_values)
+
+    # Detect whether the collection is a parameter reference so deferred artifacts
+    # carry the metadata that warn_parameter_based_collections uses to advise
+    # re-packaging (mirrors detect_foreach_dynamic_properties in sam_integration.py).
+    collection_is_parameter_ref = False
+    collection_parameter_name: Optional[str] = None
+    if isinstance(collection, dict) and "Ref" in collection:
+        param_name = collection["Ref"]
+        if param_name in (template or {}).get("Parameters", {}):
+            collection_is_parameter_ref = True
+            collection_parameter_name = param_name
 
     if outer_context is None:
         outer_context = []
@@ -261,6 +294,9 @@ def _update_foreach_with_s3_uris(
                 exported_resources,
                 dynamic_prop_keys,
                 outer_context=current_outer_context,
+                template=template,
+                parameter_values=parameter_values,
+                deferred_dynamic=deferred_dynamic,
             )
             continue
 
@@ -281,11 +317,100 @@ def _update_foreach_with_s3_uris(
         exported_resource = exported_resources[expanded_key]
         if not isinstance(exported_resource, dict):
             continue
-        exported_props = exported_resource.get("Properties", {})
 
-        _copy_artifact_uris_for_type(
-            properties, exported_props, resource_template.get("Type", ""), foreach_key, dynamic_prop_keys
+        resource_type = resource_template.get("Type", "")
+        _merge_or_defer_foreach_artifacts(
+            properties=properties,
+            resource_type=resource_type,
+            resource_template_key=resource_template_key,
+            foreach_key=foreach_key,
+            loop_variable=loop_variable,
+            collection_values=collection_values,
+            outer_context=outer_context,
+            exported_resources=exported_resources,
+            dynamic_prop_keys=dynamic_prop_keys,
+            deferred_dynamic=deferred_dynamic,
+            collection_is_parameter_ref=collection_is_parameter_ref,
+            collection_parameter_name=collection_parameter_name,
         )
+
+
+def _merge_or_defer_foreach_artifacts(
+    properties: Dict[str, Any],
+    resource_type: str,
+    resource_template_key: str,
+    foreach_key: str,
+    loop_variable: str,
+    collection_values: List[str],
+    outer_context: Optional[List[Tuple[str, List[str]]]],
+    exported_resources: Dict[str, Any],
+    dynamic_prop_keys: Optional[set],
+    deferred_dynamic: Optional[List],
+    collection_is_parameter_ref: bool = False,
+    collection_parameter_name: Optional[str] = None,
+) -> None:
+    """Decide, per artifact property, whether all Fn::ForEach iterations resolved
+    to the same exported URI (static copy) or to distinct URIs (defer to Mappings).
+
+    - All iterations identical  -> copy the shared raw value onto the ForEach body.
+    - Iterations differ          -> append a synthetic DynamicArtifactProperty to
+      ``deferred_dynamic`` (handled later by generate_and_apply_artifact_mappings)
+      and leave the body value untouched.
+    - No accumulator / nested loop -> fall back to copying the first resolved
+      iteration's value (legacy behavior); nested ForEach with static differing
+      values is a documented limitation.
+    """
+    prop_names = PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.get(resource_type)
+    if not prop_names:
+        return
+
+    for prop_name in _resolve_property_paths(prop_names, properties):
+        # Loop-variable properties are handled by the existing dynamic path.
+        if dynamic_prop_keys and (foreach_key, prop_name) in dynamic_prop_keys:
+            continue
+
+        # Track each iteration's normalized URI (for the identical-vs-differing
+        # comparison) paired with the RAW exported value (for copying). The
+        # comparison uses the normalized string, but the value written back must
+        # preserve the original shape (e.g. a {S3Bucket, S3Key} object) so the
+        # resulting CloudFormation stays valid.
+        resolved: List[Tuple[str, Any]] = []
+        for value in collection_values:
+            expanded_key = _build_expanded_key(resource_template_key, loop_variable, [value], outer_context)
+            if not expanded_key:
+                continue
+            uri = _find_artifact_uri_for_resource(exported_resources, expanded_key, resource_type, prop_name)
+            if uri is None:
+                continue
+            exported_resource = exported_resources.get(expanded_key, {})
+            raw = _get_prop_value(exported_resource.get("Properties", {}), prop_name)
+            resolved.append((uri, raw))
+
+        if not resolved:
+            continue
+
+        distinct_uris = {uri for uri, _ in resolved}
+        first_raw = resolved[0][1]
+        if len(distinct_uris) == 1:
+            _set_prop_value(properties, prop_name, first_raw)
+        elif deferred_dynamic is not None and not outer_context:
+            deferred_dynamic.append(
+                DynamicArtifactProperty(
+                    foreach_key=foreach_key,
+                    loop_name=foreach_key.replace("Fn::ForEach::", ""),
+                    loop_variable=loop_variable,
+                    collection=collection_values,
+                    resource_key=resource_template_key,
+                    resource_type=resource_type,
+                    property_name=prop_name,
+                    property_value=_get_prop_value(properties, prop_name),
+                    outer_loops=[],
+                    collection_is_parameter_ref=collection_is_parameter_ref,
+                    collection_parameter_name=collection_parameter_name,
+                )
+            )
+        else:
+            _set_prop_value(properties, prop_name, first_raw)
 
 
 def _build_expanded_key(
