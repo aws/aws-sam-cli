@@ -91,7 +91,7 @@ dev = [
     "pytest-rerunfailures==16.3",
     "pytest-metadata==3.1.1",
     "pytest-json-report-wip==1.5.1",
-    "filelock==3.29.0",
+    "filelock==3.29.4",
     "black==26.5.1",
     "psutil==7.2.2",
     "chardet<6",
