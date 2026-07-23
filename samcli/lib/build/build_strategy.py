@@ -20,8 +20,14 @@ from samcli.lib.build.build_graph import (
     LayerBuildDefinition,
 )
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
-from samcli.lib.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.exceptions import (
+    BuildError,
+    BuildInsideContainerError,
+    MissingBuildMethodException,
+    UnsupportedBuilderLibraryVersionError,
+)
 from samcli.lib.build.utils import warn_on_invalid_architecture
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.async_utils import AsyncContext
@@ -144,6 +150,22 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
+        try:
+            return self._do_build_single_function_definition(build_definition)
+        except (
+            BuildError,
+            UnsupportedRuntimeException,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+        ) as ex:
+            if getattr(ex, "resource_name", None) is None:
+                ex.resource_name = build_definition.get_full_path()  # type: ignore[union-attr]
+            raise
+
+    def _do_build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        """
+        Internal implementation of build_single_function_definition
+        """
         function_build_results = {}
         LOG.info(
             "Building codeuri: %s runtime: %s architecture: %s functions: %s",
@@ -209,6 +231,22 @@ class DefaultBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Build the unique definition and then copy the artifact to the corresponding layer folder
+        """
+        try:
+            return self._do_build_single_layer_definition(layer_definition)
+        except (
+            BuildError,
+            UnsupportedRuntimeException,
+            BuildInsideContainerError,
+            UnsupportedBuilderLibraryVersionError,
+        ) as ex:
+            if getattr(ex, "resource_name", None) is None:
+                ex.resource_name = layer_definition.full_path  # type: ignore[union-attr]
+            raise
+
+    def _do_build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        """
+        Internal implementation of build_single_layer_definition
         """
         layer = layer_definition.layer
         LOG.info("Building layer '%s'", layer.full_path)
