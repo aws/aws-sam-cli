@@ -32,8 +32,8 @@ class TestPrepareMakefile(PrepareHookUnitBase):
     def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
         format_recipe_mock.side_effect = [
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
-            "'|values|root_module|resources|[?address==\"null_resource.sam_metadata_aws_lambda_function\"]"
-            "|values|triggers|built_output_path' --directory \"$(ARTIFACTS_DIR)\" "
+            '\'|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            '|values|triggers|built_output_path\' --directory "$(ARTIFACTS_DIR)" '
             "--target 'null_resource.sam_metadata_aws_lambda_function'\n",
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
@@ -52,8 +52,8 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         expected_makefile_rule = (
             "build-function_logical_id:\n"
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
-            "--expression '|values|root_module|resources|[?address==\"null_resource.sam_metadata_aws_lambda_function\"]"
-            "|values|triggers|built_output_path' --directory \"$(ARTIFACTS_DIR)\" "
+            '--expression \'|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
+            '|values|triggers|built_output_path\' --directory "$(ARTIFACTS_DIR)" '
             "--target 'null_resource.sam_metadata_aws_lambda_function'\n"
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
@@ -85,7 +85,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         quoted_resource = shlex.quote(resource)
         expected_show_command = (
             f'python "{script_path}" '
-            f"--expression {quoted_jpath} --directory \"$(ARTIFACTS_DIR)\" "
+            f'--expression {quoted_jpath} --directory "$(ARTIFACTS_DIR)" '
             f"--target {quoted_resource}"
         )
         self.assertEqual(show_command, expected_show_command)
