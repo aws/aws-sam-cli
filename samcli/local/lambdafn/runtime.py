@@ -426,8 +426,7 @@ class LambdaRuntime:
         This method handles a few different cases for ``code_path``:
             - ``code_path``is a existent zip/jar file: Unzip in a temp directory and return the temp directory
             - ``code_path`` is a existent directory: Return this immediately
-            - ``code_path`` is a file/dir that does not exist: Return it as is. May be this method is not clever to
-                detect the existence of the path
+            - ``code_path`` is a file/dir that does not exist: Log a warning and return it as is
 
         Parameters
         ----------
@@ -440,6 +439,14 @@ class LambdaRuntime:
         str
             Directory containing Lambda function code. It can be mounted directly in container
         """
+
+        if code_path and not os.path.exists(code_path):
+            LOG.warning(
+                "Local code path '%s' does not exist. It will be mounted as an empty directory in the "
+                "container, which will likely cause the invocation to fail. Verify the CodeUri/ContentUri "
+                "of your function or layer, or run 'sam build' if the path is a build artifact.",
+                code_path,
+            )
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
             decompressed_dir: str = _unzip_file(code_path, mount_symlinks=self._mount_symlinks)

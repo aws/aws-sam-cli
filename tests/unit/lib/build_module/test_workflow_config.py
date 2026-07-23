@@ -138,6 +138,15 @@ class Test_get_workflow_config(TestCase):
             ("java8.al2", "build.gradle", "gradle"),
             ("java8.al2", "build.gradle.kts", "gradle"),
             ("java8.al2", "pom.xml", "maven"),
+            ("java8.al2023", "build.gradle", "gradle"),
+            ("java8.al2023", "build.gradle.kts", "gradle"),
+            ("java8.al2023", "pom.xml", "maven"),
+            ("java11.al2023", "build.gradle", "gradle"),
+            ("java11.al2023", "build.gradle.kts", "gradle"),
+            ("java11.al2023", "pom.xml", "maven"),
+            ("java17.al2023", "build.gradle", "gradle"),
+            ("java17.al2023", "build.gradle.kts", "gradle"),
+            ("java17.al2023", "pom.xml", "maven"),
         ]
     )
     @patch("samcli.lib.build.workflow_config.os")
