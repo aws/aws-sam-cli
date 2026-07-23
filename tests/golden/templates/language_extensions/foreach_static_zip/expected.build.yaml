@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  Fn::ForEach::Workers:
+  - WorkerName
+  - - Alpha
+    - Beta
+  - ${WorkerName}Function:
+      Properties:
+        CodeUri: AlphaFunction
+        Handler: app.handler
+        Runtime: python3.11
+      Type: AWS::Serverless::Function
+Transform:
+- AWS::LanguageExtensions
+- AWS::Serverless-2016-10-31
