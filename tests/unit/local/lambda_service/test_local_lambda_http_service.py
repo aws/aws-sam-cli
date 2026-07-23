@@ -979,7 +979,14 @@ class TestDurableExecutionHandlers(TestCase):
         service_response_mock.return_value = "success response"
 
         request_mock = Mock()
-        request_mock.get_json.return_value = {"Error": "test error"}
+        request_mock.get_json.return_value = {
+            "Error": {
+                "ErrorMessage": "test error message",
+                "ErrorType": "TestError",
+                "ErrorData": "test data",
+                "StackTrace": ["line1", "line2"],
+            }
+        }
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
@@ -991,7 +998,10 @@ class TestDurableExecutionHandlers(TestCase):
         context_class_mock.assert_called_once()
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn="test-arn",
-            error="test error",
+            error_message="test error message",
+            error_type="TestError",
+            error_data="test data",
+            stack_trace=["line1", "line2"],
         )
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
@@ -1041,7 +1051,10 @@ class TestDurableExecutionHandlers(TestCase):
         context_class_mock.assert_called_once()
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn="test-arn",
-            error=None,  # Should be None when no payload
+            error_message=None,
+            error_type=None,
+            error_data=None,
+            stack_trace=None,
         )
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
@@ -1070,7 +1083,10 @@ class TestDurableExecutionHandlers(TestCase):
         expected_decoded = "arn:aws:lambda:us-west-2:123456789012:function:test"
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn=expected_decoded,
-            error=None,
+            error_message=None,
+            error_type=None,
+            error_data=None,
+            stack_trace=None,
         )
         self.assertEqual(response, "success response")
 
