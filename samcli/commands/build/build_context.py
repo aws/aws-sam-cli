@@ -272,9 +272,6 @@ class BuildContext:
 
     def run(self) -> None:
         """Runs the building process by creating an ApplicationBuilder."""
-        if self._output == "json":
-            logging.getLogger("samcli").setLevel(logging.WARNING)
-
         if self._is_sam_template():
             SamApiProvider.check_implicit_api_resource_ids(self.stacks)
 
