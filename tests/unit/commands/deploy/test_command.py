@@ -108,6 +108,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -138,6 +139,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -230,6 +232,7 @@ class TestDeployCliCommand(TestCase):
                     on_failure=self.on_failure,
                     max_wait_duration=self.max_wait_duration,
                     express=self.express,
+                    output="text",
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -364,6 +367,7 @@ class TestDeployCliCommand(TestCase):
                 max_wait_duration=self.max_wait_duration,
                 express=self.express,
                 language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -514,6 +518,7 @@ class TestDeployCliCommand(TestCase):
                 max_wait_duration=self.max_wait_duration,
                 express=self.express,
                 language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -637,6 +642,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -671,6 +677,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -802,6 +809,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -832,6 +840,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -977,6 +986,7 @@ class TestDeployCliCommand(TestCase):
                 max_wait_duration=self.max_wait_duration,
                 express=self.express,
                 language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -1029,6 +1039,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1059,6 +1070,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -1153,6 +1165,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1183,6 +1196,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -1232,6 +1246,7 @@ class TestDeployCliCommand(TestCase):
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
             express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1262,6 +1277,7 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             language_extensions=None,
+            output="text",
         )
 
         mock_package_context.assert_called_with(

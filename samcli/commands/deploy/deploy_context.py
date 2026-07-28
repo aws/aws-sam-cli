@@ -15,8 +15,10 @@ Deploy a SAM stack
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import json
 import logging
 import os
+import sys
 from typing import Dict, List, Optional
 
 import boto3
@@ -78,6 +80,7 @@ class DeployContext:
         max_wait_duration,
         language_extensions: Optional[bool] = None,
         express: bool = False,
+        output: str = "text",
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -113,6 +116,7 @@ class DeployContext:
         self.max_wait_duration = max_wait_duration
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
         self.express = express
+        self.output = output
 
     def __enter__(self):
         return self
@@ -158,22 +162,23 @@ class DeployContext:
                 s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
             )
 
-        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay)
+        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay, output_mode=self.output)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
-        display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
-        print_deploy_args(
-            self.stack_name,
-            self.s3_bucket,
-            self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
-            region,
-            self.capabilities,
-            display_parameter_overrides,
-            self.confirm_changeset,
-            self.signing_profiles,
-            self.use_changeset,
-            self.disable_rollback,
-        )
+        if self.output != "json":
+            display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
+            print_deploy_args(
+                self.stack_name,
+                self.s3_bucket,
+                self.image_repositories if isinstance(self.image_repositories, dict) else self.image_repository,
+                region,
+                self.capabilities,
+                display_parameter_overrides,
+                self.confirm_changeset,
+                self.signing_profiles,
+                self.use_changeset,
+                self.disable_rollback,
+            )
         return self.deploy(
             self.stack_name,
             template_str,
@@ -253,7 +258,7 @@ class DeployContext:
         auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
-            if not authorization_required:
+            if not authorization_required and self.output != "json":
                 click.secho(f"{resource} has no authentication.", fg="yellow")
 
         assert self.deployer is not None
@@ -275,12 +280,19 @@ class DeployContext:
                     tags=tags,
                     deployment_config=deployment_config,
                 )
-                click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
+                if self.output != "json":
+                    click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
                 if no_execute_changeset:
+                    if self.output == "json":
+                        sys.stdout.write(
+                            json.dumps({"type": "result", "status": "CHANGESET_CREATED", "changeset_id": result["Id"]})
+                            + "\n"
+                        )
+                        sys.stdout.flush()
                     return
 
-                if confirm_changeset:
+                if confirm_changeset and self.output != "json":
                     click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
                     click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
@@ -291,19 +303,33 @@ class DeployContext:
                 self.deployer.wait_for_execute(
                     stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
-                click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
-                if self.express:
-                    click.secho(
-                        "\nDeployed with CloudFormation Express mode. "
-                        "Resources may still be stabilizing in the background.",
-                        fg="yellow",
+                if self.output == "json":
+                    sys.stdout.write(
+                        json.dumps({"type": "result", "status": "SUCCESS", "stack_name": stack_name, "region": region})
+                        + "\n"
                     )
+                    sys.stdout.flush()
+                else:
+                    click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
+                    if self.express:
+                        click.secho(
+                            "\nDeployed with CloudFormation Express mode. "
+                            "Resources may still be stabilizing in the background.",
+                            fg="yellow",
+                        )
 
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
                     raise
-                click.echo(str(ex))
-            except deploy_exceptions.DeployFailedError:
+                if self.output == "json":
+                    sys.stdout.write(json.dumps({"type": "result", "status": "NO_CHANGES", "message": str(ex)}) + "\n")
+                    sys.stdout.flush()
+                else:
+                    click.echo(str(ex))
+            except deploy_exceptions.DeployFailedError as ex:
+                if self.output == "json":
+                    sys.stdout.write(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}) + "\n")
+                    sys.stdout.flush()
                 # Failed to deploy, check for DELETE action otherwise skip
                 if self.on_failure == FailureMode.DELETE:
                     self.deployer.rollback_delete_stack(stack_name)

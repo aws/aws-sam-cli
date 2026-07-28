@@ -170,6 +170,12 @@ LOG = logging.getLogger(__name__)
 @no_progressbar_option
 @capabilities_option
 @language_extensions_option
+@click.option(
+    "--output",
+    default="text",
+    help="Output the results from the command in a given output format. Supported formats: text (default), json.",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+)
 @aws_creds_options
 @common_options
 @save_params_option
@@ -206,6 +212,7 @@ def cli(
     resolve_s3,
     resolve_image_repos,
     language_extensions,
+    output,
     save_params,
     config_file,
     config_env,
@@ -251,6 +258,7 @@ def cli(
         on_failure,
         max_wait_duration,
         express,
+        output,
     )  # pragma: no cover
 
 
@@ -287,6 +295,7 @@ def do_cli(
     on_failure,
     max_wait_duration,
     express,
+    output="text",
 ):
     """
     Implementation of the ``cli`` method
@@ -327,7 +336,8 @@ def do_cli(
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
             s3_bucket = manage_stack(profile=profile, region=region)
-            print_managed_s3_bucket_info(s3_bucket)
+            if output != "json":
+                print_managed_s3_bucket_info(s3_bucket)
 
         # TODO Refactor resolve-s3 and resolve-image-repos into one place
         # after we figure out how to enable resolve-images-repos in package
@@ -399,5 +409,6 @@ def do_cli(
             max_wait_duration=max_wait_duration,
             language_extensions=language_extensions,
             express=express,
+            output=output,
         ) as deploy_context:
             deploy_context.run()

@@ -62,6 +62,10 @@ def pprint_column_names(
 
         @wraps(func)
         def wrap(*args, **kwargs):
+            output_mode = kwargs.pop("output_mode", "text")
+            if output_mode == "json":
+                kwargs["output_mode"] = output_mode
+                return func(*args, **kwargs)
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
                 click.secho(
