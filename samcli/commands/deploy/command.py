@@ -361,7 +361,7 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
-            no_progressbar=no_progressbar,
+            no_progressbar=no_progressbar if output != "json" else True,
             metadata=metadata,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,

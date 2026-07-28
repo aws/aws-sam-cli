@@ -132,6 +132,8 @@ class DeployContext:
         """
         Execute deployment based on the argument provided by customers and samconfig.toml.
         """
+        if self.output == "json":
+            logging.getLogger("samcli").setLevel(logging.WARNING)
 
         # Parse parameters
         with open(self.template_file, "r") as handle:
@@ -159,7 +161,12 @@ class DeployContext:
             s3_client = boto3.client("s3", region_name=self.region if self.region else None, config=boto_config)
 
             self.s3_uploader = S3Uploader(
-                s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+                s3_client,
+                self.s3_bucket,
+                self.s3_prefix,
+                self.kms_key_id,
+                self.force_upload,
+                True if self.output == "json" else self.no_progressbar,
             )
 
         self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay, output_mode=self.output)
