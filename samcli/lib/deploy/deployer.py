@@ -887,7 +887,7 @@ class Deployer:
                 # get the latest stack event
                 marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.rollback_stack(**kwargs)
-                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
+                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode)
                 self._rollback_wait(stack_name)
 
                 current_state = self._get_stack_status(stack_name)
@@ -905,7 +905,9 @@ class Deployer:
                 # from a ROLLBACK_COMPLETE state will not return anything
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
-                    self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
+                    self.describe_stack_events(
+                        stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode
+                    )
 
                 waiter = self._client.get_waiter("stack_delete_complete")
                 waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})
