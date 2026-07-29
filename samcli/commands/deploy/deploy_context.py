@@ -299,7 +299,20 @@ class DeployContext:
                         sys.stdout.flush()
                     return
 
-                if confirm_changeset and self.output != "json":
+                if confirm_changeset:
+                    if self.output == "json":
+                        sys.stdout.write(
+                            json.dumps(
+                                {
+                                    "type": "result",
+                                    "status": "CONFIRMATION_REQUIRED",
+                                    "changeset_id": result["Id"],
+                                }
+                            )
+                            + "\n"
+                        )
+                        sys.stdout.flush()
+                        return
                     click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
                     click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):
