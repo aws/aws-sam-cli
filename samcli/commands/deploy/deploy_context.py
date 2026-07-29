@@ -347,12 +347,12 @@ class DeployContext:
                 else:
                     click.echo(str(ex))
             except deploy_exceptions.DeployFailedError as ex:
-                if self.output == "json":
-                    sys.stdout.write(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}) + "\n")
-                    sys.stdout.flush()
                 # Failed to deploy, check for DELETE action otherwise skip
                 if self.on_failure == FailureMode.DELETE:
                     self.deployer.rollback_delete_stack(stack_name)
+                if self.output == "json":
+                    sys.stdout.write(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}) + "\n")
+                    sys.stdout.flush()
                 raise
 
         else:
