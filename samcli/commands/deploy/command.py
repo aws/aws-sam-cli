@@ -2,6 +2,7 @@
 CLI command for "deploy" command
 """
 
+import contextlib
 import logging
 import os
 
@@ -335,8 +336,11 @@ def do_cli(
         if resolve_s3:
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
-            s3_bucket = manage_stack(profile=profile, region=region)
-            if output != "json":
+            if output == "json":
+                with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                    s3_bucket = manage_stack(profile=profile, region=region)
+            else:
+                s3_bucket = manage_stack(profile=profile, region=region)
                 print_managed_s3_bucket_info(s3_bucket)
 
         # TODO Refactor resolve-s3 and resolve-image-repos into one place
