@@ -308,6 +308,9 @@ def do_cli(
 
     language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
+    if guided and output == "json":
+        raise click.UsageError("--guided is not compatible with --output json")
+
     if guided:
         # Allow for a guided deploy to prompt and save those details.
         guided_context = GuidedContext(

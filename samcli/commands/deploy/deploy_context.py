@@ -265,8 +265,14 @@ class DeployContext:
         auth_required_per_resource = auth_per_resource(stacks)
 
         for resource, authorization_required in auth_required_per_resource:
-            if not authorization_required and self.output != "json":
-                click.secho(f"{resource} has no authentication.", fg="yellow")
+            if not authorization_required:
+                if self.output == "json":
+                    sys.stdout.write(
+                        json.dumps({"type": "warning", "message": "no authentication", "resource": resource}) + "\n"
+                    )
+                    sys.stdout.flush()
+                else:
+                    click.secho(f"{resource} has no authentication.", fg="yellow")
 
         assert self.deployer is not None
         if self.express:
