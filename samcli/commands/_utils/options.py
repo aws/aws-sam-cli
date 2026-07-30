@@ -447,6 +447,20 @@ def common_observability_options(f):
     return f
 
 
+def output_click_option():
+    return click.option(
+        "--output",
+        default="text",
+        help="Output the results from the command in a given output format. "
+        "Supported formats: text (default), json.",
+        type=click.Choice(["text", "json"], case_sensitive=False),
+    )
+
+
+def output_option(f):
+    return output_click_option()(f)
+
+
 def metadata_click_option():
     return click.option(
         "--metadata",

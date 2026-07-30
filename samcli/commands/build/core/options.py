@@ -30,13 +30,15 @@ CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PAR
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
 
-BUILD_STRATEGY_OPTIONS: List[str] = ["parallel", "exclude", "manifest", "cached", "build_in_source", "output"]
+BUILD_STRATEGY_OPTIONS: List[str] = ["parallel", "exclude", "manifest", "cached", "build_in_source"]
 
 ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "build_dir",
     "cache_dir",
     "base_dir",
 ]
+
+OUTPUT_OPTIONS: List[str] = ["output"]
 
 TEMPLATE_OPTIONS: List[str] = ["parameter_overrides", "language_extensions"]
 
@@ -49,6 +51,7 @@ ALL_OPTIONS: List[str] = (
     + BUILD_STRATEGY_OPTIONS
     + CONTAINER_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
+    + OUTPUT_OPTIONS
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ALL_COMMON_OPTIONS
@@ -66,6 +69,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
+    "Output Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OUTPUT_OPTIONS)}},
     "Extension Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(EXTENSION_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},

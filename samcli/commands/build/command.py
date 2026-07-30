@@ -26,6 +26,7 @@ from samcli.commands._utils.options import (
     language_extensions_option,
     manifest_option,
     mount_symlinks_option,
+    output_option,
     parameter_override_option,
     skip_prepare_infra_option,
     template_option_without_build,
@@ -129,12 +130,7 @@ DESCRIPTION = """
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
-@click.option(
-    "--output",
-    default="text",
-    help="Output the results from the command in a given output format. " "Supported formats: text (default), json.",
-    type=click.Choice(["text", "json"], case_sensitive=False),
-)
+@output_option
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)

@@ -280,6 +280,8 @@ class BuildContext:
         caught_exception: Optional[Exception] = None
 
         try:
+            resources_to_build = self.get_resources_to_build()
+
             # boolean value indicates if mount with write or not, defaults to READ ONLY
             mount_with_write = False
             if self._use_container:
@@ -289,12 +291,12 @@ class BuildContext:
                     # if self._mount_with is NOT WRITE
                     # check the need of mounting with write permissions and prompt user to enable it if needed
                     mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
-                        self.get_resources_to_build(),
+                        resources_to_build,
                         self.base_dir,
                     )
 
             builder = ApplicationBuilder(
-                self.get_resources_to_build(),
+                resources_to_build,
                 self.build_dir,
                 self.base_dir,
                 self.cache_dir,
@@ -317,7 +319,7 @@ class BuildContext:
             self._check_exclude_warning()
             self._check_build_method_experimental_flag()
 
-            for f in self.get_resources_to_build().functions:
+            for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
 
             self._build_result = builder.build()
@@ -337,51 +339,15 @@ class BuildContext:
                 build_dir_in_success_message = self.build_dir
                 output_template_path_in_success_message = out_template_path
 
-            if self._output == "json":
-                resources = [
-                    {
-                        "resource_id": f.full_path,
-                        "type": "function",
-                        "runtime": f.runtime,
-                        "architecture": f.architectures[0] if f.architectures else None,
-                    }
-                    for f in self.get_resources_to_build().functions
-                ] + [
-                    {
-                        "resource_id": layer.full_path,
-                        "type": "layer",
-                        "compatible_runtimes": layer.compatible_runtimes,
-                    }
-                    for layer in self.get_resources_to_build().layers
-                ]
-                result = {
-                    "status": "success",
-                    "build_dir": build_dir_in_success_message,
-                    "template_file": output_template_path_in_success_message,
-                    "resources": resources,
-                }
-                click.echo(json.dumps(result, indent=2))
-            else:
-                click.secho("\nBuild Succeeded", fg="green")
-                if self._print_success_message:
-                    msg = self._gen_success_msg(
-                        build_dir_in_success_message,
-                        output_template_path_in_success_message,
-                        os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-                    )
-                    click.secho(msg, fg="yellow")
+            self._print_build_success(
+                build_dir_in_success_message,
+                output_template_path_in_success_message,
+                resources_to_build,
+            )
         except FunctionNotFound as function_not_found_ex:
             caught_exception = function_not_found_ex
 
-            if self._output == "json":
-                error_result = {
-                    "status": "failure",
-                    "error": {
-                        "type": "FunctionNotFound",
-                        "message": str(function_not_found_ex),
-                    },
-                }
-                click.echo(json.dumps(error_result, indent=2))
+            self._print_build_failure(function_not_found_ex, "FunctionNotFound", print_text_banner=False)
             raise UserException(
                 str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
             ) from function_not_found_ex
@@ -395,27 +361,13 @@ class BuildContext:
         ) as ex:
             caught_exception = ex
 
-            if self._output == "json":
-                deep_wrap = getattr(ex, "wrapped_from", None)
-                error_type = deep_wrap if deep_wrap else ex.__class__.__name__
-                error_result = {
-                    "status": "failure",
-                    "error": {
-                        "type": error_type,
-                        "message": str(ex),
-                    },
-                }
-                resource_name = getattr(ex, "resource_name", None)
-                if resource_name:
-                    error_result["error"]["resource"] = resource_name  # type: ignore[index]
-                click.echo(json.dumps(error_result, indent=2))
-            else:
-                click.secho("\nBuild Failed", fg="red")
-
             # Some Exceptions have a deeper wrapped exception that needs to be surfaced
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
+
+            self._print_build_failure(ex, wrapped_from)
+
             raise UserException(str(ex), wrapped_from=wrapped_from) from ex
         finally:
             if self.build_in_source:
@@ -1125,6 +1077,89 @@ class BuildContext:
             value = _get_prop_value(modified_props, prop_name)
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
+
+    def _print_build_success(
+        self, artifacts_dir: str, output_template_path: str, resources_to_build: ResourcesToBuildCollector
+    ) -> None:
+        """
+        Reports a successful build, either as structured JSON or as a human readable message.
+
+        Parameters
+        ----------
+        artifacts_dir: str
+            A string path representing the folder of built artifacts
+        output_template_path: str
+            A string path representing the final template file
+        resources_to_build: ResourcesToBuildCollector
+            The functions and layers that were built
+        """
+        if self._output == "json":
+            resources: List[Dict[str, Any]] = [
+                {
+                    "resource_id": function.full_path,
+                    "type": "function",
+                    "runtime": function.runtime,
+                    "architecture": function.architectures[0] if function.architectures else None,
+                }
+                for function in resources_to_build.functions
+            ] + [
+                {
+                    "resource_id": layer.full_path,
+                    "type": "layer",
+                    "compatible_runtimes": layer.compatible_runtimes,
+                }
+                for layer in resources_to_build.layers
+            ]
+            click.echo(
+                json.dumps(
+                    {
+                        "status": "success",
+                        "build_dir": artifacts_dir,
+                        "template_file": output_template_path,
+                        "resources": resources,
+                    },
+                    indent=2,
+                )
+            )
+            return
+
+        click.secho("\nBuild Succeeded", fg="green")
+        if self._print_success_message:
+            msg = self._gen_success_msg(
+                artifacts_dir,
+                output_template_path,
+                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+            )
+            click.secho(msg, fg="yellow")
+
+    def _print_build_failure(self, ex: Exception, error_type: str, print_text_banner: bool = True) -> None:
+        """
+        Reports a failed build, either as structured JSON or as a human readable message.
+
+        Parameters
+        ----------
+        ex: Exception
+            The exception that caused the build to fail
+        error_type: str
+            The error type to report
+        print_text_banner: bool
+            Whether to print the "Build Failed" banner in text mode
+        """
+        if self._output != "json":
+            if print_text_banner:
+                click.secho("\nBuild Failed", fg="red")
+            return
+
+        # The resource key is always present so consumers can rely on the schema. It is
+        # populated from the exception when the failure is attributable to a specific
+        # resource, otherwise from the resource the customer asked to build (which is the
+        # relevant name even when that resource does not exist in the template). It is
+        # None when the failure is not tied to any single resource.
+        resource_name = getattr(ex, "resource_name", None) or self._resource_identifier
+
+        error: Dict[str, Any] = {"type": error_type, "message": str(ex), "resource": resource_name}
+
+        click.echo(json.dumps({"status": "failure", "error": error}, indent=2))
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """

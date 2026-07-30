@@ -2,8 +2,6 @@
 Build Related Exceptions.
 """
 
-from typing import Optional
-
 from samcli.commands.exceptions import UserException
 
 
@@ -17,9 +15,8 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
 
 class BuildError(Exception):
-    def __init__(self, wrapped_from: str, msg: str, resource_name: Optional[str] = None) -> None:
+    def __init__(self, wrapped_from: str, msg: str) -> None:
         self.wrapped_from = wrapped_from
-        self.resource_name = resource_name
         Exception.__init__(self, msg)
 
 
