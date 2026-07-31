@@ -8,11 +8,15 @@ from boto3.session import Session
 from click.testing import CliRunner
 
 from samcli.commands.init import cli as init_cmd
+from samcli.commands.init.init_templates import InitTemplates
+from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from tests.integration.init.schemas.schemas_test_data_setup import SchemaTestDataSetup
 from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Schemas tests require credentials. This is to skip running the test where credentials are not available.
 SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+
+EVENT_BRIDGE_USE_CASE = "Infrastructure event management"
 
 
 def _get_registry_position(registry_name):
@@ -34,6 +38,36 @@ def _get_registry_position(registry_name):
     raise ValueError(f"Registry '{registry_name}' not found. Available: {registries}")
 
 
+def _get_runtime_position(runtime_name):
+    """Return the 1-based menu position of a runtime in the `sam init` runtime prompt.
+
+    The prompt lists the runtimes the app-templates manifest offers for
+    EVENT_BRIDGE_USE_CASE, ordered by `get_sorted_runtimes`. That ordering shifts
+    whenever a runtime is added or removed, so hardcoding a position silently
+    starts selecting a different runtime -- every answer after it then lands on
+    the wrong question. Resolve it the same way `_get_registry_position` does.
+    """
+    runtime_options = InitTemplates().get_preprocessed_manifest(None, None, None, None)[EVENT_BRIDGE_USE_CASE]
+    runtimes = get_sorted_runtimes(list(runtime_options.keys()))
+    for i, name in enumerate(runtimes, 1):
+        if name == runtime_name:
+            return i
+    raise ValueError(f"Runtime '{runtime_name}' not found. Available: {runtimes}")
+
+
+def _get_use_case_position(use_case_name):
+    """Return the 1-based menu position of a use case in the `sam init` template prompt.
+
+    Same rationale as `_get_runtime_position`: the manifest grows over time, so
+    the position of a use case is not stable.
+    """
+    use_cases = list(InitTemplates().get_preprocessed_manifest(None, None, None, None).keys())
+    for i, name in enumerate(use_cases, 1):
+        if name == use_case_name:
+            return i
+    raise ValueError(f"Use case '{use_case_name}' not found. Available: {use_cases}")
+
+
 @skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
@@ -41,8 +75,8 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     def test_init_interactive_with_event_bridge_app_aws_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {java_runtime_pos}: java17.al2023 (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -56,8 +90,8 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         aws_registry_pos = _get_registry_position("aws.events")
         user_input = f"""
 1
-8
-4
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("java17.al2023")}
 2
 2
 N
@@ -85,8 +119,8 @@ Y
     def test_init_interactive_with_event_bridge_app_partner_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {java_runtime_pos}: java17.al2023 (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -99,8 +133,8 @@ Y
         partner_registry_pos = _get_registry_position("partner-registry")
         user_input = f"""
 1
-8
-4
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("java17.al2023")}
 2
 2
 N
@@ -139,8 +173,8 @@ Y
     def test_init_interactive_with_event_bridge_app_pagination(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {java_runtime_pos}: java17.al2023 (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -155,8 +189,8 @@ Y
         pagination_registry_pos = _get_registry_position("test-pagination")
         user_input = f"""
 1
-8
-4
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("java17.al2023")}
 2
 2
 N
@@ -186,8 +220,8 @@ P
     def test_init_interactive_with_event_bridge_app_customer_registry(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 4: Java Runtime
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {java_runtime_pos}: java17.al2023 (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -200,8 +234,8 @@ P
         other_schema_pos = _get_registry_position("other-schema")
         user_input = f"""
 1
-8
-4
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("java17.al2023")}
 2
 2
 N
@@ -240,8 +274,8 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_python(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 8: Python 3.9
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {python_runtime_pos}: python3.9 (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -254,8 +288,8 @@ Y
         aws_registry_pos = _get_registry_position("aws.events")
         user_input = f"""
 1
-8
-8
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("python3.9")}
 2
 N
 N
@@ -280,8 +314,8 @@ Y
     def test_init_interactive_with_event_bridge_app_aws_schemas_go(self):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 1: Go 1.x
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {go_runtime_pos}: go (provided.al2) (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -291,10 +325,10 @@ Y
         # 4: select aws.events as registries
         # 1: select aws schema
 
-        user_input = """
+        user_input = f"""
 1
-8
-1
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("go (provided.al2)")}
 2
 N
 N
@@ -319,8 +353,8 @@ Y
         self._init_custom_config("mynewprofile", "us-west-2")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 8: Python 3.9
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {python_runtime_pos}: python3.9 (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -332,10 +366,10 @@ Y
         # 1: select aws.events as registries
         # 1: select aws schema
 
-        user_input = """
+        user_input = f"""
 1
-8
-8
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("python3.9")}
 2
 N
 N
@@ -363,8 +397,8 @@ us-east-1
         self._init_custom_config("default", "cn-north-1")
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
-        # 8: Infrastructure event management - Use case
-        # 7: Python 3.9
+        # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
+        # {python_runtime_pos}: python3.9 (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -374,10 +408,10 @@ us-east-1
         # 1: select aws.events as registries
         # 1: select aws schema
 
-        user_input = """
+        user_input = f"""
 1
-8
-8
+{_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
+{_get_runtime_position("python3.9")}
 2
 N
 N
