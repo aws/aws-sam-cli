@@ -148,7 +148,7 @@ jobs:
 
       - name: Set up Node.js
         if: contains(fromJSON('["build-x86-1", "build-x86-2", "build-arm64", "cloud-based-tests", "tier1-finch", "tier1-windows-build-1", "tier1-windows-build-2", "tier1-windows-build-3", "tier1-windows-other"]'), matrix.test_suite)
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
