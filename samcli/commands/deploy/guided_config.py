@@ -28,6 +28,14 @@ class GuidedConfig:
         )
         return ctx, samconfig
 
+    def config_exists(self, config_file=None) -> bool:
+        """Return True if a configuration file already exists on disk."""
+        try:
+            _, samconfig = self.get_config_ctx(config_file)
+        except SamConfigFileReadException:
+            return False
+        return bool(samconfig.exists())
+
     def read_config_showcase(self, config_file=None):
         msg = (
             "Syntax invalid in samconfig.toml; save values "

@@ -34,6 +34,7 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "no_execute_changeset",
     "fail_on_empty_changeset",
     "confirm_changeset",
+    "save_params_on_failure",
     "disable_rollback",
     "on_failure",
     "force_upload",

@@ -43,6 +43,7 @@ class TestDeployCliCommand(TestCase):
         self.metadata = {}
         self.guided = False
         self.confirm_changeset = False
+        self.save_params_on_failure = False
         self.resolve_s3 = False
         self.config_env = "mock-default-env"
         self.config_file = "mock-default-filename"
@@ -98,6 +99,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            save_params_on_failure=self.save_params_on_failure,
             signing_profiles=self.signing_profiles,
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
@@ -220,6 +222,7 @@ class TestDeployCliCommand(TestCase):
                     metadata=self.metadata,
                     guided=True,
                     confirm_changeset=True,
+                    save_params_on_failure=self.save_params_on_failure,
                     signing_profiles=self.signing_profiles,
                     resolve_s3=self.resolve_s3,
                     config_env=self.config_env,
@@ -324,6 +327,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                save_params_on_failure=self.save_params_on_failure,
                 signing_profiles=self.signing_profiles,
                 resolve_s3=self.resolve_s3,
                 config_env=self.config_env,
@@ -474,6 +478,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                save_params_on_failure=self.save_params_on_failure,
                 signing_profiles=self.signing_profiles,
                 resolve_s3=self.resolve_s3,
                 config_env=self.config_env,
@@ -627,6 +632,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            save_params_on_failure=self.save_params_on_failure,
             signing_profiles=self.signing_profiles,
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
@@ -792,6 +798,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=True,
             confirm_changeset=True,
+            save_params_on_failure=self.save_params_on_failure,
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
             config_file=self.config_file,
@@ -937,6 +944,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=True,
                 confirm_changeset=True,
+                save_params_on_failure=self.save_params_on_failure,
                 resolve_s3=self.resolve_s3,
                 config_file=self.config_file,
                 config_env=self.config_env,
@@ -1019,6 +1027,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            save_params_on_failure=self.save_params_on_failure,
             resolve_s3=True,
             config_file=self.config_file,
             config_env=self.config_env,
@@ -1089,6 +1098,7 @@ class TestDeployCliCommand(TestCase):
                 metadata=self.metadata,
                 guided=False,
                 confirm_changeset=True,
+                save_params_on_failure=self.save_params_on_failure,
                 resolve_s3=True,
                 config_file=self.config_file,
                 config_env=self.config_env,
@@ -1143,6 +1153,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            save_params_on_failure=self.save_params_on_failure,
             resolve_s3=False,
             config_file=self.config_file,
             config_env=self.config_env,
@@ -1222,6 +1233,7 @@ class TestDeployCliCommand(TestCase):
             metadata=self.metadata,
             guided=self.guided,
             confirm_changeset=self.confirm_changeset,
+            save_params_on_failure=self.save_params_on_failure,
             signing_profiles=self.signing_profiles,
             resolve_s3=self.resolve_s3,
             config_env=self.config_env,
