@@ -279,7 +279,13 @@ class CompanionStackManager:
 
 
 def sync_ecr_stack(
-    template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
+    template_file: str,
+    stack_name: str,
+    region: str,
+    s3_bucket: str,
+    s3_prefix: str,
+    image_repositories: Dict[str, str],
+    language_extensions_enabled: bool = False,
 ) -> Dict[str, str]:
     """Blocking call to sync local functions with ECR Companion Stack
 
@@ -297,6 +303,8 @@ def sync_ecr_stack(
         S3 prefix for the bucket
     image_repositories : Dict[str, str]
         Mapping between function logical ID and ECR URI
+    language_extensions_enabled : bool
+        Whether AWS::LanguageExtensions transform processing (e.g. Fn::ForEach expansion) is enabled
 
     Returns
     -------
@@ -307,7 +315,7 @@ def sync_ecr_stack(
     image_repositories = image_repositories.copy() if image_repositories else {}
     manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 
-    stacks = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=False)[0]
+    stacks = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=language_extensions_enabled)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
     function_logical_ids = [
         function.full_path for function in function_provider.get_all() if function.packagetype == IMAGE

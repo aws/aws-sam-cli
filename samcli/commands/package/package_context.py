@@ -121,7 +121,13 @@ class PackageContext:
             stack_name = f"sam-app-{template_basename}"
 
             self.image_repositories = sync_ecr_stack(
-                self.template_file, stack_name, self.region, self.s3_bucket, self.s3_prefix, self.image_repositories
+                self.template_file,
+                stack_name,
+                self.region,
+                self.s3_bucket,
+                self.s3_prefix,
+                self.image_repositories,
+                language_extensions_enabled=self._language_extensions_enabled,
             )
 
         stacks, _ = SamLocalStackProvider.get_stacks(
@@ -269,17 +275,23 @@ class PackageContext:
             return exported_template
 
         LOG.debug("Template uses language extensions, preserving Fn::ForEach structure")
+        deferred_dynamic: List = []
         output_template = merge_language_extensions_s3_uris(
-            result.original_template, exported_template, result.dynamic_artifact_properties
+            result.original_template,
+            exported_template,
+            result.dynamic_artifact_properties,
+            parameter_values=parameter_values,
+            deferred_dynamic=deferred_dynamic,
         )
-        if result.dynamic_artifact_properties:
+        all_dynamic_properties = list(result.dynamic_artifact_properties or []) + deferred_dynamic
+        if all_dynamic_properties:
             LOG.debug(
                 "Generating Mappings for %d dynamic artifact properties",
-                len(result.dynamic_artifact_properties),
+                len(all_dynamic_properties),
             )
             output_template = generate_and_apply_artifact_mappings(
                 output_template,
-                result.dynamic_artifact_properties,
+                all_dynamic_properties,
                 exported_template.get("Resources", {}),
                 template_dir,
             )

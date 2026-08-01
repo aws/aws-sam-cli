@@ -281,3 +281,41 @@ class TestCompanionStackManager(TestCase):
         manager_mock.return_value.sync_repos.assert_called_once_with()
 
         self.assertEqual(result, {"Function1": "uri1", "Function2": "uri2"})
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamFunctionProvider")
+    def test_sync_ecr_stack_language_extensions_enabled(
+        self, function_provider_mock, stack_provider_mock, manager_mock
+    ):
+        image_repositories = {"Function1": "uri1"}
+        stacks = MagicMock()
+        stack_provider_mock.get_stacks.return_value = (stacks, None)
+        manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+
+        sync_ecr_stack(
+            "template.yaml",
+            "stack-name",
+            "region",
+            "s3-bucket",
+            "s3-prefix",
+            image_repositories,
+            language_extensions_enabled=True,
+        )
+
+        stack_provider_mock.get_stacks.assert_called_once_with("template.yaml", language_extensions_enabled=True)
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamFunctionProvider")
+    def test_sync_ecr_stack_language_extensions_disabled_by_default(
+        self, function_provider_mock, stack_provider_mock, manager_mock
+    ):
+        image_repositories = {"Function1": "uri1"}
+        stacks = MagicMock()
+        stack_provider_mock.get_stacks.return_value = (stacks, None)
+        manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+
+        sync_ecr_stack("template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
+
+        stack_provider_mock.get_stacks.assert_called_once_with("template.yaml", language_extensions_enabled=False)

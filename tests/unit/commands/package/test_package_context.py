@@ -1,5 +1,6 @@
 """Test sam package command"""
 
+import copy
 import os
 from pathlib import Path
 from unittest import TestCase
@@ -10,14 +11,19 @@ import tempfile
 TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 
+import samcli.lib.package.packageable_resources as pr
+from botocore.utils import set_value_from_jmespath
 from samcli.commands.package.package_context import PackageContext
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
     detect_dynamic_artifact_properties,
+    expand_language_extensions,
 )
+from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.language_extensions_packaging import (
+    generate_and_apply_artifact_mappings,
     merge_language_extensions_s3_uris,
     warn_parameter_based_collections,
     _update_resources_with_s3_uris,
@@ -35,7 +41,7 @@ from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
-from samcli.yamlhelper import yaml_parse
+from samcli.yamlhelper import yaml_dump, yaml_parse
 
 
 class TestPackageCommand(TestCase):
@@ -4589,3 +4595,186 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
         ctx._export("template.yaml", use_json=False)
 
         mock_pre_le_pass.assert_not_called()
+
+
+class TestForEachImagePackagingEndToEnd(TestCase):
+    """End-to-end pipeline: Fn::ForEach + !Ref collection + PackageType: Image (#9117)."""
+
+    def _run(self, template_dict, param_values):
+        result = expand_language_extensions(template_dict, param_values, enabled=True)
+
+        def fake_image_export(self, resource_id, resource_dict, parent_dir):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, f"repo:{resource_id}-latest")
+
+        with patch.object(pr.ResourceImage, "do_export", fake_image_export):
+            template = Template(
+                "t.yaml",
+                ".",
+                Uploaders(object(), object()),
+                None,
+                normalize_template=True,
+                normalize_parameters=True,
+                template_dict=copy.deepcopy(result.expanded_template),
+                parameter_values=param_values,
+                language_extensions_enabled=True,
+            )
+            exported = template.export()
+
+        deferred = []
+        output = merge_language_extensions_s3_uris(
+            result.original_template,
+            exported,
+            result.dynamic_artifact_properties,
+            parameter_values=param_values,
+            deferred_dynamic=deferred,
+        )
+        all_dynamic = list(result.dynamic_artifact_properties or []) + deferred
+        if all_dynamic:
+            output = generate_and_apply_artifact_mappings(output, all_dynamic, exported.get("Resources", {}), ".")
+        return output
+
+    def test_multivalue_ref_image_generates_findinmap(self):
+        template = {
+            "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
+            "Parameters": {"FuncType": {"Type": "CommaDelimitedList", "Default": "func1,func2"}},
+            "Resources": {
+                "Fn::ForEach::LoopFunction": [
+                    "FunctionName",
+                    {"Ref": "FuncType"},
+                    {
+                        "${FunctionName}Function": {
+                            "Type": "AWS::Serverless::Function",
+                            "Properties": {"PackageType": "Image", "ImageUri": "foo"},
+                        }
+                    },
+                ]
+            },
+        }
+        output = self._run(template, {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES})
+
+        body = output["Resources"]["Fn::ForEach::LoopFunction"][2]["${FunctionName}Function"]["Properties"]
+        self.assertIn("Fn::FindInMap", body["ImageUri"])
+        mapping_name = body["ImageUri"]["Fn::FindInMap"][0]
+        mapping = output["Mappings"][mapping_name]
+        self.assertEqual(mapping["func1"]["ImageUri"], "repo:func1Function-latest")
+        self.assertEqual(mapping["func2"]["ImageUri"], "repo:func2Function-latest")
+
+    def test_package_context_wires_deferred_image_mappings(self):
+        # Drives the REAL production caller (_export_with_language_extensions),
+        # not the helpers directly, so it guards the caller wiring itself:
+        # parameter_values passed + deferred_dynamic collected + combined into
+        # generate_and_apply_artifact_mappings.
+        template_str = yaml_dump(
+            {
+                "AWSTemplateFormatVersion": "2010-09-09",
+                "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
+                "Parameters": {"FuncType": {"Type": "CommaDelimitedList", "Default": "func1,func2"}},
+                "Resources": {
+                    "Fn::ForEach::LoopFunction": [
+                        "FunctionName",
+                        {"Ref": "FuncType"},
+                        {
+                            "${FunctionName}Function": {
+                                "Type": "AWS::Serverless::Function",
+                                "Properties": {"PackageType": "Image", "ImageUri": "foo"},
+                            }
+                        },
+                    ]
+                },
+            }
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as tf:
+            tf.write(template_str)
+            template_path = tf.name
+
+        def fake_image_export(self, resource_id, resource_dict, parent_dir):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, f"repo:{resource_id}-latest")
+
+        try:
+            ctx = PackageContext(
+                template_file=template_path,
+                s3_bucket="bucket",
+                s3_prefix="prefix",
+                image_repository=None,
+                image_repositories=None,
+                output_template_file=None,
+                kms_key_id=None,
+                use_json=False,
+                force_upload=False,
+                no_progressbar=False,
+                metadata=None,
+                region=None,
+                profile=None,
+                language_extensions=True,
+            )
+            ctx.uploaders = MagicMock()
+            ctx.code_signer = MagicMock()
+            with patch.object(pr.ResourceImage, "do_export", fake_image_export):
+                original_template_dict = yaml_parse(template_str)
+                output = ctx._export_with_language_extensions(template_path, original_template_dict)
+        finally:
+            os.unlink(template_path)
+
+        body = output["Resources"]["Fn::ForEach::LoopFunction"][2]["${FunctionName}Function"]["Properties"]
+        self.assertIn("Fn::FindInMap", body["ImageUri"])
+        mapping_name = body["ImageUri"]["Fn::FindInMap"][0]
+        mapping = output["Mappings"][mapping_name]
+        self.assertEqual(mapping["func1"]["ImageUri"], "repo:func1Function-latest")
+        self.assertEqual(mapping["func2"]["ImageUri"], "repo:func2Function-latest")
+
+    def _run_zip(self, template_dict, param_values):
+        result = expand_language_extensions(template_dict, param_values, enabled=True)
+
+        def fake_zip_export(self, resource_id, resource_dict, parent_dir):
+            set_value_from_jmespath(resource_dict, self.PROPERTY_NAME, "s3://bucket/SAME")
+
+        with patch.object(pr.ResourceWithS3UrlDict, "do_export", fake_zip_export):
+            template = Template(
+                "t.yaml",
+                ".",
+                Uploaders(object(), object()),
+                None,
+                normalize_template=True,
+                normalize_parameters=True,
+                template_dict=copy.deepcopy(result.expanded_template),
+                parameter_values=param_values,
+                language_extensions_enabled=True,
+            )
+            exported = template.export()
+
+        deferred = []
+        output = merge_language_extensions_s3_uris(
+            result.original_template,
+            exported,
+            result.dynamic_artifact_properties,
+            parameter_values=param_values,
+            deferred_dynamic=deferred,
+        )
+        all_dynamic = list(result.dynamic_artifact_properties or []) + deferred
+        if all_dynamic:
+            output = generate_and_apply_artifact_mappings(output, all_dynamic, exported.get("Resources", {}), ".")
+        return output
+
+    def test_ref_collection_statemachine_definitionuri_rewritten(self):
+        template = {
+            "Transform": ["AWS::LanguageExtensions", "AWS::Serverless-2016-10-31"],
+            "Parameters": {"Names": {"Type": "CommaDelimitedList", "Default": "Alpha,Beta"}},
+            "Resources": {
+                "Fn::ForEach::SM": [
+                    "Name",
+                    {"Ref": "Names"},
+                    {
+                        "${Name}Machine": {
+                            "Type": "AWS::Serverless::StateMachine",
+                            "Properties": {"DefinitionUri": "sm.asl.json"},
+                        }
+                    },
+                ]
+            },
+        }
+        output = self._run_zip(template, {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES})
+        body = output["Resources"]["Fn::ForEach::SM"][2]["${Name}Machine"]["Properties"]
+        # Identical S3 URI across iterations -> shared static copy, not a Mapping.
+        self.assertEqual(body["DefinitionUri"], "s3://bucket/SAME")
+        self.assertNotIn("Mappings", output)
