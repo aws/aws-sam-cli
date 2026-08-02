@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
-    Run on Windows the same commands as in ./Makefile without installing any aditional software.
+    Run on Windows the same commands as in ./Makefile without installing any additional software.
 
 .DESCRIPTION
-    Run on Windows the same commands as in ./Makefile without installing any aditional software.
+    Run on Windows the same commands as in ./Makefile without installing any additional software.
     The only difference is syntax. Instead of make commands use parameters, meaning add '-' before the command.
-    Parameter names are case insensetive.
+    Parameter names are case insensitive.
     See Examples.
 
 .EXAMPLE
@@ -71,7 +71,7 @@ param (
     [switch]
     $BlackCheck,
 
-    # install, lint, check formating
+    # install, lint, check formatting
     [Parameter(ParameterSetName = 'Pr')]
     [switch]
     $Pr
