@@ -210,10 +210,12 @@ def _make_shell_and_make_safe(value: str, logical_id: str) -> str:
         line-based command-injection primitive one layer above the shell.
     """
     if "\n" in value or "\r" in value:
-        # Render control characters as visible escape sequences (not raw bytes) so the
-        # offending value is safe to include in an error message without corrupting
-        # terminal or log output.
-        sanitized_preview = value.replace("\n", "\\n").replace("\r", "\\r")
+        # Render every non-printable character (not just \n/\r) as a visible escape sequence
+        # so the offending value is safe to include in an error message without corrupting
+        # terminal or log output (e.g. ANSI escapes, backspace, NUL). An attacker crafting a
+        # payload to trip this check could otherwise embed additional control bytes that
+        # would be written unfiltered to stderr by the resulting UserException.
+        sanitized_preview = "".join(ch if ch.isprintable() and ch != "\\" else f"\\x{ord(ch):02x}" for ch in value)
         raise InvalidTerraformResourceAddressException(
             logical_id,
             f"contains invalid characters (newline or carriage return): '{sanitized_preview}'. "

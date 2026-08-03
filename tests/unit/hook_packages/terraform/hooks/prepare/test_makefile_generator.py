@@ -3,9 +3,12 @@
 import os
 import shlex
 import subprocess
+import tempfile
+from unittest import skipIf
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
+from tests.testing_utils import IS_WINDOWS
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
 from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidTerraformResourceAddressException
 from samcli.hook_packages.terraform.hooks.prepare.types import (
@@ -90,48 +93,55 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         )
         self.assertEqual(show_command, expected_show_command)
 
+    @skipIf(IS_WINDOWS, "POC uses /bin/sh and POSIX-style paths, which are not reliable on Windows CI")
     @parameterized.expand(
         [
             (
                 # backtick command substitution in a for_each key must not be shell-executed
-                'null_resource.sam_metadata["normal`touch /tmp/poc_sam_rce`"]',
+                'null_resource.sam_metadata["normal`touch {marker}`"]',
             ),
             (
                 # $() command substitution in a for_each key must not be shell-executed
-                'null_resource.sam_metadata["normal$(touch /tmp/poc_sam_rce)"]',
+                'null_resource.sam_metadata["normal$(touch {marker})"]',
             ),
             (
                 # ${...} shell parameter expansion must not be shell-executed
-                'null_resource.sam_metadata["normal${IFS}touch${IFS}/tmp/poc_sam_rce"]',
+                'null_resource.sam_metadata["normal${{IFS}}touch${{IFS}}{marker}"]',
             ),
             (
                 # double quote injection must not break out of the recipe argument
-                'null_resource.sam_metadata["normal" && touch /tmp/poc_sam_rce && echo "]',
+                'null_resource.sam_metadata["normal" && touch {marker} && echo "]',
             ),
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._build_jpath_string")
-    def test_build_makerule_python_command_neutralizes_shell_injection(self, malicious_resource, jpath_string_mock):
-        # jpath string also embeds the resource address and must be neutralized identically
-        jpath_string_mock.return_value = (
-            "|values|root_module|resources|" f'[?address=="{malicious_resource}"]' "|values|triggers|built_output_path"
-        )
-        sam_metadata_resource = SamMetadataResource(
-            current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
-        )
-        show_command = _build_makerule_python_command(
-            python_command_name="python",
-            output_dir="/some/dir/path/.aws-sam/output",
-            resource_address=malicious_resource,
-            sam_metadata_resource=sam_metadata_resource,
-            terraform_application_dir="/some/dir/path",
-            logical_id="function_logical_id",
-        )
+    def test_build_makerule_python_command_neutralizes_shell_injection(
+        self, malicious_resource_template, jpath_string_mock
+    ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Use a per-test unique marker path so this test can't collide with a stale file
+            # left by another process or a parallel test worker, and doesn't depend on any
+            # pre-existing state under /tmp.
+            marker_path = os.path.join(tmpdir, "poc_sam_rce")
+            malicious_resource = malicious_resource_template.format(marker=marker_path)
 
-        marker_path = "/tmp/poc_sam_rce"
-        if os.path.exists(marker_path):
-            os.remove(marker_path)
-        try:
+            jpath_string_mock.return_value = (
+                "|values|root_module|resources|"
+                f'[?address=="{malicious_resource}"]'
+                "|values|triggers|built_output_path"
+            )
+            sam_metadata_resource = SamMetadataResource(
+                current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
+            )
+            show_command = _build_makerule_python_command(
+                python_command_name="python",
+                output_dir="/some/dir/path/.aws-sam/output",
+                resource_address=malicious_resource,
+                sam_metadata_resource=sam_metadata_resource,
+                terraform_application_dir="/some/dir/path",
+                logical_id="function_logical_id",
+            )
+
             # Simulate make's own macro expansion ('$$' -> '$') before the shell sees the line,
             # then hand the resulting recipe to /bin/sh exactly like `make` would.
             shell_command = show_command.replace("$$", "$")
@@ -140,9 +150,6 @@ class TestPrepareMakefile(PrepareHookUnitBase):
                 os.path.exists(marker_path),
                 f"Command injection succeeded for payload: {malicious_resource!r}",
             )
-        finally:
-            if os.path.exists(marker_path):
-                os.remove(marker_path)
 
     @parameterized.expand(
         [
