@@ -310,10 +310,10 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--expression",
         type=str,
-        required=True,
+        required=False,
         help="Jpath query expression separated by | (delimiter) "
         "and allows for searching within a json object."
-        "eg: |values|sub_module|[?address==me]|output",
+        "eg: |values|sub_module|[?address==me]|output. Not required if --args-file is used.",
     )
     argparser.add_argument(
         "--directory",
@@ -326,6 +326,16 @@ if __name__ == "__main__":
         type=str,
         required=False,
         help="Terraform resource path for the SAM CLI Metadata resource. This option is not to be used with --json",
+    )
+    argparser.add_argument(
+        "--args-file",
+        type=str,
+        required=False,
+        help="Path to a JSON file containing 'expression' and/or 'target' values, as an alternative to "
+        "passing them directly via --expression/--target on the command line. This avoids embedding "
+        "untrusted Terraform resource addresses/expressions in a shell command line, since quoting "
+        "rules are not portable across shells (e.g. POSIX sh vs Windows cmd.exe). Values from this "
+        "file take precedence over --expression/--target if both are provided.",
     )
     argparser.add_argument(
         "--json",
@@ -346,6 +356,15 @@ if __name__ == "__main__":
     target = arguments.target
     json_str = arguments.json
     mount_symlinks = arguments.mount_symlinks
+
+    if arguments.args_file:
+        with open(arguments.args_file, "r") as args_file_handle:
+            file_args = json.load(args_file_handle)
+        expression = file_args.get("expression", expression)
+        target = file_args.get("target", target)
+
+    if not expression:
+        argparser.error("An --expression value must be provided, either directly or via --args-file.")
 
     # validate environment variables do not contain blocked arguments
     validate_environment_variables()

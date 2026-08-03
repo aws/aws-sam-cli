@@ -1,16 +1,16 @@
 """Test Terraform prepare Makefile"""
 
+import json
 import os
-import shlex
 import subprocess
 import tempfile
+from pathlib import Path
 from unittest import skipIf
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
 from tests.testing_utils import IS_WINDOWS
 from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import PrepareHookUnitBase
-from samcli.hook_packages.terraform.hooks.prepare.exceptions import InvalidTerraformResourceAddressException
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
@@ -22,6 +22,7 @@ from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
     _build_jpath_string,
     _format_makefile_recipe,
     _build_makerule_python_command,
+    _write_makerule_args_file,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import TFResource
 
@@ -32,12 +33,15 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._get_makefile_build_target")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._format_makefile_recipe")
-    def test_generate_makefile_rule_for_lambda_resource(self, format_recipe_mock, get_build_target_mock):
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._write_makerule_args_file")
+    def test_generate_makefile_rule_for_lambda_resource(
+        self, write_args_file_mock, format_recipe_mock, get_build_target_mock
+    ):
+        write_args_file_mock.return_value = "/some/dir/path/.aws-sam/output/function_logical_id-uuid.args.json"
         format_recipe_mock.side_effect = [
-            "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py --expression "
-            '\'|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
-            '|values|triggers|built_output_path\' --directory "$(ARTIFACTS_DIR)" '
-            "--target 'null_resource.sam_metadata_aws_lambda_function'\n",
+            "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
+            '--directory "$(ARTIFACTS_DIR)" '
+            '--args-file ".aws-sam/output/function_logical_id-uuid.args.json"\n',
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
@@ -55,9 +59,8 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         expected_makefile_rule = (
             "build-function_logical_id:\n"
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
-            '--expression \'|values|root_module|resources|[?address=="null_resource.sam_metadata_aws_lambda_function"]'
-            '|values|triggers|built_output_path\' --directory "$(ARTIFACTS_DIR)" '
-            "--target 'null_resource.sam_metadata_aws_lambda_function'\n"
+            '--directory "$(ARTIFACTS_DIR)" '
+            '--args-file ".aws-sam/output/function_logical_id-uuid.args.json"\n'
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
@@ -75,25 +78,57 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         sam_metadata_resource = SamMetadataResource(
             current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
         )
-        show_command = _build_makerule_python_command(
-            python_command_name="python",
-            output_dir="/some/dir/path/.aws-sam/output",
-            resource_address=resource,
-            sam_metadata_resource=sam_metadata_resource,
-            terraform_application_dir="/some/dir/path",
-            logical_id="function_logical_id",
-        )
-        script_path = ".aws-sam/output/copy_terraform_built_artifacts.py"
-        quoted_jpath = shlex.quote(jpath_string)
-        quoted_resource = shlex.quote(resource)
-        expected_show_command = (
-            f'python "{script_path}" '
-            f'--expression {quoted_jpath} --directory "$(ARTIFACTS_DIR)" '
-            f"--target {quoted_resource}"
-        )
-        self.assertEqual(show_command, expected_show_command)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            terraform_application_dir = os.path.join(tmpdir, "some", "dir", "path")
+            output_dir = os.path.join(terraform_application_dir, ".aws-sam", "output")
+            os.makedirs(output_dir)
 
-    @skipIf(IS_WINDOWS, "POC uses /bin/sh and POSIX-style paths, which are not reliable on Windows CI")
+            show_command = _build_makerule_python_command(
+                python_command_name="python",
+                output_dir=output_dir,
+                resource_address=resource,
+                sam_metadata_resource=sam_metadata_resource,
+                terraform_application_dir=terraform_application_dir,
+                logical_id="function_logical_id",
+            )
+
+            script_path = ".aws-sam/output/copy_terraform_built_artifacts.py"
+            self.assertIn(f'python "{script_path}"', show_command)
+            self.assertIn('--directory "$(ARTIFACTS_DIR)"', show_command)
+            self.assertIn("--args-file", show_command)
+
+            # the args file path referenced in the recipe should point to a real file
+            # containing the expression/target values, written under output_dir
+            args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
+            args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
+            self.assertTrue(os.path.exists(args_file_path))
+            with open(args_file_path) as f:
+                args_file_contents = json.load(f)
+            self.assertEqual(args_file_contents, {"expression": jpath_string, "target": resource})
+
+    def test_write_makerule_args_file_round_trips_arbitrary_values(self):
+        # Values written to the args file must come back byte-for-byte identical when read back
+        # as JSON, including values that were previously dangerous when embedded directly in a
+        # shell command line (backticks, $(...), embedded newlines, quotes, etc). JSON encoding
+        # neutralizes all of these without needing any shell- or make-specific escaping, because
+        # the value is never parsed as code - only ever as a JSON string.
+        malicious_values = [
+            'null_resource.sam_metadata["normal`touch /tmp/poc_sam_rce`"]',
+            'null_resource.sam_metadata["normal$(touch /tmp/poc_sam_rce)"]',
+            'null_resource.sam_metadata["normal${IFS}touch${IFS}/tmp/poc_sam_rce"]',
+            'null_resource.sam_metadata["normal" && touch /tmp/poc_sam_rce && echo "]',
+            'null_resource.sam_metadata["normal\ntouch /tmp/poc_sam_rce"]',
+            'null_resource.sam_metadata["normal\r\ntouch /tmp/poc_sam_rce"]',
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for malicious_value in malicious_values:
+                args_file_path = _write_makerule_args_file(
+                    tmpdir, "function_logical_id", malicious_value, malicious_value
+                )
+                with open(args_file_path) as f:
+                    contents = json.load(f)
+                self.assertEqual(contents, {"expression": malicious_value, "target": malicious_value})
+
     @parameterized.expand(
         [
             (
@@ -110,12 +145,16 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             ),
             (
                 # double quote injection must not break out of the recipe argument
-                'null_resource.sam_metadata["normal" && touch {marker} && echo "]',
+                'null_resource.sam_metadata["normal" ; touch {marker} ; echo "]',
+            ),
+            (
+                # embedded newline must not split the recipe into multiple physical lines
+                'null_resource.sam_metadata["normal\ntouch {marker}"]',
             ),
         ]
     )
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._build_jpath_string")
-    def test_build_makerule_python_command_neutralizes_shell_injection(
+    def test_build_makerule_python_command_keeps_untrusted_values_off_the_command_line(
         self, malicious_resource_template, jpath_string_mock
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -124,60 +163,53 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             # pre-existing state under /tmp.
             marker_path = os.path.join(tmpdir, "poc_sam_rce")
             malicious_resource = malicious_resource_template.format(marker=marker_path)
-
-            jpath_string_mock.return_value = (
+            malicious_jpath = (
                 "|values|root_module|resources|"
                 f'[?address=="{malicious_resource}"]'
                 "|values|triggers|built_output_path"
             )
+            jpath_string_mock.return_value = malicious_jpath
+
+            terraform_application_dir = os.path.join(tmpdir, "some", "dir", "path")
+            output_dir = os.path.join(terraform_application_dir, ".aws-sam", "output")
+            os.makedirs(output_dir)
+
             sam_metadata_resource = SamMetadataResource(
                 current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
             )
             show_command = _build_makerule_python_command(
                 python_command_name="python",
-                output_dir="/some/dir/path/.aws-sam/output",
+                output_dir=output_dir,
                 resource_address=malicious_resource,
                 sam_metadata_resource=sam_metadata_resource,
-                terraform_application_dir="/some/dir/path",
+                terraform_application_dir=terraform_application_dir,
                 logical_id="function_logical_id",
             )
 
-            # Simulate make's own macro expansion ('$$' -> '$') before the shell sees the line,
-            # then hand the resulting recipe to /bin/sh exactly like `make` would.
-            shell_command = show_command.replace("$$", "$")
-            subprocess.run(["sh", "-c", shell_command], capture_output=True, text=True)
-            self.assertFalse(
-                os.path.exists(marker_path),
-                f"Command injection succeeded for payload: {malicious_resource!r}",
-            )
+            # Structural guarantee: the untrusted resource address/expression must never appear
+            # in the recipe text at all - only a SAM-CLI-generated file path may appear there.
+            self.assertNotIn(malicious_resource, show_command)
+            self.assertNotIn(malicious_jpath, show_command)
+            self.assertNotIn("\n", show_command)
 
-    @parameterized.expand(
-        [
-            ('null_resource.sam_metadata["normal\ntouch /tmp/poc_sam_rce"]',),
-            ('null_resource.sam_metadata["normal\r\ntouch /tmp/poc_sam_rce"]',),
-        ]
-    )
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._build_jpath_string")
-    def test_build_makerule_python_command_rejects_embedded_newlines(self, malicious_resource, jpath_string_mock):
-        # make parses Makefiles line-by-line before handing a recipe to the shell, so a raw
-        # newline embedded in the resource address could split one recipe line into multiple
-        # physical lines, reintroducing a line-based injection primitive above the shell layer.
-        # shlex.quote() alone does not protect against this - it must be explicitly rejected.
-        jpath_string_mock.return_value = (
-            "|values|root_module|resources|" f'[?address=="{malicious_resource}"]' "|values|triggers|built_output_path"
-        )
-        sam_metadata_resource = SamMetadataResource(
-            current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
-        )
-        with self.assertRaises(InvalidTerraformResourceAddressException):
-            _build_makerule_python_command(
-                python_command_name="python",
-                output_dir="/some/dir/path/.aws-sam/output",
-                resource_address=malicious_resource,
-                sam_metadata_resource=sam_metadata_resource,
-                terraform_application_dir="/some/dir/path",
-                logical_id="function_logical_id",
-            )
+            # Behavioral guarantee: actually executing the recipe (as make would, handing it to
+            # a shell after its own macro expansion) must not run the injected command, since
+            # the untrusted value never reaches the shell in the first place.
+            if not IS_WINDOWS:
+                shell_command = show_command.replace("$$", "$")
+                subprocess.run(["sh", "-c", shell_command], capture_output=True, text=True)
+                self.assertFalse(
+                    os.path.exists(marker_path),
+                    f"Command injection succeeded for payload: {malicious_resource!r}",
+                )
+
+            # The untrusted value must still reach the args file untouched, so the legitimate
+            # (non-injection) behavior of building this resource is preserved.
+            args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
+            args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
+            with open(args_file_path) as f:
+                args_file_contents = json.load(f)
+            self.assertEqual(args_file_contents, {"expression": malicious_jpath, "target": malicious_resource})
 
     def test_get_makefile_build_target(self):
         output_string = _get_makefile_build_target("function_logical_id")
