@@ -358,8 +358,15 @@ if __name__ == "__main__":
     mount_symlinks = arguments.mount_symlinks
 
     if arguments.args_file:
-        with open(arguments.args_file, "r") as args_file_handle:
-            file_args = json.load(args_file_handle)
+        try:
+            with open(arguments.args_file, "r") as args_file_handle:
+                file_args = json.load(args_file_handle)
+        except (OSError, ValueError):
+            LOG.error("Reading args file '%s' unsuccessful!", arguments.args_file, exc_info=True)
+            cli_exit()
+        if not isinstance(file_args, dict):
+            LOG.error("Args file '%s' must contain a JSON object.", arguments.args_file)
+            cli_exit()
         expression = file_args.get("expression", expression)
         target = file_args.get("target", target)
 

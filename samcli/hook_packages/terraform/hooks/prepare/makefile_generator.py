@@ -202,7 +202,10 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
     output_dir: str
         the directory into which the Makefile (and this args file) is written
     logical_id: str
-        Logical ID of the lambda resource; used to make the args file name unique per resource
+        Logical ID of the lambda resource; used to name the args file. This is already unique
+        per resource (derived only from alphanumeric characters, never attacker-influenced), so
+        the file name is deterministic and gets overwritten on each `sam build`, rather than
+        accumulating a new file per build.
     jpath_string: str
         the jpath expression used to locate this resource's build output in `terraform show` output
     resource_address: str
@@ -213,7 +216,7 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
     str
         The absolute path to the generated args file
     """
-    args_file_name = f"{logical_id}-{uuid.uuid4()}.args.json"
+    args_file_name = f"{logical_id}.args.json"
     args_file_path = os.path.join(output_dir, args_file_name)
     with open(args_file_path, "w+") as args_file:
         json.dump({"expression": jpath_string, "target": resource_address}, args_file)

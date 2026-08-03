@@ -37,11 +37,11 @@ class TestPrepareMakefile(PrepareHookUnitBase):
     def test_generate_makefile_rule_for_lambda_resource(
         self, write_args_file_mock, format_recipe_mock, get_build_target_mock
     ):
-        write_args_file_mock.return_value = "/some/dir/path/.aws-sam/output/function_logical_id-uuid.args.json"
+        write_args_file_mock.return_value = "/some/dir/path/.aws-sam/output/function_logical_id.args.json"
         format_recipe_mock.side_effect = [
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--directory "$(ARTIFACTS_DIR)" '
-            '--args-file ".aws-sam/output/function_logical_id-uuid.args.json"\n',
+            '--args-file ".aws-sam/output/function_logical_id.args.json"\n',
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
@@ -60,7 +60,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             "build-function_logical_id:\n"
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--directory "$(ARTIFACTS_DIR)" '
-            '--args-file ".aws-sam/output/function_logical_id-uuid.args.json"\n'
+            '--args-file ".aws-sam/output/function_logical_id.args.json"\n'
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
 
@@ -128,6 +128,23 @@ class TestPrepareMakefile(PrepareHookUnitBase):
                 with open(args_file_path) as f:
                     contents = json.load(f)
                 self.assertEqual(contents, {"expression": malicious_value, "target": malicious_value})
+
+    def test_write_makerule_args_file_uses_deterministic_name_and_overwrites(self):
+        # The args file name must be deterministic (derived only from logical_id, no random
+        # component) so that re-running `sam build` (which always re-runs prepare) overwrites
+        # the previous run's file for this resource instead of accumulating a new file on disk
+        # on every build.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            first_path = _write_makerule_args_file(tmpdir, "function_logical_id", "expr-1", "target-1")
+            second_path = _write_makerule_args_file(tmpdir, "function_logical_id", "expr-2", "target-2")
+
+            self.assertEqual(first_path, second_path)
+            self.assertEqual(os.path.basename(first_path), "function_logical_id.args.json")
+            self.assertEqual(len(os.listdir(tmpdir)), 1)
+
+            with open(second_path) as f:
+                contents = json.load(f)
+            self.assertEqual(contents, {"expression": "expr-2", "target": "target-2"})
 
     @parameterized.expand(
         [
