@@ -146,6 +146,22 @@ class TestPrepareMakefile(PrepareHookUnitBase):
                 contents = json.load(f)
             self.assertEqual(contents, {"expression": "expr-2", "target": "target-2"})
 
+    def test_write_makerule_args_file_creates_output_dir_if_missing(self):
+        # _write_makerule_args_file can run before generate_makefile() has had a chance to
+        # create output_dir (the prepare-hook contract does not guarantee the directory
+        # pre-exists - see hook.py's prepare(), which creates it itself rather than assuming
+        # the caller did). It must not rely on a directory created elsewhere.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = os.path.join(tmpdir, "does", "not", "exist", "yet")
+            self.assertFalse(os.path.exists(output_dir))
+
+            args_file_path = _write_makerule_args_file(output_dir, "function_logical_id", "expr", "target")
+
+            self.assertTrue(os.path.exists(args_file_path))
+            with open(args_file_path) as f:
+                contents = json.load(f)
+            self.assertEqual(contents, {"expression": "expr", "target": "target"})
+
     @parameterized.expand(
         [
             (

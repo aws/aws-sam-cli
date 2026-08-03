@@ -217,6 +217,7 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
         The absolute path to the generated args file
     """
     args_file_name = f"{logical_id}.args.json"
+    os.makedirs(output_dir, exist_ok=True)
     args_file_path = os.path.join(output_dir, args_file_name)
     with open(args_file_path, "w+") as args_file:
         json.dump({"expression": jpath_string, "target": resource_address}, args_file)

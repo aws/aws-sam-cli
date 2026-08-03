@@ -1,3 +1,4 @@
+import json
 import os
 import pathlib
 import shutil
@@ -53,6 +54,40 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
             )
         self.assertEqual(os.listdir(self.directory), [self.artifact_name])
+
+    def test_script_output_path_directory_args_file(self):
+        # Verifies the producer/consumer contract for --args-file end-to-end: a valid args file
+        # actually supplies `expression` (and, if present, `target`) to the script, so a key
+        # rename or a precedence regression in file_args.get(...) would be caught here rather
+        # than only being exercised by the makefile_generator unit tests on the producer side.
+        # target is intentionally omitted from the args file: a non-empty target together with
+        # --json trips the existing "Provide either --target or --json" check.
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".args.json", delete=False) as args_file:
+            json.dump({"expression": self.expression}, args_file)
+            args_file_path = args_file.name
+        try:
+            with open(self.input_file, "rb") as f:
+                json_str = f.read().decode("utf-8")
+                command = [
+                    f"{str(sys.executable)}",
+                    f"{str(self.script_location)}",
+                    "--directory",
+                    str(self.directory),
+                    "--args-file",
+                    args_file_path,
+                    "--json",
+                    json_str,
+                ]
+                subprocess.check_call(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    cwd=self.working_dir,
+                )
+            self.assertEqual(os.listdir(self.directory), [self.artifact_name])
+        finally:
+            os.remove(args_file_path)
 
     def test_script_output_path_zip(self):
         input_zip_file = self.testdata_directory.joinpath("build-output-path-zip.json")
