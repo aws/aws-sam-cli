@@ -15,6 +15,7 @@ from typing import List, Optional
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
+from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.path_utils import convert_path_to_unix_path
 
 LOG = logging.getLogger(__name__)
@@ -22,6 +23,9 @@ LOG = logging.getLogger(__name__)
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
 ZIP_UTILS_MODULE = "zip.py"
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
+# keep "{logical_id-prefix}{8-char checksum}.args.json" within the 255-byte per-component
+# filesystem/OS filename limit: 236 + 8 + len(".args.json") == 254
+ARGS_FILE_NAME_MAX_LOGICAL_ID_LEN = 236
 
 
 def generate_makefile_rule_for_lambda_resource(
@@ -205,7 +209,10 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
         Logical ID of the lambda resource; used to name the args file. This is already unique
         per resource (derived only from alphanumeric characters, never attacker-influenced), so
         the file name is deterministic and gets overwritten on each `sam build`, rather than
-        accumulating a new file per build.
+        accumulating a new file per build. Since logical_id can itself be up to 255 characters
+        (see build_cfn_logical_id), it is truncated and suffixed with a checksum of the full
+        value to keep the resulting file name within common filesystem/OS filename limits (255
+        bytes) while still being unique per resource.
     jpath_string: str
         the jpath expression used to locate this resource's build output in `terraform show` output
     resource_address: str
@@ -216,7 +223,11 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
     str
         The absolute path to the generated args file
     """
-    args_file_name = f"{logical_id}.args.json"
+    # Keep the file name within the 255-byte per-component filesystem/OS limit: logical_id can
+    # itself be up to 255 characters, which combined with the ".args.json" suffix (10 chars)
+    # could otherwise exceed the limit. Truncate and append a checksum of the full logical_id to
+    # preserve uniqueness for two logical IDs that happen to share the same truncated prefix.
+    args_file_name = f"{logical_id[:ARGS_FILE_NAME_MAX_LOGICAL_ID_LEN]}{str_checksum(logical_id)[:8]}.args.json"
     os.makedirs(output_dir, exist_ok=True)
     args_file_path = os.path.join(output_dir, args_file_name)
     with open(args_file_path, "w+") as args_file:

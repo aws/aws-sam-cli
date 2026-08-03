@@ -4,8 +4,6 @@ import json
 import os
 import subprocess
 import tempfile
-from pathlib import Path
-from unittest import skipIf
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
@@ -139,12 +137,40 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             second_path = _write_makerule_args_file(tmpdir, "function_logical_id", "expr-2", "target-2")
 
             self.assertEqual(first_path, second_path)
-            self.assertEqual(os.path.basename(first_path), "function_logical_id.args.json")
+            self.assertTrue(os.path.basename(first_path).startswith("function_logical_id"))
+            self.assertTrue(os.path.basename(first_path).endswith(".args.json"))
             self.assertEqual(len(os.listdir(tmpdir)), 1)
 
             with open(second_path) as f:
                 contents = json.load(f)
             self.assertEqual(contents, {"expression": "expr-2", "target": "target-2"})
+
+    def test_write_makerule_args_file_keeps_file_name_within_filesystem_limit(self):
+        # logical_id can be up to 255 characters (see build_cfn_logical_id's
+        # LOGICAL_ID_MAX_HUMAN_LEN + LOGICAL_ID_HASH_LEN), which combined with the ".args.json"
+        # suffix would otherwise exceed the 255-byte per-component filesystem/OS filename limit
+        # (NAME_MAX on ext4/xfs/btrfs/APFS, and the per-component limit on Windows).
+        max_length_logical_id = "A" * 255
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args_file_path = _write_makerule_args_file(tmpdir, max_length_logical_id, "expr", "target")
+            self.assertLessEqual(len(os.path.basename(args_file_path)), 255)
+            self.assertTrue(os.path.exists(args_file_path))
+
+    def test_write_makerule_args_file_disambiguates_logical_ids_sharing_a_truncated_prefix(self):
+        # Two different logical IDs that share the same first 236 characters must still map to
+        # different args files, since truncation alone would otherwise collide.
+        common_prefix = "A" * 240
+        logical_id_1 = common_prefix + "1"
+        logical_id_2 = common_prefix + "2"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path_1 = _write_makerule_args_file(tmpdir, logical_id_1, "expr-1", "target-1")
+            path_2 = _write_makerule_args_file(tmpdir, logical_id_2, "expr-2", "target-2")
+            self.assertNotEqual(path_1, path_2)
+
+            with open(path_1) as f:
+                self.assertEqual(json.load(f), {"expression": "expr-1", "target": "target-1"})
+            with open(path_2) as f:
+                self.assertEqual(json.load(f), {"expression": "expr-2", "target": "target-2"})
 
     def test_write_makerule_args_file_creates_output_dir_if_missing(self):
         # _write_makerule_args_file can run before generate_makefile() has had a chance to
