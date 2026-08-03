@@ -206,13 +206,17 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
     output_dir: str
         the directory into which the Makefile (and this args file) is written
     logical_id: str
-        Logical ID of the lambda resource; used to name the args file. This is already unique
-        per resource (derived only from alphanumeric characters, never attacker-influenced), so
-        the file name is deterministic and gets overwritten on each `sam build`, rather than
-        accumulating a new file per build. Since logical_id can itself be up to 255 characters
-        (see build_cfn_logical_id), it is truncated and suffixed with a checksum of the full
-        value to keep the resulting file name within common filesystem/OS filename limits (255
-        bytes) while still being unique per resource.
+        Logical ID of the lambda resource; used to name the args file. This is deterministic and
+        unique per resource (build_cfn_logical_id() strips every non-alphanumeric character and
+        appends a hash of the full Terraform address), so the file name is deterministic and
+        gets overwritten on each `sam build`, rather than accumulating a new file per build.
+        Note that logical_id is itself derived from the same (potentially attacker-controlled)
+        Terraform resource address that motivates this fix - it is safe to embed in the recipe
+        because every non-alphanumeric character has already been stripped by
+        build_cfn_logical_id(), not because the input is inherently trusted. It is also
+        Unicode-aware ("alphanumeric" is not limited to ASCII) and can be up to 255 *characters*
+        - but common filesystem/OS filename limits (255) are enforced in *bytes*, so the
+        truncation below operates on the UTF-8 encoded bytes, not characters.
     jpath_string: str
         the jpath expression used to locate this resource's build output in `terraform show` output
     resource_address: str
@@ -223,11 +227,13 @@ def _write_makerule_args_file(output_dir: str, logical_id: str, jpath_string: st
     str
         The absolute path to the generated args file
     """
-    # Keep the file name within the 255-byte per-component filesystem/OS limit: logical_id can
-    # itself be up to 255 characters, which combined with the ".args.json" suffix (10 chars)
-    # could otherwise exceed the limit. Truncate and append a checksum of the full logical_id to
+    # Keep the file name within the 255-byte per-component filesystem/OS limit. Truncate on the
+    # UTF-8 encoded bytes (not characters) of logical_id, since it can contain non-ASCII
+    # alphanumeric characters (e.g. CJK, each 3 bytes in UTF-8) that would otherwise overflow the
+    # limit well before 255 characters. Append a checksum of the full (untruncated) logical_id to
     # preserve uniqueness for two logical IDs that happen to share the same truncated prefix.
-    args_file_name = f"{logical_id[:ARGS_FILE_NAME_MAX_LOGICAL_ID_LEN]}{str_checksum(logical_id)[:8]}.args.json"
+    truncated_logical_id = logical_id.encode("utf-8")[:ARGS_FILE_NAME_MAX_LOGICAL_ID_LEN].decode("utf-8", "ignore")
+    args_file_name = f"{truncated_logical_id}{str_checksum(logical_id)[:8]}.args.json"
     os.makedirs(output_dir, exist_ok=True)
     args_file_path = os.path.join(output_dir, args_file_name)
     with open(args_file_path, "w+") as args_file:

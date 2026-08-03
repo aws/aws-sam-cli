@@ -149,12 +149,27 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         # logical_id can be up to 255 characters (see build_cfn_logical_id's
         # LOGICAL_ID_MAX_HUMAN_LEN + LOGICAL_ID_HASH_LEN), which combined with the ".args.json"
         # suffix would otherwise exceed the 255-byte per-component filesystem/OS filename limit
-        # (NAME_MAX on ext4/xfs/btrfs/APFS, and the per-component limit on Windows).
+        # (NAME_MAX on ext4/xfs/btrfs/APFS, and the per-component limit on Windows). The limit is
+        # enforced in bytes, so this must hold for the UTF-8 encoded name, not just character count.
         max_length_logical_id = "A" * 255
         with tempfile.TemporaryDirectory() as tmpdir:
             args_file_path = _write_makerule_args_file(tmpdir, max_length_logical_id, "expr", "target")
-            self.assertLessEqual(len(os.path.basename(args_file_path)), 255)
+            self.assertLessEqual(len(os.path.basename(args_file_path).encode("utf-8")), 255)
             self.assertTrue(os.path.exists(args_file_path))
+
+    def test_write_makerule_args_file_keeps_file_name_within_filesystem_limit_for_non_ascii_logical_id(self):
+        # build_cfn_logical_id() strips non-alphanumeric characters, but str.isalnum() is
+        # Unicode-aware, so a logical_id built from a for_each key with non-ASCII characters
+        # (e.g. CJK) can be up to 255 *characters* while each character is multiple bytes in
+        # UTF-8 - well over the 255-byte limit if truncation were character-based instead of
+        # byte-based.
+        max_length_cjk_logical_id = "\u9577" * 255  # 255 chars, 3 bytes each in UTF-8 = 765 bytes
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args_file_path = _write_makerule_args_file(tmpdir, max_length_cjk_logical_id, "expr", "target")
+            self.assertLessEqual(len(os.path.basename(args_file_path).encode("utf-8")), 255)
+            self.assertTrue(os.path.exists(args_file_path))
+            with open(args_file_path) as f:
+                self.assertEqual(json.load(f), {"expression": "expr", "target": "target"})
 
     def test_write_makerule_args_file_disambiguates_logical_ids_sharing_a_truncated_prefix(self):
         # Two different logical IDs that share the same first 236 characters must still map to
