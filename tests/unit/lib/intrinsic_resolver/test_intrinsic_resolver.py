@@ -468,13 +468,6 @@ class TestIntrinsicFnGetAttResolver(TestCase):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
             self.resolver.intrinsic_property_resolver({"Fn::GetAtt": ["some logical Id", intrinsic]}, True)
 
-    def test_fn_getatt_ignore_errors_forwarded_for_unsupported_attribute(self):
-        intrinsic = {"Fn::GetAtt": ["UnknownResource", "UnknownAttribute"]}
-
-        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
-
-        self.assertEqual(result, "$UnknownResource.UnknownAttribute")
-
 
 class TestIntrinsicFnSubResolver(TestCase):
     def setUp(self):
@@ -1051,6 +1044,22 @@ class TestIntrinsicAttribteResolution(TestCase):
             "RestApiResource": {"Properties": {"PathPart": "{proxy+}", "RestApiId": "RestApi", "parentId": "/"}},
         }
         self.assertEqual(expected_template, dict(result))
+
+    def test_template_ignore_errors_leaves_unresolvable_layer_getatt_as_dict(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"] = [
+            {"Fn::GetAtt": ["NestedStack", "Outputs.MyDepLayer"]}
+        ]
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertEqual(
+            result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"],
+            [{"Fn::GetAtt": ["NestedStack", "Outputs.MyDepLayer"]}],
+        )
 
 
 class TestResolveTemplate(TestCase):
