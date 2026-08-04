@@ -268,6 +268,29 @@ class TestApiProvider_merge_routes(TestCase):
         self.assertEqual(options_route.payload_format_version, "1.0")
         self.assertIsNone(any_route.payload_format_version)
 
+    def test_preserves_explicit_authorizer_intent_when_operation_names_differ(self):
+        options_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["OPTIONS"],
+            operation_name="Preflight",
+            authorizer_name=None,
+            use_default_authorizer=False,
+        )
+        any_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["ANY"],
+            authorizer_name="MyAuth",
+        )
+        collector = [("Api1", [options_route, any_route])]
+
+        actual = SamApiProvider.merge_routes(collector)
+
+        self.assertEqual(len(actual), 2)
+        self.assertTrue(any(route is options_route for route in actual))
+        self.assertTrue(any(route is any_route for route in actual))
+
     def test_overriding_any_inherits_payload_format_version(self):
         options_route = Route(
             function_name="func",

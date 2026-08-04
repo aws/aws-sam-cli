@@ -200,6 +200,87 @@ class TestApiCollector_dedupe_function_routes(TestCase):
 
         self.assertCountEqual(expected, actual)
 
+    def test_reconciles_overlapping_routes_with_different_operation_names(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["ANY"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["OPTIONS"],
+                operation_name="Preflight",
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+        protected_route = next(route for route in actual if route.authorizer_name == "MyAuthorizer")
+
+        self.assertEqual(len(actual), 2)
+        self.assertEqual(len(options_routes), 1)
+        self.assertEqual(options_routes[0].methods, ["OPTIONS"])
+        self.assertEqual(options_routes[0].operation_name, "Preflight")
+        self.assertIsNone(options_routes[0].authorizer_name)
+        self.assertFalse(options_routes[0].use_default_authorizer)
+        self.assertNotIn("OPTIONS", protected_route.methods)
+
+    def test_preserves_distinct_operation_names_for_disjoint_methods(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                operation_name="GetX",
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["POST"],
+                operation_name="PostX",
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        routes_by_operation = {route.operation_name: route for route in actual}
+        self.assertEqual(len(actual), 2)
+        self.assertEqual(routes_by_operation["GetX"].methods, ["GET"])
+        self.assertEqual(routes_by_operation["PostX"].methods, ["POST"])
+
+    def test_specific_operation_owns_overlap_with_same_authorizer(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["ANY"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["OPTIONS"],
+                operation_name="Preflight",
+                authorizer_name="MyAuthorizer",
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+        broad_route = next(route for route in actual if route.operation_name is None)
+
+        self.assertEqual(len(actual), 2)
+        self.assertEqual(len(options_routes), 1)
+        self.assertEqual(options_routes[0].operation_name, "Preflight")
+        self.assertNotIn("OPTIONS", broad_route.methods)
+
     def test_preserves_cors_when_routes_split_by_authorizer(self):
         cors = object()
 
@@ -272,6 +353,38 @@ class TestApiCollector_dedupe_function_routes(TestCase):
 
         self.assertEqual(len(options_routes), 1)
         self.assertIsNone(options_routes[0].authorizer_name)
+
+    def test_cors_normalization_groups_routes_across_operation_names(self):
+        authorizer = Authorizer(
+            authorizer_name="MyAuthorizer",
+            type="request",
+            payload_version="1.0",
+        )
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                operation_name="GetX",
+                authorizer_name="MyAuthorizer",
+                authorizer_object=authorizer,
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["POST"],
+                operation_name="PostX",
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        actual = ApiCollector.normalize_cors_methods(routes, object())
+
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+        self.assertEqual(len(options_routes), 1)
+        self.assertEqual(options_routes[0].operation_name, "PostX")
+        self.assertIsNone(options_routes[0].authorizer_object)
 
     @parameterized.expand(
         [

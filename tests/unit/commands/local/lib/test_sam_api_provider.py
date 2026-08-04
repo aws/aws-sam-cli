@@ -1994,7 +1994,7 @@ class TestSamApiUsingAuthorizers(TestCase):
         self.assertEqual(get_routes[0].authorizer_name, "MyAuthorizer")
         self.assertIsInstance(get_routes[0].authorizer_object, LambdaAuthorizer)
 
-    def test_operation_name_mismatch_does_not_leave_duplicate_options_routes(self):
+    def test_preflight_operation_id_preserves_unauthenticated_options(self):
         swagger = make_swagger([Route(path="/x", methods=["OPTIONS"], function_name="SamFunc1")])
         swagger["paths"]["/x"]["OPTIONS"].update({"operationId": "Preflight", "security": []})
         authorizer_arn = "arn:aws:lambda:us-east-1:123456789012:function:AuthFunc"
@@ -2005,6 +2005,7 @@ class TestSamApiUsingAuthorizers(TestCase):
                     "Type": "AWS::Serverless::Api",
                     "Properties": {
                         "StageName": "Prod",
+                        "Cors": "'*'",
                         "DefinitionBody": swagger,
                         "Auth": {
                             "Authorizers": {
@@ -2049,11 +2050,22 @@ class TestSamApiUsingAuthorizers(TestCase):
         provider = ApiProvider(make_mock_stacks_from_template(template))
 
         options_routes = [route for route in provider.routes if "OPTIONS" in route.methods]
+        protected_routes = [route for route in provider.routes if route.authorizer_name == "MyAuthorizer"]
 
+        self.assertEqual(len(provider.routes), 2)
         self.assertEqual(len(options_routes), 1)
-        self.assertIsNone(options_routes[0].operation_name)
-        self.assertEqual(options_routes[0].authorizer_name, "MyAuthorizer")
-        self.assertIsInstance(options_routes[0].authorizer_object, LambdaAuthorizer)
+        self.assertEqual(len(protected_routes), 1)
+        protected_route = protected_routes[0]
+        self.assertEqual(options_routes[0].methods, ["OPTIONS"])
+        self.assertEqual(options_routes[0].operation_name, "Preflight")
+        self.assertIsNone(options_routes[0].authorizer_name)
+        self.assertIsNone(options_routes[0].authorizer_object)
+        self.assertFalse(options_routes[0].use_default_authorizer)
+        self.assertNotIn("OPTIONS", protected_route.methods)
+        self.assertEqual(set(protected_route.methods), set(Route.ANY_HTTP_METHODS) - {"OPTIONS"})
+        self.assertIsNone(protected_route.operation_name)
+        self.assertEqual(protected_route.authorizer_name, "MyAuthorizer")
+        self.assertIsInstance(protected_route.authorizer_object, LambdaAuthorizer)
 
     def test_extract_resources_preserves_options_when_declared_before_any(self):
         template = {

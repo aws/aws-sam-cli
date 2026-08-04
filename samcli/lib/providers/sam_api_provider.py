@@ -556,9 +556,10 @@ class SamApiProvider(CfnBaseApiProvider):
         Quite often, an API is defined in both implicit and explicit route definitions. The implicit API normally
         wins because that conveys clear intent that the API is backed by a function. When a later expanded ANY route
         overlaps a single-method route from the same function, both are retained only if the narrower route explicitly
-        declares different authorizer intent. Downstream deduplication then preserves that method-level authorization.
-        A payload format version is inherited only when the later route actually replaces the earlier route. In a
-        multi-stack situation, the API defined in the top level wins.
+        declares different authorizer intent. Downstream deduplication then preserves that method-level authorization,
+        including when the routes have different operation names. A payload format version is inherited only when the
+        later route actually replaces the earlier route. In a multi-stack situation, the API defined in the top level
+        wins.
 
         Parameters
         ----------
@@ -610,7 +611,6 @@ class SamApiProvider(CfnBaseApiProvider):
                     and route.function_name == config.function_name
                     and route.stack_path == config.stack_path
                     and route.event_type == config.event_type
-                    and (route.operation_name or "") == (config.operation_name or "")
                     and (route.authorizer_name is not None or not route.use_default_authorizer)
                     and (
                         route.authorizer_name != config.authorizer_name
