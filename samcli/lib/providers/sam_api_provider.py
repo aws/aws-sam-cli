@@ -553,10 +553,10 @@ class SamApiProvider(CfnBaseApiProvider):
     @staticmethod
     def merge_routes(collector: ApiCollector) -> List[Route]:
         """
-        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
-        definition wins because that conveys clear intent that the API is backed by a function. This method will
-        merge two such list of routes with the right order of precedence. If a Path+Method combination is defined
-        in both the places, only one wins.
+        Quite often, an API is defined in both implicit and explicit route definitions. The implicit API normally
+        wins because that conveys clear intent that the API is backed by a function. When a later expanded ANY route
+        overlaps a single-method route from the same function, both are retained only if the narrower route explicitly
+        declares different authorizer intent. Downstream deduplication then preserves that method-level authorization.
         In a multi-stack situation, the API defined in the top level wins.
 
         Parameters
@@ -581,8 +581,8 @@ class SamApiProvider(CfnBaseApiProvider):
             else:
                 explicit_routes.extend(apis)
 
-        # We will use "path+method" combination as key to this dictionary and store the Api config for this combination.
-        # If an path+method combo already exists, then overwrite it if and only if this is an implicit API
+        # Use the "path+method" combination as the key. Later routes normally overwrite earlier routes, subject to
+        # the narrow authorizer-preservation exception below.
         all_routes: Dict[str, Route] = {}
 
         # By adding implicit APIs to the end of the list, they will be iterated last. If a configuration was already
@@ -594,17 +594,16 @@ class SamApiProvider(CfnBaseApiProvider):
         )
 
         for config in all_configs:
-            # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
-            # method on explicit route.
+            # Normalize methods before de-duping so an ANY route normally overrides a regular HTTP method.
+            # A narrow route with explicit, different authorizer intent is conditionally preserved below.
             for normalized_method in config.methods:
                 key = config.path + normalized_method
                 route = all_routes.get(key)
                 if route and route.payload_format_version and config.payload_format_version is None:
                     config.payload_format_version = route.payload_format_version
 
-                # Preserve a single-method route when a later expanded ANY route has
-                # different raw authorizer intent and both routes can be reconciled
-                # by downstream deduplication.
+                # Preserve a single-method route when it explicitly declares different
+                # raw authorizer intent and both routes can be reconciled downstream.
                 if (
                     route
                     and len(route.methods) == 1
@@ -613,6 +612,7 @@ class SamApiProvider(CfnBaseApiProvider):
                     and route.stack_path == config.stack_path
                     and route.event_type == config.event_type
                     and (route.operation_name or "") == (config.operation_name or "")
+                    and (route.authorizer_name is not None or not route.use_default_authorizer)
                     and (
                         route.authorizer_name != config.authorizer_name
                         or route.use_default_authorizer != config.use_default_authorizer

@@ -1874,6 +1874,65 @@ class TestSamHttpApiCors(TestCase):
 
 
 class TestSamApiUsingAuthorizers(TestCase):
+    def test_any_authorizer_applies_to_swagger_method_without_security(self):
+        swagger = make_swagger([Route(path="/x", methods=["GET"], function_name="SamFunc1")])
+        authorizer_arn = "arn:aws:lambda:us-east-1:123456789012:function:AuthFunc"
+
+        template = {
+            "Resources": {
+                "Api1": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": swagger,
+                        "Auth": {
+                            "Authorizers": {
+                                "MyAuthorizer": {
+                                    "FunctionArn": authorizer_arn,
+                                    "FunctionPayloadType": "REQUEST",
+                                }
+                            }
+                        },
+                    },
+                },
+                "SamFunc1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "python3.11",
+                        "Handler": "index.handler",
+                        "Events": {
+                            "Any": {
+                                "Type": "Api",
+                                "Properties": {
+                                    "Path": "/x",
+                                    "Method": "ANY",
+                                    "RestApiId": "Api1",
+                                    "Auth": {"Authorizer": "MyAuthorizer"},
+                                },
+                            }
+                        },
+                    },
+                },
+                "AuthFunc": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "python3.11",
+                        "Handler": "index.handler",
+                    },
+                },
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        get_routes = [route for route in provider.routes if "GET" in route.methods]
+
+        self.assertEqual(len(get_routes), 1)
+        self.assertEqual(get_routes[0].authorizer_name, "MyAuthorizer")
+        self.assertIsInstance(get_routes[0].authorizer_object, LambdaAuthorizer)
+
     def test_operation_name_mismatch_does_not_leave_duplicate_options_routes(self):
         swagger = make_swagger([Route(path="/x", methods=["OPTIONS"], function_name="SamFunc1")])
         swagger["paths"]["/x"]["OPTIONS"].update({"operationId": "Preflight", "security": []})
