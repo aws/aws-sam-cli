@@ -218,7 +218,10 @@ Testing application behaviour against authorizers deployed on AWS can be done us
     def normalize_cors_methods(routes: List[Route], cors: Optional[Cors]) -> List[Route]:
         """
         Adds OPTIONS method to route methods if cors exists while preserving
-        explicit OPTIONS ownership within a route group.
+        existing OPTIONS ownership within a route group. In get_api(), authorizers
+        are linked before this step, so synthesized OPTIONS prefers a route without
+        a linked local authorizer. If every sibling has one, the first route remains
+        the fallback owner.
 
         Parameters
         -----------
@@ -230,7 +233,8 @@ Testing application behaviour against authorizers deployed on AWS can be done us
 
         Return
         -------
-        A list of routes with at most one OPTIONS owner per route group
+        A list of routes with existing OPTIONS ownership preserved and synthesized
+        OPTIONS assigned to at most one route per group
         """
         if not cors:
             return routes
@@ -246,11 +250,14 @@ Testing application behaviour against authorizers deployed on AWS can be done us
         for route_group in grouped_routes.values():
             options_claimed = any("OPTIONS" in route.methods for route in route_group)
 
-            for route in route_group:
-                if not options_claimed:
-                    route.methods.append("OPTIONS")
-                    options_claimed = True
-                result.append(route)
+            if not options_claimed:
+                owner = next(
+                    (route for route in route_group if route.authorizer_object is None),
+                    route_group[0],
+                )
+                owner.methods.append("OPTIONS")
+
+            result.extend(route_group)
 
         return result
 

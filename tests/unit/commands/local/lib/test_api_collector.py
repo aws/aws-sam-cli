@@ -273,6 +273,86 @@ class TestApiCollector_dedupe_function_routes(TestCase):
         self.assertEqual(len(options_routes), 1)
         self.assertIsNone(options_routes[0].authorizer_name)
 
+    @parameterized.expand(
+        [
+            ("protected_first", ["GET", "POST"]),
+            ("unprotected_first", ["POST", "GET"]),
+        ]
+    )
+    def test_cors_synthesis_prefers_route_without_authorizer(self, _, method_order):
+        collector = ApiCollector()
+        authorizer = Authorizer(
+            authorizer_name="MyAuthorizer",
+            type="request",
+            payload_version="1.0",
+        )
+        routes_by_method = {
+            "GET": Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                authorizer_name="MyAuthorizer",
+            ),
+            "POST": Route(
+                function_name="func",
+                path="/x",
+                methods=["POST"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        }
+
+        collector.add_authorizers("api", {"MyAuthorizer": authorizer})
+        collector.add_routes("api", [routes_by_method[method] for method in method_order])
+        collector.cors = object()
+
+        actual = collector.get_api().routes
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+        get_route = next(route for route in actual if "GET" in route.methods)
+
+        self.assertEqual(len(options_routes), 1)
+        self.assertIn("POST", options_routes[0].methods)
+        self.assertIsNone(options_routes[0].authorizer_name)
+        self.assertIsNone(options_routes[0].authorizer_object)
+        self.assertNotIn("OPTIONS", get_route.methods)
+        self.assertEqual(get_route.authorizer_name, "MyAuthorizer")
+        self.assertIs(get_route.authorizer_object, authorizer)
+
+    def test_cors_synthesis_falls_back_to_first_route_when_all_routes_are_authorized(self):
+        first_authorizer = Authorizer(
+            authorizer_name="FirstAuthorizer",
+            type="request",
+            payload_version="1.0",
+        )
+        second_authorizer = Authorizer(
+            authorizer_name="SecondAuthorizer",
+            type="request",
+            payload_version="1.0",
+        )
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                authorizer_name="FirstAuthorizer",
+                authorizer_object=first_authorizer,
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["POST"],
+                authorizer_name="SecondAuthorizer",
+                authorizer_object=second_authorizer,
+            ),
+        ]
+
+        actual = ApiCollector.normalize_cors_methods(ApiCollector.dedupe_function_routes(routes), object())
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+
+        self.assertEqual(len(options_routes), 1)
+        self.assertIn("GET", options_routes[0].methods)
+        self.assertIs(options_routes[0].authorizer_object, first_authorizer)
+
     def test_preserves_payload_format_version_when_merging_routes(self):
         routes = [
             Route(
