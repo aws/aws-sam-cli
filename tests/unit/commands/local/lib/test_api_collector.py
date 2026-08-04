@@ -199,3 +199,51 @@ class TestApiCollector_dedupe_function_routes(TestCase):
         ]
 
         self.assertCountEqual(expected, actual)
+
+    def test_preserves_cors_when_routes_split_by_authorizer(self):
+        cors = object()
+
+        routes = [
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["ANY"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["OPTIONS"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+                cors=cors,
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        self.assertEqual(len(actual), 2)
+        self.assertTrue(all(route.cors is cors for route in actual))
+
+    def test_merges_routes_with_same_resolved_authorizer(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                authorizer_name=None,
+                use_default_authorizer=True,
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["POST"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(sorted(actual[0].methods), ["GET", "POST"])

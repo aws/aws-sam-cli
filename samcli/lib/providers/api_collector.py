@@ -261,13 +261,12 @@ Testing application behaviour against authorizers deployed on AWS can be done us
 
         def has_same_authorizer(first: Route, second: Route) -> bool:
             return (
-                first.authorizer_name == second.authorizer_name
-                and first.authorizer_object == second.authorizer_object
-                and first.use_default_authorizer == second.use_default_authorizer
+                first.authorizer_name == second.authorizer_name and first.authorizer_object == second.authorizer_object
             )
 
         for route_group in grouped_routes.values():
             merged_routes: List[Route] = []
+            group_cors = next((route.cors for route in route_group if route.cors is not None), None)
 
             # Process broader routes first so a more specific route can own
             # overlapping methods, e.g. explicit OPTIONS overriding ANY.
@@ -304,6 +303,10 @@ Testing application behaviour against authorizers deployed on AWS can be done us
                         cors=route.cors,
                     )
                 )
+
+            for merged_route in merged_routes:
+                if merged_route.cors is None:
+                    merged_route.cors = group_cors
 
             result.extend(route for route in merged_routes if route.methods)
 
