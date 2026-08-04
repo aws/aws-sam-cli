@@ -602,10 +602,9 @@ class SamApiProvider(CfnBaseApiProvider):
                 if route and route.payload_format_version and config.payload_format_version is None:
                     config.payload_format_version = route.payload_format_version
 
-                # Preserve a single-method route from the same function when a later
-                # expanded ANY route overlaps it. This keeps explicit method intent
-                # independent of declaration order while retaining the existing
-                # precedence rules between different functions and stacks.
+                # Preserve a single-method route when a later expanded ANY route has
+                # different raw authorizer intent and both routes can be reconciled
+                # by downstream deduplication.
                 if (
                     route
                     and len(route.methods) == 1
@@ -613,6 +612,11 @@ class SamApiProvider(CfnBaseApiProvider):
                     and route.function_name == config.function_name
                     and route.stack_path == config.stack_path
                     and route.event_type == config.event_type
+                    and (route.operation_name or "") == (config.operation_name or "")
+                    and (
+                        route.authorizer_name != config.authorizer_name
+                        or route.use_default_authorizer != config.use_default_authorizer
+                    )
                 ):
                     continue
 

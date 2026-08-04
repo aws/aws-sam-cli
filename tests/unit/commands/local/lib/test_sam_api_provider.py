@@ -592,6 +592,29 @@ class TestSamApiProviderWithExplicitAndImplicitApis(TestCase):
         provider = ApiProvider(make_mock_stacks_from_template(self.template))
         self.assertCountEqual(expected_routes, provider.routes)
 
+    def test_must_prefer_implicit_any_for_same_function_with_same_authorizer_intent(self):
+        implicit_routes = {
+            "Event1": {
+                "Type": "Api",
+                "Properties": {
+                    "Path": "/path",
+                    "Method": "ANY",
+                },
+            }
+        }
+
+        explicit_routes = [Route(path="/path", methods=["GET"], function_name="ImplicitFunc")]
+
+        self.template["Resources"]["Api1"]["Properties"]["DefinitionBody"] = make_swagger(explicit_routes)
+        self.template["Resources"]["ImplicitFunc"]["Properties"]["Events"] = implicit_routes
+
+        collector = ApiCollector()
+        SamApiProvider().extract_resources(make_mock_stacks_from_template(self.template), collector)
+
+        expected_routes = [Route(path="/path", methods=["ANY"], function_name="ImplicitFunc")]
+
+        self.assertCountEqual(expected_routes, collector.routes)
+
     def test_with_any_method_on_both(self):
         implicit_routes = {
             "Event1": {
@@ -1851,6 +1874,67 @@ class TestSamHttpApiCors(TestCase):
 
 
 class TestSamApiUsingAuthorizers(TestCase):
+    def test_operation_name_mismatch_does_not_leave_duplicate_options_routes(self):
+        swagger = make_swagger([Route(path="/x", methods=["OPTIONS"], function_name="SamFunc1")])
+        swagger["paths"]["/x"]["OPTIONS"].update({"operationId": "Preflight", "security": []})
+        authorizer_arn = "arn:aws:lambda:us-east-1:123456789012:function:AuthFunc"
+
+        template = {
+            "Resources": {
+                "Api1": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": swagger,
+                        "Auth": {
+                            "Authorizers": {
+                                "MyAuthorizer": {
+                                    "FunctionArn": authorizer_arn,
+                                    "FunctionPayloadType": "REQUEST",
+                                }
+                            }
+                        },
+                    },
+                },
+                "SamFunc1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "python3.11",
+                        "Handler": "index.handler",
+                        "Events": {
+                            "Any": {
+                                "Type": "Api",
+                                "Properties": {
+                                    "Path": "/x",
+                                    "Method": "ANY",
+                                    "RestApiId": "Api1",
+                                    "Auth": {"Authorizer": "MyAuthorizer"},
+                                },
+                            }
+                        },
+                    },
+                },
+                "AuthFunc": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "python3.11",
+                        "Handler": "index.handler",
+                    },
+                },
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        options_routes = [route for route in provider.routes if "OPTIONS" in route.methods]
+
+        self.assertEqual(len(options_routes), 1)
+        self.assertIsNone(options_routes[0].operation_name)
+        self.assertEqual(options_routes[0].authorizer_name, "MyAuthorizer")
+        self.assertIsInstance(options_routes[0].authorizer_object, LambdaAuthorizer)
+
     def test_extract_resources_preserves_options_when_declared_before_any(self):
         template = {
             "Resources": {
