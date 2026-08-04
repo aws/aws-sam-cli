@@ -217,7 +217,8 @@ Testing application behaviour against authorizers deployed on AWS can be done us
     @staticmethod
     def normalize_cors_methods(routes: List[Route], cors: Optional[Cors]) -> List[Route]:
         """
-        Adds OPTIONS method to all the route methods if cors exists
+        Adds OPTIONS method to route methods if cors exists while preserving
+        explicit OPTIONS ownership within a route group.
 
         Parameters
         -----------
@@ -229,15 +230,29 @@ Testing application behaviour against authorizers deployed on AWS can be done us
 
         Return
         -------
-        A list of routes without duplicate routes with the same function_name and method
+        A list of routes with at most one OPTIONS owner per route group
         """
+        if not cors:
+            return routes
 
-        def add_options_to_route(route: Route) -> Route:
-            if "OPTIONS" not in route.methods:
-                route.methods.append("OPTIONS")
-            return route
+        grouped_routes: Dict[str, List[Route]] = {}
 
-        return routes if not cors else [add_options_to_route(route) for route in routes]
+        for route in routes:
+            key = "{}-{}-{}-{}".format(route.stack_path, route.function_name, route.path, route.operation_name or "")
+            grouped_routes.setdefault(key, []).append(route)
+
+        result: List[Route] = []
+
+        for route_group in grouped_routes.values():
+            options_claimed = any("OPTIONS" in route.methods for route in route_group)
+
+            for route in route_group:
+                if not options_claimed:
+                    route.methods.append("OPTIONS")
+                    options_claimed = True
+                result.append(route)
+
+        return result
 
     @staticmethod
     def dedupe_function_routes(routes: List[Route]) -> List[Route]:
@@ -284,8 +299,15 @@ Testing application behaviour against authorizers deployed on AWS can be done us
 
                 if matching_route:
                     matching_route.methods = sorted(set(matching_route.methods + methods))
+
+                    if matching_route.payload_format_version is None:
+                        matching_route.payload_format_version = route.payload_format_version
+
                     if route.cors is not None:
                         matching_route.cors = route.cors
+
+                    # Authorizers are already resolved by _link_authorizers() before
+                    # deduplication, so use_default_authorizer does not affect this merge.
                     continue
 
                 merged_routes.append(

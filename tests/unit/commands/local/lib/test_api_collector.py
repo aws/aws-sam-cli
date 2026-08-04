@@ -247,3 +247,96 @@ class TestApiCollector_dedupe_function_routes(TestCase):
 
         self.assertEqual(len(actual), 1)
         self.assertEqual(sorted(actual[0].methods), ["GET", "POST"])
+
+    def test_cors_normalization_does_not_readd_options_to_protected_route(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["ANY"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["OPTIONS"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        deduped_routes = ApiCollector.dedupe_function_routes(routes)
+        actual = ApiCollector.normalize_cors_methods(deduped_routes, object())
+
+        options_routes = [route for route in actual if "OPTIONS" in route.methods]
+
+        self.assertEqual(len(options_routes), 1)
+        self.assertIsNone(options_routes[0].authorizer_name)
+
+    def test_preserves_payload_format_version_when_merging_routes(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["ANY"],
+                event_type=Route.HTTP,
+                authorizer_name=None,
+            ),
+            Route(
+                function_name="func",
+                path="/x",
+                methods=["GET"],
+                event_type=Route.HTTP,
+                payload_format_version="1.0",
+                authorizer_name=None,
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        self.assertEqual(len(actual), 1)
+        self.assertEqual(actual[0].payload_format_version, "1.0")
+
+    def test_get_api_preserves_explicit_unauthorized_options_with_cors(self):
+        collector = ApiCollector()
+
+        authorizer = Authorizer(
+            authorizer_name="MyAuthorizer",
+            type="request",
+            payload_version="1.0",
+        )
+
+        collector.add_authorizers("api", {"MyAuthorizer": authorizer})
+        collector.set_default_authorizer("api", "MyAuthorizer")
+
+        collector.add_routes(
+            "api",
+            [
+                Route(
+                    function_name="func",
+                    path="/{proxy+}",
+                    methods=["ANY"],
+                ),
+                Route(
+                    function_name="func",
+                    path="/{proxy+}",
+                    methods=["OPTIONS"],
+                    authorizer_name=None,
+                    use_default_authorizer=False,
+                ),
+            ],
+        )
+
+        collector.cors = object()
+
+        api = collector.get_api()
+
+        options_routes = [route for route in api.routes if "OPTIONS" in route.methods]
+        get_routes = [route for route in api.routes if "GET" in route.methods]
+
+        self.assertEqual(len(options_routes), 1)
+        self.assertIsNone(options_routes[0].authorizer_name)
+
+        self.assertEqual(len(get_routes), 1)
+        self.assertEqual(get_routes[0].authorizer_name, "MyAuthorizer")
+        self.assertIs(get_routes[0].authorizer_object, authorizer)
