@@ -160,3 +160,42 @@ class TestApiCollector_linking_authorizer(TestCase):
         self.api_collector._link_authorizers()
 
         self.assertEqual(self.api_collector._route_per_resource, {self.apigw_id: expected_routes})
+
+
+class TestApiCollector_dedupe_function_routes(TestCase):
+    def test_preserves_options_route_with_different_authorizer(self):
+        routes = [
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["ANY"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["OPTIONS"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        actual = ApiCollector.dedupe_function_routes(routes)
+
+        expected = [
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["GET", "DELETE", "PUT", "POST", "HEAD", "PATCH"],
+                authorizer_name="MyAuthorizer",
+            ),
+            Route(
+                function_name="func",
+                path="/{proxy+}",
+                methods=["OPTIONS"],
+                authorizer_name=None,
+                use_default_authorizer=False,
+            ),
+        ]
+
+        self.assertCountEqual(expected, actual)

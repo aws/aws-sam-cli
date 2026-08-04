@@ -251,30 +251,63 @@ Testing application behaviour against authorizers deployed on AWS can be done us
         -------
         A list of routes without duplicate routes with the same stack_path, function_name and method
         """
-        grouped_routes: Dict[str, Route] = {}
+        grouped_routes: Dict[str, List[Route]] = {}
 
         for route in routes:
             key = "{}-{}-{}-{}".format(route.stack_path, route.function_name, route.path, route.operation_name or "")
-            config = grouped_routes.get(key, None)
-            methods = route.methods
-            if config:
-                methods += config.methods
-            sorted_methods = sorted(methods)
-            # Prefer route-specific CORS over None
-            cors = route.cors if route.cors is not None else (config.cors if config else None)
-            grouped_routes[key] = Route(
-                function_name=route.function_name,
-                path=route.path,
-                methods=sorted_methods,
-                event_type=route.event_type,
-                payload_format_version=route.payload_format_version,
-                operation_name=route.operation_name,
-                stack_path=route.stack_path,
-                authorizer_name=route.authorizer_name,
-                authorizer_object=route.authorizer_object,
-                cors=cors,
+            grouped_routes.setdefault(key, []).append(route)
+
+        result: List[Route] = []
+
+        def has_same_authorizer(first: Route, second: Route) -> bool:
+            return (
+                first.authorizer_name == second.authorizer_name
+                and first.authorizer_object == second.authorizer_object
+                and first.use_default_authorizer == second.use_default_authorizer
             )
-        return list(grouped_routes.values())
+
+        for route_group in grouped_routes.values():
+            merged_routes: List[Route] = []
+
+            # Process broader routes first so a more specific route can own
+            # overlapping methods, e.g. explicit OPTIONS overriding ANY.
+            for route in sorted(route_group, key=lambda item: len(item.methods), reverse=True):
+                methods = list(dict.fromkeys(route.methods))
+
+                for existing_route in merged_routes:
+                    if not has_same_authorizer(existing_route, route):
+                        existing_route.methods = [method for method in existing_route.methods if method not in methods]
+
+                matching_route = next(
+                    (existing_route for existing_route in merged_routes if has_same_authorizer(existing_route, route)),
+                    None,
+                )
+
+                if matching_route:
+                    matching_route.methods = sorted(set(matching_route.methods + methods))
+                    if route.cors is not None:
+                        matching_route.cors = route.cors
+                    continue
+
+                merged_routes.append(
+                    Route(
+                        function_name=route.function_name,
+                        path=route.path,
+                        methods=sorted(methods),
+                        event_type=route.event_type,
+                        payload_format_version=route.payload_format_version,
+                        operation_name=route.operation_name,
+                        stack_path=route.stack_path,
+                        authorizer_name=route.authorizer_name,
+                        authorizer_object=route.authorizer_object,
+                        use_default_authorizer=route.use_default_authorizer,
+                        cors=route.cors,
+                    )
+                )
+
+            result.extend(route for route in merged_routes if route.methods)
+
+        return result
 
     def add_binary_media_types(self, logical_id: str, binary_media_types: Optional[List[str]]) -> None:
         """
