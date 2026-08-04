@@ -9,6 +9,7 @@ from samcli.lib.providers.provider import Api, Stack
 from samcli.lib.providers.api_provider import ApiProvider
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.cfn_api_provider import CfnApiProvider
+from samcli.local.apigw.route import Route
 
 
 class TestApiProvider_init(TestCase):
@@ -239,6 +240,59 @@ class TestApiProvider_merge_routes(TestCase):
             (logicalId, [route2]),
         ]
         self.assertEqual(SamApiProvider.merge_routes(collector), [route1])
+
+    def test_preserved_route_does_not_propagate_payload_format_version_to_any(self):
+        options_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["OPTIONS"],
+            event_type=Route.HTTP,
+            payload_format_version="1.0",
+            authorizer_name=None,
+            use_default_authorizer=False,
+        )
+        any_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["ANY"],
+            event_type=Route.HTTP,
+            authorizer_name="MyAuth",
+        )
+        collector = [(SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID, [options_route, any_route])]
+
+        actual = SamApiProvider.merge_routes(collector)
+
+        self.assertEqual(len(actual), 2)
+        self.assertTrue(any(route is options_route for route in actual))
+        self.assertTrue(any(route is any_route for route in actual))
+        self.assertEqual(options_route.payload_format_version, "1.0")
+        self.assertIsNone(any_route.payload_format_version)
+
+    def test_overriding_any_inherits_payload_format_version(self):
+        options_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["OPTIONS"],
+            event_type=Route.HTTP,
+            payload_format_version="1.0",
+            authorizer_name=None,
+            use_default_authorizer=False,
+        )
+        any_route = Route(
+            function_name="func",
+            path="/x",
+            methods=["ANY"],
+            event_type=Route.HTTP,
+            authorizer_name=None,
+            use_default_authorizer=False,
+        )
+        collector = [(SamApiProvider.IMPLICIT_HTTP_API_RESOURCE_ID, [options_route, any_route])]
+
+        actual = SamApiProvider.merge_routes(collector)
+
+        self.assertEqual(len(actual), 1)
+        self.assertIs(actual[0], any_route)
+        self.assertEqual(any_route.payload_format_version, "1.0")
 
 
 class TestApiProvider_check_implicit_api_resource_ids(TestCase):

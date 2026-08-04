@@ -2100,6 +2100,55 @@ class TestSamApiUsingAuthorizers(TestCase):
         self.assertIsNone(options_routes[0].authorizer_name)
         self.assertFalse(options_routes[0].use_default_authorizer)
 
+    def test_extract_resources_does_not_propagate_options_payload_version_to_any(self):
+        template = {
+            "Resources": {
+                "SamFunc1": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "CodeUri": "/usr/foo/bar",
+                        "Runtime": "python3.11",
+                        "Handler": "index.handler",
+                        "Events": {
+                            "Options": {
+                                "Type": "HttpApi",
+                                "Properties": {
+                                    "Path": "/x",
+                                    "Method": "OPTIONS",
+                                    "PayloadFormatVersion": "1.0",
+                                    "Auth": {"Authorizer": "NONE"},
+                                },
+                            },
+                            "Any": {
+                                "Type": "HttpApi",
+                                "Properties": {
+                                    "Path": "/x",
+                                    "Method": "ANY",
+                                    "Auth": {"Authorizer": "MyAuth"},
+                                },
+                            },
+                        },
+                    },
+                }
+            }
+        }
+        collector = ApiCollector()
+
+        SamApiProvider().extract_resources(
+            make_mock_stacks_from_template(template),
+            collector,
+        )
+
+        self.assertEqual(len(collector.routes), 2)
+        options_route = next(route for route in collector.routes if route.methods == ["OPTIONS"])
+        any_route = next(route for route in collector.routes if set(route.methods) == set(Route.ANY_HTTP_METHODS))
+
+        self.assertEqual(options_route.payload_format_version, "1.0")
+        self.assertIsNone(options_route.authorizer_name)
+        self.assertFalse(options_route.use_default_authorizer)
+        self.assertIsNone(any_route.payload_format_version)
+        self.assertEqual(any_route.authorizer_name, "MyAuth")
+
     def test_extract_resources_preserves_explicit_options_with_implicit_any(self):
         template = {
             "Resources": {

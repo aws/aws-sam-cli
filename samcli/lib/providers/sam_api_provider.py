@@ -557,7 +557,8 @@ class SamApiProvider(CfnBaseApiProvider):
         wins because that conveys clear intent that the API is backed by a function. When a later expanded ANY route
         overlaps a single-method route from the same function, both are retained only if the narrower route explicitly
         declares different authorizer intent. Downstream deduplication then preserves that method-level authorization.
-        In a multi-stack situation, the API defined in the top level wins.
+        A payload format version is inherited only when the later route actually replaces the earlier route. In a
+        multi-stack situation, the API defined in the top level wins.
 
         Parameters
         ----------
@@ -599,8 +600,6 @@ class SamApiProvider(CfnBaseApiProvider):
             for normalized_method in config.methods:
                 key = config.path + normalized_method
                 route = all_routes.get(key)
-                if route and route.payload_format_version and config.payload_format_version is None:
-                    config.payload_format_version = route.payload_format_version
 
                 # Preserve a single-method route when it explicitly declares different
                 # raw authorizer intent and both routes can be reconciled downstream.
@@ -619,6 +618,11 @@ class SamApiProvider(CfnBaseApiProvider):
                     )
                 ):
                     continue
+
+                # Inherit only from a route that config is about to replace. A preserved route must not mutate the
+                # shared expanded ANY route used by the other method keys.
+                if route and route.payload_format_version and config.payload_format_version is None:
+                    config.payload_format_version = route.payload_format_version
 
                 all_routes[key] = config
 
