@@ -601,6 +601,21 @@ class SamApiProvider(CfnBaseApiProvider):
                 route = all_routes.get(key)
                 if route and route.payload_format_version and config.payload_format_version is None:
                     config.payload_format_version = route.payload_format_version
+
+                # Preserve a single-method route from the same function when a later
+                # expanded ANY route overlaps it. This keeps explicit method intent
+                # independent of declaration order while retaining the existing
+                # precedence rules between different functions and stacks.
+                if (
+                    route
+                    and len(route.methods) == 1
+                    and set(config.methods) == set(Route.ANY_HTTP_METHODS)
+                    and route.function_name == config.function_name
+                    and route.stack_path == config.stack_path
+                    and route.event_type == config.event_type
+                ):
+                    continue
+
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
