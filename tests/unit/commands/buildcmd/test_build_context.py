@@ -20,6 +20,7 @@ from samcli.lib.build.app_builder import (
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
@@ -1581,29 +1582,27 @@ class TestBuildContext_print_build_failure(TestCase):
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
     def test_text_mode_prints_banner(self, echo_mock, secho_mock):
-        self.build_context._output = "text"
+        self.build_context._output = OutputOption.text
 
         self.build_context._print_build_failure()
 
         echo_mock.assert_not_called()
         secho_mock.assert_called_once_with("\nBuild Failed", fg="red")
 
+    @parameterized.expand(
+        [
+            (OutputOption.text, False),  # text mode, banner explicitly suppressed
+            (OutputOption.json, True),  # JSON mode: do_cli serializes, this method stays silent
+        ]
+    )
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
-    def test_text_mode_prints_nothing_when_banner_suppressed(self, echo_mock, secho_mock):
-        self.build_context._output = "text"
+    def test_print_build_failure_stays_silent(self, output, print_banner, echo_mock, secho_mock):
+        self.build_context._output = output
 
-        self.build_context._print_build_failure(print_text_banner=False)
+        self.build_context._print_build_failure(print_text_banner=print_banner)
 
-        echo_mock.assert_not_called()
-        secho_mock.assert_not_called()
-
-    @patch("samcli.commands.build.build_context.click.secho")
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_mode_emits_no_text_banner(self, echo_mock, secho_mock):
-        # In JSON mode, _print_build_failure stays silent; do_cli serializes the failure.
-        self.build_context._print_build_failure()
-
+        # Never emits JSON (that is do_cli's job); prints no banner in these two cases
         echo_mock.assert_not_called()
         secho_mock.assert_not_called()
 
