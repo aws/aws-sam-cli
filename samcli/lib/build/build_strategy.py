@@ -27,7 +27,7 @@ from samcli.lib.build.exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.utils import warn_on_invalid_architecture
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.async_utils import AsyncContext
@@ -155,6 +155,7 @@ class DefaultBuildStrategy(BuildStrategy):
         except (
             BuildError,
             UnsupportedRuntimeException,
+            UnsupportedBuilderException,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
         ) as ex:
@@ -237,6 +238,7 @@ class DefaultBuildStrategy(BuildStrategy):
         except (
             BuildError,
             UnsupportedRuntimeException,
+            UnsupportedBuilderException,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
         ) as ex:

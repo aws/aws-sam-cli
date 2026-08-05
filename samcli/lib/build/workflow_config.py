@@ -31,7 +31,7 @@ class UnsupportedRuntimeException(Exception):
 
 
 class UnsupportedBuilderException(Exception):
-    pass
+    resource_name: Optional[str] = None
 
 
 WorkFlowSelector = Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]

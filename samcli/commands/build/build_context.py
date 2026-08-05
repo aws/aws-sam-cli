@@ -37,7 +37,7 @@ from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     InvalidBuildGraphException,
 )
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
@@ -373,6 +373,7 @@ class BuildContext:
             raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
+            UnsupportedBuilderException,
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,

@@ -19,7 +19,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
@@ -1139,6 +1139,7 @@ class TestBuildContext_run(TestCase):
     @parameterized.expand(
         [
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
+            (UnsupportedBuilderException(), "UnsupportedBuilderException"),
             (BuildInsideContainerError(), "BuildInsideContainerError"),
             (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
             (
