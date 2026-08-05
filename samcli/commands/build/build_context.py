@@ -48,6 +48,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.language_extensions_packaging import (
     _get_prop_value,
     _leaf_prop_name,
@@ -215,7 +216,7 @@ class BuildContext:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
-        self._output = output
+        self._output = OutputOption(output)
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -1093,13 +1094,13 @@ class BuildContext:
         resources_to_build: ResourcesToBuildCollector
             The functions and layers that were built
         """
-        if self._output == "json":
+        if self._output is OutputOption.json:
             resources: List[Dict[str, Any]] = [
                 {
                     "resource_id": function.full_path,
                     "type": "function",
                     "runtime": function.runtime,
-                    "architecture": function.architectures[0] if function.architectures else None,
+                    "architecture": function.architecture,
                 }
                 for function in resources_to_build.functions
             ] + [
@@ -1117,8 +1118,7 @@ class BuildContext:
                         "build_dir": artifacts_dir,
                         "template_file": output_template_path,
                         "resources": resources,
-                    },
-                    indent=2,
+                    }
                 )
             )
             return
@@ -1145,21 +1145,21 @@ class BuildContext:
         print_text_banner: bool
             Whether to print the "Build Failed" banner in text mode
         """
-        if self._output != "json":
+        if self._output is not OutputOption.json:
             if print_text_banner:
                 click.secho("\nBuild Failed", fg="red")
             return
 
-        # The resource key is always present so consumers can rely on the schema. It is
+        # The resource key is included in the error JSON when available. It is
         # populated from the exception when the failure is attributable to a specific
-        # resource, otherwise from the resource the customer asked to build (which is the
-        # relevant name even when that resource does not exist in the template). It is
-        # None when the failure is not tied to any single resource.
+        # resource, or from the resource the customer asked to build. It may be
+        # None when the failure is not tied to any single resource (e.g. invalid
+        # build directory, template parse errors).
         resource_name = getattr(ex, "resource_name", None) or self._resource_identifier
 
         error: Dict[str, Any] = {"type": error_type, "message": str(ex), "resource": resource_name}
 
-        click.echo(json.dumps({"status": "failure", "error": error}, indent=2))
+        click.echo(json.dumps({"status": "failure", "error": error}))
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """
@@ -1230,7 +1230,10 @@ Commands you can use next
             # build folder contains something inside. Clear everything.
             shutil.rmtree(build_dir)
 
-        build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+        try:
+            build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+        except OSError as ex:
+            raise InvalidBuildDirException(f"Unable to use build dir {build_dir}. Reason: {str(ex)}") from ex
 
         # ensure path resolving is done after creation: https://bugs.python.org/issue32434
         return str(build_path.resolve())

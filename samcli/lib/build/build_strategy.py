@@ -159,7 +159,7 @@ class DefaultBuildStrategy(BuildStrategy):
             UnsupportedBuilderLibraryVersionError,
         ) as ex:
             if getattr(ex, "resource_name", None) is None:
-                ex.resource_name = build_definition.get_full_path()  # type: ignore[union-attr]
+                ex.resource_name = build_definition.get_full_path()
             raise
 
     def _do_build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
@@ -241,7 +241,7 @@ class DefaultBuildStrategy(BuildStrategy):
             UnsupportedBuilderLibraryVersionError,
         ) as ex:
             if getattr(ex, "resource_name", None) is None:
-                ex.resource_name = layer_definition.full_path  # type: ignore[union-attr]
+                ex.resource_name = layer_definition.full_path
             raise
 
     def _do_build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:

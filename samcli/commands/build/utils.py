@@ -108,7 +108,8 @@ def prompt(config: CONFIG, source_dir: str) -> bool:
         f"mounting with write permissions to the source code directory {source_dir}. "
         f"Some files in this directory may be changed or added by the build process. "
         f"Pass `--mount-with WRITE` to `sam build` CLI to avoid this confirmation. "
-        f"\nWould you like to enable mounting with write permissions? "
+        f"\nWould you like to enable mounting with write permissions? ",
+        err=True,
     ):
         return True
     return False

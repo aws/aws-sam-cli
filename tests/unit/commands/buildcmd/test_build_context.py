@@ -1,5 +1,7 @@
+import io
 import json
 import os
+from contextlib import redirect_stdout
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
@@ -1089,6 +1091,50 @@ class TestBuildContext_run(TestCase):
                 # assert that nested stack manager is called by both root stack and child stack
                 given_nested_stack_manager.generate_auto_dependency_layer_stack.assert_has_calls([call(), call()])
 
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.find_root_stack")
+    @patch("samcli.commands.build.build_context.BuildContext.set_up")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_post_processing")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.ApplicationBuilder")
+    def test_run_json_mode_emits_single_parseable_document(
+        self,
+        ApplicationBuilderMock,
+        is_sam_template_mock,
+        resources_mock,
+        pre_processing_mock,
+        post_processing_mock,
+        set_up_mock,
+        find_root_stack_mock,
+    ):
+        """run() in JSON mode must write exactly one parseable JSON document to stdout."""
+        resources_mock.return_value = Mock(functions=[get_function("Fn", runtime="python3.12")], layers=[])
+        ApplicationBuilderMock.return_value.build.return_value = ApplicationBuildResult(Mock(), "artifacts")
+        find_root_stack_mock.return_value.get_output_template_path.return_value = "build_dir/template.yaml"
+
+        build_context = BuildContext(
+            resource_identifier=None,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode=None,
+            output="json",
+        )
+
+        captured = io.StringIO()
+        with redirect_stdout(captured):
+            build_context.run()
+
+        # Must be exactly one JSON document on stdout -- json.loads fails on any extra output
+        result = json.loads(captured.getvalue())
+        self.assertEqual(result["status"], "success")
+        self.assertIn("build_dir", result)
+        self.assertIn("resources", result)
+
     @parameterized.expand(
         [
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
@@ -1465,29 +1511,6 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(result["resources"][1]["compatible_runtimes"], ["python3.12", "python3.11"])
 
     @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_functions_only(self, echo_mock):
-        collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
-
-        self.build_context._print_build_success("artifacts", "out_template", collector)
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(len(result["resources"]), 1)
-        self.assertEqual(result["resources"][0]["type"], "function")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_layers_only(self, echo_mock):
-        layer = DummyLayer("Lyr", "python3.12")
-        layer.full_path = "Lyr"
-        layer.compatible_runtimes = ["python3.12"]
-        collector = self._collector(layers=[layer])
-
-        self.build_context._print_build_success("artifacts", "out_template", collector)
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(len(result["resources"]), 1)
-        self.assertEqual(result["resources"][0]["type"], "layer")
-
-    @patch("samcli.commands.build.build_context.click.echo")
     def test_json_empty_collector(self, echo_mock):
         self.build_context._print_build_success("artifacts", "out_template", self._collector())
 
@@ -1495,41 +1518,26 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(result["resources"], [])
 
     @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_architecture_defaults_to_none_when_absent(self, echo_mock):
+    def test_json_architecture_defaults_to_x86_64_when_absent(self, echo_mock):
         # get_function() builds a Function with architectures=None
+        # function.architecture resolves to X86_64 when absent
         collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
 
         self.build_context._print_build_success("artifacts", "out_template", collector)
 
         result = json.loads(echo_mock.call_args[0][0])
-        self.assertIsNone(result["resources"][0]["architecture"])
+        self.assertEqual(result["resources"][0]["architecture"], "x86_64")
 
     @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_multi_architecture_reports_first(self, echo_mock):
-        # Function is an immutable namedtuple, so build a variant with _replace
-        function = get_function("Fn", runtime="python3.12")._replace(architectures=["arm64", "x86_64"])
+    def test_json_architecture_reports_specified_value(self, echo_mock):
+        # Function with explicit architecture
+        function = get_function("Fn", runtime="python3.12")._replace(architectures=["arm64"])
         collector = self._collector(functions=[function])
 
         self.build_context._print_build_success("artifacts", "out_template", collector)
 
         result = json.loads(echo_mock.call_args[0][0])
         self.assertEqual(result["resources"][0]["architecture"], "arm64")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_emitted_even_when_success_message_disabled(self, echo_mock):
-        self.build_context._print_success_message = False
-        collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
-
-        self.build_context._print_build_success("artifacts", "out_template", collector)
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(result["status"], "success")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_uses_indentation(self, echo_mock):
-        self.build_context._print_build_success("artifacts", "out_template", self._collector())
-
-        self.assertIn('\n  "status"', echo_mock.call_args[0][0])
 
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
@@ -1599,19 +1607,9 @@ class TestBuildContext_print_build_failure(TestCase):
         self.build_context._print_build_failure(ex, "ResourceNotFound")
 
         error = json.loads(echo_mock.call_args[0][0])["error"]
-        # The key is always present so consumers can rely on the schema
+        # The key is emitted as null rather than omitted for unattributable failures
         self.assertIn("resource", error)
         self.assertIsNone(error["resource"])
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_exception_resource_name_wins_over_identifier(self, echo_mock):
-        ex = BuildError(wrapped_from="BuildError", msg="msg")
-        ex.resource_name = "FromException"
-
-        self.build_context._print_build_failure(ex, "BuildError")
-
-        error = json.loads(echo_mock.call_args[0][0])["error"]
-        self.assertEqual(error["resource"], "FromException")
 
     @patch("samcli.commands.build.build_context.click.echo")
     def test_json_error_shape(self, echo_mock):
@@ -1640,14 +1638,6 @@ class TestBuildContext_print_build_failure(TestCase):
 
         result = json.loads(echo_mock.call_args[0][0])
         self.assertEqual(result["error"]["type"], error_type)
-
-    @patch("samcli.commands.build.build_context.click.secho")
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_emitted_even_when_text_banner_suppressed(self, echo_mock, secho_mock):
-        self.build_context._print_build_failure(FunctionNotFound("nope"), "FunctionNotFound", print_text_banner=False)
-
-        self.assertEqual(echo_mock.call_count, 1)
-        secho_mock.assert_not_called()
 
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")

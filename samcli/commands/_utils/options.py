@@ -447,7 +447,12 @@ def common_observability_options(f):
     return f
 
 
-def output_click_option():
+def structured_output_click_option():
+    """Shared --output option for commands that support structured (JSON) output.
+
+    Uses text|json choices matching the OutputOption enum in samcli.lib.observability.util.
+    Intended as the single shared contract for all commands adopting --output json.
+    """
     return click.option(
         "--output",
         default="text",
@@ -457,8 +462,8 @@ def output_click_option():
     )
 
 
-def output_option(f):
-    return output_click_option()(f)
+def structured_output_option(f):
+    return structured_output_click_option()(f)
 
 
 def metadata_click_option():

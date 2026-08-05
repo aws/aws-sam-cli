@@ -26,9 +26,9 @@ from samcli.commands._utils.options import (
     language_extensions_option,
     manifest_option,
     mount_symlinks_option,
-    output_option,
     parameter_override_option,
     skip_prepare_infra_option,
+    structured_output_option,
     template_option_without_build,
     terraform_project_root_path_option,
     use_buildkit_option,
@@ -130,7 +130,7 @@ DESCRIPTION = """
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
-@output_option
+@structured_output_option
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
@@ -240,7 +240,10 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     Implementation of the ``cli`` method
     """
 
+    import json
+
     from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.build.exceptions import InvalidBuildDirException
 
     LOG.debug("'build' command is called")
     if cached:
@@ -251,35 +254,51 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     processed_env_vars = process_env_var(container_env_var)
     processed_build_images = process_image_options(build_image)
 
-    with BuildContext(
-        function_identifier,
-        template,
-        base_dir,
-        build_dir,
-        cache_dir,
-        cached,
-        parallel=parallel,
-        clean=clean,
-        manifest_path=manifest_path,
-        use_container=use_container,
-        parameter_overrides=parameter_overrides,
-        docker_network=docker_network,
-        skip_pull_image=skip_pull_image,
-        mode=mode,
-        container_env_var=processed_env_vars,
-        container_env_var_file=container_env_var_file,
-        build_images=processed_build_images,
-        excluded_resources=exclude,
-        aws_region=click_ctx.region,
-        hook_name=hook_name,
-        build_in_source=build_in_source,
-        mount_with=mount_with,
-        mount_symlinks=mount_symlinks,
-        use_buildkit=use_buildkit,
-        language_extensions=language_extensions,
-        output=output,
-    ) as ctx:
-        ctx.run()
+    try:
+        with BuildContext(
+            function_identifier,
+            template,
+            base_dir,
+            build_dir,
+            cache_dir,
+            cached,
+            parallel=parallel,
+            clean=clean,
+            manifest_path=manifest_path,
+            use_container=use_container,
+            parameter_overrides=parameter_overrides,
+            docker_network=docker_network,
+            skip_pull_image=skip_pull_image,
+            mode=mode,
+            container_env_var=processed_env_vars,
+            container_env_var_file=container_env_var_file,
+            build_images=processed_build_images,
+            excluded_resources=exclude,
+            aws_region=click_ctx.region,
+            hook_name=hook_name,
+            build_in_source=build_in_source,
+            mount_with=mount_with,
+            mount_symlinks=mount_symlinks,
+            use_buildkit=use_buildkit,
+            language_extensions=language_extensions,
+            output=output,
+        ) as ctx:
+            ctx.run()
+    except InvalidBuildDirException as ex:
+        if output == "json":
+            click.echo(
+                json.dumps(
+                    {
+                        "status": "failure",
+                        "error": {
+                            "type": "InvalidBuildDirException",
+                            "message": str(ex),
+                            "resource": None,
+                        },
+                    }
+                )
+            )
+        raise
 
 
 def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:

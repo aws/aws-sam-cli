@@ -1,3 +1,4 @@
+import json
 import os
 import click
 
@@ -5,6 +6,7 @@ from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from samcli.commands.build.command import do_cli, _get_mode_value_from_envvar
+from samcli.commands.build.exceptions import InvalidBuildDirException
 from samcli.commands.build.utils import MountMode
 
 

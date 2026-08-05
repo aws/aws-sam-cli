@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 
 class UnsupportedRuntimeException(Exception):
-    pass
+    resource_name: Optional[str] = None
 
 
 class UnsupportedBuilderException(Exception):
