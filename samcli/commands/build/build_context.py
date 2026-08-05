@@ -367,9 +367,9 @@ class BuildContext:
         except FunctionNotFound as function_not_found_ex:
             caught_exception = function_not_found_ex
 
-            self._print_build_failure(print_text_banner=False)
             user_ex = UserException(str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__)
-            user_ex.resource_name = getattr(function_not_found_ex, "resource_name", None)
+            # The failure is attributable to the specific resource the user asked to build.
+            user_ex.resource_name = getattr(function_not_found_ex, "resource_name", None) or self._resource_identifier
             raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
@@ -378,6 +378,7 @@ class BuildContext:
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
             InvalidBuildGraphException,
+            MissingBuildMethodException,
             ResourceNotFound,
         ) as ex:
             caught_exception = ex
@@ -390,7 +391,9 @@ class BuildContext:
             self._print_build_failure()
 
             user_ex = UserException(str(ex), wrapped_from=wrapped_from)
-            user_ex.resource_name = getattr(ex, "resource_name", None)
+            # Prefer the resource the exception attributes the failure to; otherwise fall back to
+            # the resource the user asked to build (relevant even when it doesn't exist).
+            user_ex.resource_name = getattr(ex, "resource_name", None) or self._resource_identifier
             raise user_ex from ex
         finally:
             if self.build_in_source:

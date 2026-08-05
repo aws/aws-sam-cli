@@ -1228,6 +1228,9 @@ class TestBuildContext_run(TestCase):
 
         self.assertEqual(str(ctx.exception), str(exception))
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
+        # None of these exceptions carry resource_name, so the re-raised UserException falls
+        # back to the resource the user asked to build.
+        self.assertEqual(ctx.exception.resource_name, "function_identifier")
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
@@ -1544,7 +1547,7 @@ class TestBuildContext_print_build_success(TestCase):
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
     def test_text_mode_prints_banner_and_message(self, echo_mock, secho_mock):
-        self.build_context._output = "text"
+        self.build_context._output = OutputOption.text
         collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
 
         self.build_context._print_build_success("artifacts", "out_template", collector)
@@ -1557,7 +1560,7 @@ class TestBuildContext_print_build_success(TestCase):
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
     def test_text_mode_banner_only_when_success_message_disabled(self, echo_mock, secho_mock):
-        self.build_context._output = "text"
+        self.build_context._output = OutputOption.text
         self.build_context._print_success_message = False
 
         self.build_context._print_build_success("artifacts", "out_template", self._collector())
