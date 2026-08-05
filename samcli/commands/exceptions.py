@@ -23,6 +23,11 @@ class UserException(click.ClickException):
 
     exit_code = 1
 
+    # Optional logical ID of the resource a failure is attributable to. Used by commands
+    # that emit structured (JSON) error output. Defaults to None for failures not tied to
+    # a single resource.
+    resource_name: Optional[str] = None
+
     def __init__(self, message, wrapped_from=None):
         self.wrapped_from = wrapped_from
 

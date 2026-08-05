@@ -71,6 +71,25 @@ from samcli.local.lambdafn.exceptions import (
 LOG = logging.getLogger(__name__)
 
 
+def build_failure_json(ex: Exception) -> str:
+    """Serialize a build failure into the structured JSON error document.
+
+    Single source of truth for the failure wire format, shared by do_cli (which handles
+    every failure path) and any other caller, so the schema lives in exactly one place.
+    """
+    error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
+    return json.dumps(
+        {
+            "status": "failure",
+            "error": {
+                "type": error_type,
+                "message": str(ex),
+                "resource": getattr(ex, "resource_name", None),
+            },
+        }
+    )
+
+
 class BuildContext:
     def __init__(
         self,
@@ -348,10 +367,10 @@ class BuildContext:
         except FunctionNotFound as function_not_found_ex:
             caught_exception = function_not_found_ex
 
-            self._print_build_failure(function_not_found_ex, "FunctionNotFound", print_text_banner=False)
-            raise UserException(
-                str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
-            ) from function_not_found_ex
+            self._print_build_failure(print_text_banner=False)
+            user_ex = UserException(str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__)
+            user_ex.resource_name = getattr(function_not_found_ex, "resource_name", None)
+            raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
             BuildError,
@@ -367,9 +386,11 @@ class BuildContext:
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
 
-            self._print_build_failure(ex, wrapped_from)
+            self._print_build_failure()
 
-            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+            user_ex = UserException(str(ex), wrapped_from=wrapped_from)
+            user_ex.resource_name = getattr(ex, "resource_name", None)
+            raise user_ex from ex
         finally:
             if self.build_in_source:
                 exception_name = type(caught_exception).__name__ if caught_exception else None
@@ -1132,34 +1153,21 @@ class BuildContext:
             )
             click.secho(msg, fg="yellow")
 
-    def _print_build_failure(self, ex: Exception, error_type: str, print_text_banner: bool = True) -> None:
+    def _print_build_failure(self, print_text_banner: bool = True) -> None:
         """
-        Reports a failed build, either as structured JSON or as a human readable message.
+        Prints the human-readable "Build Failed" banner in text mode.
+
+        JSON-mode failure serialization is handled centrally in do_cli so that a single
+        handler covers every failure path (including exceptions raised before run()'s
+        try block, e.g. template parse errors or missing layer BuildMethod).
 
         Parameters
         ----------
-        ex: Exception
-            The exception that caused the build to fail
-        error_type: str
-            The error type to report
         print_text_banner: bool
             Whether to print the "Build Failed" banner in text mode
         """
-        if self._output is not OutputOption.json:
-            if print_text_banner:
-                click.secho("\nBuild Failed", fg="red")
-            return
-
-        # The resource key is included in the error JSON when available. It is
-        # populated from the exception when the failure is attributable to a specific
-        # resource, or from the resource the customer asked to build. It may be
-        # None when the failure is not tied to any single resource (e.g. invalid
-        # build directory, template parse errors).
-        resource_name = getattr(ex, "resource_name", None) or self._resource_identifier
-
-        error: Dict[str, Any] = {"type": error_type, "message": str(ex), "resource": resource_name}
-
-        click.echo(json.dumps({"status": "failure", "error": error}))
+        if self._output is not OutputOption.json and print_text_banner:
+            click.secho("\nBuild Failed", fg="red")
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """

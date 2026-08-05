@@ -240,10 +240,9 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     Implementation of the ``cli`` method
     """
 
-    import json
-
-    from samcli.commands.build.build_context import BuildContext
-    from samcli.commands.build.exceptions import InvalidBuildDirException
+    from samcli.commands.build.build_context import BuildContext, build_failure_json
+    from samcli.commands.exceptions import UserException
+    from samcli.lib.observability.util import OutputOption
 
     LOG.debug("'build' command is called")
     if cached:
@@ -284,20 +283,14 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             output=output,
         ) as ctx:
             ctx.run()
-    except InvalidBuildDirException as ex:
-        if output == "json":
-            click.echo(
-                json.dumps(
-                    {
-                        "status": "failure",
-                        "error": {
-                            "type": "InvalidBuildDirException",
-                            "message": str(ex),
-                            "resource": None,
-                        },
-                    }
-                )
-            )
+    except UserException as ex:
+        # Central JSON failure serialization for sam build --output json. Catching UserException
+        # here (rather than per-exception inside run()) covers every failure path uniformly,
+        # including exceptions raised before run()'s try block (missing layer BuildMethod) and
+        # the __enter__/set_up phase (invalid build dir). run() only prints the text-mode
+        # "Build Failed" banner and re-raises, so there is no double-emit.
+        if OutputOption(output) is OutputOption.json:
+            click.echo(build_failure_json(ex))
         raise
 
 

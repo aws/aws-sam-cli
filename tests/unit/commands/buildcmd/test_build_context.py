@@ -1578,73 +1578,12 @@ class TestBuildContext_print_build_failure(TestCase):
             output="json",
         )
 
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_resource_from_exception(self, echo_mock):
-        ex = BuildError(wrapped_from="WorkflowFailedError", msg="dependency failure")
-        ex.resource_name = "HelloWorldFunction"
-
-        self.build_context._print_build_failure(ex, "WorkflowFailedError")
-
-        error = json.loads(echo_mock.call_args[0][0])["error"]
-        self.assertEqual(error["resource"], "HelloWorldFunction")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_resource_falls_back_to_resource_identifier(self, echo_mock):
-        # ResourceNotFound carries no resource_name, so the resource the user asked
-        # to build is used - even though it does not exist in the template.
-        ex = ResourceNotFound("Unable to find a function or layer with name 'function_identifier'")
-
-        self.build_context._print_build_failure(ex, "ResourceNotFound")
-
-        error = json.loads(echo_mock.call_args[0][0])["error"]
-        self.assertEqual(error["resource"], "function_identifier")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_resource_is_null_when_unattributable(self, echo_mock):
-        self.build_context._resource_identifier = None
-        ex = ResourceNotFound("no resource")
-
-        self.build_context._print_build_failure(ex, "ResourceNotFound")
-
-        error = json.loads(echo_mock.call_args[0][0])["error"]
-        # The key is emitted as null rather than omitted for unattributable failures
-        self.assertIn("resource", error)
-        self.assertIsNone(error["resource"])
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_error_shape(self, echo_mock):
-        ex = BuildError(wrapped_from="BuildError", msg="something broke")
-
-        self.build_context._print_build_failure(ex, "BuildError")
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(result["status"], "failure")
-        self.assertEqual(set(result["error"].keys()), {"type", "message", "resource"})
-        self.assertEqual(result["error"]["type"], "BuildError")
-        self.assertEqual(result["error"]["message"], "something broke")
-
-    @parameterized.expand(
-        [
-            ("FunctionNotFound",),
-            ("UnsupportedRuntimeException",),
-            ("BuildInsideContainerError",),
-            ("InvalidBuildGraphException",),
-            ("ResourceNotFound",),
-        ]
-    )
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_error_type_passed_through(self, error_type, echo_mock):
-        self.build_context._print_build_failure(BuildError("wrap", "msg"), error_type)
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(result["error"]["type"], error_type)
-
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
     def test_text_mode_prints_banner(self, echo_mock, secho_mock):
         self.build_context._output = "text"
 
-        self.build_context._print_build_failure(BuildError("wrap", "msg"), "BuildError")
+        self.build_context._print_build_failure()
 
         echo_mock.assert_not_called()
         secho_mock.assert_called_once_with("\nBuild Failed", fg="red")
@@ -1654,7 +1593,16 @@ class TestBuildContext_print_build_failure(TestCase):
     def test_text_mode_prints_nothing_when_banner_suppressed(self, echo_mock, secho_mock):
         self.build_context._output = "text"
 
-        self.build_context._print_build_failure(FunctionNotFound("nope"), "FunctionNotFound", print_text_banner=False)
+        self.build_context._print_build_failure(print_text_banner=False)
+
+        echo_mock.assert_not_called()
+        secho_mock.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_mode_emits_no_text_banner(self, echo_mock, secho_mock):
+        # In JSON mode, _print_build_failure stays silent; do_cli serializes the failure.
+        self.build_context._print_build_failure()
 
         echo_mock.assert_not_called()
         secho_mock.assert_not_called()
