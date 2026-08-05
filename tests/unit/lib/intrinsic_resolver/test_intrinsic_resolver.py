@@ -1061,6 +1061,38 @@ class TestIntrinsicAttribteResolution(TestCase):
             [{"Fn::GetAtt": ["NestedStack", "Outputs.MyDepLayer"]}],
         )
 
+    def test_fn_if_no_value_drops_whole_property(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"] = {
+            "Fn::If": ["TestCondition", [{"Ref": "MyCustomLambdaLayer"}], {"Ref": "AWS::NoValue"}]
+        }
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertNotIn("Layers", result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"])
+
+    def test_fn_if_no_value_drops_nested_dict_key(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Events"] = {
+            "ApiEvent": {
+                "Fn::If": [
+                    "TestCondition",
+                    {"Type": "Api", "Properties": {"Path": "/", "Method": "get"}},
+                    {"Ref": "AWS::NoValue"},
+                ]
+            }
+        }
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertEqual(result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Events"], {})
+
 
 class TestResolveTemplate(TestCase):
     def test_parameter_not_resolved(self):

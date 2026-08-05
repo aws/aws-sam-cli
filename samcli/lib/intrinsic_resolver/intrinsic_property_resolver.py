@@ -224,7 +224,10 @@ class IntrinsicResolver:
                         sanitized_key, parent_function
                     ),
                 )
-                sanitized_dict[sanitized_key] = sanitized_val
+                # A resolved value of None means the property was Fn::If-ed to AWS::NoValue.
+                # CloudFormation drops such properties entirely rather than keeping a null value.
+                if sanitized_val is not None:
+                    sanitized_dict[sanitized_key] = sanitized_val
             # On any exception, leave the key:val of the orginal intact and continue on.
             # https://github.com/awslabs/aws-sam-cli/issues/1386
             except Exception:
