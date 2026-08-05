@@ -300,21 +300,18 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
     @parameterized.expand(
         [
-            # (name, env_vars, expected_port, expected_store, expected_scale)
-            ("default_config", {}, 9014, "sqlite", "1"),
-            ("custom_port", {"DURABLE_EXECUTIONS_EMULATOR_PORT": "9999"}, 9999, "sqlite", "1"),
-            ("filesystem_store", {"DURABLE_EXECUTIONS_STORE_TYPE": "filesystem"}, 9014, "filesystem", "1"),
-            ("custom_time_scale", {"DURABLE_EXECUTIONS_TIME_SCALE": "0.5"}, 9014, "sqlite", "0.5"),
+            # (name, env_vars, expected_port, expected_store)
+            ("default_config", {}, 9014, "sqlite"),
+            ("custom_port", {"DURABLE_EXECUTIONS_EMULATOR_PORT": "9999"}, 9999, "sqlite"),
+            ("filesystem_store", {"DURABLE_EXECUTIONS_STORE_TYPE": "filesystem"}, 9014, "filesystem"),
             (
                 "all_custom",
                 {
                     "DURABLE_EXECUTIONS_EMULATOR_PORT": "8888",
                     "DURABLE_EXECUTIONS_STORE_TYPE": "filesystem",
-                    "DURABLE_EXECUTIONS_TIME_SCALE": "2.0",
                 },
                 8888,
                 "filesystem",
-                "2.0",
             ),
         ]
     )
@@ -329,7 +326,6 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         env_vars,
         expected_port,
         expected_store,
-        expected_scale,
         mock_path_exists,
         mock_getcwd,
         mock_makedirs,
@@ -364,7 +360,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
             # Verify environment variables
             environment = call_args.kwargs["environment"]
-            self.assertEqual(environment["DURABLE_EXECUTION_TIME_SCALE"], expected_scale)
+            self.assertEqual(environment, {})
 
             # Verify volumes
             volumes = call_args.kwargs["volumes"]
