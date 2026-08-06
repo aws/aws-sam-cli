@@ -370,8 +370,11 @@ class BuildContext:
             caught_exception = function_not_found_ex
 
             user_ex = UserException(str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__)
-            # The failure is attributable to the specific resource the user asked to build.
-            user_ex.resource_name = getattr(function_not_found_ex, "resource_name", None) or self._resource_identifier
+            # The failure is attributable to the specific resource the user asked to build. Resolve
+            # it to a full path so it matches the resource_id namespace of the success document.
+            user_ex.resource_name = getattr(
+                function_not_found_ex, "resource_name", None
+            ) or self._resolve_resource_full_path(self._resource_identifier)
             raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
@@ -401,7 +404,8 @@ class BuildContext:
             if resource_name is None and not isinstance(
                 ex, (InvalidBuildGraphException, UnsupportedBuilderLibraryVersionError)
             ):
-                resource_name = self._resource_identifier
+                # Resolve to a full path so it matches the resource_id namespace of the success document.
+                resource_name = self._resolve_resource_full_path(self._resource_identifier)
             user_ex.resource_name = resource_name
             raise user_ex from ex
         finally:
@@ -1112,6 +1116,23 @@ class BuildContext:
             value = _get_prop_value(modified_props, prop_name)
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
+
+    def _resolve_resource_full_path(self, resource_identifier: Optional[str]) -> Optional[str]:
+        """
+        Resolve a resource identifier (a CLI argument, which may be a bare logical ID) to its
+        full path, so error.resource stays in the same namespace as resources[].resource_id in
+        the success document (both nested-stack-qualified, e.g. ChildStack/MyFn). Falls back to
+        the raw identifier if the resource cannot be looked up.
+        """
+        if not resource_identifier:
+            return resource_identifier
+        function = self.function_provider.get(resource_identifier) if self.function_provider else None
+        if function:
+            return function.full_path
+        layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
+        if layer:
+            return layer.full_path
+        return resource_identifier
 
     @staticmethod
     def _function_to_json(function: Function) -> Dict[str, Any]:

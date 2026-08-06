@@ -1155,12 +1155,12 @@ class TestBuildContext_run(TestCase):
     @parameterized.expand(
         [
             # (exception, expected wrapped_from, expected resource_name)
-            # Resource-tied failures fall back to the requested resource id ("function_identifier");
-            # resource-agnostic ones (outdated builder container) keep resource=None.
-            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", "function_identifier"),
-            (UnsupportedBuilderException(), "UnsupportedBuilderException", "function_identifier"),
-            (BuildInsideContainerError(), "BuildInsideContainerError", "function_identifier"),
-            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", "function_identifier"),
+            # Resource-tied failures resolve the requested identifier to its full path (the mocked
+            # function provider returns func1); resource-agnostic ones keep resource=None.
+            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", "func1"),
+            (UnsupportedBuilderException(), "UnsupportedBuilderException", "func1"),
+            (BuildInsideContainerError(), "BuildInsideContainerError", "func1"),
+            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", "func1"),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
@@ -1637,6 +1637,17 @@ class TestBuildContext_print_build_failure(TestCase):
 
         echo_mock.assert_not_called()
         secho_mock.assert_not_called()
+
+    def test_resolves_bare_id_to_full_path(self):
+        # A nested-stack function's full_path differs from the bare CLI id; resolving keeps
+        # error.resource in the same namespace as the success document's resource_id.
+        nested = get_function("MyFn")._replace(stack_path="ChildStack")
+        self.build_context._function_provider = Mock()
+        self.build_context._function_provider.get.return_value = nested
+        self.build_context._layer_provider = Mock()
+        self.build_context._layer_provider.get.return_value = None
+
+        self.assertEqual(self.build_context._resolve_resource_full_path("MyFn"), "ChildStack/MyFn")
 
 
 class TestBuildContext_check_build_method_experimental_flag(TestCase):
