@@ -285,10 +285,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             ctx.run()
     except UserException as ex:
         # Central JSON failure serialization for sam build --output json. Catching UserException
-        # here (rather than per-exception inside run()) covers every failure path uniformly,
-        # including exceptions raised before run()'s try block (missing layer BuildMethod) and
-        # the __enter__/set_up phase (invalid build dir). run() only prints the text-mode
-        # "Build Failed" banner and re-raises, so there is no double-emit.
+        # here (rather than per-exception inside run()) covers all user-facing failures uniformly,
+        # including exceptions raised before run()'s try block (missing layer BuildMethod) and the
+        # __enter__/set_up phase (invalid build dir). run() only prints the text-mode "Build Failed"
+        # banner and re-raises, so there is no double-emit.
+        # Note: only UserException subclasses are serialized. An unexpected internal error (a bug
+        # surfacing as a bare Exception) is not converted to JSON and propagates as today.
         if OutputOption(output) is OutputOption.json:
             click.echo(build_failure_json(ex))
         raise

@@ -1238,11 +1238,11 @@ Commands you can use next
             )
             raise InvalidBuildDirException(exception_message)
 
-        if build_path.exists() and os.listdir(build_dir) and clean:
-            # build folder contains something inside. Clear everything.
-            shutil.rmtree(build_dir)
-
         try:
+            if build_path.exists() and os.listdir(build_dir) and clean:
+                # build folder contains something inside. Clear everything.
+                shutil.rmtree(build_dir)
+
             build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
         except OSError as ex:
             raise InvalidBuildDirException(f"Unable to use build dir {build_dir}. Reason: {str(ex)}") from ex

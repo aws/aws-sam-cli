@@ -774,6 +774,22 @@ class TestBuildContext_setup_build_dir(TestCase):
     @patch("samcli.commands.build.build_context.shutil")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.pathlib")
+    def test_rmtree_oserror_is_converted_to_invalid_build_dir(self, pathlib_patch, os_patch, shutil_patch):
+        # A failure clearing the build dir (e.g. permission denied, file held open on Windows)
+        # must surface as InvalidBuildDirException so --output json still emits a JSON error.
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
+        path_mock.exists.return_value = True
+        os_patch.listdir.return_value = True
+        shutil_patch.rmtree.side_effect = OSError("permission denied")
+
+        with self.assertRaises(InvalidBuildDirException):
+            BuildContext._setup_build_dir("/somepath", True)
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
     def test_build_dir_exists_with_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
