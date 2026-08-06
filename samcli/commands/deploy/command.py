@@ -2,6 +2,7 @@
 CLI command for "deploy" command
 """
 
+import contextlib
 import logging
 import os
 
@@ -170,6 +171,12 @@ LOG = logging.getLogger(__name__)
 @no_progressbar_option
 @capabilities_option
 @language_extensions_option
+@click.option(
+    "--output",
+    default="text",
+    help="Output the results from the command in a given output format. Supported formats: text (default), json.",
+    type=click.Choice(["text", "json"], case_sensitive=False),
+)
 @aws_creds_options
 @common_options
 @save_params_option
@@ -206,6 +213,7 @@ def cli(
     resolve_s3,
     resolve_image_repos,
     language_extensions,
+    output,
     save_params,
     config_file,
     config_env,
@@ -251,6 +259,7 @@ def cli(
         on_failure,
         max_wait_duration,
         express,
+        output,
     )  # pragma: no cover
 
 
@@ -287,6 +296,7 @@ def do_cli(
     on_failure,
     max_wait_duration,
     express,
+    output="text",
 ):
     """
     Implementation of the ``cli`` method
@@ -297,6 +307,9 @@ def do_cli(
     from samcli.commands.package.package_context import PackageContext
 
     language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+
+    if guided and output == "json":
+        raise click.UsageError("--guided is not compatible with --output json")
 
     if guided:
         # Allow for a guided deploy to prompt and save those details.
@@ -326,8 +339,12 @@ def do_cli(
         if resolve_s3:
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
-            s3_bucket = manage_stack(profile=profile, region=region)
-            print_managed_s3_bucket_info(s3_bucket)
+            if output == "json":
+                with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                    s3_bucket = manage_stack(profile=profile, region=region)
+            else:
+                s3_bucket = manage_stack(profile=profile, region=region)
+                print_managed_s3_bucket_info(s3_bucket)
 
         # TODO Refactor resolve-s3 and resolve-image-repos into one place
         # after we figure out how to enable resolve-images-repos in package
@@ -351,7 +368,7 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
-            no_progressbar=no_progressbar,
+            no_progressbar=no_progressbar if output != "json" else True,
             metadata=metadata,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,
@@ -399,5 +416,6 @@ def do_cli(
             max_wait_duration=max_wait_duration,
             language_extensions=language_extensions,
             express=express,
+            output=output,
         ) as deploy_context:
             deploy_context.run()

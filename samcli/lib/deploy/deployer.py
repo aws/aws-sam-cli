@@ -15,6 +15,7 @@ Cloudformation deploy class which also streams events and changeset information
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 
+import json
 import logging
 import math
 import sys
@@ -82,9 +83,16 @@ DEFAULT_CLIENT_SLEEP = 0.5
 
 
 class Deployer:
-    def __init__(self, cloudformation_client, changeset_prefix="samcli-deploy", client_sleep=DEFAULT_CLIENT_SLEEP):
+    def __init__(
+        self,
+        cloudformation_client,
+        changeset_prefix="samcli-deploy",
+        client_sleep=DEFAULT_CLIENT_SLEEP,
+        output_mode="text",
+    ):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
+        self.output_mode = output_mode
         try:
             self.client_sleep = float(client_sleep)
         except ValueError:
@@ -313,35 +321,52 @@ class Deployer:
                     }
                 )
 
-        for k, v in changes.items():
-            for value in v:
-                row_color = self.deploy_color.get_changeset_action_color(action=k)
+        if kwargs.get("output_mode") == "json":
+            for k, v in changes.items():
+                for value in v:
+                    sys.stdout.write(
+                        json.dumps(
+                            {
+                                "type": "changeset",
+                                "action": k,
+                                "logical_id": value["LogicalResourceId"],
+                                "resource_type": value["ResourceType"],
+                                "replacement": value["Replacement"],
+                            }
+                        )
+                        + "\n"
+                    )
+                    sys.stdout.flush()
+        else:
+            for k, v in changes.items():
+                for value in v:
+                    row_color = self.deploy_color.get_changeset_action_color(action=k)
+                    pprint_columns(
+                        columns=[
+                            changes_showcase.get(k, k),
+                            value["LogicalResourceId"],
+                            value["ResourceType"],
+                            value["Replacement"],
+                        ],
+                        width=kwargs["width"],
+                        margin=kwargs["margin"],
+                        format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
+                        format_args=kwargs["format_args"],
+                        columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
+                        color=row_color,
+                    )
+
+            if not changeset:
+                # There can be cases where there are no changes,
+                # but could be an an addition of a SNS notification topic.
                 pprint_columns(
-                    columns=[
-                        changes_showcase.get(k, k),
-                        value["LogicalResourceId"],
-                        value["ResourceType"],
-                        value["Replacement"],
-                    ],
+                    columns=["-", "-", "-", "-"],
                     width=kwargs["width"],
                     margin=kwargs["margin"],
                     format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
                     format_args=kwargs["format_args"],
                     columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
-                    color=row_color,
                 )
-
-        if not changeset:
-            # There can be cases where there are no changes,
-            # but could be an an addition of a SNS notification topic.
-            pprint_columns(
-                columns=["-", "-", "-", "-"],
-                width=kwargs["width"],
-                margin=kwargs["margin"],
-                format_string=DESCRIBE_CHANGESET_FORMAT_STRING,
-                format_args=kwargs["format_args"],
-                columns_dict=DESCRIBE_CHANGESET_DEFAULT_ARGS.copy(),
-            )
 
         return changes
 
@@ -352,8 +377,9 @@ class Deployer:
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
         """
-        sys.stdout.write("\n\nWaiting for changeset to be created..\n\n")
-        sys.stdout.flush()
+        if self.output_mode != "json":
+            sys.stdout.write("\n\nWaiting for changeset to be created..\n\n")
+            sys.stdout.flush()
 
         # Wait for changeset to be created
         waiter = self._client.get_waiter("change_set_create_complete")
@@ -470,27 +496,41 @@ class Deployer:
                     time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
 
                 for new_event in new_events:
-                    row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])
-                    pprint_columns(
-                        # Print the detailed status beside the status if it is present
-                        # E.g. CREATE_IN_PROGRESS - CONFIGURATION_COMPLETE
-                        columns=[
-                            (
-                                (new_event["ResourceStatus"] + " - " + new_event["DetailedStatus"])
-                                if "DetailedStatus" in new_event
-                                else new_event["ResourceStatus"]
-                            ),
-                            new_event["ResourceType"],
-                            new_event["LogicalResourceId"],
-                            new_event.get("ResourceStatusReason", "-"),
-                        ],
-                        width=kwargs["width"],
-                        margin=kwargs["margin"],
-                        format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
-                        format_args=kwargs["format_args"],
-                        columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
-                        color=row_color,
-                    )
+                    if kwargs.get("output_mode") == "json":
+                        sys.stdout.write(
+                            json.dumps(
+                                {
+                                    "type": "event",
+                                    "status": new_event["ResourceStatus"],
+                                    "resource_type": new_event["ResourceType"],
+                                    "logical_id": new_event["LogicalResourceId"],
+                                    "reason": new_event.get("ResourceStatusReason", ""),
+                                    "timestamp": new_event["Timestamp"].isoformat(),
+                                }
+                            )
+                            + "\n"
+                        )
+                        sys.stdout.flush()
+                    else:
+                        row_color = self.deploy_color.get_stack_events_status_color(status=new_event["ResourceStatus"])
+                        pprint_columns(
+                            columns=[
+                                (
+                                    (new_event["ResourceStatus"] + " - " + new_event["DetailedStatus"])
+                                    if "DetailedStatus" in new_event
+                                    else new_event["ResourceStatus"]
+                                ),
+                                new_event["ResourceType"],
+                                new_event["LogicalResourceId"],
+                                new_event.get("ResourceStatusReason", "-"),
+                            ],
+                            width=kwargs["width"],
+                            margin=kwargs["margin"],
+                            format_string=DESCRIBE_STACK_EVENTS_FORMAT_STRING,
+                            format_args=kwargs["format_args"],
+                            columns_dict=DESCRIBE_STACK_EVENTS_DEFAULT_ARGS.copy(),
+                            color=row_color,
+                        )
                     # Skip events from another consecutive deployment triggered during sleep by another process
                     if self._is_root_stack_event(new_event) and self._check_stack_not_in_progress(
                         new_event["ResourceStatus"]
@@ -563,13 +603,14 @@ class Deployer:
         max_wait_duration:
             The maximum duration in minutes to wait for the deployment to complete.
         """
-        sys.stdout.write(
-            "\n{} - Waiting for stack create/update "
-            "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        )
-        sys.stdout.flush()
+        if self.output_mode != "json":
+            sys.stdout.write(
+                "\n{} - Waiting for stack create/update "
+                "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            )
+            sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, time_stamp_marker, on_failure)
+        self.describe_stack_events(stack_name, time_stamp_marker, on_failure, output_mode=self.output_mode)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -602,7 +643,26 @@ class Deployer:
         try:
             outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
             if outputs:
-                self._display_stack_outputs(outputs)
+                if self.output_mode == "json":
+                    sys.stdout.write(
+                        json.dumps(
+                            {
+                                "type": "outputs",
+                                "stack_outputs": [
+                                    {
+                                        "key": o.get("OutputKey"),
+                                        "value": o.get("OutputValue"),
+                                        "description": o.get("Description", ""),
+                                    }
+                                    for o in outputs
+                                ],
+                            }
+                        )
+                        + "\n"
+                    )
+                    sys.stdout.flush()
+                else:
+                    self._display_stack_outputs(outputs)
         except DeployStackOutPutFailedError as ex:
             # Show exception if we aren't deleting stacks
             if on_failure != FailureMode.DELETE:
@@ -633,7 +693,7 @@ class Deployer:
                 deployment_config=deployment_config,
             )
             self.wait_for_changeset(result["Id"], stack_name)
-            self.describe_changeset(result["Id"], stack_name)
+            self.describe_changeset(result["Id"], stack_name, output_mode=self.output_mode)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
             raise self._create_deploy_error(stack_name, str(ex)) from ex
@@ -827,7 +887,7 @@ class Deployer:
                 # get the latest stack event
                 marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.rollback_stack(**kwargs)
-                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
+                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode)
                 self._rollback_wait(stack_name)
 
                 current_state = self._get_stack_status(stack_name)
@@ -845,7 +905,9 @@ class Deployer:
                 # from a ROLLBACK_COMPLETE state will not return anything
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
-                    self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE)
+                    self.describe_stack_events(
+                        stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode
+                    )
 
                 waiter = self._client.get_waiter("stack_delete_complete")
                 waiter.wait(StackName=stack_name, WaiterConfig={"Delay": 30, "MaxAttempts": 120})
