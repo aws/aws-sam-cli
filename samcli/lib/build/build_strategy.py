@@ -160,6 +160,10 @@ class DefaultBuildStrategy(BuildStrategy):
             UnsupportedBuilderLibraryVersionError,
         ) as ex:
             if getattr(ex, "resource_name", None) is None:
+                # Representative resource id. Functions sharing runtime + CodeUri + metadata
+                # collapse into one build definition, so a single failure can affect several;
+                # get_full_path() names the first. get_resource_full_paths() lists all if a
+                # consumer needs the full set.
                 ex.resource_name = build_definition.get_full_path()
             raise
 

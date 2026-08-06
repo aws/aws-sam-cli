@@ -55,7 +55,7 @@ from samcli.lib.package.language_extensions_packaging import (
     _resolve_property_paths,
     _set_prop_value,
 )
-from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import Function, LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -393,9 +393,16 @@ class BuildContext:
             self._print_build_failure()
 
             user_ex = UserException(str(ex), wrapped_from=wrapped_from)
-            # Prefer the resource the exception attributes the failure to; otherwise fall back to
-            # the resource the user asked to build (relevant even when it doesn't exist).
-            user_ex.resource_name = getattr(ex, "resource_name", None) or self._resource_identifier
+            # Prefer the resource the exception attributes the failure to. Otherwise fall back to
+            # the resource the user asked to build - but only for failures actually tied to a
+            # resource. Resource-agnostic errors (corrupt build graph, outdated builder container)
+            # keep resource=None rather than blaming whatever resource the user happened to name.
+            resource_name = getattr(ex, "resource_name", None)
+            if resource_name is None and not isinstance(
+                ex, (InvalidBuildGraphException, UnsupportedBuilderLibraryVersionError)
+            ):
+                resource_name = self._resource_identifier
+            user_ex.resource_name = resource_name
             raise user_ex from ex
         finally:
             if self.build_in_source:
@@ -1106,6 +1113,21 @@ class BuildContext:
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
 
+    @staticmethod
+    def _function_to_json(function: Function) -> Dict[str, Any]:
+        """
+        Serialize a built function for the JSON success document. Includes a package_type
+        discriminator so Image functions (which have runtime: None) are distinguishable from
+        Zip functions rather than both appearing as runtime: null.
+        """
+        return {
+            "resource_id": function.full_path,
+            "type": "function",
+            "package_type": function.packagetype,
+            "runtime": function.runtime,
+            "architecture": function.architecture,
+        }
+
     def _print_build_success(
         self, artifacts_dir: str, output_template_path: str, resources_to_build: ResourcesToBuildCollector
     ) -> None:
@@ -1123,13 +1145,7 @@ class BuildContext:
         """
         if self._output is OutputOption.json:
             resources: List[Dict[str, Any]] = [
-                {
-                    "resource_id": function.full_path,
-                    "type": "function",
-                    "runtime": function.runtime,
-                    "architecture": function.architecture,
-                }
-                for function in resources_to_build.functions
+                self._function_to_json(function) for function in resources_to_build.functions
             ] + [
                 {
                     "resource_id": layer.full_path,

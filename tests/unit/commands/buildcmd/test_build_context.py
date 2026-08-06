@@ -1154,13 +1154,17 @@ class TestBuildContext_run(TestCase):
 
     @parameterized.expand(
         [
-            (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
-            (UnsupportedBuilderException(), "UnsupportedBuilderException"),
-            (BuildInsideContainerError(), "BuildInsideContainerError"),
-            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
+            # (exception, expected wrapped_from, expected resource_name)
+            # Resource-tied failures fall back to the requested resource id ("function_identifier");
+            # resource-agnostic ones (outdated builder container) keep resource=None.
+            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", "function_identifier"),
+            (UnsupportedBuilderException(), "UnsupportedBuilderException", "function_identifier"),
+            (BuildInsideContainerError(), "BuildInsideContainerError", "function_identifier"),
+            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", "function_identifier"),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
+                None,
             ),
         ]
     )
@@ -1181,6 +1185,7 @@ class TestBuildContext_run(TestCase):
         self,
         exception,
         wrapped_exception,
+        expected_resource_name,
         esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
@@ -1244,9 +1249,9 @@ class TestBuildContext_run(TestCase):
 
         self.assertEqual(str(ctx.exception), str(exception))
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
-        # None of these exceptions carry resource_name, so the re-raised UserException falls
-        # back to the resource the user asked to build.
-        self.assertEqual(ctx.exception.resource_name, "function_identifier")
+        # Resource-tied failures fall back to the requested resource id; resource-agnostic ones
+        # (e.g. outdated builder container) keep resource=None so no innocent resource is blamed.
+        self.assertEqual(ctx.exception.resource_name, expected_resource_name)
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
@@ -1537,6 +1542,19 @@ class TestBuildContext_print_build_success(TestCase):
 
         result = json.loads(echo_mock.call_args[0][0])
         self.assertEqual(result["resources"], [])
+
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_image_function_has_package_type_discriminator(self, echo_mock):
+        # Image functions have runtime: None; package_type lets a consumer distinguish them
+        # from a malformed Zip entry.
+        image_fn = get_function("ImgFn", runtime=None, packagetype=IMAGE)
+        collector = self._collector(functions=[image_fn])
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        resource = json.loads(echo_mock.call_args[0][0])["resources"][0]
+        self.assertEqual(resource["package_type"], "Image")
+        self.assertIsNone(resource["runtime"])
 
     @patch("samcli.commands.build.build_context.click.echo")
     def test_json_architecture_defaults_to_x86_64_when_absent(self, echo_mock):
