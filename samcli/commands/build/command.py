@@ -286,12 +286,17 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             ctx.run()
     except Exception as ex:
         # Central JSON failure serialization for sam build --output json. Catching broadly here
-        # (rather than per-exception inside run()) guarantees a JSON failure document for every
-        # error reachable from the build, including bare-Exception template errors raised during
-        # __enter__/set_up (e.g. InvalidLayerReference, RemoteStackLocationNotSupported) that are
-        # not UserException subclasses. We re-raise unconditionally so @track_command still records
-        # telemetry and wraps non-UserException errors as UnhandledException, and so run()'s text
-        # "Build Failed" banner path is unaffected (no double-emit: run() no longer emits JSON).
+        # (rather than per-exception inside run()) emits a JSON failure document for every
+        # execution error surfaced from BuildContext, including bare-Exception template errors
+        # raised during __enter__/set_up (e.g. InvalidLayerReference, RemoteStackLocationNotSupported)
+        # that are not UserException subclasses. We re-raise unconditionally so @track_command still
+        # records telemetry and wraps non-UserException errors as UnhandledException, and so run()'s
+        # text "Build Failed" banner path is unaffected (no double-emit: run() no longer emits JSON).
+        #
+        # Scope: this covers failures once do_cli runs. Errors raised earlier during click option
+        # processing (invalid flags, or a --hook-name prepare-hook failure re-raised by
+        # track_command) surface as click's standard usage/stderr output, not JSON. Consumers should
+        # treat "exit != 0 with empty stdout" as an invocation error, not an execution failure.
         if OutputOption(output) is OutputOption.json:
             click.echo(build_failure_json(ex))
         raise

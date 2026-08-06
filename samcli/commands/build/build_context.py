@@ -74,8 +74,10 @@ LOG = logging.getLogger(__name__)
 def build_failure_json(ex: Exception) -> str:
     """Serialize a build failure into the structured JSON error document.
 
-    Single source of truth for the failure wire format, shared by do_cli (which handles
-    every failure path) and any other caller, so the schema lives in exactly one place.
+    Single source of truth for the failure wire format, shared by do_cli and any other
+    caller so the schema lives in exactly one place. This covers execution failures once
+    the command body runs; errors raised during click option processing (bad flags, hook
+    prepare failures) surface as click's standard usage/stderr output, not JSON.
     """
     error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
     return json.dumps(
@@ -1161,9 +1163,9 @@ class BuildContext:
         """
         Prints the human-readable "Build Failed" banner in text mode.
 
-        JSON-mode failure serialization is handled centrally in do_cli so that a single
-        handler covers every failure path (including exceptions raised before run()'s
-        try block, e.g. template parse errors or missing layer BuildMethod).
+        JSON-mode failure serialization is handled centrally in do_cli, which catches
+        execution failures raised from run()/set_up() (including exceptions raised before
+        run()'s try block, e.g. template parse errors or missing layer BuildMethod).
         """
         if self._output is not OutputOption.json:
             click.secho("\nBuild Failed", fg="red")
