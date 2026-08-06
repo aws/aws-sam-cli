@@ -162,8 +162,8 @@ class DefaultBuildStrategy(BuildStrategy):
             if getattr(ex, "resource_name", None) is None:
                 # Representative resource id. Functions sharing runtime + CodeUri + metadata
                 # collapse into one build definition, so a single failure can affect several;
-                # get_full_path() names the first. get_resource_full_paths() lists all if a
-                # consumer needs the full set.
+                # get_full_path() names the first. Reporting one representative is the deliberate
+                # contract here — the JSON failure document carries a single error.resource.
                 ex.resource_name = build_definition.get_full_path()
             raise
 
