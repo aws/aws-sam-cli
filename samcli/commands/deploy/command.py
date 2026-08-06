@@ -32,6 +32,7 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     signing_profiles_option,
     stack_name_option,
+    structured_output_option,
     tags_option,
     template_click_option,
     use_json_option,
@@ -171,12 +172,7 @@ LOG = logging.getLogger(__name__)
 @no_progressbar_option
 @capabilities_option
 @language_extensions_option
-@click.option(
-    "--output",
-    default="text",
-    help="Output the results from the command in a given output format. Supported formats: text (default), json.",
-    type=click.Choice(["text", "json"], case_sensitive=False),
-)
+@structured_output_option
 @aws_creds_options
 @common_options
 @save_params_option
