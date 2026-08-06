@@ -249,10 +249,12 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = process_env_var(container_env_var)
-    processed_build_images = process_image_options(build_image)
-
     try:
+        # Inside the try so option-preprocessing errors (e.g. InvalidImageException from a
+        # malformed --build-image) are serialized too, not just failures from within BuildContext.
+        processed_env_vars = process_env_var(container_env_var)
+        processed_build_images = process_image_options(build_image)
+
         with BuildContext(
             function_identifier,
             template,
