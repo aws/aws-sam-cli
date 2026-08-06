@@ -1157,20 +1157,15 @@ class BuildContext:
             )
             click.secho(msg, fg="yellow")
 
-    def _print_build_failure(self, print_text_banner: bool = True) -> None:
+    def _print_build_failure(self) -> None:
         """
         Prints the human-readable "Build Failed" banner in text mode.
 
         JSON-mode failure serialization is handled centrally in do_cli so that a single
         handler covers every failure path (including exceptions raised before run()'s
         try block, e.g. template parse errors or missing layer BuildMethod).
-
-        Parameters
-        ----------
-        print_text_banner: bool
-            Whether to print the "Build Failed" banner in text mode
         """
-        if self._output is not OutputOption.json and print_text_banner:
+        if self._output is not OutputOption.json:
             click.secho("\nBuild Failed", fg="red")
 
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:

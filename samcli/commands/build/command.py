@@ -241,7 +241,6 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     """
 
     from samcli.commands.build.build_context import BuildContext, build_failure_json
-    from samcli.commands.exceptions import UserException
     from samcli.lib.observability.util import OutputOption
 
     LOG.debug("'build' command is called")
@@ -283,14 +282,14 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
             output=output,
         ) as ctx:
             ctx.run()
-    except UserException as ex:
-        # Central JSON failure serialization for sam build --output json. Catching UserException
-        # here (rather than per-exception inside run()) covers all user-facing failures uniformly,
-        # including exceptions raised before run()'s try block (missing layer BuildMethod) and the
-        # __enter__/set_up phase (invalid build dir). run() only prints the text-mode "Build Failed"
-        # banner and re-raises, so there is no double-emit.
-        # Note: only UserException subclasses are serialized. An unexpected internal error (a bug
-        # surfacing as a bare Exception) is not converted to JSON and propagates as today.
+    except Exception as ex:
+        # Central JSON failure serialization for sam build --output json. Catching broadly here
+        # (rather than per-exception inside run()) guarantees a JSON failure document for every
+        # error reachable from the build, including bare-Exception template errors raised during
+        # __enter__/set_up (e.g. InvalidLayerReference, RemoteStackLocationNotSupported) that are
+        # not UserException subclasses. We re-raise unconditionally so @track_command still records
+        # telemetry and wraps non-UserException errors as UnhandledException, and so run()'s text
+        # "Build Failed" banner path is unaffected (no double-emit: run() no longer emits JSON).
         if OutputOption(output) is OutputOption.json:
             click.echo(build_failure_json(ex))
         raise

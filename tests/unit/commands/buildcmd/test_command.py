@@ -135,6 +135,14 @@ class TestDoCliJsonFailure(TestCase):
         self.assertEqual(result["status"], "failure")
         self.assertEqual(result["error"]["type"], "MissingBuildMethodException")
 
+    def test_json_failure_for_bare_exception(self):
+        # Bare-Exception template errors (e.g. InvalidLayerReference) are not UserException;
+        # the broad handler must still emit JSON so agent consumers never get empty stdout.
+        result = json.loads(self._run_expecting(RuntimeError("unexpected template error"))[0])
+
+        self.assertEqual(result["status"], "failure")
+        self.assertEqual(result["error"]["type"], "RuntimeError")
+
 
 class TestGetModeValueFromEnvvar(TestCase):
     def setUp(self):
