@@ -19,6 +19,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
@@ -1155,8 +1156,11 @@ class TestBuildContext_run(TestCase):
     @parameterized.expand(
         [
             # (exception, expected wrapped_from, expected resource_name)
-            # Resource-tied failures resolve the requested identifier to its full path (the mocked
-            # function provider returns func1); resource-agnostic ones keep resource=None.
+            # These reach run()'s handler untagged (ApplicationBuilder is mocked, so the build-strategy
+            # wrapper that would tag resource_name never runs). run() then resolves the requested
+            # identifier to its full path (the mocked function provider returns func1). In real runs the
+            # strategy wrapper tags these with the in-flight resource before run() sees them; that path is
+            # covered separately by the build_strategy tests.
             (UnsupportedRuntimeException(), "UnsupportedRuntimeException", "func1"),
             (UnsupportedBuilderException(), "UnsupportedBuilderException", "func1"),
             (BuildInsideContainerError(), "BuildInsideContainerError", "func1"),
@@ -1164,8 +1168,11 @@ class TestBuildContext_run(TestCase):
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
-                None,
+                "func1",
             ),
+            # A corrupt build graph is not any single resource's fault, so it stays resource=None
+            # rather than blaming the requested identifier.
+            (InvalidBuildGraphException(msg="bad graph"), "InvalidBuildGraphException", None),
         ]
     )
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
@@ -1249,8 +1256,8 @@ class TestBuildContext_run(TestCase):
 
         self.assertEqual(str(ctx.exception), str(exception))
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
-        # Resource-tied failures fall back to the requested resource id; resource-agnostic ones
-        # (e.g. outdated builder container) keep resource=None so no innocent resource is blamed.
+        # Resource-tied failures fall back to the requested resource id; a corrupt build graph
+        # keeps resource=None so no innocent resource is blamed.
         self.assertEqual(ctx.exception.resource_name, expected_resource_name)
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")

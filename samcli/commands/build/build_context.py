@@ -398,14 +398,14 @@ class BuildContext:
             self._print_build_failure()
 
             user_ex = UserException(str(ex), wrapped_from=wrapped_from)
-            # Prefer the resource the exception attributes the failure to. Otherwise fall back to
-            # the resource the user asked to build - but only for failures actually tied to a
-            # resource. Resource-agnostic errors (corrupt build graph, outdated builder container)
-            # keep resource=None rather than blaming whatever resource the user happened to name.
+            # Prefer the resource the exception attributes the failure to (the build strategy tags
+            # per-resource failures, including an outdated builder container, with the in-flight
+            # resource's full_path). Otherwise fall back to the resource the user asked to build -
+            # but only for failures actually tied to a resource. A corrupt build graph is not any
+            # single resource's fault, so it keeps resource=None rather than blaming whatever
+            # resource the user happened to name.
             resource_name = getattr(ex, "resource_name", None)
-            if resource_name is None and not isinstance(
-                ex, (InvalidBuildGraphException, UnsupportedBuilderLibraryVersionError)
-            ):
+            if resource_name is None and not isinstance(ex, InvalidBuildGraphException):
                 # Resolve to a full path so it matches the resource_id namespace of the success document.
                 resource_name = self._resolve_resource_full_path(self._resource_identifier)
             user_ex.resource_name = resource_name
