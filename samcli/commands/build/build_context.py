@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
-from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled, prompt_experimental
 from samcli.commands._utils.template import (
     FOREACH_REQUIRED_ELEMENTS,
     get_template_data,
@@ -309,9 +309,11 @@ class BuildContext:
             if self._use_container:
                 if self._mount_with == MountMode.WRITE:
                     mount_with_write = True
-                else:
+                elif self._output is not OutputOption.json:
                     # if self._mount_with is NOT WRITE
-                    # check the need of mounting with write permissions and prompt user to enable it if needed
+                    # check the need of mounting with write permissions and prompt user to enable it if needed.
+                    # Skipped in JSON mode: a non-interactive consumer cannot answer the confirm, so fall back
+                    # to the documented READ-only default rather than blocking on stdin (which aborts the build).
                     mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
                         resources_to_build,
                         self.base_dir,
@@ -1520,13 +1522,19 @@ Commands you can use next
         for function in resources_to_build.functions:
             if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
                 build_method = function.metadata.get("BuildMethod", "")
+                experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
+                # A JSON consumer cannot answer the interactive beta confirmation. Skip it unless the
+                # feature is already enabled (via --beta-features / env), in which case prompt_experimental
+                # just updates the telemetry context and returns without prompting.
+                if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
+                    continue
                 WARNING_MESSAGE = (
                     f'Build method "{build_method}" is a beta feature.\n'
                     "Please confirm if you would like to proceed\n"
                     'You can also enable this beta feature with "sam build --beta-features".'
                 )
 
-                prompt_experimental(EXPERIMENTAL_BUILD_METHODS[build_method], WARNING_MESSAGE)
+                prompt_experimental(experimental_flag, WARNING_MESSAGE)
 
     @property
     def build_in_source(self) -> Optional[bool]:

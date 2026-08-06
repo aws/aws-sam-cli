@@ -1374,6 +1374,39 @@ class TestBuildContext_run(TestCase):
             EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, "FunctionNotFound"
         )
 
+    @patch("samcli.commands.build.build_context.prompt_user_to_enable_mount_with_write_if_needed")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
+    def test_skips_mount_prompt_in_json_mode(
+        self, mock_build, mock_experimental, mock_warning, mock_get_resources, mock_pre_processing, _, mock_prompt
+    ):
+        # --use-container without --mount-with WRITE normally prompts on stdin. In JSON mode a
+        # non-interactive consumer cannot answer, so the prompt is skipped (defaulting to READ-only)
+        # rather than aborting the build. build() raises to short-circuit right after the decision.
+        mock_build.side_effect = FunctionNotFound()
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+            use_container=True,
+            mount_with=MountMode.READ.value,
+            output="json",
+        )
+
+        with self.assertRaises(UserException):
+            context.run()
+
+        mock_prompt.assert_not_called()
+
 
 class TestBuildContext_is_sam_template(TestCase):
     @parameterized.expand(
@@ -1694,6 +1727,24 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
     def test_check_build_method_experimental_flag_no_metadata(self, mock_get_resources, mock_prompt):
         mock_function = Mock()
         mock_function.metadata = None
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_skips_beta_prompt_in_json_mode_when_not_enabled(self, mock_get_resources, mock_prompt, _):
+        # A JSON consumer cannot answer the confirm; skip it (rather than aborting on EOF) and let the
+        # non-gating beta build proceed. If the flag were already enabled, prompt_experimental would run
+        # to update telemetry context - covered by is_experimental_enabled=False here.
+        self.build_context._output = OutputOption.json
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources
