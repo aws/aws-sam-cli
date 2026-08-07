@@ -351,13 +351,12 @@ class DeployContext:
                     sys.stdout.flush()
                 else:
                     click.echo(str(ex))
-            except deploy_exceptions.DeployFailedError as ex:
-                # Failed to deploy, check for DELETE action otherwise skip
+            except deploy_exceptions.DeployFailedError:
+                # Failed to deploy, check for DELETE action otherwise skip. The terminal FAILED
+                # JSON line is emitted once by do_cli's handler as this propagates, so we do not
+                # emit it here too (that produced a duplicate result line).
                 if self.on_failure == FailureMode.DELETE:
                     self.deployer.rollback_delete_stack(stack_name)
-                if self._output_mode is OutputOption.json:
-                    sys.stdout.write(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}) + "\n")
-                    sys.stdout.flush()
                 raise
 
         else:

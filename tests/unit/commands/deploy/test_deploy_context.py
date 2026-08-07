@@ -177,6 +177,31 @@ class TestSamDeployCommand(TestCase):
 
     @patch("boto3.Session")
     @patch("boto3.client")
+    @patch.object(
+        Deployer,
+        "create_and_wait_for_changeset",
+        MagicMock(side_effect=DeployFailedError(stack_name="stack-name", msg="boom")),
+    )
+    def test_json_output_deploy_failure_emits_no_result_line_from_context(self, mock_client, mock_session):
+        # DeployFailedError propagates to do_cli, which emits the single terminal FAILED line. The
+        # context must NOT also emit one, or the stream would carry a duplicate result (regression:
+        # a broad do_cli handler on top of a per-handler emit double-counted the failure).
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.output = "json"
+            self.deploy_command_context._output_mode = OutputOption.json
+
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                with self.assertRaises(DeployFailedError):
+                    self.deploy_command_context.run()
+
+            self.assertEqual(stdout.getvalue().strip(), "")
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
     @patch.object(Deployer, "execute_changeset", MagicMock())
     @patch.object(Deployer, "wait_for_execute", MagicMock())
