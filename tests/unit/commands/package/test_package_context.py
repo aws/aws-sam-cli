@@ -12,6 +12,7 @@ TEST_DATA_PATH = Path(__file__).resolve().parent / "test_data"
 
 from samcli.commands.package.package_context import PackageContext
 from samcli.commands.package.exceptions import PackageFailedError
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
     detect_dynamic_artifact_properties,
@@ -236,8 +237,22 @@ class TestPackageCommand(TestCase):
 
         if should_warn:
             patched_click.secho.assert_called_once()
+            # Text mode (setUp default) writes the warning to stdout.
+            self.assertFalse(patched_click.secho.call_args.kwargs.get("err", False))
         else:
             patched_click.secho.assert_not_called()
+
+    @patch("samcli.commands.package.package_context.PREVIEW_RUNTIMES", {"preview_runtime"})
+    @patch("samcli.commands.package.package_context.click")
+    def test_warn_preview_runtime_json_mode_writes_to_stderr(self, patched_click):
+        # In JSON mode the warning must go to stderr so it never corrupts the JSON lines on stdout.
+        self.package_command_context._output_mode = OutputOption.json
+        resources = {"MyFunction": {"Type": AWS_SERVERLESS_FUNCTION, "Properties": {"Runtime": "preview_runtime"}}}
+
+        self.package_command_context._warn_preview_runtime([Mock(resources=resources)])
+
+        patched_click.secho.assert_called_once()
+        self.assertTrue(patched_click.secho.call_args.kwargs.get("err"))
 
 
 class TestPackageContextDockerLazyInitialization(TestCase):

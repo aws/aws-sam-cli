@@ -1351,6 +1351,7 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             parameter_overrides=self.parameter_overrides,
             language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
