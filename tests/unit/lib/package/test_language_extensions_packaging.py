@@ -25,17 +25,11 @@ class TestWarnParameterBasedCollections(TestCase):
         )
 
     @patch("samcli.lib.package.language_extensions_packaging.click")
-    def test_defaults_to_stdout(self, patched_click):
+    def test_warning_always_goes_to_stderr(self, patched_click):
+        # The advisory is written to stderr regardless of output mode, so it never corrupts the
+        # stdout JSON stream. This holds for every caller (including the child-template export path
+        # that has no output-mode context), matching SAM's telemetry and version-check notices.
         warn_parameter_based_collections([self._param_ref_property()])
-
-        patched_click.secho.assert_called_once()
-        # Default (e.g. sam package) writes to stdout.
-        self.assertFalse(patched_click.secho.call_args.kwargs.get("err", False))
-
-    @patch("samcli.lib.package.language_extensions_packaging.click")
-    def test_routes_to_stderr_when_requested(self, patched_click):
-        # JSON-mode callers pass to_stderr=True so the warning never corrupts the JSON stream.
-        warn_parameter_based_collections([self._param_ref_property()], to_stderr=True)
 
         patched_click.secho.assert_called_once()
         self.assertTrue(patched_click.secho.call_args.kwargs.get("err"))

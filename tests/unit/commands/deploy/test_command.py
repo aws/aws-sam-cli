@@ -218,6 +218,23 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(emitted["status"], "FAILED")
         self.assertEqual(emitted["error"], "boom")
 
+    @patch("samcli.commands.deploy.command.manage_stack")
+    def test_json_output_emits_terminal_failed_when_resolve_s3_fails(self, mock_manage_stack):
+        # --resolve-s3 bucket resolution runs before the package/deploy steps. A failure there must
+        # still terminate the JSON stream with FAILED (regression: the handler used to open after
+        # this block, so a resolve-s3 failure emitted zero JSON lines). --resolve-s3 is common in CI.
+        mock_manage_stack.side_effect = RuntimeError("bucket boom")
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(RuntimeError):
+                self._do_cli_with(output="json", resolve_s3=True, s3_bucket=None)
+
+        emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+        self.assertEqual(emitted["type"], "result")
+        self.assertEqual(emitted["status"], "FAILED")
+        self.assertEqual(emitted["error"], "bucket boom")
+
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.deploy.command.click")

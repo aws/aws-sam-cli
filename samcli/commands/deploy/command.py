@@ -318,49 +318,48 @@ def do_cli(
         # so this combination is easy to hit when a guided project is later deployed in CI.
         raise click.UsageError("--confirm-changeset is not compatible with --output json")
 
-    if guided:
-        # Allow for a guided deploy to prompt and save those details.
-        guided_context = GuidedContext(
-            template_file=template_file,
-            stack_name=stack_name,
-            s3_bucket=s3_bucket,
-            image_repository=image_repository,
-            image_repositories=image_repositories,
-            resolve_s3=resolve_s3,
-            resolve_image_repos=resolve_image_repos,
-            s3_prefix=s3_prefix,
-            region=region,
-            profile=profile,
-            confirm_changeset=confirm_changeset,
-            capabilities=capabilities,
-            signing_profiles=signing_profiles,
-            parameter_overrides=parameter_overrides,
-            config_section=CONFIG_SECTION,
-            config_env=config_env,
-            config_file=config_file,
-            disable_rollback=disable_rollback,
-            language_extensions_enabled=language_extensions_enabled,
-        )
-        guided_context.run()
-    else:
-        if resolve_s3:
-            if bool(s3_bucket):
-                raise DeployResolveS3AndS3SetError()
-            if output_mode is OutputOption.json:
-                with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
-                    s3_bucket = manage_stack(profile=profile, region=region)
-            else:
-                s3_bucket = manage_stack(profile=profile, region=region)
-                print_managed_s3_bucket_info(s3_bucket)
-
-        # TODO Refactor resolve-s3 and resolve-image-repos into one place
-        # after we figure out how to enable resolve-images-repos in package
-        if resolve_image_repos:
-            image_repositories = sync_ecr_stack(
-                template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
-            )
-
     try:
+        if guided:
+            # Allow for a guided deploy to prompt and save those details.
+            guided_context = GuidedContext(
+                template_file=template_file,
+                stack_name=stack_name,
+                s3_bucket=s3_bucket,
+                image_repository=image_repository,
+                image_repositories=image_repositories,
+                resolve_s3=resolve_s3,
+                resolve_image_repos=resolve_image_repos,
+                s3_prefix=s3_prefix,
+                region=region,
+                profile=profile,
+                confirm_changeset=confirm_changeset,
+                capabilities=capabilities,
+                signing_profiles=signing_profiles,
+                parameter_overrides=parameter_overrides,
+                config_section=CONFIG_SECTION,
+                config_env=config_env,
+                config_file=config_file,
+                disable_rollback=disable_rollback,
+                language_extensions_enabled=language_extensions_enabled,
+            )
+            guided_context.run()
+        else:
+            if resolve_s3:
+                if bool(s3_bucket):
+                    raise DeployResolveS3AndS3SetError()
+                if output_mode is OutputOption.json:
+                    with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                        s3_bucket = manage_stack(profile=profile, region=region)
+                else:
+                    s3_bucket = manage_stack(profile=profile, region=region)
+                    print_managed_s3_bucket_info(s3_bucket)
+
+            # TODO Refactor resolve-s3 and resolve-image-repos into one place
+            # after we figure out how to enable resolve-images-repos in package
+            if resolve_image_repos:
+                image_repositories = sync_ecr_stack(
+                    template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
+                )
         with osutils.tempfile_platform_independent() as output_template_file:
             if guided:
                 context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
