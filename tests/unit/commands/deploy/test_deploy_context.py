@@ -173,6 +173,8 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(emitted["type"], "result")
             self.assertEqual(emitted["status"], "success")
             self.assertEqual(emitted["region"], "us-east-1")
+            # changeset_id lets a consumer link to / re-describe the changeset (text mode always shows it).
+            self.assertEqual(emitted["changeset_id"], "test")
             # Non-express deploy is fully settled.
             self.assertFalse(emitted["express"])
 

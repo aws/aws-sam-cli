@@ -320,6 +320,8 @@ class DeployContext:
                 if self._output_mode is OutputOption.json:
                     # Carry the express flag so a consumer can tell a settled deploy from an express
                     # one whose resources may still be stabilizing (the text branch warns about this).
+                    # Include changeset_id so a consumer can link to / re-describe the changeset; text
+                    # mode always reports it via MSG_SHOWCASE_CHANGESET.
                     sys.stdout.write(
                         json.dumps(
                             {
@@ -327,6 +329,7 @@ class DeployContext:
                                 "status": "success",
                                 "stack_name": stack_name,
                                 "region": region,
+                                "changeset_id": result["Id"],
                                 "express": self.express,
                             }
                         )
