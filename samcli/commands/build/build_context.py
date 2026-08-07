@@ -22,7 +22,11 @@ from samcli.commands._utils.template import (
     move_template,
 )
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
-from samcli.commands.build.utils import MountMode, prompt_user_to_enable_mount_with_write_if_needed
+from samcli.commands.build.utils import (
+    MountMode,
+    prompt_user_to_enable_mount_with_write_if_needed,
+    resource_requiring_mount_with_write,
+)
 from samcli.commands.exceptions import UserException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NESTED_STACK_NAME, NestedStackManager
 from samcli.lib.build.app_builder import (
@@ -310,11 +314,23 @@ class BuildContext:
             if self._use_container:
                 if self._mount_with == MountMode.WRITE:
                     mount_with_write = True
-                elif self._output is not OutputOption.json:
+                elif self._output is OutputOption.json:
+                    # A JSON consumer cannot answer the interactive mount-with-write confirm. For
+                    # workflows that REQUIRE a writable mount (e.g. .NET, which writes artifacts into
+                    # the source directory) a read-only fallback would fail later with a cryptic
+                    # in-container permission error, so fail up front with an actionable message
+                    # instead. Other workflows are safe with the documented READ-only default.
+                    requires_write = resource_requiring_mount_with_write(resources_to_build, self.base_dir)
+                    if requires_write:
+                        _, code_dir = requires_write
+                        raise UserException(
+                            f"Building '{code_dir}' inside a container requires mounting the source "
+                            f"directory with write permissions, which cannot be confirmed interactively "
+                            f"with --output json. Re-run with `--mount-with WRITE`."
+                        )
+                else:
                     # if self._mount_with is NOT WRITE
                     # check the need of mounting with write permissions and prompt user to enable it if needed.
-                    # Skipped in JSON mode: a non-interactive consumer cannot answer the confirm, so fall back
-                    # to the documented READ-only default rather than blocking on stdin (which aborts the build).
                     mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
                         resources_to_build,
                         self.base_dir,

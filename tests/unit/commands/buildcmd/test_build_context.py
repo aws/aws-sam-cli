@@ -1391,10 +1391,11 @@ class TestBuildContext_run(TestCase):
     def test_skips_mount_prompt_in_json_mode(
         self, mock_build, mock_experimental, mock_warning, mock_get_resources, mock_pre_processing, _, mock_prompt
     ):
-        # --use-container without --mount-with WRITE normally prompts on stdin. In JSON mode a
-        # non-interactive consumer cannot answer, so the prompt is skipped (defaulting to READ-only)
-        # rather than aborting the build. build() raises to short-circuit right after the decision.
+        # --use-container without --mount-with WRITE normally prompts on stdin. In JSON mode the
+        # interactive prompt is never used; when no resource requires a writable mount the build
+        # proceeds READ-only. build() raises to short-circuit right after the decision.
         mock_build.side_effect = FunctionNotFound()
+        mock_get_resources.return_value = Mock(functions=[], layers=[])
         context = BuildContext(
             resource_identifier="",
             template_file="template_file",
@@ -1413,6 +1414,38 @@ class TestBuildContext_run(TestCase):
             context.run()
 
         mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.resource_requiring_mount_with_write")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_json_mode_write_mount_required_raises_actionable_error(
+        self, mock_get_resources, mock_pre_processing, _, mock_requires_write
+    ):
+        # A workflow that requires a writable mount (e.g. .NET) cannot fall back to READ-only in JSON
+        # mode; it must fail up front with a message pointing at --mount-with WRITE rather than
+        # proceeding and failing later with a cryptic in-container permission error.
+        mock_get_resources.return_value = Mock(functions=[], layers=[])
+        mock_requires_write.return_value = (Mock(), "/src/DotnetFn")
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+            use_container=True,
+            mount_with=MountMode.READ.value,
+            output="json",
+        )
+
+        with self.assertRaises(UserException) as ctx:
+            context.run()
+
+        self.assertIn("--mount-with WRITE", str(ctx.exception))
+        self.assertIn("/src/DotnetFn", str(ctx.exception))
 
 
 class TestBuildContext_is_sam_template(TestCase):

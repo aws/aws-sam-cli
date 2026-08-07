@@ -4,7 +4,7 @@ Utilities for sam build command
 
 import pathlib
 from enum import Enum
-from typing import List
+from typing import List, Optional, Tuple
 
 import click
 
@@ -32,6 +32,56 @@ class MountMode(Enum):
         return [e.value for e in cls]
 
 
+def resource_requiring_mount_with_write(
+    resources_to_build: ResourcesToBuildCollector,
+    base_dir: str,
+) -> Optional[Tuple[CONFIG, str]]:
+    """
+    Return the workflow config and source directory of the first resource that must be built with a
+    writable container mount (e.g. .NET, which writes artifacts into the source directory), or None
+    if no resource in the build requires it.
+
+    Parameters
+    ----------
+    resources_to_build:
+        Resource to build inside container
+
+    base_dir : str
+        Path to the base directory
+
+    Returns
+    -------
+    Optional[Tuple[CONFIG, str]]
+        (workflow config, source directory) of the first resource requiring a writable mount, else None.
+    """
+    for function in resources_to_build.functions:
+        if function.packagetype == IMAGE:
+            continue
+        code_uri = function.codeuri
+        if not code_uri:
+            continue
+        runtime = function.runtime
+        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+        # get specified_workflow if metadata exists
+        metadata = function.metadata
+        specified_workflow = metadata.get("BuildMethod", None) if metadata else None
+        config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
+        if config.must_mount_with_write_in_container:
+            return config, code_dir
+
+    for layer in resources_to_build.layers:
+        code_uri = layer.codeuri
+        if not code_uri:
+            continue
+        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
+        specified_workflow = layer.build_method
+        config = get_workflow_config(None, code_dir, base_dir, specified_workflow)
+        if config.must_mount_with_write_in_container:
+            return config, code_dir
+
+    return None
+
+
 def prompt_user_to_enable_mount_with_write_if_needed(
     resources_to_build: ResourcesToBuildCollector,
     base_dir: str,
@@ -53,34 +103,9 @@ def prompt_user_to_enable_mount_with_write_if_needed(
     bool
         True, if user enabled mounting with write permissions.
     """
-
-    for function in resources_to_build.functions:
-        if function.packagetype == IMAGE:
-            continue
-        code_uri = function.codeuri
-        if not code_uri:
-            continue
-        runtime = function.runtime
-        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
-        # get specified_workflow if metadata exists
-        metadata = function.metadata
-        specified_workflow = metadata.get("BuildMethod", None) if metadata else None
-        config = get_workflow_config(runtime, code_dir, base_dir, specified_workflow)
-        # at least one function needs mount with write, return with prompting
-        if not config.must_mount_with_write_in_container:
-            continue
-        return prompt(config, code_dir)
-
-    for layer in resources_to_build.layers:
-        code_uri = layer.codeuri
-        if not code_uri:
-            continue
-        code_dir = str(pathlib.Path(base_dir, code_uri).resolve())
-        specified_workflow = layer.build_method
-        config = get_workflow_config(None, code_dir, base_dir, specified_workflow)
-        # at least one layer needs mount with write, return with prompting
-        if not config.must_mount_with_write_in_container:
-            continue
+    requires_write = resource_requiring_mount_with_write(resources_to_build, base_dir)
+    if requires_write:
+        config, code_dir = requires_write
         return prompt(config, code_dir)
 
     return False
