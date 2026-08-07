@@ -86,7 +86,7 @@ def build_failure_json(ex: Exception) -> str:
             "error": {
                 "type": error_type,
                 "message": str(ex),
-                "resource": getattr(ex, "resource_name", None),
+                "resources": getattr(ex, "resource_names", None),
             },
         }
     )
@@ -374,9 +374,9 @@ class BuildContext:
             user_ex = UserException(str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__)
             # The failure is attributable to the specific resource the user asked to build. Resolve
             # it to a full path so it matches the resource_id namespace of the success document.
-            user_ex.resource_name = getattr(
-                function_not_found_ex, "resource_name", None
-            ) or self._resolve_resource_full_path(self._resource_identifier)
+            user_ex.resource_names = getattr(
+                function_not_found_ex, "resource_names", None
+            ) or self._resolve_resource_full_paths(self._resource_identifier)
             raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
@@ -398,17 +398,17 @@ class BuildContext:
             self._print_build_failure()
 
             user_ex = UserException(str(ex), wrapped_from=wrapped_from)
-            # Prefer the resource the exception attributes the failure to (the build strategy tags
+            # Prefer the resources the exception attributes the failure to (the build strategy tags
             # per-resource failures, including an outdated builder container, with the in-flight
-            # resource's full_path). Otherwise fall back to the resource the user asked to build -
+            # resources' full paths). Otherwise fall back to the resource the user asked to build -
             # but only for failures actually tied to a resource. A corrupt build graph is not any
-            # single resource's fault, so it keeps resource=None rather than blaming whatever
+            # single resource's fault, so it keeps resources=None rather than blaming whatever
             # resource the user happened to name.
-            resource_name = getattr(ex, "resource_name", None)
-            if resource_name is None and not isinstance(ex, InvalidBuildGraphException):
-                # Resolve to a full path so it matches the resource_id namespace of the success document.
-                resource_name = self._resolve_resource_full_path(self._resource_identifier)
-            user_ex.resource_name = resource_name
+            resource_names = getattr(ex, "resource_names", None)
+            if resource_names is None and not isinstance(ex, InvalidBuildGraphException):
+                # Resolve to full paths so they match the resource_id namespace of the success document.
+                resource_names = self._resolve_resource_full_paths(self._resource_identifier)
+            user_ex.resource_names = resource_names
             raise user_ex from ex
         finally:
             if self.build_in_source:
@@ -1119,22 +1119,23 @@ class BuildContext:
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
 
-    def _resolve_resource_full_path(self, resource_identifier: Optional[str]) -> Optional[str]:
+    def _resolve_resource_full_paths(self, resource_identifier: Optional[str]) -> Optional[List[str]]:
         """
-        Resolve a resource identifier (a CLI argument, which may be a bare logical ID) to its
-        full path, so error.resource stays in the same namespace as resources[].resource_id in
-        the success document (both nested-stack-qualified, e.g. ChildStack/MyFn). Falls back to
-        the raw identifier if the resource cannot be looked up.
+        Resolve a resource identifier (a CLI argument, which may be a bare logical ID) to a single
+        element list holding its full path, so error.resources stays in the same namespace as
+        resources[].resource_id in the success document (both nested-stack-qualified, e.g.
+        ChildStack/MyFn). Returns None when there is no identifier, and falls back to the raw
+        identifier if the resource cannot be looked up.
         """
         if not resource_identifier:
-            return resource_identifier
+            return None
         function = self.function_provider.get(resource_identifier) if self.function_provider else None
         if function:
-            return function.full_path
+            return [function.full_path]
         layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
         if layer:
-            return layer.full_path
-        return resource_identifier
+            return [layer.full_path]
+        return [resource_identifier]
 
     @staticmethod
     def _function_to_json(function: Function) -> Dict[str, Any]:

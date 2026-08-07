@@ -1155,22 +1155,22 @@ class TestBuildContext_run(TestCase):
 
     @parameterized.expand(
         [
-            # (exception, expected wrapped_from, expected resource_name)
+            # (exception, expected wrapped_from, expected resource_names)
             # These reach run()'s handler untagged (ApplicationBuilder is mocked, so the build-strategy
-            # wrapper that would tag resource_name never runs). run() then resolves the requested
+            # wrapper that would tag resource_names never runs). run() then resolves the requested
             # identifier to its full path (the mocked function provider returns func1). In real runs the
-            # strategy wrapper tags these with the in-flight resource before run() sees them; that path is
+            # strategy wrapper tags these with the in-flight resources before run() sees them; that path is
             # covered separately by the build_strategy tests.
-            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", "func1"),
-            (UnsupportedBuilderException(), "UnsupportedBuilderException", "func1"),
-            (BuildInsideContainerError(), "BuildInsideContainerError", "func1"),
-            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", "func1"),
+            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", ["func1"]),
+            (UnsupportedBuilderException(), "UnsupportedBuilderException", ["func1"]),
+            (BuildInsideContainerError(), "BuildInsideContainerError", ["func1"]),
+            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", ["func1"]),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
-                "func1",
+                ["func1"],
             ),
-            # A corrupt build graph is not any single resource's fault, so it stays resource=None
+            # A corrupt build graph is not any single resource's fault, so it stays resource_names=None
             # rather than blaming the requested identifier.
             (InvalidBuildGraphException(msg="bad graph"), "InvalidBuildGraphException", None),
         ]
@@ -1192,7 +1192,7 @@ class TestBuildContext_run(TestCase):
         self,
         exception,
         wrapped_exception,
-        expected_resource_name,
+        expected_resource_names,
         esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
@@ -1257,8 +1257,8 @@ class TestBuildContext_run(TestCase):
         self.assertEqual(str(ctx.exception), str(exception))
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
         # Resource-tied failures fall back to the requested resource id; a corrupt build graph
-        # keeps resource=None so no innocent resource is blamed.
-        self.assertEqual(ctx.exception.resource_name, expected_resource_name)
+        # keeps resource_names=None so no innocent resource is blamed.
+        self.assertEqual(ctx.exception.resource_names, expected_resource_names)
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
@@ -1680,14 +1680,14 @@ class TestBuildContext_print_build_failure(TestCase):
 
     def test_resolves_bare_id_to_full_path(self):
         # A nested-stack function's full_path differs from the bare CLI id; resolving keeps
-        # error.resource in the same namespace as the success document's resource_id.
+        # error.resources in the same namespace as the success document's resource_id.
         nested = get_function("MyFn")._replace(stack_path="ChildStack")
         self.build_context._function_provider = Mock()
         self.build_context._function_provider.get.return_value = nested
         self.build_context._layer_provider = Mock()
         self.build_context._layer_provider.get.return_value = None
 
-        self.assertEqual(self.build_context._resolve_resource_full_path("MyFn"), "ChildStack/MyFn")
+        self.assertEqual(self.build_context._resolve_resource_full_paths("MyFn"), ["ChildStack/MyFn"])
 
 
 class TestBuildContext_check_build_method_experimental_flag(TestCase):

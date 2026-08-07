@@ -722,10 +722,10 @@ class TestIncrementalBuildStrategy(TestCase):
 
     def test_manifest_pre_check_failure_is_attributed_to_function(self, patched_hash_gen, patched_os):
         # The manifest pre-check (get_workflow_config) can raise an unsupported-runtime error before the
-        # delegate's attribution runs. Ensure that escaping failure still carries the function full_path
-        # so --cached/--incremental builds report error.resource just like the non-cached path.
-        build_definition = Mock()
-        build_definition.get_full_path.return_value = "ChildStack/MyFn"
+        # delegate's attribution runs. Ensure that escaping failure still carries the function full paths
+        # so --cached/--incremental builds report error.resources just like the non-cached path. Two
+        # collapsed functions confirm every affected resource is reported, not just the first.
+        build_definition = Mock(functions=[Mock(full_path="ChildStack/MyFn"), Mock(full_path="ChildStack/MyFn2")])
         self.build_strategy._check_whether_manifest_is_changed = Mock(
             side_effect=UnsupportedRuntimeException("'python3.7' runtime is not supported")
         )
@@ -733,7 +733,7 @@ class TestIncrementalBuildStrategy(TestCase):
         with self.assertRaises(UnsupportedRuntimeException) as ctx:
             self.build_strategy.build_single_function_definition(build_definition)
 
-        self.assertEqual(ctx.exception.resource_name, "ChildStack/MyFn")
+        self.assertEqual(ctx.exception.resource_names, ["ChildStack/MyFn", "ChildStack/MyFn2"])
 
     def test_manifest_pre_check_failure_is_attributed_to_layer(self, patched_hash_gen, patched_os):
         layer_definition = Mock()
@@ -745,7 +745,7 @@ class TestIncrementalBuildStrategy(TestCase):
         with self.assertRaises(UnsupportedRuntimeException) as ctx:
             self.build_strategy.build_single_layer_definition(layer_definition)
 
-        self.assertEqual(ctx.exception.resource_name, "ChildStack/MyLayer")
+        self.assertEqual(ctx.exception.resource_names, ["ChildStack/MyLayer"])
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")

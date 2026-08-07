@@ -2,13 +2,13 @@
 Build Related Exceptions.
 """
 
-from typing import Optional
+from typing import List, Optional
 
 from samcli.commands.exceptions import UserException
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
-    resource_name: Optional[str] = None
+    resource_names: Optional[List[str]] = None
 
     def __init__(self, container_name: str, error_msg: str) -> None:
         msg = (
@@ -19,7 +19,7 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
 
 class BuildError(Exception):
-    resource_name: Optional[str] = None
+    resource_names: Optional[List[str]] = None
 
     def __init__(self, wrapped_from: str, msg: str) -> None:
         self.wrapped_from = wrapped_from
@@ -27,7 +27,7 @@ class BuildError(Exception):
 
 
 class BuildInsideContainerError(Exception):
-    resource_name: Optional[str] = None
+    resource_names: Optional[List[str]] = None
 
 
 class DockerConnectionError(BuildError):

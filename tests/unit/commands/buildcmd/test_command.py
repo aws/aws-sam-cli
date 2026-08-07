@@ -116,16 +116,16 @@ class TestDoCliJsonFailure(TestCase):
         return echoed
 
     def test_json_failure_includes_type_message_and_resource(self):
-        # run() re-raises build failures as UserException, carrying wrapped_from + resource_name.
+        # run() re-raises build failures as UserException, carrying wrapped_from + resource_names.
         ex = UserException("dependency failure", wrapped_from="WorkflowFailedError")
-        ex.resource_name = "HelloWorldFunction"
+        ex.resource_names = ["HelloWorldFunction"]
 
         result = json.loads(self._run_expecting(ex)[0])
 
         self.assertEqual(result["status"], "failure")
         self.assertEqual(result["error"]["type"], "WorkflowFailedError")
         self.assertEqual(result["error"]["message"], "dependency failure")
-        self.assertEqual(result["error"]["resource"], "HelloWorldFunction")
+        self.assertEqual(result["error"]["resources"], ["HelloWorldFunction"])
 
     def test_json_failure_for_non_build_error_user_exception(self):
         # MissingBuildMethodException is a UserException raised before/around run()'s try block.

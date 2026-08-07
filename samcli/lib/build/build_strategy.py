@@ -42,9 +42,9 @@ FunctionOrLayerBuildDefinition = TypeVar(
     "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
 )
 
-# Build failures that are attributable to a specific resource. When one of these escapes a strategy
-# without a resource_name already set, we tag it with the in-flight definition's full_path so the
-# structured (JSON) failure document can report error.resource.
+# Build failures that are attributable to specific resources. When one of these escapes a strategy
+# without resource_names already set, we tag it with the in-flight definition's resources so the
+# structured (JSON) failure document can report error.resources.
 _RESOURCE_ATTRIBUTABLE_BUILD_ERRORS = (
     BuildError,
     UnsupportedRuntimeException,
@@ -55,17 +55,19 @@ _RESOURCE_ATTRIBUTABLE_BUILD_ERRORS = (
 
 
 @contextmanager
-def _attribute_build_failure_to(full_path: str) -> Iterator[None]:
+def _attribute_build_failure_to(full_paths: List[str]) -> Iterator[None]:
     """
-    Tag any resource-attributable build failure raised in the block with ``full_path`` (unless it
-    already carries a resource_name). Keeps attribution consistent across build strategies - both
-    DefaultBuildStrategy and the pre-delegation work in IncrementalBuildStrategy raise through here.
+    Tag any resource-attributable build failure raised in the block with ``full_paths`` (unless it
+    already carries resource_names). A build definition can collapse several functions that share a
+    runtime and CodeUri, so a single failure can affect all of them; passing the full list keeps every
+    affected resource in the failure document. Keeps attribution consistent across build strategies -
+    both DefaultBuildStrategy and the pre-delegation work in IncrementalBuildStrategy raise through here.
     """
     try:
         yield
     except _RESOURCE_ATTRIBUTABLE_BUILD_ERRORS as ex:
-        if getattr(ex, "resource_name", None) is None:
-            ex.resource_name = full_path
+        if getattr(ex, "resource_names", None) is None:
+            ex.resource_names = full_paths
         raise
 
 
@@ -177,11 +179,10 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
-        # Representative resource id. Functions sharing runtime + CodeUri + metadata collapse into
-        # one build definition, so a single failure can affect several; get_full_path() names the
-        # first. Reporting one representative is the deliberate contract here — the JSON failure
-        # document carries a single error.resource.
-        with _attribute_build_failure_to(build_definition.get_full_path()):
+        # Functions sharing runtime + CodeUri + metadata collapse into one build definition, so a
+        # single failure can affect all of them. Report every affected function so the JSON failure
+        # document lists them all rather than just the first.
+        with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             return self._do_build_single_function_definition(build_definition)
 
     def _do_build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
@@ -254,7 +255,7 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         Build the unique definition and then copy the artifact to the corresponding layer folder
         """
-        with _attribute_build_failure_to(layer_definition.full_path):
+        with _attribute_build_failure_to([layer_definition.full_path]):
             return self._do_build_single_layer_definition(layer_definition)
 
     def _do_build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
@@ -530,15 +531,15 @@ class IncrementalBuildStrategy(BuildStrategy):
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         # The manifest pre-check runs before delegating, and get_workflow_config() inside it can raise
         # (e.g. UnsupportedRuntimeException) before the delegate's own attribution is reached. Wrap both
-        # so an unsupported-runtime failure on --cached/--incremental still reports error.resource.
-        with _attribute_build_failure_to(build_definition.get_full_path()):
+        # so an unsupported-runtime failure on --cached/--incremental still reports error.resources.
+        with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             self._check_whether_manifest_is_changed(
                 build_definition, build_definition.codeuri, build_definition.runtime
             )
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        with _attribute_build_failure_to(layer_definition.full_path):
+        with _attribute_build_failure_to([layer_definition.full_path]):
             self._check_whether_manifest_is_changed(
                 layer_definition, layer_definition.codeuri, layer_definition.build_method
             )
