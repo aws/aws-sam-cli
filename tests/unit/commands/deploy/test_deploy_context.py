@@ -163,7 +163,6 @@ class TestSamDeployCommand(TestCase):
             template_file.write(b"{}")
             template_file.flush()
             self.deploy_command_context.template_file = template_file.name
-            self.deploy_command_context.output = "json"
             self.deploy_command_context._output_mode = OutputOption.json
 
             stdout = StringIO()
@@ -190,7 +189,6 @@ class TestSamDeployCommand(TestCase):
             template_file.write(b"{}")
             template_file.flush()
             self.deploy_command_context.template_file = template_file.name
-            self.deploy_command_context.output = "json"
             self.deploy_command_context._output_mode = OutputOption.json
             self.deploy_command_context.express = True
 
@@ -217,7 +215,6 @@ class TestSamDeployCommand(TestCase):
             template_file.write(b"{}")
             template_file.flush()
             self.deploy_command_context.template_file = template_file.name
-            self.deploy_command_context.output = "json"
             self.deploy_command_context._output_mode = OutputOption.json
 
             stdout = StringIO()
@@ -239,7 +236,6 @@ class TestSamDeployCommand(TestCase):
             template_file.flush()
             self.deploy_command_context.template_file = template_file.name
             self.deploy_command_context.no_execute_changeset = True
-            self.deploy_command_context.output = "json"
             self.deploy_command_context._output_mode = OutputOption.json
 
             stdout = StringIO()

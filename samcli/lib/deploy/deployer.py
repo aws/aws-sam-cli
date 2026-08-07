@@ -39,6 +39,7 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.lib.cfn_language_extensions.utils import is_sam_generated_mapping
 from samcli.lib.deploy.utils import DeployColor, FailureMode
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.colors import Colored, Colors
@@ -88,11 +89,14 @@ class Deployer:
         cloudformation_client,
         changeset_prefix="samcli-deploy",
         client_sleep=DEFAULT_CLIENT_SLEEP,
-        output_mode="text",
+        output_mode=OutputOption.text.value,
     ):
         self._client = cloudformation_client
         self.changeset_prefix = changeset_prefix
-        self.output_mode = output_mode
+        # Normalize at the boundary: accept the click-normalized string (or an OutputOption) and
+        # store the enum. OutputOption(...) raises on an unrecognized value rather than letting a
+        # bad mode silently fall through to table output and corrupt a JSON-lines stream.
+        self.output_mode = OutputOption(output_mode)
         try:
             self.client_sleep = float(client_sleep)
         except ValueError:
@@ -321,7 +325,7 @@ class Deployer:
                     }
                 )
 
-        if kwargs.get("output_mode") == "json":
+        if kwargs.get("output_mode") == OutputOption.json.value:
             for k, v in changes.items():
                 for value in v:
                     sys.stdout.write(
@@ -377,7 +381,7 @@ class Deployer:
         :param changeset_id: ID or name of the changeset
         :param stack_name:   Stack name
         """
-        if self.output_mode != "json":
+        if self.output_mode is not OutputOption.json:
             sys.stdout.write("\n\nWaiting for changeset to be created..\n\n")
             sys.stdout.flush()
 
@@ -496,7 +500,7 @@ class Deployer:
                     time_stamp_marker = utc_to_timestamp(new_events[-1]["Timestamp"])
 
                 for new_event in new_events:
-                    if kwargs.get("output_mode") == "json":
+                    if kwargs.get("output_mode") == OutputOption.json.value:
                         sys.stdout.write(
                             json.dumps(
                                 {
@@ -603,14 +607,14 @@ class Deployer:
         max_wait_duration:
             The maximum duration in minutes to wait for the deployment to complete.
         """
-        if self.output_mode != "json":
+        if self.output_mode is not OutputOption.json:
             sys.stdout.write(
                 "\n{} - Waiting for stack create/update "
                 "to complete\n".format(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             )
             sys.stdout.flush()
 
-        self.describe_stack_events(stack_name, time_stamp_marker, on_failure, output_mode=self.output_mode)
+        self.describe_stack_events(stack_name, time_stamp_marker, on_failure, output_mode=self.output_mode.value)
 
         # Pick the right waiter
         if stack_operation == "CREATE":
@@ -643,7 +647,7 @@ class Deployer:
         try:
             outputs = self.get_stack_outputs(stack_name=stack_name, echo=False)
             if outputs:
-                if self.output_mode == "json":
+                if self.output_mode is OutputOption.json:
                     sys.stdout.write(
                         json.dumps(
                             {
@@ -693,7 +697,7 @@ class Deployer:
                 deployment_config=deployment_config,
             )
             self.wait_for_changeset(result["Id"], stack_name)
-            self.describe_changeset(result["Id"], stack_name, output_mode=self.output_mode)
+            self.describe_changeset(result["Id"], stack_name, output_mode=self.output_mode.value)
             return result, changeset_type
         except botocore.exceptions.ClientError as ex:
             raise self._create_deploy_error(stack_name, str(ex)) from ex
@@ -887,7 +891,9 @@ class Deployer:
                 # get the latest stack event
                 marker_time = self.get_last_event_time(stack_name, 0)
                 self._client.rollback_stack(**kwargs)
-                self.describe_stack_events(stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode)
+                self.describe_stack_events(
+                    stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode.value
+                )
                 self._rollback_wait(stack_name)
 
                 current_state = self._get_stack_status(stack_name)
@@ -906,7 +912,7 @@ class Deployer:
                 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/cloudformation.html#CloudFormation.Client.delete_stack
                 if current_state == "CREATE_FAILED":
                     self.describe_stack_events(
-                        stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode
+                        stack_name, marker_time, FailureMode.DELETE, output_mode=self.output_mode.value
                     )
 
                 waiter = self._client.get_waiter("stack_delete_complete")

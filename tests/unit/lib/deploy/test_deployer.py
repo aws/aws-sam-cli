@@ -19,6 +19,7 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -91,6 +92,27 @@ class TestDeployer(CustomTestCase):
     def test_deployer_init_default_sleep(self):
         deployer = Deployer(MagicMock().client("cloudformation"))
         self.assertEqual(deployer.client_sleep, 0.5)
+
+    def test_deployer_output_mode_defaults_to_text_enum(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertIs(deployer.output_mode, OutputOption.text)
+
+    def test_deployer_output_mode_normalizes_string_to_enum(self):
+        # Callers pass the click-normalized string; it is converted to the enum at the boundary.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode="json")
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_accepts_enum_member(self):
+        # Passing an OutputOption member (rather than its string) must also work, so the enum can be
+        # forwarded directly without a caller having to know whether to send the value or the member.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode=OutputOption.json)
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_invalid_raises(self):
+        # An unrecognized value must fail loudly rather than silently degrade to table output and
+        # corrupt a JSON-lines stream.
+        with self.assertRaises(ValueError):
+            Deployer(MagicMock().client("cloudformation"), output_mode="jsonn")
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})

@@ -117,7 +117,6 @@ class DeployContext:
         self.max_wait_duration = max_wait_duration
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
         self.express = express
-        self.output = output
         self._output_mode = OutputOption(output)
 
     def __enter__(self):
@@ -168,7 +167,7 @@ class DeployContext:
                 True if self._output_mode is OutputOption.json else self.no_progressbar,
             )
 
-        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay, output_mode=self.output)
+        self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay, output_mode=self._output_mode)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
         if self._output_mode is not OutputOption.json:
