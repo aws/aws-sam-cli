@@ -204,8 +204,9 @@ class TestSamDeployCommand(TestCase):
     @patch.object(Deployer, "execute_changeset", MagicMock())
     @patch.object(Deployer, "wait_for_execute", MagicMock())
     def test_json_output_confirm_changeset_reports_confirmation_required(self, mock_client, mock_session):
-        # --confirm-changeset cannot prompt a JSON consumer; report CONFIRMATION_REQUIRED and stop
-        # before executing rather than blocking on the interactive click.confirm.
+        # Defense-in-depth: the deploy CLI rejects --confirm-changeset with --output json up front,
+        # but if a DeployContext is still constructed with that combination (e.g. another caller),
+        # it reports CONFIRMATION_REQUIRED and stops rather than blocking on the interactive prompt.
         with tempfile.NamedTemporaryFile(delete=False) as template_file:
             template_file.write(b"{}")
             template_file.flush()

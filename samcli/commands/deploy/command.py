@@ -310,6 +310,13 @@ def do_cli(
     if guided and output_mode is OutputOption.json:
         raise click.UsageError("--guided is not compatible with --output json")
 
+    if confirm_changeset and output_mode is OutputOption.json:
+        # Confirming a changeset needs an interactive answer a JSON consumer cannot give. Rejecting
+        # up front avoids a silent no-op deploy that would otherwise emit CONFIRMATION_REQUIRED and
+        # exit 0 without deploying. confirm_changeset is a persisted samconfig value from --guided,
+        # so this combination is easy to hit when a guided project is later deployed in CI.
+        raise click.UsageError("--confirm-changeset is not compatible with --output json")
+
     if guided:
         # Allow for a guided deploy to prompt and save those details.
         guided_context = GuidedContext(

@@ -2,6 +2,8 @@ import os
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import click
+
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
@@ -144,6 +146,57 @@ class TestDeployCliCommand(TestCase):
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    def _do_cli_with(self, **overrides):
+        # Invoke do_cli with the setUp defaults, overriding only the fields a test cares about.
+        kwargs = dict(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=self.s3_bucket,
+            image_repository=self.image_repository,
+            image_repositories=None,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=self.guided,
+            confirm_changeset=self.confirm_changeset,
+            signing_profiles=self.signing_profiles,
+            resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
+            resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
+            disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
+            max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
+        )
+        kwargs.update(overrides)
+        do_cli(**kwargs)
+
+    def test_confirm_changeset_with_json_output_is_rejected(self):
+        # --confirm-changeset needs an interactive answer; with --output json it would otherwise
+        # emit CONFIRMATION_REQUIRED and exit 0 without deploying. do_cli must reject it up front.
+        with self.assertRaises(click.UsageError):
+            self._do_cli_with(confirm_changeset=True, output="json")
+
+    def test_guided_with_json_output_is_rejected(self):
+        # --guided is fully interactive and cannot run under --output json.
+        with self.assertRaises(click.UsageError):
+            self._do_cli_with(guided=True, output="json")
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")

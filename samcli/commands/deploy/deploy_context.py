@@ -134,9 +134,6 @@ class DeployContext:
         """
         Execute deployment based on the argument provided by customers and samconfig.toml.
         """
-        if self._output_mode is OutputOption.json:
-            logging.getLogger("samcli").setLevel(logging.WARNING)
-
         # Parse parameters
         with open(self.template_file, "r") as handle:
             template_str = handle.read()
