@@ -285,6 +285,7 @@ class PackageContext:
                 result.dynamic_artifact_properties,
                 exported_template.get("Resources", {}),
                 template_dir,
+                to_stderr=self._output_mode is OutputOption.json,
             )
         return output_template
 

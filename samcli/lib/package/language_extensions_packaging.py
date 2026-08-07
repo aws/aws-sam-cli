@@ -93,6 +93,7 @@ def generate_and_apply_artifact_mappings(
     dynamic_properties: List[DynamicArtifactProperty],
     exported_resources: Dict[str, Any],
     template_dir: str,
+    to_stderr: bool = False,
 ) -> Dict[str, Any]:
     """
     Generate Mappings for dynamic artifact properties and apply them to the template.
@@ -116,7 +117,7 @@ def generate_and_apply_artifact_mappings(
     dict
         The modified template with Mappings and Fn::FindInMap references
     """
-    warn_parameter_based_collections(dynamic_properties)
+    warn_parameter_based_collections(dynamic_properties, to_stderr=to_stderr)
 
     mappings, property_to_mapping = _generate_artifact_mappings(dynamic_properties, template_dir, exported_resources)
 
@@ -687,9 +688,17 @@ def _replace_dynamic_artifact_with_findmap(
     return True
 
 
-def warn_parameter_based_collections(dynamic_properties: List[DynamicArtifactProperty]) -> None:
+def warn_parameter_based_collections(
+    dynamic_properties: List[DynamicArtifactProperty], to_stderr: bool = False
+) -> None:
     """
     Emit warnings for dynamic artifact properties that use parameter-based collections.
+
+    Parameters
+    ----------
+    to_stderr : bool
+        Route the warning to stderr instead of stdout. Set by callers emitting structured (JSON)
+        output so the warning does not corrupt the JSON stream on stdout.
     """
     warned_loops: set = set()
 
@@ -708,4 +717,4 @@ def warn_parameter_based_collections(dynamic_properties: List[DynamicArtifactPro
             )
 
             LOG.debug(warning_msg)
-            click.secho(warning_msg, fg="yellow")
+            click.secho(warning_msg, fg="yellow", err=to_stderr)

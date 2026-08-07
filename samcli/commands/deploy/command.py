@@ -3,6 +3,7 @@ CLI command for "deploy" command
 """
 
 import contextlib
+import json
 import logging
 import os
 
@@ -359,70 +360,80 @@ def do_cli(
                 template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
             )
 
-    with osutils.tempfile_platform_independent() as output_template_file:
-        if guided:
-            context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
-        else:
-            context_param_overrides = parameter_overrides
-        with PackageContext(
-            template_file=template_file,
-            s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-            s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
-            image_repository=guided_context.guided_image_repository if guided else image_repository,
-            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
-            output_template_file=output_template_file.name,
-            kms_key_id=kms_key_id,
-            use_json=use_json,
-            force_upload=force_upload,
-            no_progressbar=no_progressbar if output_mode is not OutputOption.json else True,
-            metadata=metadata,
-            on_deploy=True,
-            region=guided_context.guided_region if guided else region,
-            profile=profile,
-            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
-            parameter_overrides=context_param_overrides,
-            language_extensions=language_extensions,
-            output=output,
-        ) as package_context:
-            package_context.run()
+    try:
+        with osutils.tempfile_platform_independent() as output_template_file:
+            if guided:
+                context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+            else:
+                context_param_overrides = parameter_overrides
+            with PackageContext(
+                template_file=template_file,
+                s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+                s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+                image_repository=guided_context.guided_image_repository if guided else image_repository,
+                image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
+                output_template_file=output_template_file.name,
+                kms_key_id=kms_key_id,
+                use_json=use_json,
+                force_upload=force_upload,
+                no_progressbar=no_progressbar if output_mode is not OutputOption.json else True,
+                metadata=metadata,
+                on_deploy=True,
+                region=guided_context.guided_region if guided else region,
+                profile=profile,
+                signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+                parameter_overrides=context_param_overrides,
+                language_extensions=language_extensions,
+                output=output,
+            ) as package_context:
+                package_context.run()
 
-        # 5s of sleep time between stack checks and describe stack events.
-        DEFAULT_POLL_DELAY = 5
-        try:
-            poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
-        except ValueError:
-            poll_delay = DEFAULT_POLL_DELAY
-        if poll_delay <= 0:
-            poll_delay = DEFAULT_POLL_DELAY
+            # 5s of sleep time between stack checks and describe stack events.
+            DEFAULT_POLL_DELAY = 5
+            try:
+                poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+            except ValueError:
+                poll_delay = DEFAULT_POLL_DELAY
+            if poll_delay <= 0:
+                poll_delay = DEFAULT_POLL_DELAY
 
-        with DeployContext(
-            template_file=output_template_file.name,
-            stack_name=guided_context.guided_stack_name if guided else stack_name,
-            s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-            image_repository=guided_context.guided_image_repository if guided else image_repository,
-            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
-            force_upload=force_upload,
-            no_progressbar=no_progressbar,
-            s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
-            kms_key_id=kms_key_id,
-            parameter_overrides=context_param_overrides,
-            capabilities=guided_context.guided_capabilities if guided else capabilities,
-            no_execute_changeset=no_execute_changeset,
-            role_arn=role_arn,
-            notification_arns=notification_arns,
-            fail_on_empty_changeset=fail_on_empty_changeset,
-            tags=tags,
-            region=guided_context.guided_region if guided else region,
-            profile=profile,
-            confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
-            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
-            use_changeset=True,
-            disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
-            poll_delay=poll_delay,
-            on_failure=on_failure,
-            max_wait_duration=max_wait_duration,
-            language_extensions=language_extensions,
-            express=express,
-            output=output,
-        ) as deploy_context:
-            deploy_context.run()
+            with DeployContext(
+                template_file=output_template_file.name,
+                stack_name=guided_context.guided_stack_name if guided else stack_name,
+                s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+                image_repository=guided_context.guided_image_repository if guided else image_repository,
+                image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
+                force_upload=force_upload,
+                no_progressbar=no_progressbar,
+                s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+                kms_key_id=kms_key_id,
+                parameter_overrides=context_param_overrides,
+                capabilities=guided_context.guided_capabilities if guided else capabilities,
+                no_execute_changeset=no_execute_changeset,
+                role_arn=role_arn,
+                notification_arns=notification_arns,
+                fail_on_empty_changeset=fail_on_empty_changeset,
+                tags=tags,
+                region=guided_context.guided_region if guided else region,
+                profile=profile,
+                confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+                signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+                use_changeset=True,
+                disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+                poll_delay=poll_delay,
+                on_failure=on_failure,
+                max_wait_duration=max_wait_duration,
+                language_extensions=language_extensions,
+                express=express,
+                output=output,
+            ) as deploy_context:
+                deploy_context.run()
+    except Exception as ex:
+        # Guarantee the JSON-lines stream always ends with a terminal result object. The
+        # per-step handlers only emit one for some failures (e.g. an empty changeset with the
+        # default --fail-on-empty-changeset, an invalid template, or a packaging error emit
+        # none), so without this a consumer cannot tell a real failure from a truncated stream.
+        # Re-raise so exit codes and telemetry are unchanged.
+        if output_mode is OutputOption.json:
+            click.echo(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}))
+        raise

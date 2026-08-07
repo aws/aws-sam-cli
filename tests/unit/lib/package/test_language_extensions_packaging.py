@@ -5,8 +5,40 @@ focuses on the Metadata merge pass added for the registry-driven merge.
 """
 
 from unittest import TestCase
+from unittest.mock import Mock, patch
 
-from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
+from samcli.lib.package.language_extensions_packaging import (
+    merge_language_extensions_s3_uris,
+    warn_parameter_based_collections,
+)
+
+
+class TestWarnParameterBasedCollections(TestCase):
+    @staticmethod
+    def _param_ref_property():
+        return Mock(
+            collection_is_parameter_ref=True,
+            foreach_key="Fn::ForEach::Loop",
+            loop_name="Loop",
+            collection_parameter_name="MyParam",
+            property_name="CodeUri",
+        )
+
+    @patch("samcli.lib.package.language_extensions_packaging.click")
+    def test_defaults_to_stdout(self, patched_click):
+        warn_parameter_based_collections([self._param_ref_property()])
+
+        patched_click.secho.assert_called_once()
+        # Default (e.g. sam package) writes to stdout.
+        self.assertFalse(patched_click.secho.call_args.kwargs.get("err", False))
+
+    @patch("samcli.lib.package.language_extensions_packaging.click")
+    def test_routes_to_stderr_when_requested(self, patched_click):
+        # JSON-mode callers pass to_stderr=True so the warning never corrupts the JSON stream.
+        warn_parameter_based_collections([self._param_ref_property()], to_stderr=True)
+
+        patched_click.secho.assert_called_once()
+        self.assertTrue(patched_click.secho.call_args.kwargs.get("err"))
 
 
 class TestMergeMetadata(TestCase):

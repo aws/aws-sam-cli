@@ -1,4 +1,7 @@
+import json
 import os
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
@@ -197,6 +200,23 @@ class TestDeployCliCommand(TestCase):
         # --guided is fully interactive and cannot run under --output json.
         with self.assertRaises(click.UsageError):
             self._do_cli_with(guided=True, output="json")
+
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_json_output_emits_terminal_failed_on_unhandled_failure(self, mock_package_context):
+        # A failure the package/deploy steps do not emit their own result for (here a packaging
+        # error) must still terminate the JSON stream with a FAILED result so a consumer can tell
+        # failure from a truncated stream.
+        mock_package_context.return_value.__enter__.return_value.run.side_effect = RuntimeError("boom")
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(RuntimeError):
+                self._do_cli_with(output="json")
+
+        emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+        self.assertEqual(emitted["type"], "result")
+        self.assertEqual(emitted["status"], "FAILED")
+        self.assertEqual(emitted["error"], "boom")
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
