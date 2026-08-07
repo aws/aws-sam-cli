@@ -348,8 +348,12 @@ def do_cli(
                 if bool(s3_bucket):
                     raise DeployResolveS3AndS3SetError()
                 if output_mode is OutputOption.json:
+                    # manage_stack prints progress to stdout; redirect it so it does not corrupt the
+                    # JSON stream. Then surface the resolved bucket as a JSON info line, since
+                    # print_managed_s3_bucket_info (the only place it appears in text mode) is skipped.
                     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
                         s3_bucket = manage_stack(profile=profile, region=region)
+                    click.echo(json.dumps({"type": "info", "managed_s3_bucket": s3_bucket}))
                 else:
                     s3_bucket = manage_stack(profile=profile, region=region)
                     print_managed_s3_bucket_info(s3_bucket)
@@ -432,7 +436,17 @@ def do_cli(
         # per-step handlers only emit one for some failures (e.g. an empty changeset with the
         # default --fail-on-empty-changeset, an invalid template, or a packaging error emit
         # none), so without this a consumer cannot tell a real failure from a truncated stream.
-        # Re-raise so exit codes and telemetry are unchanged.
+        # Re-raise so exit codes and telemetry are unchanged. The failure shape (status "failure"
+        # with a structured error object) matches sam build's build_failure_json, so a consumer can
+        # handle both commands with one code path.
         if output_mode is OutputOption.json:
-            click.echo(json.dumps({"type": "result", "status": "failed", "error": str(ex)}))
+            click.echo(
+                json.dumps(
+                    {
+                        "type": "result",
+                        "status": "failure",
+                        "error": {"type": type(ex).__name__, "message": str(ex)},
+                    }
+                )
+            )
         raise
