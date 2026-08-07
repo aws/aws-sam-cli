@@ -215,7 +215,7 @@ class TestDeployCliCommand(TestCase):
 
         emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
         self.assertEqual(emitted["type"], "result")
-        self.assertEqual(emitted["status"], "FAILED")
+        self.assertEqual(emitted["status"], "failed")
         self.assertEqual(emitted["error"], "boom")
 
     @patch("samcli.commands.deploy.command.manage_stack")
@@ -232,7 +232,7 @@ class TestDeployCliCommand(TestCase):
 
         emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
         self.assertEqual(emitted["type"], "result")
-        self.assertEqual(emitted["status"], "FAILED")
+        self.assertEqual(emitted["status"], "failed")
         self.assertEqual(emitted["error"], "bucket boom")
 
     @patch("samcli.commands.package.command.click")

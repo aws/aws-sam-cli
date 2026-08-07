@@ -1566,6 +1566,8 @@ class TestBuildContext_print_build_success(TestCase):
         secho_mock.assert_not_called()
 
         result = json.loads(echo_mock.call_args[0][0])
+        # Shared cross-command contract: a `type` discriminator plus a lowercase status.
+        self.assertEqual(result["type"], "result")
         self.assertEqual(result["status"], "success")
         self.assertEqual(result["build_dir"], "artifacts")
         self.assertEqual(result["template_file"], "out_template")
@@ -1575,6 +1577,32 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(result["resources"][1]["type"], "layer")
         self.assertEqual(result["resources"][1]["resource_id"], "Lyr")
         self.assertEqual(result["resources"][1]["compatible_runtimes"], ["python3.12", "python3.11"])
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_reports_absolute_paths_unchanged(self, echo_mock, secho_mock):
+        # JSON must report the absolute paths it is handed, never relpath'd, so a machine consumer
+        # does not have to guess the process cwd (relpath is a text-banner-only affordance).
+        abs_build_dir = os.path.abspath(".aws-sam/build")
+        abs_template = os.path.abspath(".aws-sam/build/template.yaml")
+
+        self.build_context._print_build_success(abs_build_dir, abs_template, self._collector())
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(result["build_dir"], abs_build_dir)
+        self.assertEqual(result["template_file"], abs_template)
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_text_mode_relpaths_the_paths(self, echo_mock, secho_mock):
+        # Text mode keeps the human-readability relpath transform on the absolute paths it receives.
+        self.build_context._output = OutputOption.text
+        abs_build_dir = os.path.abspath(".aws-sam/build")
+
+        self.build_context._print_build_success(abs_build_dir, abs_build_dir, self._collector())
+
+        printed = " ".join(str(c.args[0]) for c in secho_mock.call_args_list)
+        self.assertIn(os.path.relpath(abs_build_dir), printed)
 
     @patch("samcli.commands.build.build_context.click.echo")
     def test_json_empty_collector(self, echo_mock):

@@ -298,7 +298,7 @@ class DeployContext:
                 if no_execute_changeset:
                     if self._output_mode is OutputOption.json:
                         sys.stdout.write(
-                            json.dumps({"type": "result", "status": "CHANGESET_CREATED", "changeset_id": result["Id"]})
+                            json.dumps({"type": "result", "status": "changeset_created", "changeset_id": result["Id"]})
                             + "\n"
                         )
                         sys.stdout.flush()
@@ -310,7 +310,7 @@ class DeployContext:
                             json.dumps(
                                 {
                                     "type": "result",
-                                    "status": "CONFIRMATION_REQUIRED",
+                                    "status": "confirmation_required",
                                     "changeset_id": result["Id"],
                                 }
                             )
@@ -329,8 +329,18 @@ class DeployContext:
                     stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
                 if self._output_mode is OutputOption.json:
+                    # Carry the express flag so a consumer can tell a settled deploy from an express
+                    # one whose resources may still be stabilizing (the text branch warns about this).
                     sys.stdout.write(
-                        json.dumps({"type": "result", "status": "SUCCESS", "stack_name": stack_name, "region": region})
+                        json.dumps(
+                            {
+                                "type": "result",
+                                "status": "success",
+                                "stack_name": stack_name,
+                                "region": region,
+                                "express": self.express,
+                            }
+                        )
                         + "\n"
                     )
                     sys.stdout.flush()
@@ -347,7 +357,7 @@ class DeployContext:
                 if fail_on_empty_changeset:
                     raise
                 if self._output_mode is OutputOption.json:
-                    sys.stdout.write(json.dumps({"type": "result", "status": "NO_CHANGES", "message": str(ex)}) + "\n")
+                    sys.stdout.write(json.dumps({"type": "result", "status": "no_changes", "message": str(ex)}) + "\n")
                     sys.stdout.flush()
                 else:
                     click.echo(str(ex))

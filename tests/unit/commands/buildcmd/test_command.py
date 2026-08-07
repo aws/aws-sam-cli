@@ -122,6 +122,8 @@ class TestDoCliJsonFailure(TestCase):
 
         result = json.loads(self._run_expecting(ex)[0])
 
+        # Shared cross-command contract: a `type` discriminator plus a lowercase status.
+        self.assertEqual(result["type"], "result")
         self.assertEqual(result["status"], "failure")
         self.assertEqual(result["error"]["type"], "WorkflowFailedError")
         self.assertEqual(result["error"]["message"], "dependency failure")

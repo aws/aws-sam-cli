@@ -82,6 +82,7 @@ def build_failure_json(ex: Exception) -> str:
     error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
     return json.dumps(
         {
+            "type": "result",
             "status": "failure",
             "error": {
                 "type": error_type,
@@ -350,22 +351,14 @@ class BuildContext:
 
             self._handle_build_post_processing(builder, self._build_result)
 
-            # try to use relpath so the command is easier to understand, however,
-            # under Windows, when SAM and (build_dir or output_template_path) are
-            # on different drive, relpath() fails.
             root_stack = SamLocalStackProvider.find_root_stack(self.stacks)
             out_template_path = root_stack.get_output_template_path(self.build_dir)
-            try:
-                build_dir_in_success_message = os.path.relpath(self.build_dir)
-                output_template_path_in_success_message = os.path.relpath(out_template_path)
-            except ValueError:
-                LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
-                build_dir_in_success_message = self.build_dir
-                output_template_path_in_success_message = out_template_path
 
+            # Pass absolute paths; _print_build_success emits them as-is for JSON and applies the
+            # relpath human-readability transform only for the text banner.
             self._print_build_success(
-                build_dir_in_success_message,
-                output_template_path_in_success_message,
+                self.build_dir,
+                out_template_path,
                 resources_to_build,
             )
         except FunctionNotFound as function_not_found_ex:
@@ -1161,13 +1154,15 @@ class BuildContext:
         Parameters
         ----------
         artifacts_dir: str
-            A string path representing the folder of built artifacts
+            An absolute path representing the folder of built artifacts
         output_template_path: str
-            A string path representing the final template file
+            An absolute path representing the final template file
         resources_to_build: ResourcesToBuildCollector
             The functions and layers that were built
         """
         if self._output is OutputOption.json:
+            # Emit absolute paths so a machine consumer never has to guess the process cwd. The
+            # relpath transform below is only a human-readability affordance for the text banner.
             resources: List[Dict[str, Any]] = [
                 self._function_to_json(function) for function in resources_to_build.functions
             ] + [
@@ -1181,6 +1176,7 @@ class BuildContext:
             click.echo(
                 json.dumps(
                     {
+                        "type": "result",
                         "status": "success",
                         "build_dir": artifacts_dir,
                         "template_file": output_template_path,
@@ -1189,6 +1185,14 @@ class BuildContext:
                 )
             )
             return
+
+        # try to use relpath so the command is easier to understand, however, under Windows, when
+        # SAM and (build_dir or output_template_path) are on different drives, relpath() fails.
+        try:
+            artifacts_dir = os.path.relpath(artifacts_dir)
+            output_template_path = os.path.relpath(output_template_path)
+        except ValueError:
+            LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
 
         click.secho("\nBuild Succeeded", fg="green")
         if self._print_success_message:

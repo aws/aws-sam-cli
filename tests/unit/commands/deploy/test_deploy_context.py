@@ -172,8 +172,35 @@ class TestSamDeployCommand(TestCase):
 
             emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
             self.assertEqual(emitted["type"], "result")
-            self.assertEqual(emitted["status"], "SUCCESS")
+            self.assertEqual(emitted["status"], "success")
             self.assertEqual(emitted["region"], "us-east-1")
+            # Non-express deploy is fully settled.
+            self.assertFalse(emitted["express"])
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    def test_json_output_success_carries_express_flag(self, mock_client, mock_session):
+        # --express deploys may still be stabilizing; the SUCCESS document must carry express=True so a
+        # consumer can tell it apart from a settled deploy (text mode prints a warning it cannot read).
+        mock_client.return_value._client_config.region_name = "us-east-1"
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.output = "json"
+            self.deploy_command_context._output_mode = OutputOption.json
+            self.deploy_command_context.express = True
+
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.deploy_command_context.run()
+
+            emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(emitted["status"], "success")
+            self.assertTrue(emitted["express"])
 
     @patch("boto3.Session")
     @patch("boto3.client")
@@ -220,7 +247,7 @@ class TestSamDeployCommand(TestCase):
                 self.deploy_command_context.run()
 
             emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
-            self.assertEqual(emitted["status"], "CHANGESET_CREATED")
+            self.assertEqual(emitted["status"], "changeset_created")
             self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
 
     @patch("boto3.Session")
@@ -245,7 +272,7 @@ class TestSamDeployCommand(TestCase):
                 self.deploy_command_context.run()
 
             emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
-            self.assertEqual(emitted["status"], "CONFIRMATION_REQUIRED")
+            self.assertEqual(emitted["status"], "confirmation_required")
             self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
 
     @patch("boto3.Session")

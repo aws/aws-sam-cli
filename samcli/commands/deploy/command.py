@@ -434,5 +434,5 @@ def do_cli(
         # none), so without this a consumer cannot tell a real failure from a truncated stream.
         # Re-raise so exit codes and telemetry are unchanged.
         if output_mode is OutputOption.json:
-            click.echo(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}))
+            click.echo(json.dumps({"type": "result", "status": "failed", "error": str(ex)}))
         raise
