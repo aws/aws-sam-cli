@@ -5,34 +5,8 @@ focuses on the Metadata merge pass added for the registry-driven merge.
 """
 
 from unittest import TestCase
-from unittest.mock import Mock, patch
 
-from samcli.lib.package.language_extensions_packaging import (
-    merge_language_extensions_s3_uris,
-    warn_parameter_based_collections,
-)
-
-
-class TestWarnParameterBasedCollections(TestCase):
-    @staticmethod
-    def _param_ref_property():
-        return Mock(
-            collection_is_parameter_ref=True,
-            foreach_key="Fn::ForEach::Loop",
-            loop_name="Loop",
-            collection_parameter_name="MyParam",
-            property_name="CodeUri",
-        )
-
-    @patch("samcli.lib.package.language_extensions_packaging.click")
-    def test_warning_always_goes_to_stderr(self, patched_click):
-        # The advisory is written to stderr regardless of output mode, so it never corrupts the
-        # stdout JSON stream. This holds for every caller (including the child-template export path
-        # that has no output-mode context), matching SAM's telemetry and version-check notices.
-        warn_parameter_based_collections([self._param_ref_property()])
-
-        patched_click.secho.assert_called_once()
-        self.assertTrue(patched_click.secho.call_args.kwargs.get("err"))
+from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 
 
 class TestMergeMetadata(TestCase):

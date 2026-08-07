@@ -2915,8 +2915,10 @@ class TestPackageContextParameterBasedCollectionWarning(TestCase):
         self.assertIn("Collection values are fixed at package time", warning_msg)
         self.assertIn("re-package", warning_msg)
 
-        # Verify warning color
+        # Verify warning color, and that it is routed to stderr so it never corrupts a --output json
+        # stdout stream (the advisory is also recorded via LOG.debug).
         self.assertEqual(call_args[1]["fg"], "yellow")
+        self.assertTrue(call_args[1]["err"])
 
     @patch("samcli.lib.package.language_extensions_packaging.click")
     def test_warn_parameter_based_collections_no_warning_for_static_list(self, mock_click):

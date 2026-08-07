@@ -190,14 +190,12 @@ class TestDeployCliCommand(TestCase):
         kwargs.update(overrides)
         do_cli(**kwargs)
 
-    def test_confirm_changeset_with_json_output_is_rejected(self):
-        # --confirm-changeset needs an interactive answer; with --output json it would otherwise
-        # emit CONFIRMATION_REQUIRED and exit 0 without deploying. do_cli must reject it up front.
+    def test_interactive_flags_are_rejected_with_json_output(self):
+        # Both --confirm-changeset and --guided need interactive answers a JSON consumer cannot give,
+        # so do_cli must reject either combined with --output json up front (rather than, for
+        # confirm-changeset, emitting CONFIRMATION_REQUIRED and exiting 0 without deploying).
         with self.assertRaises(click.UsageError):
             self._do_cli_with(confirm_changeset=True, output="json")
-
-    def test_guided_with_json_output_is_rejected(self):
-        # --guided is fully interactive and cannot run under --output json.
         with self.assertRaises(click.UsageError):
             self._do_cli_with(guided=True, output="json")
 

@@ -1624,27 +1624,24 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(resource["package_type"], "Image")
         self.assertIsNone(resource["runtime"])
 
+    @parameterized.expand(
+        [
+            # (explicit architectures, expected reported value) - absent defaults to x86_64.
+            (None, "x86_64"),
+            (["arm64"], "arm64"),
+        ]
+    )
     @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_architecture_defaults_to_x86_64_when_absent(self, echo_mock):
-        # get_function() builds a Function with architectures=None
-        # function.architecture resolves to X86_64 when absent
-        collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
-
-        self.build_context._print_build_success("artifacts", "out_template", collector)
-
-        result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(result["resources"][0]["architecture"], "x86_64")
-
-    @patch("samcli.commands.build.build_context.click.echo")
-    def test_json_architecture_reports_specified_value(self, echo_mock):
-        # Function with explicit architecture
-        function = get_function("Fn", runtime="python3.12")._replace(architectures=["arm64"])
+    def test_json_reports_function_architecture(self, architectures, expected, echo_mock):
+        function = get_function("Fn", runtime="python3.12")
+        if architectures is not None:
+            function = function._replace(architectures=architectures)
         collector = self._collector(functions=[function])
 
         self.build_context._print_build_success("artifacts", "out_template", collector)
 
         result = json.loads(echo_mock.call_args[0][0])
-        self.assertEqual(result["resources"][0]["architecture"], "arm64")
+        self.assertEqual(result["resources"][0]["architecture"], expected)
 
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
