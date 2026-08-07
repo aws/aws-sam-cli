@@ -455,10 +455,11 @@ def structured_output_click_option():
     """
     return click.option(
         "--output",
-        default="text",
+        default=OutputOption.text.value,
         help="Output the results from the command in a given output format. "
         "Supported formats: text (default), json.",
-        type=click.Choice(["text", "json"], case_sensitive=False),
+        # Derive choices from OutputOption so the accepted CLI values cannot drift from the enum.
+        type=click.Choice([option.value for option in OutputOption], case_sensitive=False),
     )
 
 
