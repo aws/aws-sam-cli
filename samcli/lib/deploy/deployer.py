@@ -506,6 +506,11 @@ class Deployer:
                                 {
                                     "type": "event",
                                     "status": new_event["ResourceStatus"],
+                                    # Kept as its own key (null when CFN omits it) so status stays a
+                                    # clean enum; text mode shows it appended to the status. Carries
+                                    # phase detail like CONFIGURATION_COMPLETE and, on failures,
+                                    # VALIDATION_FAILED - the case where it matters most.
+                                    "detailed_status": new_event.get("DetailedStatus"),
                                     "resource_type": new_event["ResourceType"],
                                     "logical_id": new_event["LogicalResourceId"],
                                     "reason": new_event.get("ResourceStatusReason", ""),
