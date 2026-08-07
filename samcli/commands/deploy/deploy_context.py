@@ -305,19 +305,9 @@ class DeployContext:
                     return
 
                 if confirm_changeset:
-                    if self._output_mode is OutputOption.json:
-                        sys.stdout.write(
-                            json.dumps(
-                                {
-                                    "type": "result",
-                                    "status": "confirmation_required",
-                                    "changeset_id": result["Id"],
-                                }
-                            )
-                            + "\n"
-                        )
-                        sys.stdout.flush()
-                        return
+                    # confirm_changeset cannot co-occur with JSON output: do_cli rejects that combo
+                    # up front with a UsageError, and sync (the only other DeployContext caller) never
+                    # enables JSON. So this interactive prompt is only ever reached in text mode.
                     click.secho(self.MSG_CONFIRM_CHANGESET_HEADER, fg="yellow")
                     click.secho("=" * len(self.MSG_CONFIRM_CHANGESET_HEADER), fg="yellow")
                     if not click.confirm(f"{self.MSG_CONFIRM_CHANGESET}", default=False):

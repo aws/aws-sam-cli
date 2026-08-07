@@ -252,31 +252,6 @@ class TestSamDeployCommand(TestCase):
 
     @patch("boto3.Session")
     @patch("boto3.client")
-    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
-    @patch.object(Deployer, "execute_changeset", MagicMock())
-    @patch.object(Deployer, "wait_for_execute", MagicMock())
-    def test_json_output_confirm_changeset_reports_confirmation_required(self, mock_client, mock_session):
-        # Defense-in-depth: the deploy CLI rejects --confirm-changeset with --output json up front,
-        # but if a DeployContext is still constructed with that combination (e.g. another caller),
-        # it reports CONFIRMATION_REQUIRED and stops rather than blocking on the interactive prompt.
-        with tempfile.NamedTemporaryFile(delete=False) as template_file:
-            template_file.write(b"{}")
-            template_file.flush()
-            self.deploy_command_context.template_file = template_file.name
-            self.deploy_command_context.confirm_changeset = True
-            self.deploy_command_context.output = "json"
-            self.deploy_command_context._output_mode = OutputOption.json
-
-            stdout = StringIO()
-            with redirect_stdout(stdout):
-                self.deploy_command_context.run()
-
-            emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
-            self.assertEqual(emitted["status"], "confirmation_required")
-            self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
-
-    @patch("boto3.Session")
-    @patch("boto3.client")
     @patch("samcli.commands.deploy.deploy_context.auth_per_resource")
     @patch("samcli.commands.deploy.deploy_context.SamLocalStackProvider.get_stacks")
     @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
