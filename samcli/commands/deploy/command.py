@@ -301,10 +301,13 @@ def do_cli(
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
     from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.observability.util import OutputOption
 
     language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
-    if guided and output == "json":
+    output_mode = OutputOption(output)
+
+    if guided and output_mode is OutputOption.json:
         raise click.UsageError("--guided is not compatible with --output json")
 
     if guided:
@@ -335,7 +338,7 @@ def do_cli(
         if resolve_s3:
             if bool(s3_bucket):
                 raise DeployResolveS3AndS3SetError()
-            if output == "json":
+            if output_mode is OutputOption.json:
                 with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
                     s3_bucket = manage_stack(profile=profile, region=region)
             else:
@@ -364,7 +367,7 @@ def do_cli(
             kms_key_id=kms_key_id,
             use_json=use_json,
             force_upload=force_upload,
-            no_progressbar=no_progressbar if output != "json" else True,
+            no_progressbar=no_progressbar if output_mode is not OutputOption.json else True,
             metadata=metadata,
             on_deploy=True,
             region=guided_context.guided_region if guided else region,

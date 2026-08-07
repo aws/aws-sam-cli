@@ -1,5 +1,8 @@
 """Test sam deploy command"""
 
+import json
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import ANY, patch, MagicMock, Mock
 import tempfile
@@ -9,6 +12,7 @@ from samcli.commands.deploy.deploy_context import DeployContext
 from samcli.commands.deploy.exceptions import DeployBucketRequiredError, DeployFailedError, ChangeEmptyError
 from samcli.lib.deploy.utils import FailureMode
 from samcli.commands.deploy.exceptions import DeployFailedError
+from samcli.lib.observability.util import OutputOption
 
 
 class TestSamDeployCommand(TestCase):
@@ -145,6 +149,78 @@ class TestSamDeployCommand(TestCase):
             self.assertEqual(self.deploy_command_context.deployer.create_and_wait_for_changeset.call_count, 1)
             self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
             self.assertEqual(self.deploy_command_context.deployer.wait_for_execute.call_count, 0)
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    def test_json_output_emits_success_document(self, mock_client, mock_session):
+        # In JSON mode the successful execute path writes a single SUCCESS result document to stdout.
+        # region is read off the s3 client config, so give the mock a real (serializable) value.
+        mock_client.return_value._client_config.region_name = "us-east-1"
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.output = "json"
+            self.deploy_command_context._output_mode = OutputOption.json
+
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.deploy_command_context.run()
+
+            emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(emitted["type"], "result")
+            self.assertEqual(emitted["status"], "SUCCESS")
+            self.assertEqual(emitted["region"], "us-east-1")
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    def test_json_output_no_execute_changeset_emits_changeset_created(self, mock_client, mock_session):
+        # --no-execute-changeset in JSON mode reports CHANGESET_CREATED and does not execute.
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.no_execute_changeset = True
+            self.deploy_command_context.output = "json"
+            self.deploy_command_context._output_mode = OutputOption.json
+
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.deploy_command_context.run()
+
+            emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(emitted["status"], "CHANGESET_CREATED")
+            self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
+
+    @patch("boto3.Session")
+    @patch("boto3.client")
+    @patch.object(Deployer, "create_and_wait_for_changeset", MagicMock(return_value=({"Id": "test"}, "CREATE")))
+    @patch.object(Deployer, "execute_changeset", MagicMock())
+    @patch.object(Deployer, "wait_for_execute", MagicMock())
+    def test_json_output_confirm_changeset_reports_confirmation_required(self, mock_client, mock_session):
+        # --confirm-changeset cannot prompt a JSON consumer; report CONFIRMATION_REQUIRED and stop
+        # before executing rather than blocking on the interactive click.confirm.
+        with tempfile.NamedTemporaryFile(delete=False) as template_file:
+            template_file.write(b"{}")
+            template_file.flush()
+            self.deploy_command_context.template_file = template_file.name
+            self.deploy_command_context.confirm_changeset = True
+            self.deploy_command_context.output = "json"
+            self.deploy_command_context._output_mode = OutputOption.json
+
+            stdout = StringIO()
+            with redirect_stdout(stdout):
+                self.deploy_command_context.run()
+
+            emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+            self.assertEqual(emitted["status"], "CONFIRMATION_REQUIRED")
+            self.assertEqual(self.deploy_command_context.deployer.execute_changeset.call_count, 0)
 
     @patch("boto3.Session")
     @patch("boto3.client")

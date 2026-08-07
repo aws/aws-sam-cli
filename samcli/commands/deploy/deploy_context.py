@@ -35,6 +35,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
@@ -117,6 +118,7 @@ class DeployContext:
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
         self.express = express
         self.output = output
+        self._output_mode = OutputOption(output)
 
     def __enter__(self):
         return self
@@ -132,7 +134,7 @@ class DeployContext:
         """
         Execute deployment based on the argument provided by customers and samconfig.toml.
         """
-        if self.output == "json":
+        if self._output_mode is OutputOption.json:
             logging.getLogger("samcli").setLevel(logging.WARNING)
 
         # Parse parameters
@@ -166,13 +168,13 @@ class DeployContext:
                 self.s3_prefix,
                 self.kms_key_id,
                 self.force_upload,
-                True if self.output == "json" else self.no_progressbar,
+                True if self._output_mode is OutputOption.json else self.no_progressbar,
             )
 
         self.deployer = Deployer(cloudformation_client, client_sleep=self.poll_delay, output_mode=self.output)
 
         region = s3_client._client_config.region_name if s3_client else self.region  # pylint: disable=W0212
-        if self.output != "json":
+        if self._output_mode is not OutputOption.json:
             display_parameter_overrides = hide_noecho_parameter_overrides(template_dict, self.parameter_overrides)
             print_deploy_args(
                 self.stack_name,
@@ -266,7 +268,7 @@ class DeployContext:
 
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
-                if self.output == "json":
+                if self._output_mode is OutputOption.json:
                     sys.stdout.write(
                         json.dumps({"type": "warning", "message": "no authentication", "resource": resource}) + "\n"
                     )
@@ -293,11 +295,11 @@ class DeployContext:
                     tags=tags,
                     deployment_config=deployment_config,
                 )
-                if self.output != "json":
+                if self._output_mode is not OutputOption.json:
                     click.echo(self.MSG_SHOWCASE_CHANGESET.format(changeset_id=result["Id"]))
 
                 if no_execute_changeset:
-                    if self.output == "json":
+                    if self._output_mode is OutputOption.json:
                         sys.stdout.write(
                             json.dumps({"type": "result", "status": "CHANGESET_CREATED", "changeset_id": result["Id"]})
                             + "\n"
@@ -306,7 +308,7 @@ class DeployContext:
                     return
 
                 if confirm_changeset:
-                    if self.output == "json":
+                    if self._output_mode is OutputOption.json:
                         sys.stdout.write(
                             json.dumps(
                                 {
@@ -329,7 +331,7 @@ class DeployContext:
                 self.deployer.wait_for_execute(
                     stack_name, changeset_type, disable_rollback, self.on_failure, marker_time, self.max_wait_duration
                 )
-                if self.output == "json":
+                if self._output_mode is OutputOption.json:
                     sys.stdout.write(
                         json.dumps({"type": "result", "status": "SUCCESS", "stack_name": stack_name, "region": region})
                         + "\n"
@@ -347,7 +349,7 @@ class DeployContext:
             except deploy_exceptions.ChangeEmptyError as ex:
                 if fail_on_empty_changeset:
                     raise
-                if self.output == "json":
+                if self._output_mode is OutputOption.json:
                     sys.stdout.write(json.dumps({"type": "result", "status": "NO_CHANGES", "message": str(ex)}) + "\n")
                     sys.stdout.flush()
                 else:
@@ -356,7 +358,7 @@ class DeployContext:
                 # Failed to deploy, check for DELETE action otherwise skip
                 if self.on_failure == FailureMode.DELETE:
                     self.deployer.rollback_delete_stack(stack_name)
-                if self.output == "json":
+                if self._output_mode is OutputOption.json:
                     sys.stdout.write(json.dumps({"type": "result", "status": "FAILED", "error": str(ex)}) + "\n")
                     sys.stdout.flush()
                 raise
