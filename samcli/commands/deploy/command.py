@@ -432,20 +432,18 @@ def do_cli(
             ) as deploy_context:
                 deploy_context.run()
     except Exception as ex:
-        # Guarantee the JSON-lines stream always ends with a terminal result object. The
-        # per-step handlers only emit one for some failures (e.g. an empty changeset with the
-        # default --fail-on-empty-changeset, an invalid template, or a packaging error emit
-        # none), so without this a consumer cannot tell a real failure from a truncated stream.
-        # Re-raise so exit codes and telemetry are unchanged. The failure shape (status "failure"
-        # with a structured error object) matches sam build's build_failure_json, so a consumer can
-        # handle both commands with one code path.
+        # Emit one terminal failure result for any error the per-step handlers don't cover (e.g. an
+        # empty changeset, invalid template, packaging error), so the JSON stream never ends truncated.
         if output_mode is OutputOption.json:
             click.echo(
                 json.dumps(
                     {
                         "type": "result",
                         "status": "failure",
-                        "error": {"type": type(ex).__name__, "message": str(ex)},
+                        # resources is always present (null here) to match build's failure shape, so a
+                        # consumer can read error.resources uniformly across commands. Deploy failures
+                        # are not attributed to specific resources, so it is null.
+                        "error": {"type": type(ex).__name__, "message": str(ex), "resources": None},
                     }
                 )
             )

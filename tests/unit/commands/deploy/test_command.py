@@ -212,11 +212,14 @@ class TestDeployCliCommand(TestCase):
                 self._do_cli_with(output="json")
 
         emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
-        # Matches build's failure shape: status "failure" + structured error {type, message}.
+        # Matches build's failure shape: status "failure" + structured error {type, message, resources}.
+        # resources is null for deploy (failures are not attributed to specific resources) but the key
+        # is present so a consumer can read error.resources uniformly across commands.
         self.assertEqual(emitted["type"], "result")
         self.assertEqual(emitted["status"], "failure")
         self.assertEqual(emitted["error"]["type"], "RuntimeError")
         self.assertEqual(emitted["error"]["message"], "boom")
+        self.assertIsNone(emitted["error"]["resources"])
 
     @patch("samcli.commands.deploy.command.manage_stack")
     def test_json_output_emits_terminal_failed_when_resolve_s3_fails(self, mock_manage_stack):
