@@ -9,6 +9,7 @@ from samcli.lib.cli_validation.image_repository_validation import (
     image_repository_validation,
     _is_all_image_funcs_provided,
 )
+from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.packagetype import ZIP, IMAGE
@@ -33,7 +34,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_success_ZIP(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -47,7 +48,24 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.commands._utils.template.get_template_artifacts_format")
+    def test_image_repository_validation_malformed_template_does_not_raise(
+        self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
+    ):
+        # Runs before do_cli: a malformed template must not raise out of the decorator. Patch the
+        # underlying parser so the real _or_empty wrapper runs and swallows it (resurfaces in do_cli).
+        mock_artifacts.side_effect = TemplateFailedParsingException("bad yaml")
+        is_all_image_funcs_provided_mock.return_value = True
+        mock_context = MagicMock()
+        mock_context.params.get.side_effect = [False, False, False, False, False, None, MagicMock()]
+        mock_click.get_current_context.return_value = mock_context
+
+        # Must not raise.
+        self.foobar()
+
+    @patch("samcli.lib.cli_validation.image_repository_validation.click")
+    @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_success_IMAGE_image_repository(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -69,7 +87,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_success_IMAGE_image_repositories(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -90,7 +108,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_failure_IMAGE_image_repositories_and_image_repository(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -124,7 +142,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_failure_IMAGE_image_repositories_incomplete(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -149,7 +167,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_failure_IMAGE_missing_image_repositories(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -175,7 +193,7 @@ class TestImageRepositoryValidation(TestCase):
 
     @patch("samcli.lib.cli_validation.image_repository_validation.click")
     @patch("samcli.lib.cli_validation.image_repository_validation._is_all_image_funcs_provided")
-    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format")
+    @patch("samcli.lib.cli_validation.image_repository_validation.get_template_artifacts_format_or_empty")
     def test_image_repository_validation_success_missing_image_repositories_guided(
         self, mock_artifacts, is_all_image_funcs_provided_mock, mock_click
     ):
@@ -1689,3 +1707,14 @@ class TestIsAllImageFunctionsProvided(TestCase):
         get_stacks_mock.return_value = stacks, ""
         output = _is_all_image_funcs_provided("", input_image_repos, {})
         self.assertEqual(output, expected_result)
+
+
+class TestIsAllImageFunctionsProvidedMalformedTemplate(TestCase):
+    @patch.object(SamLocalStackProvider, "get_stacks")
+    def test_malformed_template_defers_instead_of_raising(self, get_stacks_mock):
+        # This validator runs before do_cli. A parse error reached via get_stacks must not raise out
+        # of it (that would escape click and, in --output json mode, emit stderr with no JSON). It
+        # returns True (skip the check) so the error resurfaces in do_cli and gets serialized.
+        get_stacks_mock.side_effect = TemplateFailedParsingException("bad yaml")
+
+        self.assertTrue(_is_all_image_funcs_provided("bad.yaml", {"Fn": "repo"}, {}))

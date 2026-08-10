@@ -31,7 +31,12 @@ from samcli.commands._utils.custom_options.hook_name_option import HookNameOptio
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
 from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
+from samcli.commands._utils.template import (
+    TemplateFailedParsingException,
+    TemplateNotFoundException,
+    get_template_artifacts_format_or_empty,
+    get_template_data,
+)
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -95,8 +100,11 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
             # FIX-ME: figure out a way to insert this directly to sam-cli context and not use click context.
             template_data = get_template_data(result)
             setattr(ctx, "template_dict", template_data)
-        except TemplateNotFoundException:
-            # Ignoring because there are certain cases where template file will not be available, eg: --help
+        except (TemplateNotFoundException, TemplateFailedParsingException):
+            # Ignoring here (this eager callback runs before the command body): a missing template
+            # is expected in some cases (eg: --help), and a malformed template must resurface inside
+            # the command's do_cli try/except so --output json can serialize it. Both re-raise later
+            # via get_stacks()/get_template_data() once the command body runs.
             pass
 
     LOG.debug("Using SAM Template at %s", result)
@@ -191,10 +199,7 @@ def artifact_callback(ctx, param, provided_value, artifact):
     resolve_s3 = ctx.params.get("resolve_s3", False) or ctx.default_map.get("resolve_s3", False)
 
     required = any(
-        [
-            _template_artifact == artifact
-            for _template_artifact in get_template_artifacts_format(template_file=template_file)
-        ]
+        [_template_artifact == artifact for _template_artifact in get_template_artifacts_format_or_empty(template_file)]
     )
     # NOTE(sriram-mv): Explicit check for param name being s3_bucket
     # If that is the case, check for another option called resolve_s3 to be defined.
@@ -225,10 +230,7 @@ def resolve_s3_callback(ctx, param, provided_value, artifact, exc_set, exc_not_s
     )
 
     required = any(
-        [
-            _template_artifact == artifact
-            for _template_artifact in get_template_artifacts_format(template_file=template_file)
-        ]
+        [_template_artifact == artifact for _template_artifact in get_template_artifacts_format_or_empty(template_file)]
     )
     # NOTE(sriram-mv): Explicit check for s3_bucket being explicitly passed in along with `--resolve-s3`.
     # NOTE(sriram-mv): Both params and default_map need to be checked, as the option can be either be
