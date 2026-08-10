@@ -58,10 +58,9 @@ _RESOURCE_ATTRIBUTABLE_BUILD_ERRORS = (
 def _attribute_build_failure_to(full_paths: List[str]) -> Iterator[None]:
     """
     Tag any resource-attributable build failure raised in the block with ``full_paths`` (unless it
-    already carries resource_names). A build definition can collapse several functions that share a
-    runtime and CodeUri, so a single failure can affect all of them; passing the full list keeps every
-    affected resource in the failure document. Keeps attribution consistent across build strategies -
-    both DefaultBuildStrategy and the pre-delegation work in IncrementalBuildStrategy raise through here.
+    already carries resource_names). A collapsed build definition can hold several functions, so the
+    full list keeps every affected resource in the failure document. Used by DefaultBuildStrategy and
+    IncrementalBuildStrategy's pre-delegation work so attribution is consistent across strategies.
     """
     try:
         yield
@@ -179,9 +178,8 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
-        # Functions sharing runtime + CodeUri + metadata collapse into one build definition, so a
-        # single failure can affect all of them. Report every affected function so the JSON failure
-        # document lists them all rather than just the first.
+        # Functions sharing runtime + CodeUri + metadata collapse into one build definition, so one
+        # failure can affect several; report all of them, not just the first.
         with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             return self._do_build_single_function_definition(build_definition)
 
@@ -529,9 +527,8 @@ class IncrementalBuildStrategy(BuildStrategy):
         return result
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        # The manifest pre-check runs before delegating, and get_workflow_config() inside it can raise
-        # (e.g. UnsupportedRuntimeException) before the delegate's own attribution is reached. Wrap both
-        # so an unsupported-runtime failure on --cached/--incremental still reports error.resources.
+        # The manifest pre-check runs before delegating and can raise before the delegate's own
+        # attribution, so wrap both to keep error.resources on --cached/--incremental failures.
         with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             self._check_whether_manifest_is_changed(
                 build_definition, build_definition.codeuri, build_definition.runtime

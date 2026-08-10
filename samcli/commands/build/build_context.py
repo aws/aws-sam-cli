@@ -315,11 +315,9 @@ class BuildContext:
                 if self._mount_with == MountMode.WRITE:
                     mount_with_write = True
                 elif self._output is OutputOption.json:
-                    # A JSON consumer cannot answer the interactive mount-with-write confirm. For
-                    # workflows that REQUIRE a writable mount (e.g. .NET, which writes artifacts into
-                    # the source directory) a read-only fallback would fail later with a cryptic
-                    # in-container permission error, so fail up front with an actionable message
-                    # instead. Other workflows are safe with the documented READ-only default.
+                    # Can't prompt for the mount-with-write confirm in JSON mode. Workflows that
+                    # require a writable mount (e.g. .NET) would fail cryptically read-only, so fail
+                    # up front with an actionable error; others are fine with the READ-only default.
                     requires_write = resource_requiring_mount_with_write(resources_to_build, self.base_dir)
                     if requires_write:
                         _, code_dir = requires_write
@@ -407,12 +405,9 @@ class BuildContext:
             self._print_build_failure()
 
             user_ex = UserException(str(ex), wrapped_from=wrapped_from)
-            # Prefer the resources the exception attributes the failure to (the build strategy tags
-            # per-resource failures, including an outdated builder container, with the in-flight
-            # resources' full paths). Otherwise fall back to the resource the user asked to build -
-            # but only for failures actually tied to a resource. A corrupt build graph is not any
-            # single resource's fault, so it keeps resources=None rather than blaming whatever
-            # resource the user happened to name.
+            # Prefer the resources the build strategy already tagged; else fall back to the resource
+            # the user asked to build. A corrupt build graph isn't any one resource's fault, so it
+            # keeps resources=None rather than blaming whatever the user named.
             resource_names = getattr(ex, "resource_names", None)
             if resource_names is None and not isinstance(ex, InvalidBuildGraphException):
                 # Resolve to full paths so they match the resource_id namespace of the success document.
@@ -1544,9 +1539,8 @@ Commands you can use next
             if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
                 build_method = function.metadata.get("BuildMethod", "")
                 experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
-                # A JSON consumer cannot answer the interactive beta confirmation. Skip it unless the
-                # feature is already enabled (via --beta-features / env), in which case prompt_experimental
-                # just updates the telemetry context and returns without prompting.
+                # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
+                # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.
                 if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
                     continue
                 WARNING_MESSAGE = (
