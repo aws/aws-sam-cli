@@ -11,6 +11,7 @@ from unittest import TestCase, skipIf
 
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired, PIPE
+import json
 import os
 import shutil
 import tempfile
@@ -65,6 +66,102 @@ class TestBasicInitCommand(TestCase):
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_output_json(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs18.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--output",
+                    "json",
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stdout = stdout_data.decode("utf-8")
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+
+            # stdout must hold nothing but the single result document, so a consumer can parse it
+            self.assertEqual(len(stdout.splitlines()), 1)
+            document = json.loads(stdout)
+
+            self.assertEqual(document["type"], "result")
+            self.assertEqual(document["status"], "success")
+
+            # The reported paths must be absolute and must actually exist. Compare against
+            # abspath rather than resolve(), since the command does not resolve symlinks
+            # (on macOS /var is a symlink to /private/var).
+            self.assertEqual(document["project_directory"], os.path.abspath(os.path.join(temp, "sam-app")))
+            self.assertTrue(Path(document["project_directory"]).is_dir())
+            self.assertTrue(Path(document["template_file"]).is_file())
+
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_output_json_location_without_name(self):
+        """A --location template names its own project directory, so output_dir/name is not the answer."""
+        with tempfile.TemporaryDirectory() as temp:
+            # A minimal local cookiecutter template whose project directory is named by the
+            # template itself, not by --name
+            template_dir = Path(temp, "cookiecutter-template")
+            template_project_dir = Path(template_dir, "{{cookiecutter.project_name}}")
+            template_project_dir.mkdir(parents=True)
+            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "template-chosen-app"}))
+            Path(template_project_dir, "template.yaml").write_text("Resources: {}\n")
+
+            out_dir = Path(temp, "out")
+            out_dir.mkdir()
+
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--location",
+                    str(template_dir),
+                    "-o",
+                    str(out_dir),
+                    "--output",
+                    "json",
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stdout = stdout_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+            document = json.loads(stdout)
+
+            # THEN the reported directory is the nested one the template created, not the parent
+            self.assertEqual(document["project_directory"], os.path.join(str(out_dir), "template-chosen-app"))
+            self.assertNotEqual(document["project_directory"], str(out_dir))
+            self.assertTrue(Path(document["project_directory"]).is_dir())
+
+            # AND the template inside it is found rather than reported as absent
+            self.assertIsNotNone(document["template_file"])
+            self.assertTrue(Path(document["template_file"]).is_file())
 
     def test_init_command_passes_and_dir_created_image(self):
         with tempfile.TemporaryDirectory() as temp:

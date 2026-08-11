@@ -4,6 +4,7 @@ Init command to scaffold a project app from a template
 
 import json
 import logging
+import os
 from json import JSONDecodeError
 
 import click
@@ -11,6 +12,8 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.constants import SAM_TEMPLATE_FILE_NAMES
+from samcli.commands._utils.options import structured_output_option
 from samcli.commands.init.core.command import InitCommand
 from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.lib.build.constants import DEPRECATED_RUNTIMES
@@ -232,6 +235,7 @@ def non_interactive_validation(func):
     default=None,
     help="Enable Structured Logging for application.",
 )
+@structured_output_option
 @common_options
 @save_params_option
 @non_interactive_validation
@@ -256,6 +260,7 @@ def cli(
     tracing,
     application_insights,
     structured_logging,
+    output,
     save_params,
     config_file,
     config_env,
@@ -281,6 +286,7 @@ def cli(
         tracing,
         application_insights,
         structured_logging,
+        output,
     )  # pragma: no cover
 
 
@@ -303,6 +309,7 @@ def do_cli(
     tracing,
     application_insights,
     structured_logging,
+    output="text",
 ):
     """
     Implementation of the ``cli`` method
@@ -312,6 +319,9 @@ def do_cli(
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
+    from samcli.lib.observability.util import OutputOption
+
+    output_mode = OutputOption(output)
 
     _deprecate_notification(runtime)
 
@@ -319,45 +329,96 @@ def do_cli(
     zip_bool = name and runtime and dependency_manager and app_template
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
-        # need to turn app_template into a location before we generate
-        templates = InitTemplates()
-        if package_type == IMAGE and image_bool:
-            runtime = _get_runtime_from_image(base_image)
-            if runtime is None:
-                raise LambdaImagesTemplateException("Unable to infer the runtime from the base image name")
-            options = templates.init_options(package_type, runtime, base_image, dependency_manager)
-            if not app_template:
-                if len(options) == 1:
-                    app_template = options[0].get("appTemplate")
-                elif len(options) > 1:
-                    raise LambdaImagesTemplateException(
-                        "Multiple lambda image application templates found. "
-                        "Please specify one using the --app-template parameter."
-                    )
+        try:
+            # Inside the try so template-resolution errors (an unresolvable --base-image, ambiguous
+            # image templates, a malformed --extra-context) are serialized too, not just failures
+            # from do_generate. Mirrors sam build's do_cli, which wraps its option preprocessing.
 
-        if app_template and not location:
-            location = templates.location_from_app_template(
-                package_type, runtime, base_image, dependency_manager, app_template
+            # need to turn app_template into a location before we generate
+            templates = InitTemplates()
+            if package_type == IMAGE and image_bool:
+                runtime = _get_runtime_from_image(base_image)
+                if runtime is None:
+                    raise LambdaImagesTemplateException("Unable to infer the runtime from the base image name")
+                options = templates.init_options(package_type, runtime, base_image, dependency_manager)
+                if not app_template:
+                    if len(options) == 1:
+                        app_template = options[0].get("appTemplate")
+                    elif len(options) > 1:
+                        raise LambdaImagesTemplateException(
+                            "Multiple lambda image application templates found. "
+                            "Please specify one using the --app-template parameter."
+                        )
+
+            if app_template and not location:
+                location = templates.location_from_app_template(
+                    package_type, runtime, base_image, dependency_manager, app_template
+                )
+                no_input = True
+            extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
+
+            if not output_dir:
+                output_dir = "."
+            if output_mode is OutputOption.json:
+                # A JSON consumer cannot answer cookiecutter's prompts. The --app-template path
+                # already sets no_input above, but --location does not, so force it here as well.
+                no_input = True
+            generated_directory = do_generate(
+                location,
+                package_type,
+                runtime,
+                dependency_manager,
+                output_dir,
+                name,
+                no_input,
+                extra_context,
+                tracing,
+                application_insights,
+                structured_logging,
             )
-            no_input = True
-        extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
-
-        if not output_dir:
-            output_dir = "."
-        do_generate(
-            location,
-            package_type,
-            runtime,
-            dependency_manager,
-            output_dir,
-            name,
-            no_input,
-            extra_context,
-            tracing,
-            application_insights,
-            structured_logging,
-        )
+            if output_mode is OutputOption.json:
+                # Emit absolute paths so a machine consumer never has to guess the process cwd.
+                # Prefer the directory the generator reports: a cookiecutter template names its own
+                # project directory, so output_dir/name is only a guess and is wrong for a
+                # --location template used without --name. Fall back to the guess when the
+                # generator could not determine the directory.
+                project_directory = os.path.abspath(
+                    generated_directory or (os.path.join(output_dir, name) if name else output_dir)
+                )
+                click.echo(
+                    json.dumps(
+                        {
+                            "type": "result",
+                            "status": "success",
+                            "project_directory": project_directory,
+                            "template_file": _find_template_file(project_directory),
+                            "runtime": runtime,
+                            "package_type": package_type,
+                            "dependency_manager": dependency_manager,
+                            "app_template": app_template,
+                            # Only report architectures we actually know: either the user asked
+                            # for one, or a managed template resolved a runtime. On a --location
+                            # clone with neither, the cloned template decides its own
+                            # architectures, so defaulting here would contradict runtime,
+                            # dependency_manager and app_template, which are all null.
+                            "architectures": get_architectures(architecture) if architecture or runtime else None,
+                        }
+                    )
+                )
+        except Exception as ex:
+            # Broad catch so any execution failure is serialized for a JSON consumer, which has no
+            # other way to learn why the command failed. Re-raise so exit codes and @track_command
+            # telemetry are unchanged, and so text mode behaves exactly as it did before.
+            if output_mode is OutputOption.json:
+                click.echo(init_failure_json(ex))
+            raise
     else:
+        if output_mode is OutputOption.json:
+            # sam init prompts by default and a JSON consumer cannot answer those prompts. Rejecting
+            # here rather than up front keeps any invocation that resolves to the non-interactive
+            # path above working, with or without an explicit --no-interactive. Raising before the
+            # guide banner below also keeps that text off stdout, where it would corrupt the JSON.
+            raise click.UsageError("--output json requires --no-interactive")
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
             click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
 
@@ -378,6 +439,53 @@ def do_cli(
             application_insights,
             structured_logging,
         )
+
+
+def _find_template_file(project_directory):
+    """Return the absolute path of the generated project's SAM template, or None if it has none.
+
+    A cookiecutter template picks its own template file name, and a project cloned from
+    --location may not contain a SAM template at all, so the name cannot be assumed. The
+    search order matches get_or_default_template_file_name, so the path reported here is the
+    one a subsequent `sam build` in this project would resolve to.
+
+    Parameters
+    ----------
+    project_directory: str
+        An absolute path to the generated project
+
+    Returns
+    -------
+    Optional[str]
+        An absolute path to the template file, or None if the project has no SAM template
+    """
+    for template_name in SAM_TEMPLATE_FILE_NAMES:
+        candidate = os.path.join(project_directory, template_name)
+        if os.path.isfile(candidate):
+            return candidate
+
+    return None
+
+
+def init_failure_json(ex):
+    """Serialize an init failure into the structured JSON error document.
+
+    Single source of truth for the failure wire format. The shape matches sam build's
+    build_failure_json and sam deploy's terminal failure line, so a consumer can handle all
+    three commands with one code path. Errors raised during click option processing (bad
+    flags, incompatible parameter combinations) surface as click's standard usage output on
+    stderr, not as JSON.
+    """
+    # do_generate re-raises InitErrorException subclasses as UserException(wrapped_from=...), so
+    # without this unwrap every failure would flatten to the uninformative "UserException".
+    error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
+    return json.dumps(
+        {
+            "type": "result",
+            "status": "failure",
+            "error": {"type": error_type, "message": str(ex)},
+        }
+    )
 
 
 def _deprecate_notification(runtime):
