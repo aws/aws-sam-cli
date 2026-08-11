@@ -174,8 +174,14 @@ def do_cli(
     Implementation of the ``cli`` method
     """
 
+    from samcli.commands._utils.template import get_template_data
     from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
     from samcli.commands.package.package_context import PackageContext
+
+    # Parse the template up front so a malformed/missing template fails before any side effect
+    # (e.g. manage_stack). The shared --template callback defers parse errors, so without this the
+    # error would only surface after the managed bucket is resolved. Restores the prior behavior.
+    get_template_data(template_file)
 
     if resolve_s3:
         s3_bucket = manage_stack(profile=profile, region=region)

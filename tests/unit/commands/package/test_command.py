@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 from samcli.commands.package.command import do_cli, resources_and_properties_help_string
 from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
@@ -23,6 +23,13 @@ class TestPackageCliCommand(TestCase):
         self.resolve_s3 = False
         self.resolve_image_repos = False
         self.signing_profiles = {"MyFunction": {"profile_name": "ProfileName", "profile_owner": "Profile Owner"}}
+
+        # do_cli now parses the template up front; stub it so these tests keep using a fake path.
+        self.get_template_data_patch = patch("samcli.commands._utils.template.get_template_data")
+        self.get_template_data_patch.start()
+
+    def tearDown(self):
+        self.get_template_data_patch.stop()
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")

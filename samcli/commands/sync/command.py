@@ -314,10 +314,16 @@ def do_cli(
     Implementation of the ``cli`` method
     """
     from samcli.cli.global_config import GlobalConfig
+    from samcli.commands._utils.template import get_template_data
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
     from samcli.lib.utils import osutils
+
+    # Parse the template up front so a malformed/missing template fails before any side effect
+    # (the opt-in prompt/config write and manage_stack below). The shared --template callback defers
+    # parse errors, so without this the error would only surface later. Restores the prior behavior.
+    get_template_data(template_file)
 
     global_config = GlobalConfig()
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
