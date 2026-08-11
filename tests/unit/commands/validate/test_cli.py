@@ -24,15 +24,15 @@ class TestValidateCli(TestCase):
         with self.assertRaises(SamTemplateNotFoundException):
             _read_sam_file(template_path)
 
-    @patch("samcli.commands._utils.template.get_template_data")
+    @patch("samcli.yamlhelper.yaml_parse")
     @patch("samcli.commands.validate.validate.click")
     @patch("samcli.commands.validate.validate.os.path.exists")
-    def test_file_parsed(self, path_exists_patch, click_patch, get_template_data_patch):
+    def test_file_parsed(self, path_exists_patch, click_patch, yaml_parse_patch):
         template_path = "path_to_template"
 
         path_exists_patch.return_value = True
 
-        get_template_data_patch.return_value = {"a": "b"}
+        yaml_parse_patch.return_value = {"a": "b"}
 
         actual_template = _read_sam_file(template_path)
 

@@ -453,22 +453,6 @@ def get_template_artifacts_format(template_file):
     return artifacts
 
 
-def get_template_artifacts_format_or_empty(template_file):
-    """
-    Same as get_template_artifacts_format, but returns an empty list instead of raising when the
-    template is missing or malformed.
-
-    Used by eager option callbacks / command decorators that run before a command's do_cli body. A
-    parse error raised there would escape click before do_cli's try/except and, in --output json
-    mode, print plain text to stderr with no JSON. Returning [] lets the requirement checks treat the
-    format as undeterminable and the real error resurface in do_cli, where it gets serialized.
-    """
-    try:
-        return get_template_artifacts_format(template_file=template_file)
-    except (TemplateNotFoundException, TemplateFailedParsingException):
-        return []
-
-
 def _get_resource_artifacts(resource, packageable_resources):
     """
     Extract artifact formats from a single resource definition.

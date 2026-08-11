@@ -28,7 +28,6 @@ from samcli.commands._utils.options import (
     watch_exclude_option_callback,
 )
 from samcli.commands._utils.parameterized_option import parameterized_option
-from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.package.exceptions import PackageResolveS3AndS3SetError, PackageResolveS3AndS3NotSetError
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from tests.unit.cli.test_cli_config_file import MockContext
@@ -119,23 +118,6 @@ class TestGetOrDefaultTemplateFileName(TestCase):
         result = get_or_default_template_file_name(ctx_mock, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
         self.assertEqual(result, expected_result_from_ctx)
 
-    @patch("samcli.commands._utils.options.os")
-    @patch("samcli.commands._utils.options.get_template_data")
-    def test_verify_ctx_swallows_malformed_template(self, get_template_data_mock, os_mock):
-        # Runs before do_cli: must not raise, so the error resurfaces in the command body where
-        # --output json can serialize it (same handling as a missing template).
-        ctx = Mock()
-        ctx.default_map = {}
-        os_mock.path.exists.return_value = True
-        os_mock.path.join = os.path.join
-        os_mock.path.abspath.return_value = "a/b/c/absPath"
-        os_mock.path.dirname.return_value = "a/b/c"
-        get_template_data_mock.side_effect = TemplateFailedParsingException("bad yaml")
-
-        # Must not raise, and template_dict is left unset (the command body re-parses and re-raises).
-        result = get_or_default_template_file_name(ctx, None, _TEMPLATE_OPTION_DEFAULT_VALUE, include_build=True)
-        self.assertEqual(result, "a/b/c/absPath")
-
 
 class TestImageRepositoriesCallBack(TestCase):
     def test_image_repositories_callback(self):
@@ -178,7 +160,7 @@ class TestRemoteInvokeBotoParameterCallBack(TestCase):
 
 
 class TestArtifactBasedOptionRequired(TestCase):
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_required(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -193,25 +175,7 @@ class TestArtifactBasedOptionRequired(TestCase):
         )
         self.assertEqual(result, s3_bucket)
 
-    # Patch the underlying parser (not the _or_empty wrapper) so the real wrapper behavior runs.
-    @patch("samcli.commands._utils.template.get_template_artifacts_format")
-    def test_malformed_template_does_not_raise_from_callback(self, template_artifacts_mock):
-        # Runs before do_cli: must not raise, so the parse error resurfaces in the command body where
-        # --output json can serialize it (otherwise deploy/package leak empty stdout in json mode).
-        template_artifacts_mock.side_effect = TemplateFailedParsingException("bad yaml")
-        mock_params = MagicMock()
-        s3_bucket = "mock-bucket"
-
-        # Must not raise; with the format undeterminable, the requirement check is skipped.
-        result = artifact_callback(
-            ctx=MockContext(info_name="test", parent=None, params=mock_params),
-            param=MagicMock(),
-            provided_value=s3_bucket,
-            artifact=ZIP,
-        )
-        self.assertEqual(result, s3_bucket)
-
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_not_required_resolve_s3_option_present(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -234,7 +198,7 @@ class TestArtifactBasedOptionRequired(TestCase):
         # No Exceptions thrown since resolve_s3 is True
         self.assertEqual(result, s3_bucket)
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_not_required_resolve_s3_option_present_in_config_file(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -258,7 +222,7 @@ class TestArtifactBasedOptionRequired(TestCase):
         # No Exceptions thrown since resolve_s3 is True in config file.
         self.assertEqual(result, s3_bucket)
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_bucket_not_given_error(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -280,7 +244,7 @@ class TestArtifactBasedOptionRequired(TestCase):
                 artifact=ZIP,
             )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_image_based_artifact_image_repo(self, template_artifacts_mock):
         template_artifacts_mock.return_value = [IMAGE]
         mock_params = MagicMock()
@@ -295,7 +259,7 @@ class TestArtifactBasedOptionRequired(TestCase):
         )
         self.assertEqual(result, image_repository)
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_artifact_different_from_required_option(self, template_artifacts_mock):
         template_artifacts_mock.return_value = [IMAGE, ZIP]
         mock_params = MagicMock()
@@ -324,7 +288,7 @@ class TestArtifactBasedOptionRequired(TestCase):
 
 
 class TestResolveS3CallBackOption(TestCase):
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_bucket_present_resolve_s3_present(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -354,7 +318,7 @@ class TestResolveS3CallBackOption(TestCase):
                 exc_not_set=PackageResolveS3AndS3NotSetError,
             )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_bucket_not_present_resolve_s3_not_present(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -370,7 +334,7 @@ class TestResolveS3CallBackOption(TestCase):
                 exc_not_set=PackageResolveS3AndS3NotSetError,
             )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_zip_based_artifact_s3_bucket_not_present_resolve_s3_present(self, template_artifacts_mock):
         # implicitly artifacts are zips
         template_artifacts_mock.return_value = [ZIP]
@@ -388,7 +352,7 @@ class TestResolveS3CallBackOption(TestCase):
             True,
         )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_image_based_artifact_resolve_s3_present(self, template_artifacts_mock):
         template_artifacts_mock.return_value = [IMAGE]
         mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
@@ -407,7 +371,7 @@ class TestResolveS3CallBackOption(TestCase):
                 provided_option_value,
             )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_image_and_zip_based_artifact_s3_bucket_not_present_resolve_s3_not_present(self, template_artifacts_mock):
         template_artifacts_mock.return_value = [IMAGE, ZIP]
         mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": False}
@@ -422,7 +386,7 @@ class TestResolveS3CallBackOption(TestCase):
                 exc_not_set=PackageResolveS3AndS3NotSetError,
             )
 
-    @patch("samcli.commands._utils.options.get_template_artifacts_format_or_empty")
+    @patch("samcli.commands._utils.options.get_template_artifacts_format")
     def test_image_and_zip_based_artifact_s3_bucket_present_resolve_s3_not_present(self, template_artifacts_mock):
         template_artifacts_mock.return_value = [IMAGE, ZIP]
         mock_params = {"t": MagicMock(), "template_file": MagicMock(), "template": MagicMock(), "s3_bucket": True}

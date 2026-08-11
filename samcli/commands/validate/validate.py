@@ -128,8 +128,8 @@ def _read_sam_file(template) -> SamTemplate:
     :raises: SamTemplateNotFoundException when the template file does not exist
     """
 
-    from samcli.commands._utils.template import get_template_data
     from samcli.commands.local.cli_common.user_exceptions import SamTemplateNotFoundException
+    from samcli.yamlhelper import yaml_parse
 
     if not os.path.exists(template):
         click.secho("SAM Template Not Found", bg="red")
@@ -137,10 +137,7 @@ def _read_sam_file(template) -> SamTemplate:
 
     with click.open_file(template, "r", encoding="utf-8") as sam_file:
         template_string = sam_file.read()
-    # Parse through get_template_data so a malformed template raises TemplateFailedParsingException
-    # (a UserException) instead of a raw yaml error. The shared --template callback defers parse
-    # errors, so this is where they now surface for validate.
-    sam_template = get_template_data(template)
+        sam_template = yaml_parse(template_string)
 
     return SamTemplate(serialized=template_string, deserialized=sam_template)
 

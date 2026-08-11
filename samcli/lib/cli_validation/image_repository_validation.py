@@ -6,11 +6,7 @@ This is to be run last after all CLI options have been processed.
 import click
 
 from samcli.commands._utils.option_validator import Validator
-from samcli.commands._utils.template import (
-    TemplateFailedParsingException,
-    TemplateNotFoundException,
-    get_template_artifacts_format_or_empty,
-)
+from samcli.commands._utils.template import get_template_artifacts_format
 from samcli.lib.providers.provider import (
     ResourceIdentifier,
     get_resource_full_path_by_id,
@@ -60,7 +56,7 @@ def image_repository_validation(support_resolve_image_repos=True):
             required = any(
                 [
                     _template_artifact == IMAGE
-                    for _template_artifact in get_template_artifacts_format_or_empty(template_file=template_file)
+                    for _template_artifact in get_template_artifacts_format(template_file=template_file)
                 ]
             )
 
@@ -125,18 +121,12 @@ def _is_all_image_funcs_provided(template_file, image_repositories, parameters_o
     """
     image_repositories = image_repositories if image_repositories else {}
     global_parameter_overrides = {}
-    try:
-        stacks, _ = SamLocalStackProvider.get_stacks(
-            template_file,
-            parameter_overrides=parameters_overrides,
-            global_parameter_overrides=global_parameter_overrides,
-            language_extensions_enabled=False,
-        )
-    except (TemplateNotFoundException, TemplateFailedParsingException):
-        # This validator runs before the command body. If the template can't be parsed here, skip
-        # the check (report "all provided") so the parse error resurfaces in do_cli, where --output
-        # json can serialize it, instead of escaping to stderr as plain text.
-        return True
+    stacks, _ = SamLocalStackProvider.get_stacks(
+        template_file,
+        parameter_overrides=parameters_overrides,
+        global_parameter_overrides=global_parameter_overrides,
+        language_extensions_enabled=False,
+    )
     # updated_repositories = map_resource_id_key_map_to_full_path(image_repositories, stacks)
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
 

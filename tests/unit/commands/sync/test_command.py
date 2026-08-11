@@ -6,22 +6,20 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 from click.testing import CliRunner
 from parameterized import parameterized
 
+from samcli.commands.sync.command import (
+    do_cli,
+    cli as sync_cli,
+    execute_code_sync,
+    execute_watch,
+    check_enable_dependency_layer,
+    execute_infra_contexts,
+)
+from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.commands._utils.constants import (
     DEFAULT_BUILD_DIR,
     DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER,
     DEFAULT_CACHE_DIR,
 )
-from samcli.commands.sync.command import (
-    check_enable_dependency_layer,
-    do_cli,
-    execute_code_sync,
-    execute_infra_contexts,
-    execute_watch,
-)
-from samcli.commands.sync.command import (
-    cli as sync_cli,
-)
-from samcli.lib.providers.provider import ResourceIdentifier
 from samcli.lib.sync.infra_sync_executor import InfraSyncResult
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
@@ -62,13 +60,6 @@ class TestDoCli(TestCase):
         self.build_image = None
         self.container_env_var_file = "file"
         MOCK_SAM_CONFIG.reset_mock()
-
-        # do_cli now parses the template up front; stub it so these tests keep using a fake path.
-        self.get_template_data_patch = patch("samcli.commands._utils.template.get_template_data")
-        self.get_template_data_patch.start()
-
-    def tearDown(self):
-        self.get_template_data_patch.stop()
 
     @parameterized.expand(
         # code, watch, auto_dependency_layer, skip_deploy_sync, use_container, infra_sync_result,
