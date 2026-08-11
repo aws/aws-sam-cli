@@ -7,6 +7,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import click
 
+from samcli.commands._utils.template import TemplateFailedParsingException
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
@@ -68,8 +69,14 @@ class TestDeployCliCommand(TestCase):
         }
         self.companion_stack_manager_mock.return_value.get_unreferenced_repos.return_value = []
 
+        # do_cli now parses the template up front; stub it so these tests keep using a fake path.
+        # Tests that exercise the parse itself patch it locally to raise.
+        self.get_template_data_patch = patch("samcli.commands._utils.template.get_template_data")
+        self.get_template_data_patch.start()
+
     def tearDown(self):
         self.companion_stack_manager_patch.stop()
+        self.get_template_data_patch.stop()
 
     @patch("os.environ", {**os.environ, "SAM_CLI_POLL_DELAY": 10})  # type: ignore
     @patch("samcli.commands.package.command.click")
@@ -238,6 +245,36 @@ class TestDeployCliCommand(TestCase):
         self.assertEqual(emitted["status"], "failure")
         self.assertEqual(emitted["error"]["type"], "RuntimeError")
         self.assertEqual(emitted["error"]["message"], "bucket boom")
+
+    @patch("samcli.commands.deploy.command.manage_stack")
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_malformed_template_fails_before_side_effects_in_text_mode(self, mock_get_template_data, mock_manage_stack):
+        # do_cli parses the template first, so a malformed template raises before any side effect
+        # (here manage_stack). This keeps text mode's behavior unchanged now that the eager option
+        # callbacks defer parse errors instead of raising.
+        mock_get_template_data.side_effect = TemplateFailedParsingException("bad template")
+
+        with self.assertRaises(TemplateFailedParsingException):
+            self._do_cli_with(output="text", resolve_s3=True, s3_bucket=None)
+
+        mock_manage_stack.assert_not_called()
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_malformed_template_emits_terminal_failed_in_json_mode(self, mock_get_template_data):
+        # The same up-front parse error is serialized as a terminal failure result in --output json
+        # mode, instead of escaping to stderr as plain text with an empty stdout.
+        mock_get_template_data.side_effect = TemplateFailedParsingException("bad template")
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(TemplateFailedParsingException):
+                self._do_cli_with(output="json")
+
+        emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+        self.assertEqual(emitted["type"], "result")
+        self.assertEqual(emitted["status"], "failure")
+        self.assertEqual(emitted["error"]["type"], "TemplateFailedParsingException")
+        self.assertIsNone(emitted["error"]["resources"])
 
     @patch("samcli.commands.deploy.deploy_context.DeployContext")
     @patch("samcli.commands.package.package_context.PackageContext")

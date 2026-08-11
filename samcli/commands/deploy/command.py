@@ -319,6 +319,14 @@ def do_cli(
         raise click.UsageError("--confirm-changeset is not compatible with --output json")
 
     try:
+        # Parse the template up front, inside this try, so a malformed/missing template surfaces here
+        # rather than escaping the eager option callbacks (which defer parse errors). This keeps text
+        # mode identical to before (same error, no side effects like manage_stack) and lets --output
+        # json serialize the failure below.
+        from samcli.commands._utils.template import get_template_data
+
+        get_template_data(template_file=template_file)
+
         if guided:
             # Allow for a guided deploy to prompt and save those details.
             guided_context = GuidedContext(
