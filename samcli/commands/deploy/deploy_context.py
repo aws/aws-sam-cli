@@ -18,7 +18,6 @@ Deploy a SAM stack
 import json
 import logging
 import os
-import sys
 from typing import Dict, List, Optional
 
 import boto3
@@ -265,10 +264,7 @@ class DeployContext:
         for resource, authorization_required in auth_required_per_resource:
             if not authorization_required:
                 if self._output_mode is OutputOption.json:
-                    sys.stdout.write(
-                        json.dumps({"type": "warning", "message": "no authentication", "resource": resource}) + "\n"
-                    )
-                    sys.stdout.flush()
+                    click.echo(json.dumps({"type": "warning", "message": "no authentication", "resource": resource}))
                 else:
                     click.secho(f"{resource} has no authentication.", fg="yellow")
 
@@ -296,11 +292,9 @@ class DeployContext:
 
                 if no_execute_changeset:
                     if self._output_mode is OutputOption.json:
-                        sys.stdout.write(
+                        click.echo(
                             json.dumps({"type": "result", "status": "changeset_created", "changeset_id": result["Id"]})
-                            + "\n"
                         )
-                        sys.stdout.flush()
                     return
 
                 if confirm_changeset:
@@ -322,7 +316,7 @@ class DeployContext:
                     # one whose resources may still be stabilizing (the text branch warns about this).
                     # Include changeset_id so a consumer can link to / re-describe the changeset; text
                     # mode always reports it via MSG_SHOWCASE_CHANGESET.
-                    sys.stdout.write(
+                    click.echo(
                         json.dumps(
                             {
                                 "type": "result",
@@ -333,9 +327,7 @@ class DeployContext:
                                 "express": self.express,
                             }
                         )
-                        + "\n"
                     )
-                    sys.stdout.flush()
                 else:
                     click.echo(self.MSG_EXECUTE_SUCCESS.format(stack_name=stack_name, region=region))
                     if self.express:
@@ -349,8 +341,7 @@ class DeployContext:
                 if fail_on_empty_changeset:
                     raise
                 if self._output_mode is OutputOption.json:
-                    sys.stdout.write(json.dumps({"type": "result", "status": "no_changes", "message": str(ex)}) + "\n")
-                    sys.stdout.flush()
+                    click.echo(json.dumps({"type": "result", "status": "no_changes", "message": str(ex)}))
                 else:
                     click.echo(str(ex))
             except deploy_exceptions.DeployFailedError:
