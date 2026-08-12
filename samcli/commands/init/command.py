@@ -2,9 +2,12 @@
 Init command to scaffold a project app from a template
 """
 
+import contextlib
 import json
 import logging
 import os
+import sys
+import tempfile
 from json import JSONDecodeError
 
 import click
@@ -45,6 +48,14 @@ or you can provide one of the following required parameter combinations:
 """
 
 REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
+
+STRUCTURED_OUTPUT_PARAMS_HINT = """--output json cannot be used with the interactive flow, which prompts for values \
+that cannot be answered when the output is being consumed by another program. Provide one of the following parameter \
+combinations instead:
+\t--name, --location, or
+\t--name, --package-type, --base-image, or
+\t--name, --runtime, --app-template, --dependency-manager
+"""
 
 INIT_INTERACTIVE_OPTION_GUIDE = """
 You can preselect a particular runtime or package type when using the `sam init` experience.
@@ -363,48 +374,68 @@ def do_cli(
                 # A JSON consumer cannot answer cookiecutter's prompts. The --app-template path
                 # already sets no_input above, but --location does not, so force it here as well.
                 no_input = True
-            generated_directory = do_generate(
-                location,
-                package_type,
-                runtime,
-                dependency_manager,
-                output_dir,
-                name,
-                no_input,
-                extra_context,
-                tracing,
-                application_insights,
-                structured_logging,
-            )
-            if output_mode is OutputOption.json:
-                # Emit absolute paths so a machine consumer never has to guess the process cwd.
-                # Prefer the directory the generator reports: a cookiecutter template names its own
-                # project directory, so output_dir/name is only a guess and is wrong for a
-                # --location template used without --name. Fall back to the guess when the
-                # generator could not determine the directory.
-                project_directory = os.path.abspath(
-                    generated_directory or (os.path.join(output_dir, name) if name else output_dir)
+            captured_stdout = None
+            with contextlib.ExitStack() as stack:
+                if output_mode is OutputOption.json:
+                    # A template's hooks run as subprocesses that write straight to our stdout,
+                    # which would leave a JSON consumer with unparseable output. Capture anything
+                    # written during generation so it can be re-emitted as JSON below.
+                    captured_stdout = stack.enter_context(_capture_stdout())
+                generated_directory = do_generate(
+                    location,
+                    package_type,
+                    runtime,
+                    dependency_manager,
+                    output_dir,
+                    name,
+                    no_input,
+                    extra_context,
+                    tracing,
+                    application_insights,
+                    structured_logging,
                 )
+
+            if captured_stdout is not None and captured_stdout.text:
+                # Stdout is restored by now, so this is safe to emit. Template output is reported
+                # rather than discarded, since a hook's instructions can matter to the caller.
+                click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
+
+            if output_mode is OutputOption.json:
+                # Report the directory the generator created, as an absolute path so a machine
+                # consumer never has to guess the process cwd. output_dir/name is not a usable
+                # substitute: a cookiecutter template names its own project directory, so that
+                # path is wrong for a --location template used without --name. When the generator
+                # could not determine a directory at all, report null rather than a fabricated
+                # path. The command still succeeds, matching text mode, but a consumer is told
+                # the location is unknown instead of being sent to a directory that may be empty.
+                project_directory = os.path.abspath(generated_directory) if generated_directory else None
                 click.echo(
                     json.dumps(
                         {
                             "type": "result",
                             "status": "success",
                             "project_directory": project_directory,
-                            "template_file": _find_template_file(project_directory),
+                            "template_file": _find_template_file(project_directory) if project_directory else None,
                             "runtime": runtime,
-                            "package_type": package_type,
+                            # package_type and architectures are only reported for a managed
+                            # template, identified by having resolved a runtime. A --location
+                            # template decides its own package type and architectures, and the
+                            # values we hold there are just defaults (Zip from the --package-type
+                            # callback, x86_64 from get_architectures), so reporting them would
+                            # look authoritative while contradicting the generated project.
+                            "package_type": package_type if runtime else None,
                             "dependency_manager": dependency_manager,
                             "app_template": app_template,
-                            # Only report architectures we actually know: either the user asked
-                            # for one, or a managed template resolved a runtime. On a --location
-                            # clone with neither, the cloned template decides its own
-                            # architectures, so defaulting here would contradict runtime,
-                            # dependency_manager and app_template, which are all null.
-                            "architectures": get_architectures(architecture) if architecture or runtime else None,
+                            "architectures": get_architectures(architecture) if runtime else None,
                         }
                     )
                 )
+        except click.UsageError:
+            # A usage error means the command was called incorrectly and nothing was attempted, so
+            # there is no result to describe. Let click report it the way it reports every other
+            # usage error, including the --output json guard below: its standard message on stderr
+            # and a non-zero exit, with no result document on stdout.
+            raise
         except Exception as ex:
             # Broad catch so any execution failure is serialized for a JSON consumer, which has no
             # other way to learn why the command failed. Re-raise so exit codes and @track_command
@@ -414,11 +445,12 @@ def do_cli(
             raise
     else:
         if output_mode is OutputOption.json:
-            # sam init prompts by default and a JSON consumer cannot answer those prompts. Rejecting
-            # here rather than up front keeps any invocation that resolves to the non-interactive
-            # path above working, with or without an explicit --no-interactive. Raising before the
-            # guide banner below also keeps that text off stdout, where it would corrupt the JSON.
-            raise click.UsageError("--output json requires --no-interactive")
+            # sam init prompts by default and those prompts cannot be answered when the output is
+            # being consumed by another program. Rejecting here rather than up front keeps any
+            # invocation that resolves to the non-interactive path above working, with or without
+            # an explicit --no-interactive. Raising before the guide banner below also keeps that
+            # text off stdout, where it would corrupt the JSON.
+            raise click.UsageError(STRUCTURED_OUTPUT_PARAMS_HINT)
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
             click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
 
@@ -439,6 +471,44 @@ def do_cli(
             application_insights,
             structured_logging,
         )
+
+
+class CapturedStdout:
+    """Holds whatever was written to stdout while _capture_stdout was active."""
+
+    def __init__(self):
+        self.text = ""
+
+
+@contextlib.contextmanager
+def _capture_stdout():
+    """Redirect stdout into a buffer for the duration of the block.
+
+    Cookiecutter runs a template's hooks as subprocesses that inherit this process's stdout, so
+    contextlib.redirect_stdout is not enough here: it only replaces sys.stdout within this
+    process. Redirecting file descriptor 1 captures subprocess output as well. A temporary file
+    is used rather than a pipe so a hook writing a lot of output cannot fill a pipe and block.
+
+    The captured text is available once the block exits, including when the block raised.
+
+    Yields
+    ------
+    CapturedStdout
+        Object whose ``text`` attribute holds the captured output once the block has exited
+    """
+    capture = CapturedStdout()
+    with tempfile.TemporaryFile(mode="w+") as buffer:
+        sys.stdout.flush()
+        saved_stdout_fd = os.dup(1)
+        try:
+            os.dup2(buffer.fileno(), 1)
+            yield capture
+        finally:
+            sys.stdout.flush()
+            os.dup2(saved_stdout_fd, 1)
+            os.close(saved_stdout_fd)
+            buffer.seek(0)
+            capture.text = buffer.read().strip()
 
 
 def _find_template_file(project_directory):

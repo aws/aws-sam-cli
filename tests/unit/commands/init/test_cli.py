@@ -3271,11 +3271,12 @@ test-project
         self, generate_project_patch, location_from_app_template_mock, echo_mock
     ):
         location_from_app_template_mock.return_value = "applocation"
-        # Mirror generate_project's real contract: it returns the directory it created
-        generate_project_patch.return_value = None
 
         # WHEN a project is generated with --output json
         with osutils.mkdir_temp() as temp_dir:
+            # Mirror generate_project's real contract: it returns the directory it created
+            generate_project_patch.return_value = os.path.join(temp_dir, self.name)
+
             init_cli(
                 ctx=self.ctx,
                 no_interactive=self.no_interactive,
@@ -3408,8 +3409,11 @@ test-project
                 output="json",
             )
 
-        # THEN it is rejected before any prompting happens
-        self.assertIn("--no-interactive", str(ex.exception))
+        # THEN it is rejected before any prompting happens, and the message lists the parameter
+        # combinations that would make the run non-interactive rather than naming a single flag
+        self.assertIn("--location", str(ex.exception))
+        self.assertIn("--app-template", str(ex.exception))
+        self.assertIn("--base-image", str(ex.exception))
         self.assertFalse(do_interactive_mock.called)
 
     @patch("samcli.commands.init.command.click.echo")
@@ -3452,6 +3456,8 @@ test-project
             project_directory.mkdir(parents=True, exist_ok=True)
             for file_name in file_names:
                 Path(project_directory, file_name).write_text("Resources: {}")
+            # generate_project returns the directory it created
+            return str(project_directory)
 
         generate_project_patch.side_effect = create_files
 
@@ -3564,13 +3570,17 @@ test-project
             # THEN the reported directory is the one the generator created, not output_dir
             self.assertEqual(document["project_directory"], generated_directory)
             self.assertNotEqual(document["project_directory"], temp_dir)
-            # AND architectures is not invented for a clone whose runtime we do not know
+            # AND the fields only a managed template can resolve are not invented for a clone
             self.assertIsNone(document["architectures"])
+            self.assertIsNone(document["package_type"])
+            self.assertIsNone(document["runtime"])
+            self.assertIsNone(document["dependency_manager"])
+            self.assertIsNone(document["app_template"])
 
     @patch("samcli.commands.init.command.click.echo")
     @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_output_json_falls_back_when_directory_unknown(
+    def test_init_cli_output_json_reports_null_when_directory_unknown(
         self, generate_project_patch, location_from_app_template_mock, echo_mock
     ):
         location_from_app_template_mock.return_value = "applocation"
@@ -3601,7 +3611,89 @@ test-project
 
             document = json.loads(echo_mock.call_args[0][0])
 
-            # THEN it falls back to output_dir/name rather than reporting nothing
-            self.assertEqual(document["project_directory"], os.path.join(temp_dir, self.name))
+            # THEN the location is reported as unknown rather than as a fabricated path
+            self.assertIsNone(document["project_directory"])
+            self.assertIsNone(document["template_file"])
+            # AND the command still succeeds, matching what text mode does in this case
+            self.assertEqual(document["status"], "success")
             # AND architectures is reported, since a managed template resolved a runtime
             self.assertEqual(document["architectures"], [X86_64])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_template_output(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_to_stdout(*args, **kwargs):
+            # Templates print from hook subprocesses, so write to the descriptor rather than print()
+            os.write(1, b"hook wrote this\n")
+
+        generate_project_patch.side_effect = write_to_stdout
+
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
+            runtime=self.runtime,
+            architecture=X86_64,
+            base_image=self.base_image,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            tracing=False,
+            application_insights=False,
+            structured_logging=False,
+            output="json",
+        )
+
+        # THEN the template's output is reported as its own document ahead of the result, so every
+        # line of stdout stays parseable
+        self.assertEqual(echo_mock.call_count, 2)
+
+        info_document = json.loads(echo_mock.call_args_list[0][0][0])
+        self.assertEqual(info_document["type"], "info")
+        self.assertEqual(info_document["source"], "template")
+        self.assertIn("hook wrote this", info_document["message"])
+
+        result_document = json.loads(echo_mock.call_args_list[1][0][0])
+        self.assertEqual(result_document["type"], "result")
+        self.assertEqual(result_document["status"], "success")
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_does_not_report_usage_errors(self, generate_project_patch, echo_mock):
+        # WHEN the command is called incorrectly, here with --extra-context that is not valid JSON
+        with self.assertRaises(click.UsageError):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location="/some/location",
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
+                runtime=self.runtime,
+                architecture=X86_64,
+                base_image=self.base_image,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template=None,
+                no_input=self.no_input,
+                extra_context="{not valid json",
+                tracing=False,
+                application_insights=False,
+                structured_logging=False,
+                output="json",
+            )
+
+        # THEN no result document is emitted, since nothing was attempted. Usage errors are
+        # reported by click on stderr, the same way the --output json guard reports them.
+        self.assertFalse(echo_mock.called)
+        self.assertFalse(generate_project_patch.called)
