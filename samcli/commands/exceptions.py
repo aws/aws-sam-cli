@@ -3,7 +3,7 @@ Class containing error conditions that are exposed to the user.
 """
 
 import traceback
-from typing import IO, Optional
+from typing import IO, List, Optional
 from urllib.parse import quote
 
 import click
@@ -22,6 +22,12 @@ class UserException(click.ClickException):
     """
 
     exit_code = 1
+
+    # Full paths of the resources a failure is attributable to. Used by commands that emit
+    # structured (JSON) error output. A build definition can collapse several functions that
+    # share a runtime and CodeUri, so one failure can affect more than one resource. Defaults
+    # to None for failures not tied to any specific resource.
+    resource_names: Optional[List[str]] = None
 
     def __init__(self, message, wrapped_from=None):
         self.wrapped_from = wrapped_from

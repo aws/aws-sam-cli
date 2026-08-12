@@ -31,6 +31,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
     resolve_language_extensions_enabled,
 )
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.artifact_exporter import Template, _export_global_artifacts_pass
 from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -84,6 +85,7 @@ class PackageContext:
         signing_profiles=None,
         resolve_image_repos=False,
         language_extensions=None,
+        output="text",
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -105,6 +107,7 @@ class PackageContext:
         self.resolve_image_repos = resolve_image_repos
         self._language_extensions_enabled: bool = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
+        self._output_mode = OutputOption(output)
 
     def __enter__(self):
         return self
@@ -285,8 +288,9 @@ class PackageContext:
             )
         return output_template
 
-    @staticmethod
-    def _warn_preview_runtime(stacks: List[Stack]) -> None:
+    def _warn_preview_runtime(self, stacks: List[Stack]) -> None:
+        # In JSON mode this warning goes to stderr so it does not corrupt the JSON lines on stdout.
+        to_stderr = self._output_mode is OutputOption.json
         for stack in stacks:
             for _, resource_dict in stack.resources.items():
                 if resource_dict.get("Type") not in [AWS_SERVERLESS_FUNCTION, AWS_LAMBDA_FUNCTION]:
@@ -298,6 +302,7 @@ class PackageContext:
                         "For more information on supported runtimes, see "
                         "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html.",
                         fg="yellow",
+                        err=to_stderr,
                     )
                 return
 

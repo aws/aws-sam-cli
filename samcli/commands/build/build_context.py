@@ -4,6 +4,7 @@ Context object used by build command
 
 import copy
 import itertools
+import json
 import logging
 import os
 import pathlib
@@ -14,14 +15,18 @@ from typing import Any, Dict, List, Optional, Tuple
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
-from samcli.commands._utils.experimental import ExperimentalFlag, prompt_experimental
+from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled, prompt_experimental
 from samcli.commands._utils.template import (
     FOREACH_REQUIRED_ELEMENTS,
     get_template_data,
     move_template,
 )
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
-from samcli.commands.build.utils import MountMode, prompt_user_to_enable_mount_with_write_if_needed
+from samcli.commands.build.utils import (
+    MountMode,
+    prompt_user_to_enable_mount_with_write_if_needed,
+    resource_requiring_mount_with_write,
+)
 from samcli.commands.exceptions import UserException
 from samcli.lib.bootstrap.nested_stack.nested_stack_manager import NESTED_STACK_NAME, NestedStackManager
 from samcli.lib.build.app_builder import (
@@ -36,7 +41,7 @@ from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     InvalidBuildGraphException,
 )
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 from samcli.lib.cfn_language_extensions.sam_integration import (
     contains_loop_variable,
@@ -47,13 +52,14 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
+from samcli.lib.observability.util import OutputOption, failure_result_json
 from samcli.lib.package.language_extensions_packaging import (
     _get_prop_value,
     _leaf_prop_name,
     _resolve_property_paths,
     _set_prop_value,
 )
-from samcli.lib.providers.provider import LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import Function, LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
@@ -67,6 +73,11 @@ from samcli.local.lambdafn.exceptions import (
 )
 
 LOG = logging.getLogger(__name__)
+
+
+def build_failure_json(ex: Exception) -> str:
+    """Serialize a build failure into the shared JSON error document (see failure_result_json)."""
+    return failure_result_json(ex)
 
 
 class BuildContext:
@@ -104,6 +115,7 @@ class BuildContext:
         mount_symlinks: Optional[bool] = False,
         use_buildkit: Optional[bool] = False,
         language_extensions: Optional[bool] = None,
+        output: str = "text",
     ) -> None:
         """
         Initialize the class
@@ -213,6 +225,7 @@ class BuildContext:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
+        self._output = OutputOption(output)
 
     def __enter__(self) -> "BuildContext":
         self.set_up()
@@ -277,21 +290,35 @@ class BuildContext:
         caught_exception: Optional[Exception] = None
 
         try:
+            resources_to_build = self.get_resources_to_build()
+
             # boolean value indicates if mount with write or not, defaults to READ ONLY
             mount_with_write = False
             if self._use_container:
                 if self._mount_with == MountMode.WRITE:
                     mount_with_write = True
+                elif self._output is OutputOption.json:
+                    # Can't prompt for the mount-with-write confirm in JSON mode. Workflows that
+                    # require a writable mount (e.g. .NET) would fail cryptically read-only, so fail
+                    # up front with an actionable error; others are fine with the READ-only default.
+                    requires_write = resource_requiring_mount_with_write(resources_to_build, self.base_dir)
+                    if requires_write:
+                        _, code_dir = requires_write
+                        raise UserException(
+                            f"Building '{code_dir}' inside a container requires mounting the source "
+                            f"directory with write permissions, which cannot be confirmed interactively "
+                            f"with --output json. Re-run with `--mount-with WRITE`."
+                        )
                 else:
                     # if self._mount_with is NOT WRITE
-                    # check the need of mounting with write permissions and prompt user to enable it if needed
+                    # check the need of mounting with write permissions and prompt user to enable it if needed.
                     mount_with_write = prompt_user_to_enable_mount_with_write_if_needed(
-                        self.get_resources_to_build(),
+                        resources_to_build,
                         self.base_dir,
                     )
 
             builder = ApplicationBuilder(
-                self.get_resources_to_build(),
+                resources_to_build,
                 self.build_dir,
                 self.base_dir,
                 self.cache_dir,
@@ -314,59 +341,62 @@ class BuildContext:
             self._check_exclude_warning()
             self._check_build_method_experimental_flag()
 
-            for f in self.get_resources_to_build().functions:
+            for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
 
             self._build_result = builder.build()
 
             self._handle_build_post_processing(builder, self._build_result)
 
-            click.secho("\nBuild Succeeded", fg="green")
-
-            # try to use relpath so the command is easier to understand, however,
-            # under Windows, when SAM and (build_dir or output_template_path) are
-            # on different drive, relpath() fails.
             root_stack = SamLocalStackProvider.find_root_stack(self.stacks)
             out_template_path = root_stack.get_output_template_path(self.build_dir)
-            try:
-                build_dir_in_success_message = os.path.relpath(self.build_dir)
-                output_template_path_in_success_message = os.path.relpath(out_template_path)
-            except ValueError:
-                LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
-                build_dir_in_success_message = self.build_dir
-                output_template_path_in_success_message = out_template_path
 
-            if self._print_success_message:
-                msg = self._gen_success_msg(
-                    build_dir_in_success_message,
-                    output_template_path_in_success_message,
-                    os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
-                )
-
-                click.secho(msg, fg="yellow")
+            # Pass absolute paths; _print_build_success emits them as-is for JSON and applies the
+            # relpath human-readability transform only for the text banner.
+            self._print_build_success(
+                self.build_dir,
+                out_template_path,
+                resources_to_build,
+            )
         except FunctionNotFound as function_not_found_ex:
             caught_exception = function_not_found_ex
 
-            raise UserException(
-                str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__
-            ) from function_not_found_ex
+            user_ex = UserException(str(function_not_found_ex), wrapped_from=function_not_found_ex.__class__.__name__)
+            # The failure is attributable to the specific resource the user asked to build. Resolve
+            # it to a full path so it matches the resource_id namespace of the success document.
+            user_ex.resource_names = getattr(
+                function_not_found_ex, "resource_names", None
+            ) or self._resolve_resource_full_paths(self._resource_identifier)
+            raise user_ex from function_not_found_ex
         except (
             UnsupportedRuntimeException,
+            UnsupportedBuilderException,
             BuildError,
             BuildInsideContainerError,
             UnsupportedBuilderLibraryVersionError,
             InvalidBuildGraphException,
+            MissingBuildMethodException,
             ResourceNotFound,
         ) as ex:
             caught_exception = ex
-
-            click.secho("\nBuild Failed", fg="red")
 
             # Some Exceptions have a deeper wrapped exception that needs to be surfaced
             # from deeper than just one level down.
             deep_wrap = getattr(ex, "wrapped_from", None)
             wrapped_from = deep_wrap if deep_wrap else ex.__class__.__name__
-            raise UserException(str(ex), wrapped_from=wrapped_from) from ex
+
+            self._print_build_failure()
+
+            user_ex = UserException(str(ex), wrapped_from=wrapped_from)
+            # Prefer the resources the build strategy already tagged; else fall back to the resource
+            # the user asked to build. A corrupt build graph isn't any one resource's fault, so it
+            # keeps resources=None rather than blaming whatever the user named.
+            resource_names = getattr(ex, "resource_names", None)
+            if resource_names is None and not isinstance(ex, InvalidBuildGraphException):
+                # Resolve to full paths so they match the resource_id namespace of the success document.
+                resource_names = self._resolve_resource_full_paths(self._resource_identifier)
+            user_ex.resource_names = resource_names
+            raise user_ex from ex
         finally:
             if self.build_in_source:
                 exception_name = type(caught_exception).__name__ if caught_exception else None
@@ -1076,6 +1106,108 @@ class BuildContext:
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
 
+    def _resolve_resource_full_paths(self, resource_identifier: Optional[str]) -> Optional[List[str]]:
+        """
+        Resolve a resource identifier (a CLI argument, which may be a bare logical ID) to a single
+        element list holding its full path, so error.resources stays in the same namespace as
+        resources[].resource_id in the success document (both nested-stack-qualified, e.g.
+        ChildStack/MyFn). Returns None when there is no identifier, and falls back to the raw
+        identifier if the resource cannot be looked up.
+        """
+        if not resource_identifier:
+            return None
+        function = self.function_provider.get(resource_identifier) if self.function_provider else None
+        if function:
+            return [function.full_path]
+        layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
+        if layer:
+            return [layer.full_path]
+        return [resource_identifier]
+
+    @staticmethod
+    def _function_to_json(function: Function) -> Dict[str, Any]:
+        """
+        Serialize a built function for the JSON success document. Includes a package_type
+        discriminator so Image functions (which have runtime: None) are distinguishable from
+        Zip functions rather than both appearing as runtime: null.
+        """
+        return {
+            "resource_id": function.full_path,
+            "type": "function",
+            "package_type": function.packagetype,
+            "runtime": function.runtime,
+            "architecture": function.architecture,
+        }
+
+    def _print_build_success(
+        self, artifacts_dir: str, output_template_path: str, resources_to_build: ResourcesToBuildCollector
+    ) -> None:
+        """
+        Reports a successful build, either as structured JSON or as a human readable message.
+
+        Parameters
+        ----------
+        artifacts_dir: str
+            An absolute path representing the folder of built artifacts
+        output_template_path: str
+            An absolute path representing the final template file
+        resources_to_build: ResourcesToBuildCollector
+            The functions and layers that were built
+        """
+        if self._output is OutputOption.json:
+            # Emit absolute paths so a machine consumer never has to guess the process cwd. The
+            # relpath transform below is only a human-readability affordance for the text banner.
+            resources: List[Dict[str, Any]] = [
+                self._function_to_json(function) for function in resources_to_build.functions
+            ] + [
+                {
+                    "resource_id": layer.full_path,
+                    "type": "layer",
+                    "compatible_runtimes": layer.compatible_runtimes,
+                }
+                for layer in resources_to_build.layers
+            ]
+            click.echo(
+                json.dumps(
+                    {
+                        "type": "result",
+                        "status": "success",
+                        "build_dir": artifacts_dir,
+                        "template_file": output_template_path,
+                        "resources": resources,
+                    }
+                )
+            )
+            return
+
+        # try to use relpath so the command is easier to understand, however, under Windows, when
+        # SAM and (build_dir or output_template_path) are on different drives, relpath() fails.
+        try:
+            artifacts_dir = os.path.relpath(artifacts_dir)
+            output_template_path = os.path.relpath(output_template_path)
+        except ValueError:
+            LOG.debug("Failed to retrieve relpath - using the specified path as-is instead")
+
+        click.secho("\nBuild Succeeded", fg="green")
+        if self._print_success_message:
+            msg = self._gen_success_msg(
+                artifacts_dir,
+                output_template_path,
+                os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+            )
+            click.secho(msg, fg="yellow")
+
+    def _print_build_failure(self) -> None:
+        """
+        Prints the human-readable "Build Failed" banner in text mode.
+
+        JSON-mode failure serialization is handled centrally in do_cli, which catches
+        execution failures raised from run()/set_up() (including exceptions raised before
+        run()'s try block, e.g. template parse errors or missing layer BuildMethod).
+        """
+        if self._output is not OutputOption.json:
+            click.secho("\nBuild Failed", fg="red")
+
     def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
         """
         Generates a success message containing some suggested commands to run
@@ -1141,11 +1273,14 @@ Commands you can use next
             )
             raise InvalidBuildDirException(exception_message)
 
-        if build_path.exists() and os.listdir(build_dir) and clean:
-            # build folder contains something inside. Clear everything.
-            shutil.rmtree(build_dir)
+        try:
+            if build_path.exists() and os.listdir(build_dir) and clean:
+                # build folder contains something inside. Clear everything.
+                shutil.rmtree(build_dir)
 
-        build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+            build_path.mkdir(mode=BUILD_DIR_PERMISSIONS, parents=True, exist_ok=True)
+        except OSError as ex:
+            raise InvalidBuildDirException(f"Unable to use build dir {build_dir}. Reason: {str(ex)}") from ex
 
         # ensure path resolving is done after creation: https://bugs.python.org/issue32434
         return str(build_path.resolve())
@@ -1386,13 +1521,18 @@ Commands you can use next
         for function in resources_to_build.functions:
             if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
                 build_method = function.metadata.get("BuildMethod", "")
+                experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
+                # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
+                # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.
+                if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
+                    continue
                 WARNING_MESSAGE = (
                     f'Build method "{build_method}" is a beta feature.\n'
                     "Please confirm if you would like to proceed\n"
                     'You can also enable this beta feature with "sam build --beta-features".'
                 )
 
-                prompt_experimental(EXPERIMENTAL_BUILD_METHODS[build_method], WARNING_MESSAGE)
+                prompt_experimental(experimental_flag, WARNING_MESSAGE)
 
     @property
     def build_in_source(self) -> Optional[bool]:
