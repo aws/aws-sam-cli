@@ -52,7 +52,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
-from samcli.lib.observability.util import OutputOption
+from samcli.lib.observability.util import OutputOption, failure_result_json
 from samcli.lib.package.language_extensions_packaging import (
     _get_prop_value,
     _leaf_prop_name,
@@ -76,25 +76,8 @@ LOG = logging.getLogger(__name__)
 
 
 def build_failure_json(ex: Exception) -> str:
-    """Serialize a build failure into the structured JSON error document.
-
-    Single source of truth for the failure wire format, shared by do_cli and any other
-    caller so the schema lives in exactly one place. This covers execution failures once
-    the command body runs; errors raised during click option processing (bad flags, hook
-    prepare failures) surface as click's standard usage/stderr output, not JSON.
-    """
-    error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
-    return json.dumps(
-        {
-            "type": "result",
-            "status": "failure",
-            "error": {
-                "type": error_type,
-                "message": str(ex),
-                "resources": getattr(ex, "resource_names", None),
-            },
-        }
-    )
+    """Serialize a build failure into the shared JSON error document (see failure_result_json)."""
+    return failure_result_json(ex)
 
 
 class BuildContext:

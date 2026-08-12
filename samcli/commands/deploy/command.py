@@ -302,7 +302,7 @@ def do_cli(
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
     from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.lib.observability.util import OutputOption
+    from samcli.lib.observability.util import OutputOption, failure_result_json
 
     language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
@@ -432,19 +432,8 @@ def do_cli(
             ) as deploy_context:
                 deploy_context.run()
     except Exception as ex:
-        # Emit one terminal failure result for any error the per-step handlers don't cover (e.g. an
-        # empty changeset, invalid template, packaging error), so the JSON stream never ends truncated.
+        # Emit a terminal failure result for errors the per-step handlers miss, so the JSON stream
+        # never ends truncated. Shares failure_result_json with build for one consistent shape.
         if output_mode is OutputOption.json:
-            click.echo(
-                json.dumps(
-                    {
-                        "type": "result",
-                        "status": "failure",
-                        # resources is always present (null here) to match build's failure shape, so a
-                        # consumer can read error.resources uniformly across commands. Deploy failures
-                        # are not attributed to specific resources, so it is null.
-                        "error": {"type": type(ex).__name__, "message": str(ex), "resources": None},
-                    }
-                )
-            )
+            click.echo(failure_result_json(ex))
         raise
