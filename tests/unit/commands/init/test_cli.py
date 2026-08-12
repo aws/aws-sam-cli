@@ -3484,56 +3484,35 @@ test-project
 
         return json.loads(echo_mock.call_args[0][0])
 
+    @parameterized.expand(
+        [
+            # A template may use any recognised name, and .yaml wins when several exist because
+            # that is the one a subsequent build resolves to
+            (["template.yml"], "template.yml"),
+            (["template.yml", "template.yaml"], "template.yaml"),
+            (["README.md"], None),
+        ]
+    )
     @patch("samcli.commands.init.command.click.echo")
     @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
     @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_output_json_finds_yml_template(
-        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    def test_init_cli_output_json_reports_template_file(
+        self,
+        generated_files,
+        expected_template,
+        generate_project_patch,
+        location_from_app_template_mock,
+        echo_mock,
     ):
         location_from_app_template_mock.return_value = "applocation"
 
-        # WHEN the generated project uses the template.yml spelling
         with osutils.mkdir_temp() as temp_dir:
             document = self._init_cli_json_with_generated_files(
-                generate_project_patch, echo_mock, temp_dir, ["template.yml"]
+                generate_project_patch, echo_mock, temp_dir, generated_files
             )
 
-            # THEN it is still reported, rather than being treated as no template at all
-            self.assertEqual(document["template_file"], os.path.join(temp_dir, self.name, "template.yml"))
-
-    @patch("samcli.commands.init.command.click.echo")
-    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_output_json_prefers_yaml_over_yml(
-        self, generate_project_patch, location_from_app_template_mock, echo_mock
-    ):
-        location_from_app_template_mock.return_value = "applocation"
-
-        # WHEN the generated project contains more than one recognised template name
-        with osutils.mkdir_temp() as temp_dir:
-            document = self._init_cli_json_with_generated_files(
-                generate_project_patch, echo_mock, temp_dir, ["template.yml", "template.yaml"]
-            )
-
-            # THEN the one a subsequent build would resolve to is reported
-            self.assertEqual(document["template_file"], os.path.join(temp_dir, self.name, "template.yaml"))
-
-    @patch("samcli.commands.init.command.click.echo")
-    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
-    @patch("samcli.commands.init.init_generator.generate_project")
-    def test_init_cli_output_json_reports_no_template_file(
-        self, generate_project_patch, location_from_app_template_mock, echo_mock
-    ):
-        location_from_app_template_mock.return_value = "applocation"
-
-        # WHEN the generated project contains no recognised SAM template
-        with osutils.mkdir_temp() as temp_dir:
-            document = self._init_cli_json_with_generated_files(
-                generate_project_patch, echo_mock, temp_dir, ["README.md"]
-            )
-
-            # THEN template_file is null rather than a path that does not exist
-            self.assertIsNone(document["template_file"])
+            expected = os.path.join(temp_dir, self.name, expected_template) if expected_template else None
+            self.assertEqual(document["template_file"], expected)
 
     @patch("samcli.commands.init.command.click.echo")
     @patch("samcli.commands.init.init_generator.generate_project")

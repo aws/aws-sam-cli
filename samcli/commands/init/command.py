@@ -341,9 +341,8 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         try:
-            # Inside the try so template-resolution errors (an unresolvable --base-image, ambiguous
-            # image templates, a malformed --extra-context) are serialized too, not just failures
-            # from do_generate. Mirrors sam build's do_cli, which wraps its option preprocessing.
+            # Wraps template resolution as well as do_generate, so those failures are serialized
+            # too. Mirrors sam build's do_cli, which wraps its option preprocessing.
 
             # need to turn app_template into a location before we generate
             templates = InitTemplates()
@@ -371,15 +370,14 @@ def do_cli(
             if not output_dir:
                 output_dir = "."
             if output_mode is OutputOption.json:
-                # A JSON consumer cannot answer cookiecutter's prompts. The --app-template path
-                # already sets no_input above, but --location does not, so force it here as well.
+                # The --app-template path sets this above, but --location does not, and
+                # cookiecutter's prompts cannot be answered when output is being consumed
                 no_input = True
             captured_stdout = None
             with contextlib.ExitStack() as stack:
                 if output_mode is OutputOption.json:
-                    # A template's hooks run as subprocesses that write straight to our stdout,
-                    # which would leave a JSON consumer with unparseable output. Capture anything
-                    # written during generation so it can be re-emitted as JSON below.
+                    # Template hooks write straight to our stdout, which would leave a JSON
+                    # consumer with unparseable output. Re-emitted as JSON below.
                     captured_stdout = stack.enter_context(_capture_stdout())
                 generated_directory = do_generate(
                     location,
@@ -396,18 +394,13 @@ def do_cli(
                 )
 
             if captured_stdout is not None and captured_stdout.text:
-                # Stdout is restored by now, so this is safe to emit. Template output is reported
-                # rather than discarded, since a hook's instructions can matter to the caller.
+                # Reported rather than discarded, since a hook's instructions can matter
                 click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
 
             if output_mode is OutputOption.json:
-                # Report the directory the generator created, as an absolute path so a machine
-                # consumer never has to guess the process cwd. output_dir/name is not a usable
-                # substitute: a cookiecutter template names its own project directory, so that
-                # path is wrong for a --location template used without --name. When the generator
-                # could not determine a directory at all, report null rather than a fabricated
-                # path. The command still succeeds, matching text mode, but a consumer is told
-                # the location is unknown instead of being sent to a directory that may be empty.
+                # Absolute so a consumer never has to guess the process cwd. output_dir/name is
+                # not a usable substitute, since a template names its own project directory.
+                # Null when unknown, rather than a fabricated path to a possibly empty directory.
                 project_directory = os.path.abspath(generated_directory) if generated_directory else None
                 click.echo(
                     json.dumps(
@@ -417,12 +410,9 @@ def do_cli(
                             "project_directory": project_directory,
                             "template_file": _find_template_file(project_directory) if project_directory else None,
                             "runtime": runtime,
-                            # package_type and architectures are only reported for a managed
-                            # template, identified by having resolved a runtime. A --location
-                            # template decides its own package type and architectures, and the
-                            # values we hold there are just defaults (Zip from the --package-type
-                            # callback, x86_64 from get_architectures), so reporting them would
-                            # look authoritative while contradicting the generated project.
+                            # Only reported for a managed template, identified by a resolved
+                            # runtime. A --location template decides these itself, so the
+                            # defaults we hold here would contradict the generated project.
                             "package_type": package_type if runtime else None,
                             "dependency_manager": dependency_manager,
                             "app_template": app_template,
@@ -431,25 +421,20 @@ def do_cli(
                     )
                 )
         except click.UsageError:
-            # A usage error means the command was called incorrectly and nothing was attempted, so
-            # there is no result to describe. Let click report it the way it reports every other
-            # usage error, including the --output json guard below: its standard message on stderr
-            # and a non-zero exit, with no result document on stdout.
+            # Nothing was attempted, so there is no result to describe. Left to click, which
+            # reports it on stderr like every other usage error, including the guard below.
             raise
         except Exception as ex:
             # Broad catch so any execution failure is serialized for a JSON consumer, which has no
-            # other way to learn why the command failed. Re-raise so exit codes and @track_command
-            # telemetry are unchanged, and so text mode behaves exactly as it did before.
+            # other way to learn why the command failed. Re-raise to keep exit codes, telemetry
+            # and text mode unchanged.
             if output_mode is OutputOption.json:
                 click.echo(init_failure_json(ex))
             raise
     else:
         if output_mode is OutputOption.json:
-            # sam init prompts by default and those prompts cannot be answered when the output is
-            # being consumed by another program. Rejecting here rather than up front keeps any
-            # invocation that resolves to the non-interactive path above working, with or without
-            # an explicit --no-interactive. Raising before the guide banner below also keeps that
-            # text off stdout, where it would corrupt the JSON.
+            # Rejected here rather than up front so any run reaching the branch above still works,
+            # with or without --no-interactive. Also keeps the banner below off stdout.
             raise click.UsageError(STRUCTURED_OUTPUT_PARAMS_HINT)
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
             click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
@@ -484,10 +469,10 @@ class CapturedStdout:
 def _capture_stdout():
     """Redirect stdout into a buffer for the duration of the block.
 
-    Cookiecutter runs a template's hooks as subprocesses that inherit this process's stdout, so
-    contextlib.redirect_stdout is not enough here: it only replaces sys.stdout within this
-    process. Redirecting file descriptor 1 captures subprocess output as well. A temporary file
-    is used rather than a pipe so a hook writing a lot of output cannot fill a pipe and block.
+    Cookiecutter runs a template's hooks as subprocesses inheriting this process's stdout, so
+    contextlib.redirect_stdout is not enough, as it only replaces sys.stdout within this process.
+    Redirecting file descriptor 1 covers subprocesses too. A temporary file is used rather than a
+    pipe so a hook writing a lot of output cannot fill a pipe and block.
 
     The captured text is available once the block exits, including when the block raised.
 
