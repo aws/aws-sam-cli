@@ -40,22 +40,36 @@ DESCRIPTION = """ \b
   please take a look at our official documentation.
 """
 
-INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, \
-or you can provide one of the following required parameter combinations:
-\t--name, --location, or
-\t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
-"""
+# The parameter combinations that identify a template without prompting. Enforced by
+# --no-interactive below and rendered into the hints, so the guidance cannot drift from the check.
+NON_INTERACTIVE_PARAM_COMBINATIONS = [
+    ["name", "location"],
+    ["name", "package_type", "base_image"],
+    ["name", "runtime", "dependency_manager", "app_template"],
+]
+
+
+def _format_param_combinations():
+    """Render the non-interactive parameter combinations as indented lists of CLI flags."""
+    combinations = [
+        "\t" + ", ".join(f"--{param.replace('_', '-')}" for param in combination)
+        for combination in NON_INTERACTIVE_PARAM_COMBINATIONS
+    ]
+    return ", or\n".join(combinations) + "\n"
+
+
+INCOMPATIBLE_PARAMS_HINT = (
+    "You can run 'sam init' without any options for an interactive initialization flow, "
+    "or you can provide one of the following required parameter combinations:\n" + _format_param_combinations()
+)
 
 REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
 
-STRUCTURED_OUTPUT_PARAMS_HINT = """--output json cannot be used with the interactive flow, which prompts for values \
-that cannot be answered when the output is being consumed by another program. Provide one of the following parameter \
-combinations instead:
-\t--name, --location, or
-\t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
-"""
+STRUCTURED_OUTPUT_PARAMS_HINT = (
+    "--output json cannot be used with the interactive flow, which prompts for values that cannot "
+    "be answered when the output is being consumed by another program. Provide one of the "
+    "following parameter combinations instead:\n" + _format_param_combinations()
+)
 
 INIT_INTERACTIVE_OPTION_GUIDE = """
 You can preselect a particular runtime or package type when using the `sam init` experience.
@@ -135,12 +149,8 @@ def non_interactive_validation(func):
     default=False,
     help="Disable interactive prompting for init parameters. (fail if any required values are missing)",
     cls=ClickMutex,
-    required_param_lists=[
-        ["name", "location"],
-        ["name", "package_type", "base_image"],
-        ["name", "runtime", "dependency_manager", "app_template"],
-        # check non_interactive_validation for additional validations
-    ],
+    # check non_interactive_validation for additional validations
+    required_param_lists=NON_INTERACTIVE_PARAM_COMBINATIONS,
     required_params_hint=REQUIRED_PARAMS_HINT,
 )
 @click.option(

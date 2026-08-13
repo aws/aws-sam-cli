@@ -301,11 +301,13 @@ class TestCliConfiguration(TestCase):
             params={
                 "save_params": True,
                 "config_file": "samconfig.toml",  # member of "params_to_exclude", shouldn't be saved
+                "output": "json",  # member of "params_to_exclude", shouldn't be saved
                 "some_param": "value",
             },
             parameter_source={
                 "save_params": ParameterSource.COMMANDLINE,
                 "config_file": ParameterSource.COMMANDLINE,
+                "output": ParameterSource.COMMANDLINE,
                 "some_param": ParameterSource.COMMANDLINE,
             },
         )
@@ -322,6 +324,9 @@ class TestCliConfiguration(TestCase):
 
         self.assertNotIn("save_params", params.keys(), "--save-params should not be saved to config")
         self.assertNotIn("config_file", params.keys(), "Excluded member should not be saved to config")
+        self.assertNotIn(
+            "output", params.keys(), "--output describes one run's reporting and should not be saved to config"
+        )
         self.assertIn("some_param", params.keys(), "Param key should be saved to config file")
         self.assertIn("value", params.values(), "Param value should be saved to config file")
         mock_samconfig.flush.assert_called_once()  # everything should be flushed to config file

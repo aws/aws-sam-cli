@@ -306,6 +306,10 @@ def save_command_line_args_to_config(
         "save_params",  # don't save the provided save-params
         "config_file",  # don't save config specs to prevent confusion
         "config_env",
+        # --output describes how this one run reports, not what to build. Persisting it would
+        # change the output format of every later run in this directory, and for sam init it
+        # would make the interactive flow unreachable.
+        "output",
     ]
 
     saved_params = {}
