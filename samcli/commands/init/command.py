@@ -351,8 +351,7 @@ def do_cli(
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
         try:
-            # Wraps template resolution as well as do_generate, so those failures are serialized
-            # too. Mirrors sam build's do_cli, which wraps its option preprocessing.
+            # Wraps template resolution as well as do_generate, so those failures are serialized too.
 
             # need to turn app_template into a location before we generate
             templates = InitTemplates()
@@ -387,8 +386,8 @@ def do_cli(
             try:
                 with contextlib.ExitStack() as stack:
                     if output_mode is OutputOption.json:
-                        # Template hooks write straight to our stdout, which would leave a JSON
-                        # consumer with unparseable output. Re-emitted as JSON below.
+                        # Template hooks write plain text straight to our stdout, which would leave
+                        # a JSON consumer with unparseable output. Re-emitted as a document below.
                         captured_stdout = stack.enter_context(_capture_stdout())
                     generated_directory = do_generate(
                         location,
@@ -404,9 +403,8 @@ def do_cli(
                         structured_logging,
                     )
             finally:
-                # Emitted even when generation failed. A failing hook prints its diagnostics to
-                # stdout, and cookiecutter's own error does not carry them, so dropping this would
-                # leave the failure undiagnosable.
+                # Emitted even when generation failed, since a failing hook prints its diagnostics
+                # to stdout and cookiecutter's own error does not carry them.
                 if captured_stdout is not None and captured_stdout.text:
                     click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
 
@@ -424,8 +422,8 @@ def do_cli(
                             "template_file": _find_template_file(project_directory) if project_directory else None,
                             "runtime": runtime,
                             # Only reported for a managed template, identified by a resolved
-                            # runtime. A --location template decides these itself, so the
-                            # defaults we hold here would contradict the generated project.
+                            # runtime. A --location template decides these itself, so our
+                            # defaults would contradict it.
                             "package_type": package_type if runtime else None,
                             "dependency_manager": dependency_manager,
                             "app_template": app_template,

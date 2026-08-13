@@ -462,8 +462,7 @@ def structured_output_click_option():
         "Supported formats: text (default), json.",
         # Derive choices from OutputOption so the accepted CLI values cannot drift from the enum.
         type=click.Choice([option.value for option in OutputOption], case_sensitive=False),
-        # Lets --save-params recognise this option by type, so it is not persisted alongside the
-        # unrelated --output that sam list and sam remote invoke define.
+        # Lets --save-params recognise this option by type, so it is not persisted.
         cls=StructuredOutputOption,
     )
 
