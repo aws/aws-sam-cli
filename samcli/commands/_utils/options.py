@@ -31,6 +31,7 @@ from samcli.commands._utils.constants import (
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
+from samcli.commands._utils.custom_options.structured_output_option import StructuredOutputOption
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
@@ -461,6 +462,9 @@ def structured_output_click_option():
         "Supported formats: text (default), json.",
         # Derive choices from OutputOption so the accepted CLI values cannot drift from the enum.
         type=click.Choice([option.value for option in OutputOption], case_sensitive=False),
+        # Lets --save-params recognise this option by type, so it is not persisted alongside the
+        # unrelated --output that sam list and sam remote invoke define.
+        cls=StructuredOutputOption,
     )
 
 

@@ -7,9 +7,11 @@ from typing import List, Optional
 from unittest import TestCase, skipIf
 from unittest.mock import MagicMock, patch
 
+import click
 import tomlkit
 from click.core import ParameterSource
 
+from samcli.commands._utils.custom_options.structured_output_option import StructuredOutputOption
 from samcli.commands.exceptions import ConfigException
 from samcli.cli.cli_config_file import (
     ConfigProvider,
@@ -267,13 +269,14 @@ class TestCliConfiguration(TestCase):
         mock_put.side_effect = mock_put_func
         return MagicMock(flush=mock_flush, put=mock_put), mock_config_file
 
-    def _setup_context(self, params: dict, parameter_source: dict):
+    def _setup_context(self, params: dict, parameter_source: dict, command_params: Optional[list] = None):
         mock_context = MockContext(info_name="sam", parent=None)
         mock_self_ctx = MagicMock()
         mock_self_ctx.parent = mock_context
         mock_self_ctx.info_name = "command"
         mock_self_ctx.params = params
         mock_self_ctx._parameter_source = parameter_source
+        mock_self_ctx.command.params = command_params if command_params is not None else []
         return mock_self_ctx
 
     def test_dont_save_command_line_args_if_flag_not_set(self):
@@ -301,13 +304,11 @@ class TestCliConfiguration(TestCase):
             params={
                 "save_params": True,
                 "config_file": "samconfig.toml",  # member of "params_to_exclude", shouldn't be saved
-                "output": "json",  # member of "params_to_exclude", shouldn't be saved
                 "some_param": "value",
             },
             parameter_source={
                 "save_params": ParameterSource.COMMANDLINE,
                 "config_file": ParameterSource.COMMANDLINE,
-                "output": ParameterSource.COMMANDLINE,
                 "some_param": ParameterSource.COMMANDLINE,
             },
         )
@@ -324,12 +325,52 @@ class TestCliConfiguration(TestCase):
 
         self.assertNotIn("save_params", params.keys(), "--save-params should not be saved to config")
         self.assertNotIn("config_file", params.keys(), "Excluded member should not be saved to config")
-        self.assertNotIn(
-            "output", params.keys(), "--output describes one run's reporting and should not be saved to config"
-        )
         self.assertIn("some_param", params.keys(), "Param key should be saved to config file")
         self.assertIn("value", params.values(), "Param value should be saved to config file")
         mock_samconfig.flush.assert_called_once()  # everything should be flushed to config file
+
+    @patch("samcli.cli.cli_config_file.get_default_aws_region")
+    @patch("samcli.cli.cli_config_file.Context")
+    def test_dont_save_structured_output_option(self, mock_context_class, mock_get_default_aws_region):
+        """The shared structured output flag is excluded, while an unrelated --output is still saved."""
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+
+        mock_sam_context = MagicMock()
+        mock_sam_context.region = None
+        mock_context_class.get_current_context.return_value = mock_sam_context
+        mock_get_default_aws_region.return_value = "us-east-1"
+
+        self.ctx = self._setup_context(
+            params={"save_params": True, "output": "json", "some_param": "value"},
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "output": ParameterSource.COMMANDLINE,
+                "some_param": ParameterSource.COMMANDLINE,
+            },
+            command_params=[StructuredOutputOption(["--output"])],
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        params = mock_config_file["default"]["command"]["parameters"]
+        self.assertNotIn("output", params.keys(), "Structured output flag should not be saved to config")
+        self.assertIn("some_param", params.keys(), "Other params on the same command line are still saved")
+
+        # A command such as sam list defines --output as a display preference, which is still saved
+        mock_samconfig, mock_config_file = self._setup_mock_samconfig()
+        self.ctx = self._setup_context(
+            params={"save_params": True, "output": "table"},
+            parameter_source={
+                "save_params": ParameterSource.COMMANDLINE,
+                "output": ParameterSource.COMMANDLINE,
+            },
+            command_params=[click.Option(["--output"])],
+        )
+
+        save_command_line_args_to_config(self.ctx, ["command"], "default", mock_samconfig)
+
+        params = mock_config_file["default"]["command"]["parameters"]
+        self.assertIn("output", params.keys(), "An unrelated --output should still be saved to config")
 
     @patch("samcli.cli.cli_config_file.get_default_aws_region")
     @patch("samcli.cli.cli_config_file.Context")
