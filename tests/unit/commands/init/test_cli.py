@@ -3676,3 +3676,90 @@ test-project
         # reported by click on stderr, the same way the --output json guard reports them.
         self.assertFalse(echo_mock.called)
         self.assertFalse(generate_project_patch.called)
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_template_output_on_failure(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_then_fail(*args, **kwargs):
+            # A failing hook prints its diagnostics before cookiecutter raises
+            os.write(1, b"hook failed because of a missing tool\n")
+            raise GenerateProjectFailedError(project="testing project", provider_error="hook failed")
+
+        generate_project_patch.side_effect = write_then_fail
+
+        with self.assertRaises(UserException):
+            init_cli(
+                ctx=self.ctx,
+                no_interactive=self.no_interactive,
+                location=self.location,
+                pt_explicit=self.pt_explicit,
+                package_type=self.package_type,
+                runtime=self.runtime,
+                architecture=X86_64,
+                base_image=self.base_image,
+                dependency_manager=self.dependency_manager,
+                output_dir=self.output_dir,
+                name=self.name,
+                app_template=self.app_template,
+                no_input=self.no_input,
+                extra_context=None,
+                tracing=False,
+                application_insights=False,
+                structured_logging=False,
+                output="json",
+            )
+
+        # THEN the template output is still reported, since the failure is undiagnosable without it
+        info_document = json.loads(echo_mock.call_args_list[0][0][0])
+        self.assertEqual(info_document["type"], "info")
+        self.assertIn("missing tool", info_document["message"])
+
+        failure_document = json.loads(echo_mock.call_args_list[1][0][0])
+        self.assertEqual(failure_document["status"], "failure")
+        self.assertEqual(failure_document["error"]["type"], "GenerateProjectFailedError")
+        # The shared failure shape carries resources, so a build or deploy consumer can read it
+        self.assertIn("resources", failure_document["error"])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_survives_undecodable_template_output(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_invalid_bytes(*args, **kwargs):
+            # A hook writes in whatever encoding it likes, which may not decode cleanly
+            os.write(1, b"\xff\xfe invalid bytes\n")
+
+        generate_project_patch.side_effect = write_invalid_bytes
+
+        init_cli(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
+            runtime=self.runtime,
+            architecture=X86_64,
+            base_image=self.base_image,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            tracing=False,
+            application_insights=False,
+            structured_logging=False,
+            output="json",
+        )
+
+        # THEN the run still reports success, rather than a decode error from the capture
+        result_document = json.loads(echo_mock.call_args_list[-1][0][0])
+        self.assertEqual(result_document["status"], "success")

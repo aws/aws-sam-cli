@@ -26,6 +26,7 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILT_TEMPLATE_PATH,
     DEFAULT_CACHE_DIR,
     DEFAULT_STACK_NAME,
+    SAM_TEMPLATE_FILE_NAMES,
 )
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
@@ -65,7 +66,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
 
     original_template_path = os.path.abspath(provided_value)
 
-    search_paths = ["template.yaml", "template.yml", "template.json"]
+    search_paths = list(SAM_TEMPLATE_FILE_NAMES)
 
     if include_build:
         search_paths.insert(0, DEFAULT_BUILT_TEMPLATE_PATH)

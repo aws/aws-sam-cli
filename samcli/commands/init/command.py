@@ -330,7 +330,7 @@ def do_cli(
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
-    from samcli.lib.observability.util import OutputOption
+    from samcli.lib.observability.util import OutputOption, failure_result_json
 
     output_mode = OutputOption(output)
 
@@ -374,28 +374,31 @@ def do_cli(
                 # cookiecutter's prompts cannot be answered when output is being consumed
                 no_input = True
             captured_stdout = None
-            with contextlib.ExitStack() as stack:
-                if output_mode is OutputOption.json:
-                    # Template hooks write straight to our stdout, which would leave a JSON
-                    # consumer with unparseable output. Re-emitted as JSON below.
-                    captured_stdout = stack.enter_context(_capture_stdout())
-                generated_directory = do_generate(
-                    location,
-                    package_type,
-                    runtime,
-                    dependency_manager,
-                    output_dir,
-                    name,
-                    no_input,
-                    extra_context,
-                    tracing,
-                    application_insights,
-                    structured_logging,
-                )
-
-            if captured_stdout is not None and captured_stdout.text:
-                # Reported rather than discarded, since a hook's instructions can matter
-                click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
+            try:
+                with contextlib.ExitStack() as stack:
+                    if output_mode is OutputOption.json:
+                        # Template hooks write straight to our stdout, which would leave a JSON
+                        # consumer with unparseable output. Re-emitted as JSON below.
+                        captured_stdout = stack.enter_context(_capture_stdout())
+                    generated_directory = do_generate(
+                        location,
+                        package_type,
+                        runtime,
+                        dependency_manager,
+                        output_dir,
+                        name,
+                        no_input,
+                        extra_context,
+                        tracing,
+                        application_insights,
+                        structured_logging,
+                    )
+            finally:
+                # Emitted even when generation failed. A failing hook prints its diagnostics to
+                # stdout, and cookiecutter's own error does not carry them, so dropping this would
+                # leave the failure undiagnosable.
+                if captured_stdout is not None and captured_stdout.text:
+                    click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
 
             if output_mode is OutputOption.json:
                 # Absolute so a consumer never has to guess the process cwd. output_dir/name is
@@ -429,7 +432,7 @@ def do_cli(
             # other way to learn why the command failed. Re-raise to keep exit codes, telemetry
             # and text mode unchanged.
             if output_mode is OutputOption.json:
-                click.echo(init_failure_json(ex))
+                click.echo(failure_result_json(ex))
             raise
     else:
         if output_mode is OutputOption.json:
@@ -482,7 +485,9 @@ def _capture_stdout():
         Object whose ``text`` attribute holds the captured output once the block has exited
     """
     capture = CapturedStdout()
-    with tempfile.TemporaryFile(mode="w+") as buffer:
+    # errors="replace" because a hook subprocess writes raw bytes in whatever encoding it likes,
+    # and a decode failure here would surface as the command's reported outcome
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as buffer:
         sys.stdout.flush()
         saved_stdout_fd = os.dup(1)
         try:
@@ -520,27 +525,6 @@ def _find_template_file(project_directory):
             return candidate
 
     return None
-
-
-def init_failure_json(ex):
-    """Serialize an init failure into the structured JSON error document.
-
-    Single source of truth for the failure wire format. The shape matches sam build's
-    build_failure_json and sam deploy's terminal failure line, so a consumer can handle all
-    three commands with one code path. Errors raised during click option processing (bad
-    flags, incompatible parameter combinations) surface as click's standard usage output on
-    stderr, not as JSON.
-    """
-    # do_generate re-raises InitErrorException subclasses as UserException(wrapped_from=...), so
-    # without this unwrap every failure would flatten to the uninformative "UserException".
-    error_type = getattr(ex, "wrapped_from", None) or type(ex).__name__
-    return json.dumps(
-        {
-            "type": "result",
-            "status": "failure",
-            "error": {"type": error_type, "message": str(ex)},
-        }
-    )
 
 
 def _deprecate_notification(runtime):
