@@ -1412,7 +1412,8 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertIn(warning_message, deploy_process_execute.stdout)
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        self.assertIn(warning_message, deploy_process_execute.stderr)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-dynamodb-error.yaml"])
