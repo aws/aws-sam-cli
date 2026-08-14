@@ -678,7 +678,11 @@ class TestLambdaContainer_get_debug_settings(TestCase):
 
         self.assertIsNotNone(container_env_vars)
 
-    @parameterized.expand([param(r) for r in set(RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT)])
+    # Iterate the list directly rather than a set: set iteration order for strings varies
+    # between processes (hash randomization), so each pytest-xdist worker generated the
+    # parameterized cases in a different order and the run aborted with "Different tests
+    # were collected between workers". The list has no duplicates, so the set was a no-op.
+    @parameterized.expand([param(r) for r in RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT])
     def test_debug_arg_must_be_split_by_spaces_and_appended_to_bootstrap_based_entrypoint(self, runtime):
         """
         Debug args list is appended as arguments to bootstrap-args, which is past the fourth position in the array
