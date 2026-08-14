@@ -1,6 +1,7 @@
 import os
 import tempfile
 import pytest
+from functools import lru_cache
 from pathlib import Path
 from unittest import skipIf
 
@@ -17,6 +18,19 @@ from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RU
 SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 EVENT_BRIDGE_USE_CASE = "Infrastructure event management"
+
+# Runtimes these tests init against. None of these tests is about a specific runtime
+# version -- they exercise the schemas flows (registry choice, pagination, profiles) --
+# so the version is incidental and repeated across tests. Naming it here means a runtime
+# leaving the manifest is a one-line change instead of a hunt through the file.
+# `python3.9` is already deprecated, so that is not hypothetical.
+#
+# These are the labels the *prompt* displays, which are not always the runtime id:
+# the go entry shows as "go (provided.al2)". `_get_runtime_position` matches them
+# against the manifest, and raises with the available list if one disappears.
+JAVA_RUNTIME_FOR_INIT = "java17.al2023"
+PYTHON_RUNTIME_FOR_INIT = "python3.9"
+GO_RUNTIME_FOR_INIT = "go (provided.al2)"
 
 
 def _get_registry_position(registry_name):
@@ -38,6 +52,24 @@ def _get_registry_position(registry_name):
     raise ValueError(f"Registry '{registry_name}' not found. Available: {registries}")
 
 
+@lru_cache(maxsize=1)
+def _get_manifest():
+    """Fetch the preprocessed app-templates manifest once per test process.
+
+    `get_preprocessed_manifest` is not cheap or deterministic per call:
+    `InitTemplates._get_manifest` does `requests.get(MANIFEST_URL, timeout=10)` and, on
+    timeout / connection error / non-200, falls back to cloning the templates repo or
+    reading the bundled local manifest. Every test below resolves both a use case and a
+    runtime, so without caching that is two fetches per test.
+
+    Caching also removes a correctness trap. Resolved independently, one call could
+    succeed against MANIFEST_URL while the other fell back to the local manifest --
+    giving a use-case position and a runtime position from two different snapshots,
+    which is the same answer misalignment these helpers exist to prevent.
+    """
+    return InitTemplates().get_preprocessed_manifest(None, None, None, None)
+
+
 def _get_runtime_position(runtime_name):
     """Return the 1-based menu position of a runtime in the `sam init` runtime prompt.
 
@@ -47,7 +79,7 @@ def _get_runtime_position(runtime_name):
     starts selecting a different runtime -- every answer after it then lands on
     the wrong question. Resolve it the same way `_get_registry_position` does.
     """
-    runtime_options = InitTemplates().get_preprocessed_manifest(None, None, None, None)[EVENT_BRIDGE_USE_CASE]
+    runtime_options = _get_manifest()[EVENT_BRIDGE_USE_CASE]
     runtimes = get_sorted_runtimes(list(runtime_options.keys()))
     for i, name in enumerate(runtimes, 1):
         if name == runtime_name:
@@ -61,7 +93,7 @@ def _get_use_case_position(use_case_name):
     Same rationale as `_get_runtime_position`: the manifest grows over time, so
     the position of a use case is not stable.
     """
-    use_cases = list(InitTemplates().get_preprocessed_manifest(None, None, None, None).keys())
+    use_cases = list(_get_manifest().keys())
     for i, name in enumerate(use_cases, 1):
         if name == use_case_name:
             return i
@@ -76,7 +108,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {java_runtime_pos}: java17.al2023 (dynamic position)
+        # {java_runtime_pos}: JAVA_RUNTIME_FOR_INIT (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -91,7 +123,7 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("java17.al2023")}
+{_get_runtime_position(JAVA_RUNTIME_FOR_INIT)}
 2
 2
 N
@@ -120,7 +152,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {java_runtime_pos}: java17.al2023 (dynamic position)
+        # {java_runtime_pos}: JAVA_RUNTIME_FOR_INIT (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -134,7 +166,7 @@ Y
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("java17.al2023")}
+{_get_runtime_position(JAVA_RUNTIME_FOR_INIT)}
 2
 2
 N
@@ -174,7 +206,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {java_runtime_pos}: java17.al2023 (dynamic position)
+        # {java_runtime_pos}: JAVA_RUNTIME_FOR_INIT (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -190,7 +222,7 @@ Y
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("java17.al2023")}
+{_get_runtime_position(JAVA_RUNTIME_FOR_INIT)}
 2
 2
 N
@@ -221,7 +253,7 @@ P
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {java_runtime_pos}: java17.al2023 (dynamic position)
+        # {java_runtime_pos}: JAVA_RUNTIME_FOR_INIT (dynamic position)
         # 2: Maven
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
@@ -235,7 +267,7 @@ P
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("java17.al2023")}
+{_get_runtime_position(JAVA_RUNTIME_FOR_INIT)}
 2
 2
 N
@@ -275,7 +307,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {python_runtime_pos}: python3.9 (dynamic position)
+        # {python_runtime_pos}: PYTHON_RUNTIME_FOR_INIT (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -289,7 +321,7 @@ Y
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("python3.9")}
+{_get_runtime_position(PYTHON_RUNTIME_FOR_INIT)}
 2
 N
 N
@@ -315,27 +347,27 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {go_runtime_pos}: go (provided.al2) (dynamic position)
+        # {go_runtime_pos}: GO_RUNTIME_FOR_INIT (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
         # N: disable structured logging
         # eb-app-go: response to name
         # Y: Use default aws configuration
-        # 4: select aws.events as registries
+        # {aws_registry_pos}: select aws.events as registries (dynamic position)
         # 1: select aws schema
-
+        aws_registry_pos = _get_registry_position("aws.events")
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("go (provided.al2)")}
+{_get_runtime_position(GO_RUNTIME_FOR_INIT)}
 2
 N
 N
 N
 eb-app-go
 Y
-1
+{aws_registry_pos}
 1
         """
         with tempfile.TemporaryDirectory() as temp:
@@ -354,7 +386,7 @@ Y
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {python_runtime_pos}: python3.9 (dynamic position)
+        # {python_runtime_pos}: PYTHON_RUNTIME_FOR_INIT (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -365,11 +397,17 @@ Y
         # schemas aws region us-east-1
         # 1: select aws.events as registries
         # 1: select aws schema
+        #
+        # The registry answer stays hardcoded here, unlike the sibling tests. This test
+        # deliberately drives a non-default profile and an explicit us-east-1, so the
+        # registries the prompt lists are those of *that* profile/region --
+        # `_get_registry_position` resolves against the default `Session()`, so using it
+        # here would look up the wrong account and region.
 
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("python3.9")}
+{_get_runtime_position(PYTHON_RUNTIME_FOR_INIT)}
 2
 N
 N
@@ -398,7 +436,7 @@ us-east-1
         # WHEN the user follows interactive init prompts
         # 1: AWS Quick Start Templates
         # {use_case_pos}: Infrastructure event management - Use case (dynamic position)
-        # {python_runtime_pos}: python3.9 (dynamic position)
+        # {python_runtime_pos}: PYTHON_RUNTIME_FOR_INIT (dynamic position)
         # 2: select event-bridge app from scratch
         # N: disable adding xray tracing
         # N: disable cloudwatch insights
@@ -411,7 +449,7 @@ us-east-1
         user_input = f"""
 1
 {_get_use_case_position(EVENT_BRIDGE_USE_CASE)}
-{_get_runtime_position("python3.9")}
+{_get_runtime_position(PYTHON_RUNTIME_FOR_INIT)}
 2
 N
 N
