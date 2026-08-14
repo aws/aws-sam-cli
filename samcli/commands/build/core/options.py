@@ -38,6 +38,8 @@ ARTIFACT_LOCATION_OPTIONS: List[str] = [
     "base_dir",
 ]
 
+OUTPUT_OPTIONS: List[str] = ["output"]
+
 TEMPLATE_OPTIONS: List[str] = ["parameter_overrides", "language_extensions"]
 
 TERRAFORM_HOOK_OPTIONS: List[str] = ["terraform_project_root_path"]
@@ -49,6 +51,7 @@ ALL_OPTIONS: List[str] = (
     + BUILD_STRATEGY_OPTIONS
     + CONTAINER_OPTION_NAMES
     + ARTIFACT_LOCATION_OPTIONS
+    + OUTPUT_OPTIONS
     + EXTENSION_OPTIONS
     + CONFIGURATION_OPTION_NAMES
     + ALL_COMMON_OPTIONS
@@ -66,6 +69,7 @@ OPTIONS_INFO: Dict[str, Dict] = {
     "Artifact Location Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(ARTIFACT_LOCATION_OPTIONS)}
     },
+    "Output Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OUTPUT_OPTIONS)}},
     "Extension Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(EXTENSION_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
