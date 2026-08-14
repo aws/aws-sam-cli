@@ -48,16 +48,28 @@ class TestWalkModules(TestCase):
 
     def test_walk_modules_contains_all_modules(self):
         my_test_module = __import__("my_test_module")
-        modules = set(["my_test_module"])
+        modules = ["my_test_module"]
         hidden_imports.walk_modules(my_test_module, modules)
         self.assertIn("my_test_module", modules)
         self.assertIn("my_test_module.my_submodule", modules)
         self.assertIn("my_test_module.another_submodule", modules)
         del sys.modules["my_test_module"]
 
+    def test_walk_modules_does_not_add_duplicates(self):
+        """walk_modules dedups via `if pkg.name in visited`, which is why it can collect
+        into a list -- the set it used to take was redundant."""
+        my_test_module = __import__("my_test_module")
+        modules = ["my_test_module"]
+        hidden_imports.walk_modules(my_test_module, modules)
+        hidden_imports.walk_modules(my_test_module, modules)
+        self.assertEqual(len(modules), len(set(modules)))
+        del sys.modules["my_test_module"]
+
     def test_walk_modules_not_contain_nonexistent_module(self):
         my_test_module = __import__("my_test_module")
-        modules = set("my_test_module")
+        # Was `set("my_test_module")`, which built a set of individual characters rather
+        # than a one-element collection holding the module name.
+        modules = ["my_test_module"]
         hidden_imports.walk_modules(my_test_module, modules)
         self.assertNotIn("my_non_existant_module", modules)
         del sys.modules["my_test_module"]
