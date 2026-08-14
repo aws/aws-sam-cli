@@ -116,60 +116,17 @@ class TestBasicInitCommand(TestCase):
 
             self.assertNotIn(COMMIT_ERROR, stderr)
 
-    def test_init_command_output_json_location_without_name(self):
-        """A --location template names its own project directory, so output_dir/name is not the answer."""
-        with tempfile.TemporaryDirectory() as temp:
-            # A minimal local cookiecutter template whose project directory is named by the
-            # template itself, not by --name
-            template_dir = Path(temp, "cookiecutter-template")
-            template_project_dir = Path(template_dir, "{{cookiecutter.project_name}}")
-            template_project_dir.mkdir(parents=True)
-            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "template-chosen-app"}))
-            Path(template_project_dir, "template.yaml").write_text("Resources: {}\n")
-
-            out_dir = Path(temp, "out")
-            out_dir.mkdir()
-
-            process = Popen(
-                [
-                    get_sam_command(),
-                    "init",
-                    "--location",
-                    str(template_dir),
-                    "-o",
-                    str(out_dir),
-                    "--output",
-                    "json",
-                ],
-                stdout=PIPE,
-                stderr=PIPE,
-            )
-            try:
-                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
-                stdout = stdout_data.decode("utf-8")
-            except TimeoutExpired:
-                process.kill()
-                raise
-
-            self.assertEqual(process.returncode, 0)
-            document = json.loads(stdout)
-
-            # THEN the reported directory is the nested one the template created, not the parent
-            self.assertEqual(document["project_directory"], os.path.join(str(out_dir), "template-chosen-app"))
-            self.assertNotEqual(document["project_directory"], str(out_dir))
-            self.assertTrue(Path(document["project_directory"]).is_dir())
-
-            # AND the template inside it is found rather than reported as absent
-            self.assertIsNotNone(document["template_file"])
-            self.assertTrue(Path(document["template_file"]).is_file())
-
     def test_init_command_output_json_with_template_hook_output(self):
-        """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable."""
+        """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable.
+
+        Also covers a --location template naming its own project directory, so output_dir/name
+        is not the answer. No --name is passed, which is why --no-interactive is absent too.
+        """
         with tempfile.TemporaryDirectory() as temp:
             template_dir = Path(temp, "hook-template")
             template_project_dir = Path(template_dir, "{{cookiecutter.project_name}}")
             template_project_dir.mkdir(parents=True)
-            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "hookapp"}))
+            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "template-chosen-app"}))
             Path(template_project_dir, "template.yaml").write_text("Resources: {}\n")
 
             hooks_dir = Path(template_dir, "hooks")
@@ -188,9 +145,6 @@ class TestBasicInitCommand(TestCase):
                     "init",
                     "--location",
                     str(template_dir),
-                    "--name",
-                    "hookapp",
-                    "--no-interactive",
                     "-o",
                     str(out_dir),
                     "--output",
@@ -220,8 +174,18 @@ class TestBasicInitCommand(TestCase):
             self.assertIn("raw descriptor write", info_documents[0]["message"])
 
             # AND the result document is last, so it remains the terminal document
-            self.assertEqual(documents[-1]["type"], "result")
-            self.assertEqual(documents[-1]["status"], "success")
+            result = documents[-1]
+            self.assertEqual(result["type"], "result")
+            self.assertEqual(result["status"], "success")
+
+            # AND the reported directory is the nested one the template named, not the parent
+            self.assertEqual(result["project_directory"], os.path.join(str(out_dir), "template-chosen-app"))
+            self.assertNotEqual(result["project_directory"], str(out_dir))
+            self.assertTrue(Path(result["project_directory"]).is_dir())
+
+            # AND the template inside it is found rather than reported as absent
+            self.assertIsNotNone(result["template_file"])
+            self.assertTrue(Path(result["template_file"]).is_file())
 
     def test_init_command_passes_and_dir_created_image(self):
         with tempfile.TemporaryDirectory() as temp:
