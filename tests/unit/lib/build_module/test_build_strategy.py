@@ -8,6 +8,7 @@ from parameterized import parameterized
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.workflow_config import UnsupportedRuntimeException
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
@@ -718,6 +719,33 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer.assert_called_with(
             ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies, ANY
         )
+
+    def test_manifest_pre_check_failure_is_attributed_to_function(self, patched_hash_gen, patched_os):
+        # The manifest pre-check (get_workflow_config) can raise an unsupported-runtime error before the
+        # delegate's attribution runs. Ensure that escaping failure still carries the function full paths
+        # so --cached/--incremental builds report error.resources just like the non-cached path. Two
+        # collapsed functions confirm every affected resource is reported, not just the first.
+        build_definition = Mock(functions=[Mock(full_path="ChildStack/MyFn"), Mock(full_path="ChildStack/MyFn2")])
+        self.build_strategy._check_whether_manifest_is_changed = Mock(
+            side_effect=UnsupportedRuntimeException("'python3.7' runtime is not supported")
+        )
+
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            self.build_strategy.build_single_function_definition(build_definition)
+
+        self.assertEqual(ctx.exception.resource_names, ["ChildStack/MyFn", "ChildStack/MyFn2"])
+
+    def test_manifest_pre_check_failure_is_attributed_to_layer(self, patched_hash_gen, patched_os):
+        layer_definition = Mock()
+        layer_definition.full_path = "ChildStack/MyLayer"
+        self.build_strategy._check_whether_manifest_is_changed = Mock(
+            side_effect=UnsupportedRuntimeException("'python3.7' runtime is not supported")
+        )
+
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            self.build_strategy.build_single_layer_definition(layer_definition)
+
+        self.assertEqual(ctx.exception.resource_names, ["ChildStack/MyLayer"])
 
 
 @patch("samcli.lib.build.build_graph.BuildGraph._write")

@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
+    "language_extensions",
 ]
 
 INVOKE_OPTIONS: List[str] = [

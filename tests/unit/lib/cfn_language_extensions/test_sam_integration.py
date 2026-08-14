@@ -621,12 +621,12 @@ class TestExpandLanguageExtensionsEdgeCases:
 
     def test_non_le_template_returns_result(self):
         template = {"Transform": "AWS::Serverless-2016-10-31", "Resources": {}}
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
         assert result.had_language_extensions is False
 
     def test_non_language_extension_template_returns_original_dict(self):
         template = {"Resources": {}}
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
         assert result.had_language_extensions is False
         # No-LE path returns the caller's dict directly (no freeze, no cache)
         assert result.expanded_template is template
@@ -642,7 +642,7 @@ class TestExpandLanguageExtensionsEdgeCases:
                 }
             }
         }
-        result1 = expand_language_extensions(template)
+        result1 = expand_language_extensions(template, enabled=True)
         result1.expanded_template["Resources"]["MyStack"]["Properties"]["Location"] = "SomeOther/template.yaml"
 
         # A fresh call should not be affected
@@ -654,7 +654,7 @@ class TestExpandLanguageExtensionsEdgeCases:
                 }
             }
         }
-        result2 = expand_language_extensions(template2)
+        result2 = expand_language_extensions(template2, enabled=True)
         assert result2.expanded_template["Resources"]["MyStack"]["Properties"]["Location"] == "./child.yaml"
 
     def test_non_invalid_template_exception_reraised(self):
@@ -677,7 +677,7 @@ class TestExpandLanguageExtensionsEdgeCases:
             side_effect=RuntimeError("unexpected error"),
         ):
             with pytest.raises(RuntimeError, match="unexpected error"):
-                expand_language_extensions(template)
+                expand_language_extensions(template, enabled=True)
 
     def test_invalid_template_exception_converted(self):
         from samcli.lib.cfn_language_extensions.exceptions import (
@@ -695,7 +695,7 @@ class TestExpandLanguageExtensionsEdgeCases:
             from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 
             with pytest.raises(InvalidSamDocumentException):
-                expand_language_extensions(template)
+                expand_language_extensions(template, enabled=True)
 
     def test_telemetry_tracked_when_language_extensions_used(self):
         """Verify UsedFeature telemetry event is emitted when language extensions are expanded."""
@@ -714,7 +714,7 @@ class TestExpandLanguageExtensionsEdgeCases:
             },
         }
         with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
-            result = expand_language_extensions(template)
+            result = expand_language_extensions(template, enabled=True)
             assert result.had_language_extensions is True
             mock_track.assert_called_with("UsedFeature", "CFNLanguageExtensions")
 
@@ -725,7 +725,7 @@ class TestExpandLanguageExtensionsEdgeCases:
             "Resources": {"Fn": {"Type": "AWS::Lambda::Function", "Properties": {}}},
         }
         with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
-            result = expand_language_extensions(template)
+            result = expand_language_extensions(template, enabled=True)
             assert result.had_language_extensions is False
             mock_track.assert_not_called()
 
@@ -798,7 +798,7 @@ class TestExpandLanguageExtensionsImmutability:
             },
         }
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         # Mutate the caller's template
         template["Resources"]["NewResource"] = {"Type": "AWS::SQS::Queue"}
@@ -810,7 +810,90 @@ class TestExpandLanguageExtensionsImmutability:
         """No-LE path returns the caller's dict directly — no copy overhead."""
         template = {"Resources": {"MyTopic": {"Type": "AWS::SNS::Topic"}}}
 
-        result = expand_language_extensions(template)
+        result = expand_language_extensions(template, enabled=True)
 
         assert result.original_template is template
         assert result.expanded_template is template
+
+
+class TestExpandLanguageExtensionsEnabledKwarg:
+    """The `enabled` kwarg gates Phase 1 expansion."""
+
+    def test_disabled_returns_passthrough_for_le_template(self):
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Names": [
+                    "Name",
+                    ["A", "B"],
+                    {"${Name}Func": {"Type": "AWS::Serverless::Function"}},
+                ]
+            },
+        }
+        result = expand_language_extensions(template, enabled=False)
+        assert isinstance(result, LanguageExtensionResult)
+        assert result.had_language_extensions is False
+        assert result.expanded_template is template
+        assert result.original_template is template
+        assert result.dynamic_artifact_properties == []
+
+    def test_disabled_returns_passthrough_for_non_le_template(self):
+        template = {"Resources": {"Foo": {"Type": "AWS::S3::Bucket"}}}
+        result = expand_language_extensions(template, enabled=False)
+        assert result.had_language_extensions is False
+        assert result.expanded_template is template
+
+    def test_enabled_with_le_template_expands(self):
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Names": [
+                    "Name",
+                    ["A", "B"],
+                    {"${Name}Func": {"Type": "AWS::SNS::Topic"}},
+                ]
+            },
+        }
+        result = expand_language_extensions(template, enabled=True)
+        assert result.had_language_extensions is True
+        assert "AFunc" in result.expanded_template["Resources"]
+        assert "BFunc" in result.expanded_template["Resources"]
+
+    def test_enabled_kwarg_is_required(self):
+        template = {"Resources": {}}
+        with pytest.raises(TypeError):
+            expand_language_extensions(template)  # missing enabled=
+
+
+class TestExpandLanguageExtensionsTelemetry:
+    """Telemetry fires only when Phase 1 actually expanded a template."""
+
+    def test_telemetry_not_fired_when_disabled(self):
+        template = {"Transform": "AWS::LanguageExtensions", "Resources": {}}
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=False)
+            for call in mock_track.call_args_list:
+                assert "CFNLanguageExtensions" not in call.args
+
+    def test_telemetry_not_fired_when_enabled_but_no_le_template(self):
+        template = {"Resources": {}}
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=True)
+            for call in mock_track.call_args_list:
+                assert "CFNLanguageExtensions" not in call.args
+
+    def test_telemetry_fired_when_enabled_and_le_template(self):
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Names": [
+                    "Name",
+                    ["A"],
+                    {"${Name}T": {"Type": "AWS::SNS::Topic"}},
+                ]
+            },
+        }
+        with patch("samcli.lib.telemetry.event.EventTracker.track_event") as mock_track:
+            expand_language_extensions(template, enabled=True)
+            feature_calls = [c for c in mock_track.call_args_list if "CFNLanguageExtensions" in c.args]
+            assert len(feature_calls) == 1

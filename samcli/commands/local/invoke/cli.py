@@ -13,6 +13,7 @@ from samcli.cli.types import TenantIdType
 from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     hook_name_click_option,
+    language_extensions_option,
     mount_symlinks_option,
     skip_prepare_infra_option,
     terraform_plan_file_option,
@@ -97,6 +98,7 @@ STDIN_FILE_NAME = "-"
     help="Name for the durable execution (for durable functions only).",
 )
 @mount_symlinks_option
+@language_extensions_option
 @invoke_common_options
 @local_common_options
 @cli_framework_options
@@ -138,6 +140,7 @@ def cli(
     terraform_plan_file,
     runtime,
     mount_symlinks,
+    language_extensions,
     no_memory_limit,
     container_dns,
     tenant_id,
@@ -174,6 +177,7 @@ def cli(
         hook_name,
         runtime,
         mount_symlinks,
+        language_extensions,
         no_memory_limit,
         container_dns,
         tenant_id,
@@ -207,6 +211,7 @@ def do_cli(  # pylint: disable=R0914
     hook_name,
     runtime,
     mount_symlinks,
+    language_extensions,
     no_mem_limit,
     container_dns,
     tenant_id,
@@ -261,6 +266,7 @@ def do_cli(  # pylint: disable=R0914
             add_host=add_host,
             invoke_images=processed_invoke_images,
             mount_symlinks=mount_symlinks,
+            language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
             container_dns=container_dns,
         ) as context:

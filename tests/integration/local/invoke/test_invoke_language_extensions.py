@@ -58,6 +58,7 @@ class TestInvokeLanguageExtensions(InvokeIntegBase):
             str(self.build_dir),
             "--parameter-overrides",
             self._make_parameter_override_arg(overrides),
+            "--language-extensions",
         ]
 
         build_result = run_command(build_command, cwd=self.working_dir)
@@ -74,7 +75,7 @@ class TestInvokeLanguageExtensions(InvokeIntegBase):
             function_to_invoke="AlphaFunction",
             template_path=str(self.built_template_path),
             no_event=True,
-        )
+        ) + ["--language-extensions"]
         stdout, stderr, invoke_exit_code = self.run_command(invoke_command, cwd=self.working_dir)
 
         self.assertEqual(invoke_exit_code, 0, f"invoke failed: stdout={stdout}, stderr={stderr}")

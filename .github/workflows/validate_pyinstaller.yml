@@ -8,6 +8,9 @@ on:
 env:
   CI_OVERRIDE: "1"
 
+permissions:
+  contents: read
+
 jobs:
   build-for-linux:
     name: build-pyinstaller-linux
@@ -16,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Make installer script executable
         run: chmod +x ./installer/pyinstaller/build-linux.sh
       - name: Build PyInstaller in manylinux container
@@ -27,7 +30,7 @@ jobs:
             echo "Attempt $i failed, retrying..."
             sleep 10
           done
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: 3.11
       - name: Basic tests for PyInstaller
@@ -49,8 +52,8 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Build PyInstaller

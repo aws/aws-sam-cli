@@ -33,8 +33,17 @@ from samcli.yamlhelper import yaml_dump, yaml_parse
 # Artifact path property names derived from PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
 # so the two lists cannot drift. Used by _update_sam_mappings_relative_paths to
 # identify which SAM-generated Mapping values are local paths needing adjustment.
+#
+# Includes both the dotted form (e.g. "Command.ScriptLocation") and its leaf
+# (e.g. "ScriptLocation"), because SAM-generated Mapping value-dicts are keyed
+# by the leaf segment so the third argument of Fn::FindInMap stays alphanumeric
+# (see _compute_mapping_name and _generate_artifact_mappings in
+# samcli/lib/package/language_extensions_packaging.py).
 _ARTIFACT_PATH_PROPERTIES = frozenset(
-    prop for props in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.values() for prop in props
+    name
+    for props in PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES.values()
+    for prop in props
+    for name in (prop, prop.rsplit(".", 1)[-1])
 )
 
 

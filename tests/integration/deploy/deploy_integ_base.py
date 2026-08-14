@@ -136,6 +136,7 @@ class DeployIntegBase(PackageIntegBase):
         resolve_image_repos=False,
         disable_rollback=False,
         on_failure=None,
+        express=None,
     ):
         command_list = [get_sam_command(), "deploy"]
 
@@ -200,6 +201,10 @@ class DeployIntegBase(PackageIntegBase):
             command_list = command_list + ["--disable-rollback"]
         if on_failure:
             command_list = command_list + ["--on-failure", str(on_failure)]
+        if express is True:
+            command_list = command_list + ["--express"]
+        elif express is False:
+            command_list = command_list + ["--no-express"]
 
         return command_list
 

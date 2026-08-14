@@ -17,9 +17,10 @@ from samcli.cli.main import aws_creds_options, pass_context, print_cmdline_args
 from samcli.cli.main import common_options as cli_framework_options
 from samcli.commands._utils.cdk_support_decorators import unsupported_command_cdk
 from samcli.commands._utils.command_exception_handler import command_exception_handler
-from samcli.commands._utils.options import template_option_without_build
+from samcli.commands._utils.options import language_extensions_option, template_option_without_build
 from samcli.commands.exceptions import LinterRuleMatchedException, UserException
 from samcli.commands.validate.core.command import ValidateCommand
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
@@ -57,6 +58,7 @@ class SamTemplate:
     "Create a cfnlintrc config file to specify additional parameters. "
     "For more information, see: https://github.com/aws-cloudformation/cfn-lint",
 )
+@language_extensions_option
 @save_params_option
 @pass_context
 @track_command
@@ -64,13 +66,13 @@ class SamTemplate:
 @print_cmdline_args
 @unsupported_command_cdk(alternative_command="cdk doctor")
 @command_exception_handler
-def cli(ctx, template_file, config_file, config_env, lint, save_params):
+def cli(ctx, template_file, config_file, config_env, lint, language_extensions, save_params):
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
-    do_cli(ctx, template_file, lint)  # pragma: no cover
+    do_cli(ctx, template_file, lint, language_extensions)  # pragma: no cover
 
 
-def do_cli(ctx, template, lint):
+def do_cli(ctx, template, lint, language_extensions):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
     """
@@ -92,6 +94,7 @@ def do_cli(ctx, template, lint):
             ManagedPolicyLoader(iam_client),
             profile=ctx.profile,
             region=ctx.region,
+            language_extensions_enabled=resolve_language_extensions_enabled(language_extensions),
         )
 
         try:

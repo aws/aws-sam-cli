@@ -243,6 +243,7 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         use_container=False,
         build_in_source=None,
         watch_exclude=None,
+        express=None,
     ):
         command_list = [get_sam_command(), "sync"]
 
@@ -307,5 +308,9 @@ class SyncIntegBase(BuildIntegBase, PackageIntegBase):
         if watch_exclude:
             for exclude in watch_exclude:
                 command_list += ["--watch-exclude", exclude]
+        if express is True:
+            command_list += ["--express"]
+        elif express is False:
+            command_list += ["--no-express"]
 
         return command_list

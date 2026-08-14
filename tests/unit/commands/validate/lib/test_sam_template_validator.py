@@ -313,3 +313,43 @@ class TestSamTemplateValidator(TestCase):
 
         # check template
         self.assertEqual(validator.sam_template.get("Resources"), {})
+
+
+class TestSamTemplateValidatorLanguageExtensions(TestCase):
+    """SamTemplateValidator forwards language_extensions_enabled to expand_language_extensions."""
+
+    @patch("samcli.lib.translate.sam_template_validator.expand_language_extensions")
+    def test_disabled_passes_enabled_false(self, mock_expand):
+        mock_expand.return_value = Mock(
+            had_language_extensions=False,
+            expanded_template={"Resources": {}},
+        )
+        validator = SamTemplateValidator(
+            sam_template={"Resources": {}},
+            managed_policy_loader=Mock(),
+            language_extensions_enabled=False,
+        )
+        try:
+            validator.get_translated_template_if_valid()
+        except Exception:
+            pass
+        for call in mock_expand.call_args_list:
+            assert call.kwargs.get("enabled") is False
+
+    @patch("samcli.lib.translate.sam_template_validator.expand_language_extensions")
+    def test_enabled_passes_enabled_true(self, mock_expand):
+        mock_expand.return_value = Mock(
+            had_language_extensions=False,
+            expanded_template={"Resources": {}},
+        )
+        validator = SamTemplateValidator(
+            sam_template={"Resources": {}},
+            managed_policy_loader=Mock(),
+            language_extensions_enabled=True,
+        )
+        try:
+            validator.get_translated_template_if_valid()
+        except Exception:
+            pass
+        for call in mock_expand.call_args_list:
+            assert call.kwargs.get("enabled") is True

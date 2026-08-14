@@ -23,10 +23,12 @@ from samcli.commands._utils.options import (
     container_env_var_file_option,
     docker_common_options,
     hook_name_click_option,
+    language_extensions_option,
     manifest_option,
     mount_symlinks_option,
     parameter_override_option,
     skip_prepare_infra_option,
+    structured_output_option,
     template_option_without_build,
     terraform_project_root_path_option,
     use_buildkit_option,
@@ -85,6 +87,7 @@ DESCRIPTION = """
 @use_container_build_option
 @use_buildkit_option
 @build_in_source_option
+@language_extensions_option
 @click.option(
     "--container-env-var",
     "-e",
@@ -127,6 +130,7 @@ DESCRIPTION = """
 @template_option_without_build
 @parameter_override_option
 @docker_common_options
+@structured_output_option
 @cli_framework_options
 @aws_creds_options
 @click.argument("resource_logical_id", required=False)
@@ -164,6 +168,8 @@ def cli(
     build_in_source: Optional[bool],
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
+    output: str,
 ) -> None:
     """
     `sam build` command entry point
@@ -197,6 +203,8 @@ def cli(
         mount_with,
         mount_symlinks,
         use_buildkit,
+        language_extensions,
+        output,
     )  # pragma: no cover
 
 
@@ -225,12 +233,15 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     mount_with: str,
     mount_symlinks: Optional[bool],
     use_buildkit: Optional[bool],
+    language_extensions: Optional[bool],
+    output: str = "text",
 ) -> None:
     """
     Implementation of the ``cli`` method
     """
 
-    from samcli.commands.build.build_context import BuildContext
+    from samcli.commands.build.build_context import BuildContext, build_failure_json
+    from samcli.lib.observability.util import OutputOption
 
     LOG.debug("'build' command is called")
     if cached:
@@ -238,36 +249,48 @@ def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     if use_container:
         LOG.info("Starting Build inside a container")
 
-    processed_env_vars = process_env_var(container_env_var)
-    processed_build_images = process_image_options(build_image)
+    try:
+        # Inside the try so option-preprocessing errors (e.g. InvalidImageException from a
+        # malformed --build-image) are serialized too, not just failures from within BuildContext.
+        processed_env_vars = process_env_var(container_env_var)
+        processed_build_images = process_image_options(build_image)
 
-    with BuildContext(
-        function_identifier,
-        template,
-        base_dir,
-        build_dir,
-        cache_dir,
-        cached,
-        parallel=parallel,
-        clean=clean,
-        manifest_path=manifest_path,
-        use_container=use_container,
-        parameter_overrides=parameter_overrides,
-        docker_network=docker_network,
-        skip_pull_image=skip_pull_image,
-        mode=mode,
-        container_env_var=processed_env_vars,
-        container_env_var_file=container_env_var_file,
-        build_images=processed_build_images,
-        excluded_resources=exclude,
-        aws_region=click_ctx.region,
-        hook_name=hook_name,
-        build_in_source=build_in_source,
-        mount_with=mount_with,
-        mount_symlinks=mount_symlinks,
-        use_buildkit=use_buildkit,
-    ) as ctx:
-        ctx.run()
+        with BuildContext(
+            function_identifier,
+            template,
+            base_dir,
+            build_dir,
+            cache_dir,
+            cached,
+            parallel=parallel,
+            clean=clean,
+            manifest_path=manifest_path,
+            use_container=use_container,
+            parameter_overrides=parameter_overrides,
+            docker_network=docker_network,
+            skip_pull_image=skip_pull_image,
+            mode=mode,
+            container_env_var=processed_env_vars,
+            container_env_var_file=container_env_var_file,
+            build_images=processed_build_images,
+            excluded_resources=exclude,
+            aws_region=click_ctx.region,
+            hook_name=hook_name,
+            build_in_source=build_in_source,
+            mount_with=mount_with,
+            mount_symlinks=mount_symlinks,
+            use_buildkit=use_buildkit,
+            language_extensions=language_extensions,
+            output=output,
+        ) as ctx:
+            ctx.run()
+    except Exception as ex:
+        # In --output json mode, emit one JSON failure document for any error from BuildContext.
+        # The broad catch also covers non-UserException template errors raised during __enter__/set_up.
+        # Re-raise so @track_command still records telemetry and run()'s text banner path is unaffected.
+        if OutputOption(output) is OutputOption.json:
+            click.echo(build_failure_json(ex))
+        raise
 
 
 def _get_mode_value_from_envvar(name: str, choices: List[str]) -> Optional[str]:

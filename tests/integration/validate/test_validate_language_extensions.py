@@ -28,7 +28,7 @@ class TestValidateLanguageExtensions(TestCase):
         """Nested ForEach exceeding depth limit should fail validation."""
         template_path = self.test_data_path.joinpath("language-extensions-depth-limit", "template.yaml")
 
-        cmdlist = [get_sam_command(), "validate", "--template-file", str(template_path)]
+        cmdlist = [get_sam_command(), "validate", "--template-file", str(template_path), "--language-extensions"]
         result = run_command(cmdlist)
 
         self.assertNotEqual(result.process.returncode, 0)
@@ -41,7 +41,7 @@ class TestValidateLanguageExtensions(TestCase):
         """Invalid ForEach syntax should fail validation."""
         template_path = self.test_data_path.joinpath("language-extensions-invalid-syntax", "template.yaml")
 
-        cmdlist = [get_sam_command(), "validate", "--template-file", str(template_path)]
+        cmdlist = [get_sam_command(), "validate", "--template-file", str(template_path), "--language-extensions"]
         result = run_command(cmdlist)
 
         self.assertNotEqual(result.process.returncode, 0)

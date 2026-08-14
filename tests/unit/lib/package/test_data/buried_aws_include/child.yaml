@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::LanguageExtensions
+Resources:
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      DataType: text
+      Value:
+        Fn::ToJsonString:
+          Fn::Transform:
+            Name: AWS::Include
+            Parameters:
+              Location: export-events.json

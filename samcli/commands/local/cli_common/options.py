@@ -268,6 +268,16 @@ def warm_containers_common_options(f):
             type=click.STRING,
             multiple=False,
         ),
+        click.option(
+            "--no-watch",
+            is_flag=True,
+            default=False,
+            help="Disable file watching for hot reload. Only applies when --warm-containers is set. "
+            "When enabled, local code or template changes will not restart the running container; "
+            "stop and rerun the command to pick up changes. Useful when file watching causes "
+            "high CPU/IO (e.g. Microsoft Defender on Windows, large monorepos, or projects "
+            "using auto-generated directories like .sandbox).",
+        ),
     ]
 
     # Reverse the list to maintain ordering of options in help text printed with --help

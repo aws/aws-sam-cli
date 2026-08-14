@@ -70,11 +70,8 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
         example = DurableFunctionExamples.EXECUTION_TIMEOUT
         function_name = example.function_name
         execution_name = "executiontimeout-integration-test"
-        event_path = str(self.test_data_path / "durable" / "events" / "timeout_test_event.json")
 
-        command_list = self.get_invoke_command_list(
-            function_name, event_path=event_path, durable_execution_name=execution_name
-        )
+        command_list = self.get_invoke_command_list(function_name, no_event=True, durable_execution_name=execution_name)
 
         stdout, stderr, invoke_return_code = self.run_command_with_logging(
             command_list, f"test_local_invoke_durable_function_{function_name}"
@@ -84,7 +81,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
         # Assert invoke output shows timeout
         execution_arn = self.assert_invoke_output(
-            stdout, input_data={"wait_seconds": 30}, execution_name=execution_name, expected_status="TIMED_OUT"
+            stdout, input_data={}, execution_name=execution_name, expected_status="TIMED_OUT"
         )
 
         # Get and verify execution history

@@ -707,9 +707,9 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
             process.kill()
             raise
@@ -721,5 +721,6 @@ class TestPackageZip(PackageIntegBase):
             encoding="utf-8",
         )
 
-        self.assertIn(warning_message, stdout)
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        self.assertIn(warning_message, stderr)
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))

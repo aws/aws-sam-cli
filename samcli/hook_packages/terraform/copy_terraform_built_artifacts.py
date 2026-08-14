@@ -195,20 +195,11 @@ class Searcher(object):
 
 
 def copytree(src, dst):
-    """Modified copytree method
-    Note: before python3.8 there is no `dir_exists_ok` argument, therefore
-    this function explicitly creates one if it does not exist.
+    """Copy a directory tree from src to dst, merging into dst if it already exists.
+
+    Symbolic links are preserved as symbolic links in the destination.
     """
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-    for item in os.listdir(src):
-        src_item = os.path.join(src, item)
-        dst_item = os.path.join(dst, item)
-        if os.path.isdir(src_item):
-            # recursively call itself.
-            copytree(src_item, dst_item)
-        else:
-            shutil.copy2(src_item, dst_item)
+    shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
 
 
 def cli_exit():

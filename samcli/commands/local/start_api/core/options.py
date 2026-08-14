@@ -16,6 +16,7 @@ AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 TEMPLATE_OPTIONS: List[str] = [
     "parameter_overrides",
+    "language_extensions",
 ]
 
 EXTENSION_OPTIONS: List[str] = ["hook_name", "skip_prepare_infra"]
@@ -44,6 +45,7 @@ CONTAINER_OPTION_NAMES: List[str] = [
     "container_dns",
     "invoke_image",
     "disable_authorizer",
+    "no_watch",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS

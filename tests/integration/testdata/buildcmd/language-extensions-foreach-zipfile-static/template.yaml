@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Regression test for #9029, ForEach static-branch (case B). Each expanded
+  Lambda has `Code: {ZipFile: !Sub ...}` whose body references CFN pseudo-
+  parameters but NOT the loop variable. The static-branch merge must skip
+  these resources (no build artifact) so the user-authored `Fn::Sub`
+  survives intact in the built template.
+
+Resources:
+  Fn::ForEach::Workers:
+    - WorkerName
+    - - Alpha
+      - Beta
+    - ${WorkerName}Worker:
+        Type: AWS::Lambda::Function
+        Properties:
+          FunctionName: !Sub ${WorkerName}-worker
+          Runtime: python3.11
+          Handler: index.handler
+          Role: !Sub 'arn:aws:iam::${AWS::AccountId}:role/worker-role'
+          Code:
+            ZipFile: !Sub |
+              import boto3
+              def handler(event, context):
+                  client = boto3.client('logs')
+                  client.put_log_events(
+                      logGroupName='/aws/lambda/worker-${AWS::Region}-${AWS::AccountId}',
+                  )

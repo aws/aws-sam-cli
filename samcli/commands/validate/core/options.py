@@ -12,6 +12,8 @@ from samcli.cli.row_modifiers import RowDefinition
 
 REQUIRED_OPTIONS: List[str] = ["template_file"]
 
+TEMPLATE_OPTIONS: List[str] = ["language_extensions"]
+
 AWS_CREDENTIAL_OPTION_NAMES: List[str] = ["region", "profile"]
 
 LINT_OPTION_NAMES: List[str] = [
@@ -21,11 +23,17 @@ LINT_OPTION_NAMES: List[str] = [
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ALL_OPTIONS: List[str] = (
-    REQUIRED_OPTIONS + LINT_OPTION_NAMES + AWS_CREDENTIAL_OPTION_NAMES + CONFIGURATION_OPTION_NAMES + ALL_COMMON_OPTIONS
+    REQUIRED_OPTIONS
+    + TEMPLATE_OPTIONS
+    + LINT_OPTION_NAMES
+    + AWS_CREDENTIAL_OPTION_NAMES
+    + CONFIGURATION_OPTION_NAMES
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
     "Required Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(REQUIRED_OPTIONS)}},
+    "Template Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(TEMPLATE_OPTIONS)}},
     "Lint Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(LINT_OPTION_NAMES)}},
     "AWS Credential Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(AWS_CREDENTIAL_OPTION_NAMES)}

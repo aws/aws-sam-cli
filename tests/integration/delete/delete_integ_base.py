@@ -20,6 +20,7 @@ class DeleteIntegBase(DeployIntegBase):
         no_prompts=None,
         s3_bucket=None,
         s3_prefix=None,
+        express=None,
     ):
         command_list = [get_sam_command(), "delete"]
 
@@ -40,5 +41,9 @@ class DeleteIntegBase(DeployIntegBase):
             command_list += ["--s3-bucket", str(s3_bucket)]
         if s3_prefix:
             command_list += ["--s3-prefix", str(s3_prefix)]
+        if express is True:
+            command_list += ["--express"]
+        elif express is False:
+            command_list += ["--no-express"]
 
         return command_list

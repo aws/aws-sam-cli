@@ -7,7 +7,7 @@ from typing import Dict
 from samcli.cli.core.options import ALL_COMMON_OPTIONS, add_common_options_info
 from samcli.cli.row_modifiers import RowDefinition
 
-DELETE_OPTION_NAMES = ["stack_name", "no_prompts", "s3_bucket", "s3_prefix"]
+DELETE_OPTION_NAMES = ["stack_name", "no_prompts", "s3_bucket", "s3_prefix", "express"]
 AWS_CREDENTIAL_OPTION_NAMES = ["region", "profile"]
 CONFIGURATION_OPTION_NAMES = ["config_file", "config_env", "save_params"]
 

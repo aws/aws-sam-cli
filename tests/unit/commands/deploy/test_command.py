@@ -1,6 +1,11 @@
+import json
 import os
+from contextlib import redirect_stdout
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
+
+import click
 
 from samcli.commands.deploy.command import do_cli
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
@@ -52,6 +57,7 @@ class TestDeployCliCommand(TestCase):
         self.disable_rollback = False
         self.on_failure = None
         self.max_wait_duration = 480
+        self.express = False
         MOCK_SAM_CONFIG.reset_mock()
 
         self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
@@ -102,9 +108,12 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -133,10 +142,124 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    def _do_cli_with(self, **overrides):
+        # Invoke do_cli with the setUp defaults, overriding only the fields a test cares about.
+        kwargs = dict(
+            template_file=self.template_file,
+            stack_name=self.stack_name,
+            s3_bucket=self.s3_bucket,
+            image_repository=self.image_repository,
+            image_repositories=None,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            s3_prefix=self.s3_prefix,
+            kms_key_id=self.kms_key_id,
+            parameter_overrides=self.parameter_overrides,
+            capabilities=self.capabilities,
+            no_execute_changeset=self.no_execute_changeset,
+            role_arn=self.role_arn,
+            notification_arns=self.notification_arns,
+            fail_on_empty_changeset=self.fail_on_empty_changset,
+            tags=self.tags,
+            region=self.region,
+            profile=self.profile,
+            use_json=self.use_json,
+            metadata=self.metadata,
+            guided=self.guided,
+            confirm_changeset=self.confirm_changeset,
+            signing_profiles=self.signing_profiles,
+            resolve_s3=self.resolve_s3,
+            config_env=self.config_env,
+            config_file=self.config_file,
+            resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
+            disable_rollback=self.disable_rollback,
+            on_failure=self.on_failure,
+            max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
+        )
+        kwargs.update(overrides)
+        do_cli(**kwargs)
+
+    def test_interactive_flags_are_rejected_with_json_output(self):
+        # Both --confirm-changeset and --guided need interactive answers a JSON consumer cannot give,
+        # so do_cli must reject either combined with --output json up front (rather than, for
+        # confirm-changeset, emitting CONFIRMATION_REQUIRED and exiting 0 without deploying).
+        with self.assertRaises(click.UsageError):
+            self._do_cli_with(confirm_changeset=True, output="json")
+        with self.assertRaises(click.UsageError):
+            self._do_cli_with(guided=True, output="json")
+
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_json_output_emits_terminal_failed_on_unhandled_failure(self, mock_package_context):
+        # A failure the package/deploy steps do not emit their own result for (here a packaging
+        # error) must still terminate the JSON stream with a FAILED result so a consumer can tell
+        # failure from a truncated stream.
+        mock_package_context.return_value.__enter__.return_value.run.side_effect = RuntimeError("boom")
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(RuntimeError):
+                self._do_cli_with(output="json")
+
+        emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+        # Matches build's failure shape: status "failure" + structured error {type, message, resources}.
+        # resources is null for deploy (failures are not attributed to specific resources) but the key
+        # is present so a consumer can read error.resources uniformly across commands.
+        self.assertEqual(emitted["type"], "result")
+        self.assertEqual(emitted["status"], "failure")
+        self.assertEqual(emitted["error"]["type"], "RuntimeError")
+        self.assertEqual(emitted["error"]["message"], "boom")
+        self.assertIsNone(emitted["error"]["resources"])
+
+    @patch("samcli.commands.deploy.command.manage_stack")
+    def test_json_output_emits_terminal_failed_when_resolve_s3_fails(self, mock_manage_stack):
+        # --resolve-s3 bucket resolution runs before the package/deploy steps. A failure there must
+        # still terminate the JSON stream with a failure result (regression: the handler used to open
+        # after this block, so a resolve-s3 failure emitted zero JSON lines). --resolve-s3 is common in CI.
+        mock_manage_stack.side_effect = RuntimeError("bucket boom")
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            with self.assertRaises(RuntimeError):
+                self._do_cli_with(output="json", resolve_s3=True, s3_bucket=None)
+
+        emitted = json.loads(stdout.getvalue().strip().splitlines()[-1])
+        self.assertEqual(emitted["type"], "result")
+        self.assertEqual(emitted["status"], "failure")
+        self.assertEqual(emitted["error"]["type"], "RuntimeError")
+        self.assertEqual(emitted["error"]["message"], "bucket boom")
+
+    @patch("samcli.commands.deploy.deploy_context.DeployContext")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.deploy.command.manage_stack")
+    def test_json_output_resolve_s3_emits_managed_bucket_info_line(
+        self, mock_manage_stack, mock_package_context, mock_deploy_context
+    ):
+        # With --resolve-s3 --output json the resolved bucket name would otherwise be discarded
+        # (manage_stack progress is redirected to devnull). It must surface as a JSON info line so a
+        # CI consumer can learn where its artifacts went.
+        mock_manage_stack.return_value = "sam-managed-bucket-123"
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            self._do_cli_with(output="json", resolve_s3=True, s3_bucket=None)
+
+        info_lines = [
+            json.loads(line)
+            for line in stdout.getvalue().strip().splitlines()
+            if json.loads(line).get("type") == "info"
+        ]
+        self.assertEqual(info_lines, [{"type": "info", "managed_s3_bucket": "sam-managed-bucket-123"}])
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -220,9 +343,12 @@ class TestDeployCliCommand(TestCase):
                     config_env=self.config_env,
                     config_file=self.config_file,
                     resolve_image_repos=self.resolve_image_repos,
+                    language_extensions=None,
                     disable_rollback=self.disable_rollback,
                     on_failure=self.on_failure,
                     max_wait_duration=self.max_wait_duration,
+                    express=self.express,
+                    output="text",
                 )
 
     @patch("samcli.commands.package.command.click")
@@ -322,9 +448,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -350,9 +478,12 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -468,9 +599,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 config_file=self.config_file,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -496,9 +629,12 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=True,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -617,9 +753,12 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -649,9 +788,12 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -778,9 +920,12 @@ class TestDeployCliCommand(TestCase):
             config_file=self.config_file,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -806,9 +951,12 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=self.use_changeset,
             disable_rollback=True,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -919,9 +1067,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
             mock_deploy_context.assert_called_with(
@@ -947,9 +1097,12 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 use_changeset=self.use_changeset,
                 disable_rollback=self.disable_rollback,
-                poll_delay=5,
+                poll_delay=5.0,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
+                language_extensions=None,
+                output="text",
             )
 
             context_mock.run.assert_called_with()
@@ -997,9 +1150,12 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1028,6 +1184,9 @@ class TestDeployCliCommand(TestCase):
             poll_delay=5,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -1063,9 +1222,11 @@ class TestDeployCliCommand(TestCase):
                 config_env=self.config_env,
                 signing_profiles=self.signing_profiles,
                 resolve_image_repos=self.resolve_image_repos,
+                language_extensions=None,
                 disable_rollback=self.disable_rollback,
                 on_failure=self.on_failure,
                 max_wait_duration=self.max_wait_duration,
+                express=self.express,
             )
 
     @patch("samcli.commands.package.command.click")
@@ -1115,9 +1276,12 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1143,9 +1307,12 @@ class TestDeployCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             use_changeset=True,
             disable_rollback=self.disable_rollback,
-            poll_delay=5,
+            poll_delay=5.0,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()
@@ -1190,9 +1357,12 @@ class TestDeployCliCommand(TestCase):
             config_env=self.config_env,
             config_file=self.config_file,
             resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
             disable_rollback=self.disable_rollback,
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            output="text",
         )
 
         mock_deploy_context.assert_called_with(
@@ -1221,6 +1391,9 @@ class TestDeployCliCommand(TestCase):
             poll_delay=os.getenv("SAM_CLI_POLL_DELAY"),
             on_failure=self.on_failure,
             max_wait_duration=self.max_wait_duration,
+            express=self.express,
+            language_extensions=None,
+            output="text",
         )
 
         mock_package_context.assert_called_with(
@@ -1240,6 +1413,8 @@ class TestDeployCliCommand(TestCase):
             profile=self.profile,
             signing_profiles=self.signing_profiles,
             parameter_overrides=self.parameter_overrides,
+            language_extensions=None,
+            output="text",
         )
 
         context_mock.run.assert_called_with()

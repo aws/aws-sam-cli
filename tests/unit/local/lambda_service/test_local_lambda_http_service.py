@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from unittest import TestCase
 from unittest.mock import ANY, Mock, call, patch
+from urllib.parse import quote
 
 from parameterized import parameterized
 
@@ -64,42 +65,42 @@ class TestLocalLambdaHttpService(TestCase):
 
         # Verify durable functions endpoints were added
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-executions/<durable_execution_arn>",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>",
             endpoint="get_durable_execution",
             view_func=service._get_durable_execution_handler,
             methods=["GET"],
         )
 
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-executions/<durable_execution_arn>/history",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>/history",
             endpoint="get_durable_execution_history",
             view_func=service._get_durable_execution_history_handler,
             methods=["GET"],
         )
 
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-executions/<durable_execution_arn>/stop",
+            "/2025-12-01/durable-executions/<path:durable_execution_arn>/stop",
             endpoint="stop_durable_execution",
             view_func=service._stop_durable_execution_handler,
             methods=["POST"],
         )
 
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/succeed",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/succeed",
             endpoint="send_callback_success",
             view_func=service._send_callback_success_handler,
             methods=["POST"],
         )
 
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/fail",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/fail",
             endpoint="send_callback_failure",
             view_func=service._send_callback_failure_handler,
             methods=["POST"],
         )
 
         app_mock.add_url_rule.assert_any_call(
-            "/2025-12-01/durable-execution-callbacks/<callback_id>/heartbeat",
+            "/2025-12-01/durable-execution-callbacks/<path:callback_id>/heartbeat",
             endpoint="send_callback_heartbeat",
             view_func=service._send_callback_heartbeat_handler,
             methods=["POST"],
@@ -1313,3 +1314,130 @@ class TestDurableExecutionHeaderCombination(TestCase):
             ),
         }
         service_response_mock.assert_called_once_with("hello world", expected_headers, 200)
+
+
+class TestDurableArnShapeCompatibility(TestCase):
+    """
+    Routing must accept the documented Lambda ``DurableExecutionArn`` shape.
+
+    Per the Lambda public API docs, ``DurableExecutionArn`` matches::
+
+        arn:([a-zA-Z0-9-]+):lambda:([a-zA-Z0-9-]+):(\\d{12})
+            :function:([a-zA-Z0-9_-]+)
+            :(\\$LATEST(?:\\.PUBLISHED)?|[0-9]+)
+            /durable-execution/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)
+
+        https://docs.aws.amazon.com/lambda/latest/api/API_GetDurableExecution.html
+
+    The shape contains characters that boto's REST-JSON serializer
+    percent-encodes inside a non-greedy URI label: ``/`` -> ``%2F``,
+    ``:`` -> ``%3A``, ``$`` -> ``%24``. Werkzeug decodes those back to
+    their literal forms before route matching, so the default ``<string>``
+    converter (which does not match ``/``) cannot match the resulting
+    multi-segment path. Switching the route to ``<path:...>`` accepts the
+    documented shape end-to-end and remains backwards-compatible with the
+    legacy UUID-only shape and the transitional ``<uuid>/<invocation-id>``
+    shape currently emitted by the durable-functions emulator.
+
+    These tests drive the real Flask app via its test client to assert
+    routing reaches the correct handler with the decoded value, and that
+    the trailing-literal rules (``/history`` and ``/stop``) win over the
+    bare ``<path:arn>`` rule on the same prefix.
+    """
+
+    DOC_ARN = (
+        "arn:aws:lambda:us-east-1:123456789012"
+        ":function:myDurableFunction:$LATEST"
+        "/durable-execution/myExecutionName/01H8X7Y8Z9ABCDEFGHIJKLMNOP"
+    )
+    PLACEHOLDER_ARN = "9a1bc86c-40b9-4688-86b4-d7ecaca41579/2a8bc667-bc0b-4b5e-8c78-26db9c5b4e33"
+    LEGACY_ARN = "9a1bc86c-40b9-4688-86b4-d7ecaca41579"
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LocalLambdaHttpService._construct_error_handling")
+    def _build_service(self, error_handling_mock):
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="127.0.0.1")
+        service.create()
+        return service
+
+    @parameterized.expand(
+        [
+            ("doc_shape", DOC_ARN),
+            ("placeholder", PLACEHOLDER_ARN),
+            ("legacy_uuid_only", LEGACY_ARN),
+        ]
+    )
+    @patch.object(LocalLambdaHttpService, "_get_durable_execution_handler")
+    def test_get_durable_execution_routes_arn(self, _name, arn, handler_mock):
+        handler_mock.return_value = ("ok", 200)
+        service = self._build_service()
+        client = service._app.test_client()
+
+        encoded = quote(arn, safe="")
+        response = client.get(f"/2025-12-01/durable-executions/{encoded}")
+
+        # Pre-fix: 404 PathNotFoundLocally because <string> cannot match a
+        # segment containing decoded "/" (or ":" / "$").
+        self.assertEqual(response.status_code, 200)
+        handler_mock.assert_called_once_with(durable_execution_arn=arn)
+
+    @parameterized.expand(
+        [
+            ("doc_shape", DOC_ARN),
+            ("placeholder", PLACEHOLDER_ARN),
+            ("legacy_uuid_only", LEGACY_ARN),
+        ]
+    )
+    @patch.object(LocalLambdaHttpService, "_get_durable_execution_history_handler")
+    def test_get_durable_execution_history_routes_arn(self, _name, arn, handler_mock):
+        handler_mock.return_value = ("ok", 200)
+        service = self._build_service()
+        client = service._app.test_client()
+
+        encoded = quote(arn, safe="")
+        response = client.get(f"/2025-12-01/durable-executions/{encoded}/history")
+
+        self.assertEqual(response.status_code, 200)
+        # Trailing literal /history must win over the bare <path:arn> rule.
+        handler_mock.assert_called_once_with(durable_execution_arn=arn)
+
+    @parameterized.expand(
+        [
+            ("doc_shape", DOC_ARN),
+            ("placeholder", PLACEHOLDER_ARN),
+            ("legacy_uuid_only", LEGACY_ARN),
+        ]
+    )
+    @patch.object(LocalLambdaHttpService, "_stop_durable_execution_handler")
+    def test_stop_durable_execution_routes_arn(self, _name, arn, handler_mock):
+        handler_mock.return_value = ("ok", 200)
+        service = self._build_service()
+        client = service._app.test_client()
+
+        encoded = quote(arn, safe="")
+        response = client.post(f"/2025-12-01/durable-executions/{encoded}/stop")
+
+        self.assertEqual(response.status_code, 200)
+        handler_mock.assert_called_once_with(durable_execution_arn=arn)
+
+    @parameterized.expand(
+        [
+            ("succeed", "_send_callback_success_handler"),
+            ("fail", "_send_callback_failure_handler"),
+            ("heartbeat", "_send_callback_heartbeat_handler"),
+        ]
+    )
+    def test_callback_routes_id_with_slash(self, action, handler_attr):
+        # Base64 callback IDs contain '/' which boto percent-encodes the
+        # same way as the doc-shape ARN's slashes.
+        decoded_id = "abc/def=="
+        encoded_id = quote(decoded_id, safe="")
+        with patch.object(LocalLambdaHttpService, handler_attr) as handler_mock:
+            handler_mock.return_value = ("ok", 200)
+            service = self._build_service()
+            client = service._app.test_client()
+
+            response = client.post(f"/2025-12-01/durable-execution-callbacks/{encoded_id}/{action}")
+
+            self.assertEqual(response.status_code, 200)
+            handler_mock.assert_called_once_with(callback_id=decoded_id)

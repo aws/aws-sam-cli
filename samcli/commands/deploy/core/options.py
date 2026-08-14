@@ -38,12 +38,15 @@ DEPLOYMENT_OPTIONS: List[str] = [
     "on_failure",
     "force_upload",
     "max_wait_duration",
+    "express",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ADDITIONAL_OPTIONS: List[str] = [
+    "language_extensions",
     "no_progressbar",
+    "output",
     "signing_profiles",
     "template_file",
     "use_json",

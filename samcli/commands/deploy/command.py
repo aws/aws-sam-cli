@@ -2,6 +2,8 @@
 CLI command for "deploy" command
 """
 
+import contextlib
+import json
 import logging
 import os
 
@@ -19,6 +21,7 @@ from samcli.commands._utils.options import (
     image_repositories_option,
     image_repository_option,
     kms_key_id_option,
+    language_extensions_option,
     metadata_option,
     no_progressbar_option,
     notification_arns_option,
@@ -30,6 +33,7 @@ from samcli.commands._utils.options import (
     s3_prefix_option,
     signing_profiles_option,
     stack_name_option,
+    structured_output_option,
     tags_option,
     template_click_option,
     use_json_option,
@@ -38,6 +42,7 @@ from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
 from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils import osutils
@@ -141,6 +146,14 @@ LOG = logging.getLogger(__name__)
     type=int,
     help="Maximum duration in minutes to wait for the deployment to complete.",
 )
+@click.option(
+    "--express/--no-express",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up deployments by completing once resource "
+    "configuration is applied, without waiting for full stabilization.",
+)
 @stack_name_option(callback=guided_deploy_stack_name)  # pylint: disable=E1120
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
 @image_repository_option
@@ -159,6 +172,8 @@ LOG = logging.getLogger(__name__)
 @signing_profiles_option
 @no_progressbar_option
 @capabilities_option
+@language_extensions_option
+@structured_output_option
 @aws_creds_options
 @common_options
 @save_params_option
@@ -194,12 +209,15 @@ def cli(
     signing_profiles,
     resolve_s3,
     resolve_image_repos,
+    language_extensions,
+    output,
     save_params,
     config_file,
     config_env,
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
 ):
     """
     `sam deploy` command entry point
@@ -233,9 +251,12 @@ def cli(
         config_file,
         config_env,
         resolve_image_repos,
+        language_extensions,
         disable_rollback,
         on_failure,
         max_wait_duration,
+        express,
+        output,
     )  # pragma: no cover
 
 
@@ -267,9 +288,12 @@ def do_cli(
     config_file,
     config_env,
     resolve_image_repos,
+    language_extensions,
     disable_rollback,
     on_failure,
     max_wait_duration,
+    express,
+    output="text",
 ):
     """
     Implementation of the ``cli`` method
@@ -278,103 +302,138 @@ def do_cli(
     from samcli.commands.deploy.exceptions import DeployResolveS3AndS3SetError
     from samcli.commands.deploy.guided_context import GuidedContext
     from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.observability.util import OutputOption, failure_result_json
 
-    if guided:
-        # Allow for a guided deploy to prompt and save those details.
-        guided_context = GuidedContext(
-            template_file=template_file,
-            stack_name=stack_name,
-            s3_bucket=s3_bucket,
-            image_repository=image_repository,
-            image_repositories=image_repositories,
-            resolve_s3=resolve_s3,
-            resolve_image_repos=resolve_image_repos,
-            s3_prefix=s3_prefix,
-            region=region,
-            profile=profile,
-            confirm_changeset=confirm_changeset,
-            capabilities=capabilities,
-            signing_profiles=signing_profiles,
-            parameter_overrides=parameter_overrides,
-            config_section=CONFIG_SECTION,
-            config_env=config_env,
-            config_file=config_file,
-            disable_rollback=disable_rollback,
-        )
-        guided_context.run()
-    else:
-        if resolve_s3:
-            if bool(s3_bucket):
-                raise DeployResolveS3AndS3SetError()
-            s3_bucket = manage_stack(profile=profile, region=region)
-            print_managed_s3_bucket_info(s3_bucket)
+    language_extensions_enabled = resolve_language_extensions_enabled(language_extensions)
 
-        # TODO Refactor resolve-s3 and resolve-image-repos into one place
-        # after we figure out how to enable resolve-images-repos in package
-        if resolve_image_repos:
-            image_repositories = sync_ecr_stack(
-                template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
-            )
+    output_mode = OutputOption(output)
 
-    with osutils.tempfile_platform_independent() as output_template_file:
+    if guided and output_mode is OutputOption.json:
+        raise click.UsageError("--guided is not compatible with --output json")
+
+    if confirm_changeset and output_mode is OutputOption.json:
+        # Confirming a changeset needs an interactive answer a JSON consumer cannot give. Rejecting
+        # up front avoids a silent no-op deploy that would otherwise emit CONFIRMATION_REQUIRED and
+        # exit 0 without deploying. confirm_changeset is a persisted samconfig value from --guided,
+        # so this combination is easy to hit when a guided project is later deployed in CI.
+        raise click.UsageError("--confirm-changeset is not compatible with --output json")
+
+    try:
         if guided:
-            context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+            # Allow for a guided deploy to prompt and save those details.
+            guided_context = GuidedContext(
+                template_file=template_file,
+                stack_name=stack_name,
+                s3_bucket=s3_bucket,
+                image_repository=image_repository,
+                image_repositories=image_repositories,
+                resolve_s3=resolve_s3,
+                resolve_image_repos=resolve_image_repos,
+                s3_prefix=s3_prefix,
+                region=region,
+                profile=profile,
+                confirm_changeset=confirm_changeset,
+                capabilities=capabilities,
+                signing_profiles=signing_profiles,
+                parameter_overrides=parameter_overrides,
+                config_section=CONFIG_SECTION,
+                config_env=config_env,
+                config_file=config_file,
+                disable_rollback=disable_rollback,
+                language_extensions_enabled=language_extensions_enabled,
+            )
+            guided_context.run()
         else:
-            context_param_overrides = parameter_overrides
-        with PackageContext(
-            template_file=template_file,
-            s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-            s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
-            image_repository=guided_context.guided_image_repository if guided else image_repository,
-            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
-            output_template_file=output_template_file.name,
-            kms_key_id=kms_key_id,
-            use_json=use_json,
-            force_upload=force_upload,
-            no_progressbar=no_progressbar,
-            metadata=metadata,
-            on_deploy=True,
-            region=guided_context.guided_region if guided else region,
-            profile=profile,
-            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
-            parameter_overrides=context_param_overrides,
-        ) as package_context:
-            package_context.run()
+            if resolve_s3:
+                if bool(s3_bucket):
+                    raise DeployResolveS3AndS3SetError()
+                if output_mode is OutputOption.json:
+                    # manage_stack prints progress to stdout; redirect it so it does not corrupt the
+                    # JSON stream. Then surface the resolved bucket as a JSON info line, since
+                    # print_managed_s3_bucket_info (the only place it appears in text mode) is skipped.
+                    with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                        s3_bucket = manage_stack(profile=profile, region=region)
+                    click.echo(json.dumps({"type": "info", "managed_s3_bucket": s3_bucket}))
+                else:
+                    s3_bucket = manage_stack(profile=profile, region=region)
+                    print_managed_s3_bucket_info(s3_bucket)
 
-        # 5s of sleep time between stack checks and describe stack events.
-        DEFAULT_POLL_DELAY = 5
-        try:
-            poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
-        except ValueError:
-            poll_delay = DEFAULT_POLL_DELAY
-        if poll_delay <= 0:
-            poll_delay = DEFAULT_POLL_DELAY
+            # TODO Refactor resolve-s3 and resolve-image-repos into one place
+            # after we figure out how to enable resolve-images-repos in package
+            if resolve_image_repos:
+                image_repositories = sync_ecr_stack(
+                    template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
+                )
+        with osutils.tempfile_platform_independent() as output_template_file:
+            if guided:
+                context_param_overrides = sanitize_parameter_overrides(guided_context.guided_parameter_overrides)
+            else:
+                context_param_overrides = parameter_overrides
+            with PackageContext(
+                template_file=template_file,
+                s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+                s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+                image_repository=guided_context.guided_image_repository if guided else image_repository,
+                image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
+                output_template_file=output_template_file.name,
+                kms_key_id=kms_key_id,
+                use_json=use_json,
+                force_upload=force_upload,
+                no_progressbar=no_progressbar if output_mode is not OutputOption.json else True,
+                metadata=metadata,
+                on_deploy=True,
+                region=guided_context.guided_region if guided else region,
+                profile=profile,
+                signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+                parameter_overrides=context_param_overrides,
+                language_extensions=language_extensions,
+                output=output,
+            ) as package_context:
+                package_context.run()
 
-        with DeployContext(
-            template_file=output_template_file.name,
-            stack_name=guided_context.guided_stack_name if guided else stack_name,
-            s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
-            image_repository=guided_context.guided_image_repository if guided else image_repository,
-            image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
-            force_upload=force_upload,
-            no_progressbar=no_progressbar,
-            s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
-            kms_key_id=kms_key_id,
-            parameter_overrides=context_param_overrides,
-            capabilities=guided_context.guided_capabilities if guided else capabilities,
-            no_execute_changeset=no_execute_changeset,
-            role_arn=role_arn,
-            notification_arns=notification_arns,
-            fail_on_empty_changeset=fail_on_empty_changeset,
-            tags=tags,
-            region=guided_context.guided_region if guided else region,
-            profile=profile,
-            confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
-            signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
-            use_changeset=True,
-            disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
-            poll_delay=poll_delay,
-            on_failure=on_failure,
-            max_wait_duration=max_wait_duration,
-        ) as deploy_context:
-            deploy_context.run()
+            # 5s of sleep time between stack checks and describe stack events.
+            DEFAULT_POLL_DELAY = 5
+            try:
+                poll_delay = float(os.getenv("SAM_CLI_POLL_DELAY", str(DEFAULT_POLL_DELAY)))
+            except ValueError:
+                poll_delay = DEFAULT_POLL_DELAY
+            if poll_delay <= 0:
+                poll_delay = DEFAULT_POLL_DELAY
+
+            with DeployContext(
+                template_file=output_template_file.name,
+                stack_name=guided_context.guided_stack_name if guided else stack_name,
+                s3_bucket=guided_context.guided_s3_bucket if guided else s3_bucket,
+                image_repository=guided_context.guided_image_repository if guided else image_repository,
+                image_repositories=guided_context.guided_image_repositories if guided else image_repositories,
+                force_upload=force_upload,
+                no_progressbar=no_progressbar,
+                s3_prefix=guided_context.guided_s3_prefix if guided else s3_prefix,
+                kms_key_id=kms_key_id,
+                parameter_overrides=context_param_overrides,
+                capabilities=guided_context.guided_capabilities if guided else capabilities,
+                no_execute_changeset=no_execute_changeset,
+                role_arn=role_arn,
+                notification_arns=notification_arns,
+                fail_on_empty_changeset=fail_on_empty_changeset,
+                tags=tags,
+                region=guided_context.guided_region if guided else region,
+                profile=profile,
+                confirm_changeset=guided_context.confirm_changeset if guided else confirm_changeset,
+                signing_profiles=guided_context.signing_profiles if guided else signing_profiles,
+                use_changeset=True,
+                disable_rollback=guided_context.disable_rollback if guided else disable_rollback,
+                poll_delay=poll_delay,
+                on_failure=on_failure,
+                max_wait_duration=max_wait_duration,
+                language_extensions=language_extensions,
+                express=express,
+                output=output,
+            ) as deploy_context:
+                deploy_context.run()
+    except Exception as ex:
+        # Emit a terminal failure result for errors the per-step handlers miss, so the JSON stream
+        # never ends truncated. Shares failure_result_json with build for one consistent shape.
+        if output_mode is OutputOption.json:
+            click.echo(failure_result_json(ex))
+        raise

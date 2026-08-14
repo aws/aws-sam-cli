@@ -4,7 +4,7 @@ Delete Cloudformation stacks and s3 files
 
 import json
 import logging
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from botocore.exceptions import BotoCoreError, ClientError, WaiterError
 
@@ -134,7 +134,12 @@ class CfnUtils:
             LOG.error("Unable to get stack details.", exc_info=e)
             raise e
 
-    def delete_stack(self, stack_name: str, retain_resources: Optional[List] = None):
+    def delete_stack(
+        self,
+        stack_name: str,
+        retain_resources: Optional[List] = None,
+        deployment_config: Optional[Dict] = None,
+    ):
         """
         Delete the Cloudformation stack with the given stack_name
 
@@ -144,6 +149,8 @@ class CfnUtils:
             str Name or ID of the stack
         retain_resources: Optional[List]
             List of repositories to retain if the stack has DELETE_FAILED status.
+        deployment_config: Optional[Dict]
+            CloudFormation DeploymentConfig, e.g. {"Mode": "EXPRESS"} for Express mode.
 
         Raises
         ------
@@ -152,8 +159,11 @@ class CfnUtils:
         """
         if not retain_resources:
             retain_resources = []
+        kwargs: Dict = {"StackName": stack_name, "RetainResources": retain_resources}
+        if deployment_config:
+            kwargs["DeploymentConfig"] = deployment_config
         try:
-            self._client.delete_stack(StackName=stack_name, RetainResources=retain_resources)
+            self._client.delete_stack(**kwargs)
 
         except (ClientError, BotoCoreError) as e:
             # If there are credentials, environment errors,

@@ -31,6 +31,7 @@ class SamTemplateValidator:
         profile: Optional[str] = None,
         region: Optional[str] = None,
         parameter_overrides: Optional[dict] = None,
+        language_extensions_enabled: bool = False,
     ):
         """
         Construct a SamTemplateValidator
@@ -57,12 +58,15 @@ class SamTemplateValidator:
             Optional AWS region name
         parameter_overrides: Optional[dict]
             Template parameter overrides
+        language_extensions_enabled: bool
+            Whether to enable AWS::LanguageExtensions (default: False)
         """
         self.sam_template = sam_template
         self.managed_policy_loader = managed_policy_loader
         self.sam_parser = parser.Parser()
         self.boto3_session = Session(profile_name=profile, region_name=region)
         self.parameter_overrides = parameter_overrides or {}
+        self._language_extensions_enabled = language_extensions_enabled
 
     def get_translated_template_if_valid(self):
         """
@@ -88,7 +92,9 @@ class SamTemplateValidator:
         # template is a no-op since the transform is still present but ForEach is already resolved).
         parameter_values = dict(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(self.parameter_overrides)
-        result = expand_language_extensions(self.sam_template, parameter_values=parameter_values)
+        result = expand_language_extensions(
+            self.sam_template, parameter_values=parameter_values, enabled=self._language_extensions_enabled
+        )
         if result.had_language_extensions:
             self.sam_template = result.expanded_template
 
