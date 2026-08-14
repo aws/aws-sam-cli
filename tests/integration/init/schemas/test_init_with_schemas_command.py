@@ -116,7 +116,6 @@ class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
         # N: disable structured logging
         # eb-app-maven: response to name
         # Y: Use default aws configuration
-        # 1: select schema from cli_paginator
         # {aws_registry_pos}: select aws.events as registries (dynamic position)
         # 9: select schema AWSAPICallViaCloudTrail
         aws_registry_pos = _get_registry_position("aws.events")
@@ -131,7 +130,6 @@ N
 N
 eb-app-maven
 Y
-1
 {aws_registry_pos}
 9
         """
@@ -314,7 +312,6 @@ Y
         # N: disable structured logging
         # eb-app-python39: response to name
         # Y: Use default aws configuration
-        # 1: select schema from cli_paginator
         # {aws_registry_pos}: select aws.events as registries (dynamic position)
         # 1: select aws schema
         aws_registry_pos = _get_registry_position("aws.events")
@@ -328,7 +325,6 @@ N
 N
 eb-app-python39
 Y
-1
 {aws_registry_pos}
 1
         """
