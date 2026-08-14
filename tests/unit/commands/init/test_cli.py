@@ -3264,6 +3264,32 @@ test-project
             with self.assertRaises(PopularRuntimeNotFoundException):
                 _get_latest_python_runtime()
 
+    def _do_cli_with(self, **overrides):
+        # Invoke init with the setUp defaults, overriding only the fields a test cares about.
+        # Defaults to --output json, since every test below but one exercises JSON mode.
+        kwargs = dict(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
+            runtime=self.runtime,
+            architecture=X86_64,
+            base_image=self.base_image,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            tracing=False,
+            application_insights=False,
+            structured_logging=False,
+            output="json",
+        )
+        kwargs.update(overrides)
+        init_cli(**kwargs)
+
     @patch("samcli.commands.init.command.click.echo")
     @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
     @patch("samcli.commands.init.init_generator.generate_project")
@@ -3277,26 +3303,7 @@ test-project
             # Mirror generate_project's real contract: it returns the directory it created
             generate_project_patch.return_value = os.path.join(temp_dir, self.name)
 
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location=self.location,
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime=self.runtime,
-                architecture=X86_64,
-                base_image=self.base_image,
-                dependency_manager=self.dependency_manager,
-                output_dir=temp_dir,
-                name=self.name,
-                app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
-            )
+            self._do_cli_with(output_dir=temp_dir)
 
             # THEN exactly one JSON success document is emitted describing what was created
             echo_mock.assert_called_once()
@@ -3319,26 +3326,7 @@ test-project
         generate_project_patch.return_value = None
 
         # WHEN a project is generated from a location, which does not set no_input itself
-        init_cli(
-            ctx=self.ctx,
-            no_interactive=self.no_interactive,
-            location="/some/location",
-            pt_explicit=self.pt_explicit,
-            package_type=self.package_type,
-            runtime=self.runtime,
-            architecture=X86_64,
-            base_image=self.base_image,
-            dependency_manager=self.dependency_manager,
-            output_dir=self.output_dir,
-            name=self.name,
-            app_template=None,
-            no_input=False,
-            extra_context=None,
-            tracing=False,
-            application_insights=False,
-            structured_logging=False,
-            output="json",
-        )
+        self._do_cli_with(location="/some/location", app_template=None, no_input=False)
 
         # THEN cookiecutter is told not to prompt, since a JSON consumer cannot answer prompts
         self.assertTrue(generate_project_patch.call_args[0][6])
@@ -3354,26 +3342,7 @@ test-project
 
         # WHEN generation fails with --output json
         with self.assertRaises(UserException):
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location=self.location,
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime=self.runtime,
-                architecture=X86_64,
-                base_image=self.base_image,
-                dependency_manager=self.dependency_manager,
-                output_dir=self.output_dir,
-                name=self.name,
-                app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
-            )
+            self._do_cli_with()
 
         # THEN the failure document reports the wrapped error type, not the UserException wrapper
         echo_mock.assert_called_once()
@@ -3388,8 +3357,8 @@ test-project
     def test_init_cli_output_json_requires_no_interactive(self, do_interactive_mock):
         # WHEN --output json is used without enough parameters to skip the interactive flow
         with self.assertRaises(click.UsageError) as ex:
-            init_cli(
-                ctx=self.ctx,
+            # Nothing here identifies a template, so the run would reach the interactive flow
+            self._do_cli_with(
                 no_interactive=False,
                 location=None,
                 pt_explicit=False,
@@ -3398,15 +3367,9 @@ test-project
                 architecture=None,
                 base_image=None,
                 dependency_manager=None,
-                output_dir=self.output_dir,
                 name=None,
                 app_template=None,
                 no_input=False,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
             )
 
         # THEN it is rejected before any prompting happens, and the message lists the parameter
@@ -3425,25 +3388,7 @@ test-project
         location_from_app_template_mock.return_value = "applocation"
 
         # WHEN a project is generated without --output json
-        init_cli(
-            ctx=self.ctx,
-            no_interactive=self.no_interactive,
-            location=self.location,
-            pt_explicit=self.pt_explicit,
-            package_type=self.package_type,
-            runtime=self.runtime,
-            architecture=X86_64,
-            base_image=self.base_image,
-            dependency_manager=self.dependency_manager,
-            output_dir=self.output_dir,
-            name=self.name,
-            app_template=self.app_template,
-            no_input=self.no_input,
-            extra_context=None,
-            tracing=False,
-            application_insights=False,
-            structured_logging=False,
-        )
+        self._do_cli_with(output="text")
 
         # THEN no structured document is emitted, preserving the existing text behaviour
         self.assertFalse(echo_mock.called)
@@ -3461,26 +3406,7 @@ test-project
 
         generate_project_patch.side_effect = create_files
 
-        init_cli(
-            ctx=self.ctx,
-            no_interactive=self.no_interactive,
-            location=self.location,
-            pt_explicit=self.pt_explicit,
-            package_type=self.package_type,
-            runtime=self.runtime,
-            architecture=X86_64,
-            base_image=self.base_image,
-            dependency_manager=self.dependency_manager,
-            output_dir=temp_dir,
-            name=self.name,
-            app_template=self.app_template,
-            no_input=self.no_input,
-            extra_context=None,
-            tracing=False,
-            application_insights=False,
-            structured_logging=False,
-            output="json",
-        )
+        self._do_cli_with(output_dir=temp_dir)
 
         return json.loads(echo_mock.call_args[0][0])
 
@@ -3523,25 +3449,14 @@ test-project
             generated_directory = os.path.join(temp_dir, "template-chosen-name")
             generate_project_patch.return_value = generated_directory
 
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
+            self._do_cli_with(
                 location="/some/location",
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
                 runtime=None,
                 architecture=None,
-                base_image=self.base_image,
                 dependency_manager=None,
                 output_dir=temp_dir,
                 name=None,
                 app_template=None,
-                no_input=self.no_input,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
             )
 
             document = json.loads(echo_mock.call_args[0][0])
@@ -3567,26 +3482,7 @@ test-project
         generate_project_patch.return_value = None
 
         with osutils.mkdir_temp() as temp_dir:
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location=self.location,
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime=self.runtime,
-                architecture=X86_64,
-                base_image=self.base_image,
-                dependency_manager=self.dependency_manager,
-                output_dir=temp_dir,
-                name=self.name,
-                app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
-            )
+            self._do_cli_with(output_dir=temp_dir)
 
             document = json.loads(echo_mock.call_args[0][0])
 
@@ -3612,26 +3508,7 @@ test-project
 
         generate_project_patch.side_effect = write_to_stdout
 
-        init_cli(
-            ctx=self.ctx,
-            no_interactive=self.no_interactive,
-            location=self.location,
-            pt_explicit=self.pt_explicit,
-            package_type=self.package_type,
-            runtime=self.runtime,
-            architecture=X86_64,
-            base_image=self.base_image,
-            dependency_manager=self.dependency_manager,
-            output_dir=self.output_dir,
-            name=self.name,
-            app_template=self.app_template,
-            no_input=self.no_input,
-            extra_context=None,
-            tracing=False,
-            application_insights=False,
-            structured_logging=False,
-            output="json",
-        )
+        self._do_cli_with()
 
         # THEN the template's output is reported as its own document ahead of the result, so every
         # line of stdout stays parseable
@@ -3651,26 +3528,7 @@ test-project
     def test_init_cli_output_json_does_not_report_usage_errors(self, generate_project_patch, echo_mock):
         # WHEN the command is called incorrectly, here with --extra-context that is not valid JSON
         with self.assertRaises(click.UsageError):
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location="/some/location",
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime=self.runtime,
-                architecture=X86_64,
-                base_image=self.base_image,
-                dependency_manager=self.dependency_manager,
-                output_dir=self.output_dir,
-                name=self.name,
-                app_template=None,
-                no_input=self.no_input,
-                extra_context="{not valid json",
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
-            )
+            self._do_cli_with(location="/some/location", app_template=None, extra_context="{not valid json")
 
         # THEN no result document is emitted, since nothing was attempted. Usage errors are
         # reported by click on stderr, the same way the --output json guard reports them.
@@ -3693,26 +3551,7 @@ test-project
         generate_project_patch.side_effect = write_then_fail
 
         with self.assertRaises(UserException):
-            init_cli(
-                ctx=self.ctx,
-                no_interactive=self.no_interactive,
-                location=self.location,
-                pt_explicit=self.pt_explicit,
-                package_type=self.package_type,
-                runtime=self.runtime,
-                architecture=X86_64,
-                base_image=self.base_image,
-                dependency_manager=self.dependency_manager,
-                output_dir=self.output_dir,
-                name=self.name,
-                app_template=self.app_template,
-                no_input=self.no_input,
-                extra_context=None,
-                tracing=False,
-                application_insights=False,
-                structured_logging=False,
-                output="json",
-            )
+            self._do_cli_with()
 
         # THEN the template output is still reported, since the failure is undiagnosable without it
         info_document = json.loads(echo_mock.call_args_list[0][0][0])
@@ -3739,26 +3578,7 @@ test-project
 
         generate_project_patch.side_effect = write_invalid_bytes
 
-        init_cli(
-            ctx=self.ctx,
-            no_interactive=self.no_interactive,
-            location=self.location,
-            pt_explicit=self.pt_explicit,
-            package_type=self.package_type,
-            runtime=self.runtime,
-            architecture=X86_64,
-            base_image=self.base_image,
-            dependency_manager=self.dependency_manager,
-            output_dir=self.output_dir,
-            name=self.name,
-            app_template=self.app_template,
-            no_input=self.no_input,
-            extra_context=None,
-            tracing=False,
-            application_insights=False,
-            structured_logging=False,
-            output="json",
-        )
+        self._do_cli_with()
 
         # THEN the run still reports success, rather than a decode error from the capture
         result_document = json.loads(echo_mock.call_args_list[-1][0][0])
