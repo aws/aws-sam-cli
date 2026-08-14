@@ -16,7 +16,10 @@ class TestUnsupportedCDKCommand(TestCase):
 
         unsupported_command_cdk(None)(real_fn)()
 
-        secho_mock.assert_called_with("Warning: CDK apps are not officially supported with this command.", fg="yellow")
+        # Advisory goes to stderr (err=True) so it never corrupts a command's stdout JSON stream.
+        secho_mock.assert_called_with(
+            "Warning: CDK apps are not officially supported with this command.", fg="yellow", err=True
+        )
 
     @patch("samcli.commands._utils.cdk_support_decorators.Context")
     @patch("samcli.commands._utils.cdk_support_decorators.is_cdk_project")
@@ -29,8 +32,8 @@ class TestUnsupportedCDKCommand(TestCase):
 
         unsupported_command_cdk("Alternate command")(real_fn)()
         expected_calls = [
-            call("Warning: CDK apps are not officially supported with this command.", fg="yellow"),
-            call("We recommend you use this alternative command: Alternate command", fg="yellow"),
+            call("Warning: CDK apps are not officially supported with this command.", fg="yellow", err=True),
+            call("We recommend you use this alternative command: Alternate command", fg="yellow", err=True),
         ]
 
         secho_mock.assert_has_calls(expected_calls)

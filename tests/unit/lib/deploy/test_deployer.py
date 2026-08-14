@@ -1,9 +1,12 @@
 from typing import Container, Iterable, Union
+import json
 import uuid
 import time
 import math
 import os
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 
@@ -19,6 +22,7 @@ from samcli.commands.deploy.exceptions import (
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -91,6 +95,27 @@ class TestDeployer(CustomTestCase):
     def test_deployer_init_default_sleep(self):
         deployer = Deployer(MagicMock().client("cloudformation"))
         self.assertEqual(deployer.client_sleep, 0.5)
+
+    def test_deployer_output_mode_defaults_to_text_enum(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertIs(deployer.output_mode, OutputOption.text)
+
+    def test_deployer_output_mode_normalizes_string_to_enum(self):
+        # Callers pass the click-normalized string; it is converted to the enum at the boundary.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode="json")
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_accepts_enum_member(self):
+        # Passing an OutputOption member (rather than its string) must also work, so the enum can be
+        # forwarded directly without a caller having to know whether to send the value or the member.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode=OutputOption.json)
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_invalid_raises(self):
+        # An unrecognized value must fail loudly rather than silently degrade to table output and
+        # corrupt a JSON-lines stream.
+        with self.assertRaises(ValueError):
+            Deployer(MagicMock().client("cloudformation"), output_mode="jsonn")
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -522,6 +547,76 @@ class TestDeployer(CustomTestCase):
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
             patched_pprint_columns.call_args_list[4][1]["columns"],
         )
+
+    @patch("time.sleep")
+    def test_describe_stack_events_json_output(self, patched_time):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+        self.deployer.output_mode = OutputOption.json
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                # Reverse-chronological. The first (latest) is a root-stack terminal event so the
+                # polling loop exits; the two resource events carry the detailed_status cases.
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=2),
+                                "ResourceStatus": "CREATE_COMPLETE",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
+                                "ResourceStatus": "CREATE_FAILED",
+                                "DetailedStatus": "VALIDATION_FAILED",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                                "ResourceStatusReason": "bad bucket name",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            # The @pprint_column_names decorator reads output_mode from kwargs (real callers pass
+            # self.output_mode.value); pass it explicitly here so the JSON branch is exercised.
+            self.deployer.describe_stack_events(
+                "test", utc_to_timestamp(start_timestamp) - 1, output_mode=OutputOption.json.value
+            )
+
+        events = [json.loads(line) for line in stdout.getvalue().strip().splitlines()]
+        self.assertTrue(all(e["type"] == "event" for e in events))
+        # detailed_status is carried when CFN provides it (VALIDATION_FAILED on the failure event)...
+        failed = next(e for e in events if e["status"] == "CREATE_FAILED")
+        self.assertEqual(failed["detailed_status"], "VALIDATION_FAILED")
+        self.assertEqual(failed["reason"], "bad bucket name")
+        # ...and is null when CFN omits it, so the key is always present for consumers.
+        in_progress = next(e for e in events if e["status"] == "CREATE_IN_PROGRESS")
+        self.assertIsNone(in_progress["detailed_status"])
 
     @patch("time.sleep")
     @patch("samcli.lib.deploy.deployer.pprint_columns")
