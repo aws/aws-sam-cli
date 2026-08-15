@@ -494,10 +494,19 @@ class LambdaRuntime:
         Clean the temporary decompressed code dirs
         """
         LOG.debug("Cleaning all decompressed code dirs")
+        # Snapshot and clear the list up front, under the lock, so that a failure removing one
+        # directory can't abort the loop and leave every entry (including ones already removed
+        # or added after this call started) stuck in the list forever -- since this list is only
+        # ever appended to, a stuck entry would otherwise block cleanup of every directory added
+        # in subsequent invokes for the lifetime of this LambdaRuntime instance.
         with self._lock:
-            for decompressed_dir in self._temp_uncompressed_paths_to_be_cleaned:
-                shutil.rmtree(decompressed_dir)
+            paths_to_clean = self._temp_uncompressed_paths_to_be_cleaned
             self._temp_uncompressed_paths_to_be_cleaned = []
+        for decompressed_dir in paths_to_clean:
+            try:
+                shutil.rmtree(decompressed_dir)
+            except OSError:
+                LOG.warning("Failed to remove temporary directory %s", decompressed_dir, exc_info=True)
 
     def get_or_create_emulator_container(self):
         """

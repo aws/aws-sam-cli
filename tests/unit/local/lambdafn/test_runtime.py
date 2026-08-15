@@ -2106,6 +2106,47 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         self.runtime._clean_decompressed_paths.assert_called_once()
 
 
+class TestLambdaRuntime_clean_decompressed_paths(TestCase):
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.lambda_image_mock)
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_all_paths_cleaned_and_list_cleared_on_success(self, shutil_mock):
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "path2"]
+
+        self.runtime._clean_decompressed_paths()
+
+        self.assertEqual(shutil_mock.rmtree.call_args_list, [call("path1"), call("path2")])
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_failure_removing_one_path_does_not_block_the_others_or_leave_the_list_stuck(self, shutil_mock):
+        """Regression test: previously, if shutil.rmtree() raised for one directory, the loop
+        aborted immediately and self._temp_uncompressed_paths_to_be_cleaned was never reset
+        (the reset only ran after the loop finished). Since this list is append-only, every
+        entry -- including ones successfully removed before the failure, and any added by later
+        invokes -- would be stuck in it forever, and every subsequent call would re-hit the same
+        first failing path and abort again, permanently leaking all newer temp dirs.
+        """
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "bad_path", "path3"]
+
+        def rmtree_side_effect(path):
+            if path == "bad_path":
+                raise OSError("boom")
+
+        shutil_mock.rmtree = Mock(side_effect=rmtree_side_effect)
+
+        # Should not raise, and must still attempt every path.
+        self.runtime._clean_decompressed_paths()
+
+        self.assertEqual(shutil_mock.rmtree.call_args_list, [call("path1"), call("bad_path"), call("path3")])
+        # The list must be cleared regardless of the failure, so a later invoke's new temp dirs
+        # aren't queued up behind a permanently-stuck failing entry.
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
+
+
 class TestWarmLambdaRuntime_create_container_branch(TestCase):
     """Test WarmLambdaRuntime.create method container branch - lines 470->473"""
 
