@@ -2032,6 +2032,42 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         self.manager_mock.stop.assert_called_once_with(container)
         self.runtime._clean_decompressed_paths.assert_called_once()
 
+    def test_on_invoke_done_cleans_paths_even_when_container_manager_stop_raises(self):
+        """Regression test: if _container_manager.stop() itself raises (e.g. docker.errors.APIError
+        from Container.stop()/delete() for a reason other than "removal already in progress"),
+        _clean_decompressed_paths() must still run and not be skipped by the propagating exception.
+        """
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock()
+        self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with self.assertRaises(RuntimeError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_cleans_paths_when_both_check_exit_state_and_stop_raise(self):
+        """Regression test: when the container is OOM-killed (_check_exit_state raises
+        ContainerFailureError) AND the subsequent stop() also raises (e.g. a Docker API error),
+        _clean_decompressed_paths() must still run.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with self.assertRaises(RuntimeError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
 
 class TestWarmLambdaRuntime_create_container_branch(TestCase):
     """Test WarmLambdaRuntime.create method container branch - lines 470->473"""
