@@ -701,6 +701,45 @@ class TestGetResourceByIDAmbiguousNestedStacks(TestCase):
         )
         self.assertEqual(result, self.nested_stack_a.resources["Function1"])
 
+    def test_ambiguity_error_suggests_a_path_that_actually_resolves_for_cdk_resources(self):
+        """Regression test: the collision message must be built from the *normalized* resource ID
+        (ResourceMetadataNormalizer.get_resource_id, e.g. from a CDK resource's SamResourceId
+        metadata), not the raw logical ID the user typed. Otherwise, for a bare logical ID that
+        only matches via the SamResourceId fallback, the suggested qualified path
+        ('NestedStackA/<logicalId>') can never resolve, since a stack-qualified lookup only
+        matches on the normalized ID -- sending the user to a dead end.
+        """
+        nested_stack_a = MagicMock()
+        nested_stack_a.stack_path = "NestedStackA"
+        nested_stack_a.resources = {
+            "Function1": {"Properties": "BodyA", "Metadata": {"SamResourceId": "Function1-x"}},
+        }
+        nested_stack_b = MagicMock()
+        nested_stack_b.stack_path = "NestedStackB"
+        nested_stack_b.resources = {
+            "Function1": {"Properties": "BodyB", "Metadata": {"SamResourceId": "Function1-x"}},
+        }
+
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        with self.assertRaises(AmbiguousResourceIdentifier) as ctx:
+            get_resource_by_id([self.root_stack, nested_stack_a, nested_stack_b], resource_identifier, False)
+
+        message = str(ctx.exception)
+        self.assertIn("NestedStackA/Function1-x", message)
+        self.assertIn("NestedStackB/Function1-x", message)
+        # The un-resolvable, raw-logical-ID-qualified form must not appear as the suggestion.
+        self.assertNotIn("NestedStackA/Function1'", message)
+
+        # And the suggested qualified path must actually resolve.
+        qualified_identifier = MagicMock()
+        qualified_identifier.stack_path = "NestedStackA"
+        qualified_identifier.resource_iac_id = "Function1-x"
+        result = get_resource_by_id([self.root_stack, nested_stack_a, nested_stack_b], qualified_identifier, False)
+        self.assertEqual(result, nested_stack_a.resources["Function1"])
+
 
 class TestGetResourceIDsByType(TestCase):
     def setUp(self) -> None:

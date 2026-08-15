@@ -896,35 +896,40 @@ def get_resource_by_id(
         `sam sync --resource-id`), so that specific case is now a clear, actionable error instead.
     """
     search_all_stacks = not identifier.stack_path and not explicit_nested
-    matches: List[Tuple[Stack, Dict[str, Any]]] = []
+    matches: List[Tuple[Stack, str, Dict[str, Any]]] = []
     for stack in stacks:
         if stack.stack_path == identifier.stack_path or search_all_stacks:
             found_resource = None
+            found_resource_id = None
             for logical_id, resource in stack.resources.items():
                 resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
                 if resource_id == identifier.resource_iac_id or (
                     not identifier.stack_path and logical_id == identifier.resource_iac_id
                 ):
                     found_resource = resource
+                    found_resource_id = resource_id
                     break
 
             if found_resource:
                 if not stack.stack_path:
                     # The root stack always takes priority over nested stacks.
                     return cast(Dict[str, Any], found_resource)
-                matches.append((stack, found_resource))
+                matches.append((stack, cast(str, found_resource_id), found_resource))
                 if not search_all_stacks:
                     break
 
     if len(matches) > 1:
-        colliding_paths = [get_full_path(stack.stack_path, identifier.resource_iac_id) for stack, _ in matches]
+        # Build the remediation paths from the *matched* (normalized) resource ID, not the raw
+        # identifier the user typed: for CDK/SamResourceId resources the two can differ, and a
+        # path built from the raw logical ID would never resolve on retry.
+        colliding_paths = [get_full_path(stack.stack_path, resource_id) for stack, resource_id, _ in matches]
         raise AmbiguousResourceIdentifier(
             f"Resource ID '{identifier.resource_iac_id}' is ambiguous: it matches resources in more than one "
             f"nested stack ({', '.join(colliding_paths)}). Qualify it with the full stack path, "
             f"e.g. '{colliding_paths[0]}'."
         )
 
-    return cast(Dict[str, Any], matches[0][1]) if matches else None
+    return cast(Dict[str, Any], matches[0][2]) if matches else None
 
 
 def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdentifier) -> Optional[str]:
@@ -1091,8 +1096,7 @@ def get_function_build_info(
         loadable = imageuri and check_path_valid_type(imageuri) and Path(imageuri).is_file()
         if not buildable and not loadable:
             LOG.debug(
-                "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
-                "metadata properties.",
+                "Skip Building %s function, as it is missing either Dockerfile or DockerContext metadata properties.",
                 full_path,
             )
             return FunctionBuildInfo.NonBuildableImage
