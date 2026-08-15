@@ -360,11 +360,18 @@ class LambdaRuntime:
             if container:
                 self._check_exit_state(container)
         finally:
-            try:
-                if container:
+            # Best-effort cleanup: a failure here should not replace an in-flight exception
+            # from _check_exit_state() above (e.g. ContainerFailureError on OOM) with a raw
+            # Docker/OS error, and each step must run independently of the other's success.
+            if container:
+                try:
                     self._container_manager.stop(container)
-            finally:
+                except Exception:
+                    LOG.warning("Failed to stop/remove container during cleanup", exc_info=True)
+            try:
                 self._clean_decompressed_paths()
+            except Exception:
+                LOG.warning("Failed to clean decompressed code directories during cleanup", exc_info=True)
 
     def _check_exit_state(self, container: Container):
         """

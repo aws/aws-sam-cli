@@ -2035,7 +2035,8 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
     def test_on_invoke_done_cleans_paths_even_when_container_manager_stop_raises(self):
         """Regression test: if _container_manager.stop() itself raises (e.g. docker.errors.APIError
         from Container.stop()/delete() for a reason other than "removal already in progress"),
-        _clean_decompressed_paths() must still run and not be skipped by the propagating exception.
+        _clean_decompressed_paths() must still run and not be skipped. Cleanup failures are
+        best-effort and must not propagate out of _on_invoke_done when there's no other error.
         """
         container = Mock()
 
@@ -2043,8 +2044,8 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
         self.runtime._clean_decompressed_paths = Mock()
 
-        with self.assertRaises(RuntimeError):
-            self.runtime._on_invoke_done(container)
+        # Should not raise: stop()'s failure is logged, not propagated.
+        self.runtime._on_invoke_done(container)
 
         self.manager_mock.stop.assert_called_once_with(container)
         self.runtime._clean_decompressed_paths.assert_called_once()
@@ -2052,7 +2053,9 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
     def test_on_invoke_done_cleans_paths_when_both_check_exit_state_and_stop_raise(self):
         """Regression test: when the container is OOM-killed (_check_exit_state raises
         ContainerFailureError) AND the subsequent stop() also raises (e.g. a Docker API error),
-        _clean_decompressed_paths() must still run.
+        _clean_decompressed_paths() must still run, and the original ContainerFailureError must
+        be what propagates -- not stop()'s cleanup-only error, which would otherwise replace the
+        user-facing OOM message with an opaque Docker API error.
         """
         from samcli.local.docker.exceptions import ContainerFailureError
 
@@ -2062,7 +2065,41 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
         self.runtime._clean_decompressed_paths = Mock()
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ContainerFailureError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_stop_still_runs_when_clean_decompressed_paths_raises(self):
+        """Regression test: if _clean_decompressed_paths() itself raises (e.g. shutil.rmtree
+        OSError), that failure is best-effort and must not propagate, and must not prevent
+        stop() from having already run.
+        """
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock()
+        self.runtime._clean_decompressed_paths = Mock(side_effect=OSError("could not remove temp dir"))
+
+        # Should not raise: _clean_decompressed_paths()'s failure is logged, not propagated.
+        self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_original_error_propagates_when_clean_decompressed_paths_also_raises(self):
+        """Regression test: when _check_exit_state raises ContainerFailureError AND
+        _clean_decompressed_paths() also raises, the original ContainerFailureError must be
+        what propagates, not the cleanup-only error.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.runtime._clean_decompressed_paths = Mock(side_effect=OSError("could not remove temp dir"))
+
+        with self.assertRaises(ContainerFailureError):
             self.runtime._on_invoke_done(container)
 
         self.manager_mock.stop.assert_called_once_with(container)
