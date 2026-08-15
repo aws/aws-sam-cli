@@ -356,10 +356,13 @@ class LambdaRuntime:
         container: Container
            The current running container
         """
-        if container:
-            self._check_exit_state(container)
-            self._container_manager.stop(container)
-        self._clean_decompressed_paths()
+        try:
+            if container:
+                self._check_exit_state(container)
+        finally:
+            if container:
+                self._container_manager.stop(container)
+            self._clean_decompressed_paths()
 
     def _check_exit_state(self, container: Container):
         """

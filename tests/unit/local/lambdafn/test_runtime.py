@@ -2014,6 +2014,24 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         # Verify cleanup was called
         self.runtime._clean_decompressed_paths.assert_called_once()
 
+    def test_on_invoke_done_stops_container_and_cleans_paths_even_when_check_exit_state_raises(self):
+        """Regression test: when the container was OOM-killed, _check_exit_state raises
+        ContainerFailureError. The container must still be stopped and the decompressed
+        code path must still be cleaned up, not skipped by the propagating exception.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with self.assertRaises(ContainerFailureError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
 
 class TestWarmLambdaRuntime_create_container_branch(TestCase):
     """Test WarmLambdaRuntime.create method container branch - lines 470->473"""
