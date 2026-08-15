@@ -39,6 +39,20 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
+# pytest 9.1 deprecated class-scoped fixtures declared as instance methods, because
+# attributes they set on `self` are invisible to tests (each test gets a fresh instance
+# while the fixture runs once per class). The fixtures below assign to the class instead,
+# so the hazard the warning exists to catch does not apply. Marked on the class rather
+# than in pytest.ini so the rest of the suite still fails on it, and rather than with a
+# module-level `pytestmark` because subclasses live in other modules (test_sync_adl.py,
+# test_sync_build_in_source.py) and a module mark would not reach them -- a class mark is
+# inherited.
+#
+# Without this, `filterwarnings = error` turns the warning into a setup failure on the
+# first test of the class, and pytest then raises its own internal AssertionError
+# ("assert not self._finalizers") for the remaining tests (pytest-dev/pytest#14775).
+# Remove once these fixtures are converted -- required before pytest 10 drops this.
+@pytest.mark.filterwarnings("ignore:.*Class-scoped fixture defined as instance method.*")
 class TestSyncCodeBase(SyncIntegBase):
     stack_name = ""
     template_path = ""

@@ -73,3 +73,34 @@ class TestWalkModules(TestCase):
         hidden_imports.walk_modules(my_test_module, modules)
         self.assertNotIn("my_non_existant_module", modules)
         del sys.modules["my_test_module"]
+
+    def test_walk_modules_order_is_deterministic_and_sorted(self):
+        """SAM_CLI_HIDDEN_IMPORTS relies on walk_modules being order-stable.
+
+        It decides what pyinstaller bundles, so an unstable order makes builds
+        non-reproducible; it is also the parameter source for the tests above, and
+        pytest-xdist aborts the run if workers collect in different orders. That used
+        to happen because the modules were collected into a set.
+
+        Collecting into a list is deterministic, and sorted because
+        `pkgutil.walk_packages` walks children in sorted order
+        (`_iter_file_finder_modules` calls `os.listdir(...).sort()`). That sort is
+        per-importer rather than a language guarantee, so assert it here instead of
+        re-sorting at import time.
+        """
+        my_test_module = __import__("my_test_module")
+        first = ["my_test_module"]
+        hidden_imports.walk_modules(my_test_module, first)
+        second = ["my_test_module"]
+        hidden_imports.walk_modules(my_test_module, second)
+
+        self.assertEqual(first, second, "walk_modules returned a different order for the same tree")
+        self.assertEqual(first, sorted(first), f"walk_modules order is not sorted: {first}")
+        del sys.modules["my_test_module"]
+
+    def test_hidden_imports_discovered_modules_are_sorted(self):
+        """The real samcli walk, not the fixture tree -- this is what gets bundled."""
+        discovered = hidden_imports.samcli_modules
+
+        self.assertEqual(discovered, sorted(discovered))
+        self.assertEqual(len(discovered), len(set(discovered)), "duplicate modules collected")

@@ -22,13 +22,13 @@ samcli_modules = ["samcli"]
 samcli = __import__("samcli")
 walk_modules(samcli, samcli_modules)
 
-# sorted(), not the raw collection order: this list is what pyinstaller bundles, and an
-# unstable order made builds non-reproducible and made the parameterized test over it
-# collect differently in each pytest-xdist worker ("Different tests were collected
-# between workers"). pkgutil.walk_packages happens to yield sorted names today, but that
-# is an implementation detail of its os.listdir().sort(), so sort explicitly rather than
-# depend on it. Order is not meaningful to pyinstaller, so this is free.
-SAM_CLI_HIDDEN_IMPORTS = sorted(samcli_modules) + [
+# Collected in discovery order. This used to be list(set(...)), whose order varied per
+# process because string hashing is randomized -- that made pyinstaller's bundle list
+# unstable between builds, and made the parameterized test over it collect differently in
+# each pytest-xdist worker ("Different tests were collected between workers"). Walking
+# into a list is deterministic on its own, so no sort is needed here; the ordering is
+# pinned by test_walk_modules_order_is_deterministic_and_sorted.
+SAM_CLI_HIDDEN_IMPORTS = samcli_modules + [
     "cookiecutter.extensions",
     "text_unidecode",
     "samtranslator",
