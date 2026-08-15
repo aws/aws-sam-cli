@@ -47,6 +47,12 @@ class ResourceNotFound(UserException):
     """
 
 
+class AmbiguousResourceIdentifier(UserException):
+    """
+    A bare resource logical ID (without a stack path) matched resources in more than one stack
+    """
+
+
 class InvalidLayerVersionArn(UserException):
     """
     The LayerVersion Arn given in the template is Invalid

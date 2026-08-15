@@ -21,6 +21,7 @@ from samcli.lib.providers.provider import (
     FunctionBuildInfo,
 )
 from samcli.commands.local.cli_common.user_exceptions import (
+    AmbiguousResourceIdentifier,
     InvalidLayerVersionArn,
     UnsupportedIntrinsic,
     InvalidFunctionPropertyType,
@@ -650,6 +651,55 @@ class TestGetResourceByID(TestCase):
             [self.root_stack, self.nested_stack, self.nested_nested_stack], resource_identifier, False
         )
         self.assertEqual(result, None)
+
+
+class TestGetResourceByIDAmbiguousNestedStacks(TestCase):
+    """
+    Regression tests: a bare (unqualified) resource ID that matches resources in more than one
+    *nested* stack, with no root-stack resource to prefer, used to silently return whichever
+    stack happened to come first in the input list - which could point sync/invoke/logs operations
+    at the wrong deployed physical resource. This must now raise AmbiguousResourceIdentifier instead.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.root_stack = MagicMock()
+        self.root_stack.stack_path = ""
+        self.root_stack.resources = {}
+
+        self.nested_stack_a = MagicMock()
+        self.nested_stack_a.stack_path = "NestedStackA"
+        self.nested_stack_a.resources = {"Function1": {"Properties": "BodyA"}}
+
+        self.nested_stack_b = MagicMock()
+        self.nested_stack_b.stack_path = "NestedStackB"
+        self.nested_stack_b.resources = {"Function1": {"Properties": "BodyB"}}
+
+    def test_raises_when_two_sibling_nested_stacks_collide(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        with self.assertRaises(AmbiguousResourceIdentifier):
+            get_resource_by_id([self.root_stack, self.nested_stack_a, self.nested_stack_b], resource_identifier, False)
+
+    def test_does_not_raise_when_only_one_nested_stack_matches(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        result = get_resource_by_id([self.root_stack, self.nested_stack_a], resource_identifier, False)
+        self.assertEqual(result, self.nested_stack_a.resources["Function1"])
+
+    def test_does_not_raise_when_explicitly_qualified_with_stack_path(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = "NestedStackA"
+        resource_identifier.resource_iac_id = "Function1"
+
+        result = get_resource_by_id(
+            [self.root_stack, self.nested_stack_a, self.nested_stack_b], resource_identifier, False
+        )
+        self.assertEqual(result, self.nested_stack_a.resources["Function1"])
 
 
 class TestGetResourceIDsByType(TestCase):

@@ -11,9 +11,10 @@ from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
+    AmbiguousResourceIdentifier,
     InvalidFunctionPropertyType,
     InvalidLayerVersionArn,
     UnsupportedIntrinsic,
@@ -883,8 +884,19 @@ def get_resource_by_id(
     -------
     Dict
         Resource dict
+
+    Raises
+    ------
+    AmbiguousResourceIdentifier
+        If a bare logical ID (no stack path given) matches resources in more than one *nested*
+        stack, with no match in the root stack to prefer. The root stack, if it has a match, always
+        takes priority (this is relied upon by existing behavior); but silently picking the first
+        nested-stack match in stack-list order when there is no root match - and more than one
+        nested stack collides - could operate on the wrong physical resource (e.g.
+        `sam sync --resource-id`), so that specific case is now a clear, actionable error instead.
     """
     search_all_stacks = not identifier.stack_path and not explicit_nested
+    matches: List[Tuple[Stack, Dict[str, Any]]] = []
     for stack in stacks:
         if stack.stack_path == identifier.stack_path or search_all_stacks:
             found_resource = None
@@ -897,8 +909,22 @@ def get_resource_by_id(
                     break
 
             if found_resource:
-                return cast(Dict[str, Any], found_resource)
-    return None
+                if not stack.stack_path:
+                    # The root stack always takes priority over nested stacks.
+                    return cast(Dict[str, Any], found_resource)
+                matches.append((stack, found_resource))
+                if not search_all_stacks:
+                    break
+
+    if len(matches) > 1:
+        colliding_paths = [get_full_path(stack.stack_path, identifier.resource_iac_id) for stack, _ in matches]
+        raise AmbiguousResourceIdentifier(
+            f"Resource ID '{identifier.resource_iac_id}' is ambiguous: it matches resources in more than one "
+            f"nested stack ({', '.join(colliding_paths)}). Qualify it with the full stack path, "
+            f"e.g. '{colliding_paths[0]}'."
+        )
+
+    return cast(Dict[str, Any], matches[0][1]) if matches else None
 
 
 def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdentifier) -> Optional[str]:
