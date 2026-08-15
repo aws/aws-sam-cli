@@ -30,10 +30,8 @@ APIGW_REQUESTS_TO_WARM_UP = 20
 # attributes they set on `self` are invisible to tests (each test gets a fresh instance
 # while the fixture runs once per class). The fixtures below assign to the class instead,
 # so the hazard the warning exists to catch does not apply. Marked on the class rather
-# than in pytest.ini so the rest of the suite still fails on it, and rather than with a
-# module-level `pytestmark` because subclasses live in other modules (test_sync_adl.py,
-# test_sync_build_in_source.py) and a module mark would not reach them -- a class mark is
-# inherited.
+# than in pytest.ini so the rest of the suite still fails on this warning; the two
+# subclasses below inherit it.
 #
 # Without this, `filterwarnings = error` turns the warning into a setup failure on the
 # first test of the class, and pytest then raises its own internal AssertionError
