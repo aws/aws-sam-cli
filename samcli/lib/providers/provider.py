@@ -941,7 +941,16 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
     -------
     str
         return resource full path
+
+    Raises
+    ------
+    AmbiguousResourceIdentifier
+        If a bare logical ID (no stack path given) matches resources in more than one *nested*
+        stack, with no match in the root stack to prefer. Mirrors the precedence/ambiguity rule
+        enforced by get_resource_by_id, so the two entry points cannot disagree on what a bare ID
+        resolves to.
     """
+    matches: List[str] = []
     for stack in stacks:
         if identifier.stack_path and identifier.stack_path != stack.stack_path:
             continue
@@ -950,8 +959,19 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
             if resource_id == identifier.resource_iac_id or (
                 not identifier.stack_path and logical_id == identifier.resource_iac_id
             ):
-                return get_full_path(stack.stack_path, resource_id)
-    return None
+                if not stack.stack_path:
+                    # The root stack always takes priority over nested stacks.
+                    return get_full_path(stack.stack_path, resource_id)
+                matches.append(get_full_path(stack.stack_path, resource_id))
+                break
+
+    if len(matches) > 1:
+        raise AmbiguousResourceIdentifier(
+            f"Resource ID '{identifier.resource_iac_id}' is ambiguous: it matches resources in more than one "
+            f"nested stack ({', '.join(matches)}). Qualify it with the full stack path, e.g. '{matches[0]}'."
+        )
+
+    return matches[0] if matches else None
 
 
 def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:

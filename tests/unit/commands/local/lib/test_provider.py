@@ -913,6 +913,67 @@ class TestGetResourceFullPathByID(TestCase):
         self.assertEqual(expected_full_path, full_path)
 
 
+class TestGetResourceFullPathByIDAmbiguousNestedStacks(TestCase):
+    """
+    Regression tests mirroring TestGetResourceByIDAmbiguousNestedStacks: get_resource_full_path_by_id
+    must apply the same root-stack-priority and nested-stack-ambiguity rules as get_resource_by_id,
+    so the two entry points cannot disagree on what a bare resource ID resolves to.
+    """
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.root_stack = MagicMock()
+        self.root_stack.stack_path = ""
+        self.root_stack.resources = {}
+
+        self.nested_stack_a = MagicMock()
+        self.nested_stack_a.stack_path = "NestedStackA"
+        self.nested_stack_a.resources = {"Function1": {"Properties": "BodyA"}}
+
+        self.nested_stack_b = MagicMock()
+        self.nested_stack_b.stack_path = "NestedStackB"
+        self.nested_stack_b.resources = {"Function1": {"Properties": "BodyB"}}
+
+    def test_raises_when_two_sibling_nested_stacks_collide(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        with self.assertRaises(AmbiguousResourceIdentifier):
+            get_resource_full_path_by_id(
+                [self.root_stack, self.nested_stack_a, self.nested_stack_b], resource_identifier
+            )
+
+    def test_does_not_raise_when_only_one_nested_stack_matches(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        result = get_resource_full_path_by_id([self.root_stack, self.nested_stack_a], resource_identifier)
+        self.assertEqual(result, "NestedStackA/Function1")
+
+    def test_does_not_raise_when_explicitly_qualified_with_stack_path(self):
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = "NestedStackA"
+        resource_identifier.resource_iac_id = "Function1"
+
+        result = get_resource_full_path_by_id(
+            [self.root_stack, self.nested_stack_a, self.nested_stack_b], resource_identifier
+        )
+        self.assertEqual(result, "NestedStackA/Function1")
+
+    def test_root_stack_takes_priority_over_nested_match(self):
+        self.root_stack.resources = {"Function1": {"Properties": "RootBody"}}
+        resource_identifier = MagicMock()
+        resource_identifier.stack_path = ""
+        resource_identifier.resource_iac_id = "Function1"
+
+        result = get_resource_full_path_by_id(
+            [self.nested_stack_a, self.nested_stack_b, self.root_stack], resource_identifier
+        )
+        self.assertEqual(result, "Function1")
+
+
 class TestGetStack(TestCase):
     root_stack = Stack("", "Root", "template.yaml", None, {})
     child_stack = Stack("Root", "Child", "root_stack/template.yaml", None, {})
