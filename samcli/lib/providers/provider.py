@@ -954,6 +954,18 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
         stack, with no match in the root stack to prefer. Mirrors the precedence/ambiguity rule
         enforced by get_resource_by_id, so the two entry points cannot disagree on what a bare ID
         resolves to.
+
+        Note this function is also used outside `sam sync --resource-id` (package_context,
+        guided_context, image_repository_validation, all mapping a user-supplied image function
+        ID to an image repository URI): an ambiguous match there means the wrong function could
+        silently receive the wrong image repository, which is the same "operates on the wrong
+        physical resource" hazard this function exists to prevent for sync, so raising here is
+        intentional rather than sync-specific. This is a deliberately *stricter* policy than
+        `SamFunctionProvider.get()` (used by e.g. `sam local invoke`), which instead warns and
+        picks the alphabetically-first match; that entry point resolves a *running* local
+        function for interactive use, where a warning is recoverable, whereas the callers of this
+        function feed the result into a deploy/package/validation decision without a further
+        confirmation step.
     """
     matches: List[str] = []
     for stack in stacks:
