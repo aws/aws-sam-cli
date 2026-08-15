@@ -2106,6 +2106,35 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         self.runtime._clean_decompressed_paths.assert_called_once()
 
 
+class TestLambdaRuntime_get_code_dir_locking(TestCase):
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.lambda_image_mock)
+
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    @patch("samcli.local.lambdafn.runtime.os.path.isfile", return_value=True)
+    @patch("samcli.local.lambdafn.runtime.os.path.exists", return_value=True)
+    def test_appending_to_cleanup_list_holds_the_same_lock_cleanup_uses(self, exists_mock, isfile_mock, unzip_mock):
+        """Regression test: _clean_decompressed_paths() snapshots and clears
+        self._temp_uncompressed_paths_to_be_cleaned under self._lock so a concurrent cleanup
+        can't observe a torn/partial list. That's only meaningful if every producer of that list
+        holds the same lock while mutating it -- start-api/start-lambda run threaded, and a
+        request thread appending here without the lock could race with a concurrent cleanup's
+        snapshot: the entry could be silently lost, or (worse) removed by rmtree while the
+        request that just unzipped it is still about to use it.
+        """
+        unzip_mock.return_value = "/tmp/decompressed"
+        self.runtime._lock = MagicMock()
+
+        result = self.runtime._get_code_dir("code.zip")
+
+        self.assertEqual(result, "/tmp/decompressed")
+        self.runtime._lock.__enter__.assert_called_once()
+        self.runtime._lock.__exit__.assert_called_once()
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, ["/tmp/decompressed"])
+
+
 class TestLambdaRuntime_clean_decompressed_paths(TestCase):
     def setUp(self):
         self.manager_mock = Mock()
@@ -2122,13 +2151,14 @@ class TestLambdaRuntime_clean_decompressed_paths(TestCase):
         self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
 
     @patch("samcli.local.lambdafn.runtime.shutil")
-    def test_failure_removing_one_path_does_not_block_the_others_or_leave_the_list_stuck(self, shutil_mock):
+    def test_failure_removing_one_path_does_not_block_the_others(self, shutil_mock):
         """Regression test: previously, if shutil.rmtree() raised for one directory, the loop
         aborted immediately and self._temp_uncompressed_paths_to_be_cleaned was never reset
         (the reset only ran after the loop finished). Since this list is append-only, every
         entry -- including ones successfully removed before the failure, and any added by later
         invokes -- would be stuck in it forever, and every subsequent call would re-hit the same
-        first failing path and abort again, permanently leaking all newer temp dirs.
+        first failing path and abort again, permanently leaking all newer temp dirs. A single
+        failure must not prevent the other paths in the same batch from being attempted.
         """
         self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "bad_path", "path3"]
 
@@ -2142,8 +2172,32 @@ class TestLambdaRuntime_clean_decompressed_paths(TestCase):
         self.runtime._clean_decompressed_paths()
 
         self.assertEqual(shutil_mock.rmtree.call_args_list, [call("path1"), call("bad_path"), call("path3")])
-        # The list must be cleared regardless of the failure, so a later invoke's new temp dirs
-        # aren't queued up behind a permanently-stuck failing entry.
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_failed_path_is_requeued_for_retry_not_dropped_permanently(self, shutil_mock):
+        """Regression test: rmtree() failures at this call site are commonly transient (e.g. a
+        directory just bind-mounted into a just-stopped container isn't released yet), so a
+        failed path must be requeued for the next cleanup pass rather than dropped permanently
+        with only a log warning -- otherwise every one-off failure in a long-running
+        `start-api`/`start-lambda` process accumulates into a silent, permanent leak.
+        """
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "bad_path", "path3"]
+
+        def rmtree_side_effect(path):
+            if path == "bad_path":
+                raise OSError("boom")
+
+        shutil_mock.rmtree = Mock(side_effect=rmtree_side_effect)
+
+        self.runtime._clean_decompressed_paths()
+
+        # Only the failed path remains queued; successfully-removed paths are gone.
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, ["bad_path"])
+
+        # And it's actually retried (and this time succeeds) on the next cleanup pass.
+        shutil_mock.rmtree = Mock()
+        self.runtime._clean_decompressed_paths()
+        shutil_mock.rmtree.assert_called_once_with("bad_path")
         self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
 
 

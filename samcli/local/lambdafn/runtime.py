@@ -462,7 +462,12 @@ class LambdaRuntime:
 
         if code_path and os.path.isfile(code_path) and code_path.endswith(self.SUPPORTED_ARCHIVE_EXTENSIONS):
             decompressed_dir: str = _unzip_file(code_path, mount_symlinks=self._mount_symlinks)
-            self._temp_uncompressed_paths_to_be_cleaned += [decompressed_dir]
+            # Must hold the same lock _clean_decompressed_paths() uses to swap this list out --
+            # `start-api`/`start-lambda` run threaded, so a request thread appending here can
+            # race with a concurrent cleanup's snapshot-and-clear, either losing this entry
+            # entirely or (worse) having it removed by rmtree while still in use.
+            with self._lock:
+                self._temp_uncompressed_paths_to_be_cleaned.append(decompressed_dir)
             return decompressed_dir
 
         LOG.debug("Code %s is not a zip/jar file", code_path)
@@ -502,11 +507,19 @@ class LambdaRuntime:
         with self._lock:
             paths_to_clean = self._temp_uncompressed_paths_to_be_cleaned
             self._temp_uncompressed_paths_to_be_cleaned = []
+        failed_paths = []
         for decompressed_dir in paths_to_clean:
             try:
                 shutil.rmtree(decompressed_dir)
             except OSError:
                 LOG.warning("Failed to remove temporary directory %s", decompressed_dir, exc_info=True)
+                failed_paths.append(decompressed_dir)
+        if failed_paths:
+            # Removal failures at this call site are commonly transient (e.g. a directory that
+            # was just bind-mounted into a just-stopped container isn't released yet), so retry
+            # them on the next cleanup pass instead of dropping them permanently.
+            with self._lock:
+                self._temp_uncompressed_paths_to_be_cleaned += failed_paths
 
     def get_or_create_emulator_container(self):
         """
