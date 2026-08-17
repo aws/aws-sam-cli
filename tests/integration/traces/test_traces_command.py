@@ -31,7 +31,7 @@ SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 @skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
 # Deprecated in pytest 9.1. Fix before pytest 10.
-@pytest.mark.filterwarnings("ignore:.*Class-scoped fixture defined as instance method.*")
+@pytest.mark.filterwarnings("ignore::pytest.PytestRemovedIn10Warning")
 @pytest.mark.xdist_group(name="sam_traces")
 class TestTracesCommand(TracesIntegBase):
     stack_resources: List[Any] = []

@@ -40,7 +40,7 @@ LOG = logging.getLogger(__name__)
 
 
 # Deprecated in pytest 9.1. Fix before pytest 10.
-@pytest.mark.filterwarnings("ignore:.*Class-scoped fixture defined as instance method.*")
+@pytest.mark.filterwarnings("ignore::pytest.PytestRemovedIn10Warning")
 class TestSyncCodeBase(SyncIntegBase):
     stack_name = ""
     template_path = ""
