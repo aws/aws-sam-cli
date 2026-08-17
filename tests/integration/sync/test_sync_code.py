@@ -39,6 +39,8 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
+# Deprecated in pytest 9.1. Fix before pytest 10.
+@pytest.mark.filterwarnings("ignore:.*Class-scoped fixture defined as instance method.*")
 class TestSyncCodeBase(SyncIntegBase):
     stack_name = ""
     template_path = ""
