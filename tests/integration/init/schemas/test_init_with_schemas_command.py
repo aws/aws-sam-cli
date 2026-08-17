@@ -19,15 +19,7 @@ SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_
 
 EVENT_BRIDGE_USE_CASE = "Infrastructure event management"
 
-# Runtimes these tests init against. None of these tests is about a specific runtime
-# version -- they exercise the schemas flows (registry choice, pagination, profiles) --
-# so the version is incidental and repeated across tests. Naming it here means a runtime
-# leaving the manifest is a one-line change instead of a hunt through the file.
-# `python3.9` is already deprecated, so that is not hypothetical.
-#
-# These are the labels the *prompt* displays, which are not always the runtime id:
-# the go entry shows as "go (provided.al2)". `_get_runtime_position` matches them
-# against the manifest, and raises with the available list if one disappears.
+# Prompt labels, not runtime ids -- the go entry displays as "go (provided.al2)".
 JAVA_RUNTIME_FOR_INIT = "java17.al2023"
 PYTHON_RUNTIME_FOR_INIT = "python3.9"
 GO_RUNTIME_FOR_INIT = "go (provided.al2)"
@@ -54,31 +46,12 @@ def _get_registry_position(registry_name):
 
 @lru_cache(maxsize=1)
 def _get_manifest():
-    """Fetch the preprocessed app-templates manifest once per test process.
-
-    `get_preprocessed_manifest` is not cheap or deterministic per call:
-    `InitTemplates._get_manifest` does `requests.get(MANIFEST_URL, timeout=10)` and, on
-    timeout / connection error / non-200, falls back to cloning the templates repo or
-    reading the bundled local manifest. Every test below resolves both a use case and a
-    runtime, so without caching that is two fetches per test.
-
-    Caching also removes a correctness trap. Resolved independently, one call could
-    succeed against MANIFEST_URL while the other fell back to the local manifest --
-    giving a use-case position and a runtime position from two different snapshots,
-    which is the same answer misalignment these helpers exist to prevent.
-    """
+    """Fetch once per process: each call re-fetches MANIFEST_URL, and two calls can differ."""
     return InitTemplates().get_preprocessed_manifest(None, None, None, None)
 
 
 def _get_runtime_position(runtime_name):
-    """Return the 1-based menu position of a runtime in the `sam init` runtime prompt.
-
-    The prompt lists the runtimes the app-templates manifest offers for
-    EVENT_BRIDGE_USE_CASE, ordered by `get_sorted_runtimes`. That ordering shifts
-    whenever a runtime is added or removed, so hardcoding a position silently
-    starts selecting a different runtime -- every answer after it then lands on
-    the wrong question. Resolve it the same way `_get_registry_position` does.
-    """
+    """Resolve a runtime's 1-based position; the order shifts as runtimes are added/removed."""
     runtime_options = _get_manifest()[EVENT_BRIDGE_USE_CASE]
     runtimes = get_sorted_runtimes(list(runtime_options.keys()))
     for i, name in enumerate(runtimes, 1):
@@ -88,11 +61,7 @@ def _get_runtime_position(runtime_name):
 
 
 def _get_use_case_position(use_case_name):
-    """Return the 1-based menu position of a use case in the `sam init` template prompt.
-
-    Same rationale as `_get_runtime_position`: the manifest grows over time, so
-    the position of a use case is not stable.
-    """
+    """Resolve a use case's 1-based position; the manifest grows over time."""
     use_cases = list(_get_manifest().keys())
     for i, name in enumerate(use_cases, 1):
         if name == use_case_name:
@@ -393,12 +362,7 @@ Y
         # schemas aws region us-east-1
         # 1: select aws.events as registries
         # 1: select aws schema
-        #
-        # The registry answer stays hardcoded here, unlike the sibling tests. This test
-        # deliberately drives a non-default profile and an explicit us-east-1, so the
-        # registries the prompt lists are those of *that* profile/region --
-        # `_get_registry_position` resolves against the default `Session()`, so using it
-        # here would look up the wrong account and region.
+        # Registry hardcoded: non-default profile/region resolves a different account.
 
         user_input = f"""
 1
