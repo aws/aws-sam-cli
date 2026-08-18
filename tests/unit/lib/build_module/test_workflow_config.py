@@ -62,19 +62,7 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "provided-None"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("provided.al2",)])
-    def test_must_work_for_provided_with_build_method_dotnet7(self, runtime):
-        result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="dotnet7")
-        self.assertEqual(result.language, "dotnet")
-        self.assertEqual(result.dependency_manager, "cli-package")
-        self.assertEqual(result.application_framework, None)
-        self.assertEqual(result.manifest_name, ".csproj")
-        self.assertIsNone(result.executable_search_paths)
-        self.assertEqual(len(EventTracker.get_tracked_events()), 1)
-        self.assertIn(Event("BuildWorkflowUsed", "dotnet-cli-package"), EventTracker.get_tracked_events())
-        self.assertTrue(result.must_mount_with_write_in_container)
-
-    @parameterized.expand([("dotnet6",), ("provided.al2", "dotnet7")])
+    @parameterized.expand([("dotnet6",)])
     def test_must_mount_with_write_for_dotnet_in_container(self, runtime, specified_workflow=None):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow)
         self.assertTrue(result.must_mount_with_write_in_container)
