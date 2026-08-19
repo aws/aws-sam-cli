@@ -106,13 +106,19 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
 
 
 def check_credential(name, value):
-    """Raise if a credential is not credential-shaped, i.e. it was rewritten in transit.
+    """Windows only: raise if a credential is not credential-shaped, i.e. it was rewritten.
 
     Git Bash on Windows rewrites env values that look like POSIX paths, so a secret
     beginning with "/" arrives as "C:/Program Files/Git/...". Charset bounds are generous
     because AWS does not guarantee key formats; whitespace and ":" are what the rewrite
     introduces and neither can occur in a real credential.
+
+    Gated to Windows because that is the only platform where the rewrite happens. These
+    patterns encode a format AWS does not promise, so running them elsewhere would risk
+    failing every suite on every OS for no diagnostic gain.
     """
+    if platform.system() != "Windows":
+        return
     pattern = CREDENTIAL_PATTERNS.get(name.replace("CI_ACCESS_ROLE_", ""))
     if pattern and not pattern.match(value):
         raise RuntimeError(
