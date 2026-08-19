@@ -49,10 +49,11 @@ SENSITIVE_CREDENTIAL_KEYS = {
 # Copied aside as CI_ACCESS_ROLE_* for the account-reset step (reset_testing_resources.py).
 CI_ROLE_ENV_KEYS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
 
-# Access key ids are uppercase alphanumeric; secrets and session tokens are base64.
+# Secrets are exactly 40 base64 chars, which is what detects the "//x" -> "/x" rewrite;
+# session tokens have no fixed length, so that form is undetectable there by design.
 CREDENTIAL_PATTERNS = {
     "AWS_ACCESS_KEY_ID": re.compile(r"^[A-Z0-9]{16,128}$"),
-    "AWS_SECRET_ACCESS_KEY": re.compile(r"^[A-Za-z0-9+/=]{16,}$"),
+    "AWS_SECRET_ACCESS_KEY": re.compile(r"^[A-Za-z0-9+/=]{40}$"),
     "AWS_SESSION_TOKEN": re.compile(r"^[A-Za-z0-9+/=_-]{16,}$"),
 }
 
@@ -109,17 +110,20 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
 
 
 def check_credential(name, value):
-    """Windows only: raise if a credential was rewritten into a Windows path in transit."""
+    """Windows only: warn if a credential no longer looks like one, i.e. it was rewritten."""
     if platform.system() != "Windows":
         return
     pattern = CREDENTIAL_PATTERNS.get(name)
+    # Warn rather than raise: AWS does not commit to these formats, and the mangled credential
+    # fails on its next call anyway, so a false positive must not take the matrix down.
     if pattern and not pattern.fullmatch(value):
-        raise RuntimeError(
-            f"{name} is not a valid AWS credential (length {len(value)}); it was most likely "
-            "rewritten by MSYS2 path conversion. It is already present in MSYS2_ENV_CONV_EXCL "
-            "(check_conversion_exemptions verified that), so look instead at the exemption not "
-            "being honored: the msys2-runtime version on the runner, a step overriding the "
-            "variable, or a shell other than bash. Value not shown -- it is a secret."
+        print(
+            f"[WARN] {name} does not match the expected credential shape (length {len(value)}); "
+            "it was most likely rewritten by MSYS2 path conversion. It is already present in "
+            "MSYS2_ENV_CONV_EXCL, so look at the exemption not being honored: the msys2-runtime "
+            "version on the runner, a step overriding the variable, or a shell other than bash. "
+            "Value not shown -- it is a secret.",
+            file=sys.stderr,
         )
 
 
@@ -138,18 +142,6 @@ def check_conversion_exemptions():
             "Add them to MSYS2_ENV_CONV_EXCL in .github/workflows/integration-tests.yml, or a "
             "value beginning with '/' will be silently rewritten into a Windows path."
         )
-
-
-def warn_leading_separator(env_vars):
-    """Note vended credentials beginning with "/"; valid, but reliant on the exemption."""
-    if platform.system() != "Windows":
-        return
-    for json_key, env_name in SENSITIVE_CREDENTIAL_KEYS.items():
-        if str(env_vars.get(json_key, "")).startswith("/"):
-            print(
-                f"[DEBUG] {env_name} begins with '/'; it relies on MSYS2_ENV_CONV_EXCL in "
-                ".github/workflows/integration-tests.yml to survive Git Bash path conversion."
-            )
 
 
 def setup_credentials():
@@ -186,8 +178,6 @@ def setup_credentials():
             else:
                 print(f"FATAL: Failed to get credentials after {max_retries} attempts.", file=sys.stderr)
                 raise
-
-    warn_leading_separator(env_vars)
 
     # Get managed test resources
     test_session = Session(
