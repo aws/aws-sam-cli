@@ -162,6 +162,7 @@ class TestValidate(TestCase):
             ("ruby3.2",),
             ("dotnet6",),
             ("nodejs20.x"),
+            ("provided.al2",),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -215,7 +216,6 @@ class TestValidate(TestCase):
             "java8.al2",
             "nodejs22.x",
             "nodejs24.x",
-            "provided.al2",
             "provided.al2023",
             "python3.10",
             "python3.11",
