@@ -26,6 +26,8 @@ LOG = logging.getLogger(__name__)
 APIGW_REQUESTS_TO_WARM_UP = 20
 
 
+# Deprecated in pytest 9.1. Fix before pytest 10.
+@pytest.mark.filterwarnings("ignore::pytest.PytestRemovedIn10Warning")
 class LogsIntegTestCases(LogsIntegBase):
     test_template_folder = ""
 
