@@ -46,6 +46,9 @@ SENSITIVE_CREDENTIAL_KEYS = {
     "taskToken": "TASK_TOKEN",
 }
 
+# Copied aside as CI_ACCESS_ROLE_* for the account-reset step (reset_testing_resources.py).
+CI_ROLE_ENV_KEYS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
+
 # Access key ids are uppercase alphanumeric; secrets and session tokens are base64.
 CREDENTIAL_PATTERNS = {
     "AWS_ACCESS_KEY_ID": re.compile(r"^[A-Z0-9]{16,128}$"),
@@ -106,30 +109,17 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
 
 
 def check_credential(name, value):
-    """Windows only: raise if a credential is not credential-shaped, i.e. it was rewritten.
-
-    Git Bash on Windows rewrites env values that look like POSIX paths, so a secret
-    beginning with "/" arrives as "C:/Program Files/Git/...". Charset bounds are generous
-    because AWS does not guarantee key formats; whitespace and ":" are what the rewrite
-    introduces and neither can occur in a real credential.
-
-    Gated to Windows because that is the only platform where the rewrite happens. These
-    patterns encode a format AWS does not promise, so running them elsewhere would risk
-    failing every suite on every OS for no diagnostic gain.
-
-    Catches the "/x" -> "C:/Program Files/Git/x" form. The "//x" -> "/x" form cannot be
-    caught here: once exempted, a real secret may legitimately begin with "/", so the two
-    are identical by value and rejecting a leading separator would fail a valid credential.
-    warn_leading_separator() reports that case where the value is still pristine.
-    """
+    """Windows only: raise if a credential was rewritten into a Windows path in transit."""
     if platform.system() != "Windows":
         return
-    pattern = CREDENTIAL_PATTERNS.get(name.replace("CI_ACCESS_ROLE_", ""))
+    pattern = CREDENTIAL_PATTERNS.get(name)
     if pattern and not pattern.fullmatch(value):
         raise RuntimeError(
             f"{name} is not a valid AWS credential (length {len(value)}); it was most likely "
-            f"rewritten in transit. Ensure {name} is listed in MSYS2_ENV_CONV_EXCL in "
-            ".github/workflows/integration-tests.yml. Value not shown -- it is a secret."
+            "rewritten by MSYS2 path conversion. It is already present in MSYS2_ENV_CONV_EXCL "
+            "(check_conversion_exemptions verified that), so look instead at the exemption not "
+            "being honored: the msys2-runtime version on the runner, a step overriding the "
+            "variable, or a shell other than bash. Value not shown -- it is a secret."
         )
 
 
@@ -140,9 +130,7 @@ def check_conversion_exemptions():
     exempt = set(os.environ.get("MSYS2_ENV_CONV_EXCL", "").split(";"))
     if "*" in exempt:
         return
-    names = set(SENSITIVE_CREDENTIAL_KEYS.values()) | {
-        f"CI_ACCESS_ROLE_{k}" for k in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
-    }
+    names = set(SENSITIVE_CREDENTIAL_KEYS.values()) | {f"CI_ACCESS_ROLE_{k}" for k in CI_ROLE_ENV_KEYS}
     missing = sorted(names - exempt)
     if missing:
         raise RuntimeError(
@@ -153,12 +141,7 @@ def check_conversion_exemptions():
 
 
 def warn_leading_separator(env_vars):
-    """Flag vended credentials that begin with "/" while the value is still pristine.
-
-    Such a value is only safe because MSYS2_ENV_CONV_EXCL exempts it; if that exemption ever
-    stops working the failure is an opaque SignatureDoesNotMatch, so leave a breadcrumb here.
-    Not an error: this shape is valid and occurs for roughly 1 in 64 secrets.
-    """
+    """Note vended credentials beginning with "/"; valid, but reliant on the exemption."""
     if platform.system() != "Windows":
         return
     for json_key, env_name in SENSITIVE_CREDENTIAL_KEYS.items():
@@ -174,7 +157,7 @@ def setup_credentials():
     check_conversion_exemptions()
 
     # Save current CI role credentials for later reset
-    for env_key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+    for env_key in CI_ROLE_ENV_KEYS:
         value = os.environ.get(env_key, "")
         if value:
             mask_value(value)
@@ -204,6 +187,8 @@ def setup_credentials():
                 print(f"FATAL: Failed to get credentials after {max_retries} attempts.", file=sys.stderr)
                 raise
 
+    warn_leading_separator(env_vars)
+
     # Get managed test resources
     test_session = Session(
         aws_access_key_id=env_vars["accessKeyID"],
@@ -211,7 +196,6 @@ def setup_credentials():
         aws_session_token=env_vars["sessionToken"],
     )
     env_vars.update(get_managed_test_resource_outputs(test_session))
-    warn_leading_separator(env_vars)
 
     # Export sensitive credentials (masked)
     for json_key, env_name in SENSITIVE_CREDENTIAL_KEYS.items():

@@ -50,11 +50,6 @@ def get_testing_credentials(skip_role_deletion=False):
             read_timeout=LAMBDA_TIME_OUT + 60,
         ),
         region_name="us-west-2",
-        # Strip stray whitespace; the Windows corruption is MSYS2 path conversion, exempted
-        # via MSYS2_ENV_CONV_EXCL in integration-tests.yml.
-        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "").strip(),
-        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip(),
-        aws_session_token=os.environ.get("AWS_SESSION_TOKEN", "").strip() or None,
     )
 
     # Prepare payload if skip_role_deletion is True
