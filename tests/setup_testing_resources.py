@@ -116,11 +116,16 @@ def check_credential(name, value):
     Gated to Windows because that is the only platform where the rewrite happens. These
     patterns encode a format AWS does not promise, so running them elsewhere would risk
     failing every suite on every OS for no diagnostic gain.
+
+    Catches the "/x" -> "C:/Program Files/Git/x" form. The "//x" -> "/x" form cannot be
+    caught here: once exempted, a real secret may legitimately begin with "/", so the two
+    are identical by value and rejecting a leading separator would fail a valid credential.
+    warn_leading_separator() reports that case where the value is still pristine.
     """
     if platform.system() != "Windows":
         return
     pattern = CREDENTIAL_PATTERNS.get(name.replace("CI_ACCESS_ROLE_", ""))
-    if pattern and not pattern.match(value):
+    if pattern and not pattern.fullmatch(value):
         raise RuntimeError(
             f"{name} is not a valid AWS credential (length {len(value)}); it was most likely "
             f"rewritten in transit. Ensure {name} is listed in MSYS2_ENV_CONV_EXCL in "
@@ -145,6 +150,23 @@ def check_conversion_exemptions():
             "Add them to MSYS2_ENV_CONV_EXCL in .github/workflows/integration-tests.yml, or a "
             "value beginning with '/' will be silently rewritten into a Windows path."
         )
+
+
+def warn_leading_separator(env_vars):
+    """Flag vended credentials that begin with "/" while the value is still pristine.
+
+    Such a value is only safe because MSYS2_ENV_CONV_EXCL exempts it; if that exemption ever
+    stops working the failure is an opaque SignatureDoesNotMatch, so leave a breadcrumb here.
+    Not an error: this shape is valid and occurs for roughly 1 in 64 secrets.
+    """
+    if platform.system() != "Windows":
+        return
+    for json_key, env_name in SENSITIVE_CREDENTIAL_KEYS.items():
+        if str(env_vars.get(json_key, "")).startswith("/"):
+            print(
+                f"[DEBUG] {env_name} begins with '/'; it relies on MSYS2_ENV_CONV_EXCL in "
+                ".github/workflows/integration-tests.yml to survive Git Bash path conversion."
+            )
 
 
 def setup_credentials():
@@ -189,6 +211,7 @@ def setup_credentials():
         aws_session_token=env_vars["sessionToken"],
     )
     env_vars.update(get_managed_test_resource_outputs(test_session))
+    warn_leading_separator(env_vars)
 
     # Export sensitive credentials (masked)
     for json_key, env_name in SENSITIVE_CREDENTIAL_KEYS.items():
