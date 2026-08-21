@@ -45,6 +45,10 @@ env:
   PYTHONUTF8: 1
   CREDENTIAL_DISTRIBUTION_LAMBDA_ARN: ${{ secrets.CREDENTIAL_DISTRIBUTION_LAMBDA_ARN }}
   ACCOUNT_RESET_LAMBDA_ARN: ${{ secrets.ACCOUNT_RESET_LAMBDA_ARN }}
+  # Git Bash on Windows rewrites env values that look like POSIX paths, so a secret
+  # beginning with "/" arrives as "C:/Program Files/Git/..." and signing fails. Exempt only
+  # the credential-bearing names; other variables still need normal path conversion.
+  MSYS2_ENV_CONV_EXCL: "AWS_ACCESS_KEY_ID;AWS_SECRET_ACCESS_KEY;AWS_SESSION_TOKEN;TASK_TOKEN;CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;CI_ACCESS_ROLE_AWS_SESSION_TOKEN"
 
 jobs:
   integration-tests:
