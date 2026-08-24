@@ -73,7 +73,7 @@ pre-dev = [
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
-    "coverage==7.14.0",
+    "coverage==7.15.4",
     "pytest-cov==7.1.0",
     "mypy==2.1.0",
     "types-pywin32==312.0.0.20260609",
