@@ -11,6 +11,8 @@ Behavior:
 
 import json
 import os
+import platform
+import re
 import subprocess
 import sys
 import time
@@ -36,11 +38,23 @@ NO_CREDENTIAL_SUITES = {
     "local-start-lambda",
 }
 
+# New entries must also be added to MSYS2_ENV_CONV_EXCL in integration-tests.yml.
 SENSITIVE_CREDENTIAL_KEYS = {
     "accessKeyID": "AWS_ACCESS_KEY_ID",
     "secretAccessKey": "AWS_SECRET_ACCESS_KEY",
     "sessionToken": "AWS_SESSION_TOKEN",
     "taskToken": "TASK_TOKEN",
+}
+
+# Copied aside as CI_ACCESS_ROLE_* for the account-reset step (reset_testing_resources.py).
+CI_ROLE_ENV_KEYS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
+
+# Secrets are exactly 40 base64 chars, which is what detects the "//x" -> "/x" rewrite;
+# session tokens have no fixed length, so that form is undetectable there by design.
+CREDENTIAL_PATTERNS = {
+    "AWS_ACCESS_KEY_ID": re.compile(r"^[A-Z0-9]{16,128}$"),
+    "AWS_SECRET_ACCESS_KEY": re.compile(r"^[A-Za-z0-9+/=]{40}$"),
+    "AWS_SESSION_TOKEN": re.compile(r"^[A-Za-z0-9+/=_-]{16,}$"),
 }
 
 RESOURCE_KEYS = {
@@ -95,13 +109,51 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
                 sys.exit(1)
 
 
+def check_credential(name, value):
+    """Windows only: warn if a credential no longer looks like one, i.e. it was rewritten."""
+    if platform.system() != "Windows":
+        return
+    pattern = CREDENTIAL_PATTERNS.get(name)
+    # Warn rather than raise: AWS does not commit to these formats, and the mangled credential
+    # fails on its next call anyway, so a false positive must not take the matrix down.
+    if pattern and not pattern.fullmatch(value):
+        print(
+            f"[WARN] {name} does not match the expected credential shape (length {len(value)}); "
+            "it was most likely rewritten by MSYS2 path conversion. It is already present in "
+            "MSYS2_ENV_CONV_EXCL, so look at the exemption not being honored: the msys2-runtime "
+            "version on the runner, a step overriding the variable, or a shell other than bash. "
+            "Value not shown -- it is a secret.",
+            file=sys.stderr,
+        )
+
+
+def check_conversion_exemptions():
+    """Fail loudly if a credential variable is missing from MSYS2_ENV_CONV_EXCL."""
+    if platform.system() != "Windows":
+        return
+    exempt = set(os.environ.get("MSYS2_ENV_CONV_EXCL", "").split(";"))
+    if "*" in exempt:
+        return
+    names = set(SENSITIVE_CREDENTIAL_KEYS.values()) | {f"CI_ACCESS_ROLE_{k}" for k in CI_ROLE_ENV_KEYS}
+    missing = sorted(names - exempt)
+    if missing:
+        raise RuntimeError(
+            f"These credential variables are not exempt from MSYS2 path conversion: {missing}. "
+            "Add them to MSYS2_ENV_CONV_EXCL in .github/workflows/integration-tests.yml, or a "
+            "value beginning with '/' will be silently rewritten into a Windows path."
+        )
+
+
 def setup_credentials():
     """Fetch and export test credentials and resources."""
+    check_conversion_exemptions()
+
     # Save current CI role credentials for later reset
-    for env_key in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"):
+    for env_key in CI_ROLE_ENV_KEYS:
         value = os.environ.get(env_key, "")
         if value:
             mask_value(value)
+            check_credential(env_key, value)
             write_env(f"CI_ACCESS_ROLE_{env_key}", value)
 
     # Log system clock for debugging InvalidSignatureException on Windows

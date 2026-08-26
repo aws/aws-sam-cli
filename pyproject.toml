@@ -62,6 +62,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Rust build tooling for the Rust integration tests. Pinned here rather than in the
+# workflows so Dependabot keeps them current; kept out of `dev` since only Rust jobs need it.
+rust-tests = [
+    "cargo-lambda==1.9.2",
+    "ziglang==0.16.0",
+]
 pre-dev = [
     "ruff==0.15.13",
 ]

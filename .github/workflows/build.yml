@@ -106,7 +106,6 @@ jobs:
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
-      CARGO_LAMBDA_VERSION: 0.17.1
       CARGO_INCREMENTAL: 0 # disable incremental compilation
       CARGO_TERM_COLOR: always # enable colors in Cargo output
       CI: true
@@ -205,7 +204,6 @@ jobs:
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
-      CARGO_LAMBDA_VERSION: 0.17.1
     defaults:
       run:
         shell: bash
