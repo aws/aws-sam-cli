@@ -92,6 +92,14 @@ def _close_process_handles(process: Popen) -> None:
         pass
 
 
+def _kill_process_tree(process: Popen) -> None:
+    """Best-effort kill of a process and its children; never raises, so the caller's error survives."""
+    try:
+        kill_process(process)
+    except Exception as ex:
+        LOG.error(f"Failed to kill process tree after timeout: {ex}")
+
+
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 # Error message truncation constants for test output readability
@@ -159,7 +167,8 @@ def run_command(command_list, cwd=None, env=None, timeout=TIMEOUT) -> CommandRes
     except TimeoutExpired:
         LOG.error(f"Command: {command_list}, TIMED OUT")
         LOG.error(f"Return Code: {process_execute.returncode}")
-        process_execute.kill()
+        # Kill the tree, not just sam: orphaned grandchildren keep holding build locks and the output pipes.
+        _kill_process_tree(process_execute)
         raise
     finally:
         _close_process_handles(process_execute)
@@ -178,7 +187,8 @@ def run_command_with_input(command_list, stdin_input, timeout=TIMEOUT, cwd=None,
     except TimeoutExpired:
         LOG.error(f"Command: {command_list}, TIMED OUT")
         LOG.error(f"Return Code: {process_execute.returncode}")
-        process_execute.kill()
+        # Kill the tree, not just sam: orphaned grandchildren keep holding build locks and the output pipes.
+        _kill_process_tree(process_execute)
         raise
     finally:
         _close_process_handles(process_execute)

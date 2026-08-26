@@ -72,8 +72,9 @@ class DurableIntegBase(TestCase):
             command.extend(["--error-data", kwargs["error_data"]])
         return command
 
-    def wait_for_callback_id(self, output_lines: List[str], timeout=30):
+    def wait_for_callback_id(self, output_lines: List[str], timeout=120):
         """Extract callback ID from output lines, waiting up to timeout seconds."""
+        # Upper bound only: the loop returns as soon as the line lands, and Windows startup can exceed 30s.
         end_time = time.time() + timeout
         while time.time() < end_time:
             for line in output_lines:
