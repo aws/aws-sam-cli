@@ -98,6 +98,11 @@ def _kill_process_tree(process: Popen) -> None:
         kill_process(process)
     except Exception as ex:
         LOG.error(f"Failed to kill process tree after timeout: {ex}")
+        # kill_process can bail before reaching the root, so still kill the direct child ourselves.
+        try:
+            process.kill()
+        except Exception as kill_ex:
+            LOG.error(f"Failed to kill process {process.pid}: {kill_ex}")
 
 
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
