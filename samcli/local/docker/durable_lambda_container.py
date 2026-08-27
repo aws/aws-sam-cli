@@ -5,12 +5,17 @@ Represents Durable Lambda runtime containers.
 import logging
 import threading
 import time
+from typing import Optional
 
 import click
 from flask import has_request_context
 
 from samcli.lib.utils.durable_callback_handler import DurableCallbackHandler
-from samcli.lib.utils.durable_formatters import format_execution_details, format_next_commands_after_invoke
+from samcli.lib.utils.durable_formatters import (
+    format_execution_details,
+    format_execution_started,
+    format_next_commands_after_invoke,
+)
 from samcli.local.docker.lambda_container import LambdaContainer
 
 LOG = logging.getLogger(__name__)
@@ -101,6 +106,8 @@ class DurableLambdaContainer(LambdaContainer):
         LOG.debug("Received execution ARN: %s", execution_arn)
         headers = {"X-Amz-Durable-Execution-Arn": execution_arn}
 
+        self._show_execution_started(execution_arn)
+
         if invocation_type == "Event":
             # For async invocations, start background thread and return immediately
             # Container cleanup will happen in the background thread
@@ -121,6 +128,23 @@ class DurableLambdaContainer(LambdaContainer):
             self._show_completion_commands(execution_arn, execution_details)
 
         return headers
+
+    def _show_execution_started(self, execution_arn: Optional[str]) -> None:
+        """
+        Display the execution ARN as soon as the execution has been started, together with the
+        commands that can be used to inspect it while it is still running.
+
+        The ARN is the only identifier the `sam local execution` commands accept, so waiting until
+        the execution completes to show it leaves long running, suspended, or interrupted executions
+        undiscoverable without --debug.
+
+        Note: This only runs through sam local invoke. start-lambda and start-api return the ARN to
+              the caller in the X-Amz-Durable-Execution-Arn response header instead.
+        """
+        if not self._is_cli_context() or not execution_arn:
+            return
+
+        click.secho(format_execution_started(execution_arn), fg="yellow")
 
     def _show_completion_commands(self, execution_arn: str, execution_details: dict):
         """

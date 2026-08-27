@@ -78,6 +78,7 @@ class TestDurableLambdaContainer(TestCase):
     )
     @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
     @patch("samcli.local.docker.durable_lambda_container.click.secho")
+    @patch("samcli.local.docker.durable_lambda_container.format_execution_started")
     @patch("samcli.local.docker.durable_lambda_container.format_next_commands_after_invoke")
     @patch("samcli.local.docker.durable_lambda_container.format_execution_details")
     @patch("samcli.local.docker.durable_lambda_container.has_request_context")
@@ -91,6 +92,7 @@ class TestDurableLambdaContainer(TestCase):
         mock_has_request_context,
         mock_format_execution_details,
         mock_format_next_commands,
+        mock_format_execution_started,
         mock_secho,
         mock_callback_handler_class,
     ):
@@ -98,6 +100,7 @@ class TestDurableLambdaContainer(TestCase):
         mock_has_request_context.return_value = has_flask_request_context
         mock_format_execution_details.return_value = "Execution details"
         mock_format_next_commands.return_value = "Next commands"
+        mock_format_execution_started.return_value = "Execution started"
 
         # Mock callback handler to return no pending callbacks
         mock_callback_handler = Mock()
@@ -166,7 +169,8 @@ class TestDurableLambdaContainer(TestCase):
             # HTTP context - should write to stdout
             mock_stdout.write_str.assert_called_once_with('{"message": "success"}')
             mock_stdout.flush.assert_called_once()
-            # Should not show completion commands
+            # Should neither announce the execution nor show completion commands
+            mock_format_execution_started.assert_not_called()
             mock_format_execution_details.assert_not_called()
             mock_format_next_commands.assert_not_called()
             mock_secho.assert_not_called()
@@ -174,13 +178,20 @@ class TestDurableLambdaContainer(TestCase):
             # CLI context - should not write to stdout
             mock_stdout.write_str.assert_not_called()
             mock_stdout.flush.assert_not_called()
+            # Should announce the execution ARN as soon as the execution starts
+            mock_format_execution_started.assert_called_once_with(mock_execution_arn)
             # Should show completion commands
             mock_format_execution_details.assert_called_once_with(
                 mock_execution_arn, mock_get_durable_execution_succeeded_response
             )
             mock_format_next_commands.assert_called_once_with(mock_execution_arn)
-            expected_message = "Execution details\nNext commands"
-            mock_secho.assert_called_once_with(expected_message, fg="yellow")
+            self.assertEqual(
+                mock_secho.call_args_list,
+                [
+                    mock.call("Execution started", fg="yellow"),
+                    mock.call("Execution details\nNext commands", fg="yellow"),
+                ],
+            )
 
         # Verify headers are returned
         self.assertEqual(headers["X-Amz-Durable-Execution-Arn"], mock_execution_arn)
@@ -267,17 +278,104 @@ class TestDurableLambdaContainer(TestCase):
             mock_callback_handler.prompt_callback_response.assert_not_called()
             mock_thread_class.assert_not_called()
 
+    @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
+    @patch("samcli.local.docker.durable_lambda_container.click.secho")
+    @patch("samcli.local.docker.durable_lambda_container.has_request_context")
+    @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.start")
+    def test_execution_arn_is_shown_before_polling_starts(
+        self, mock_start, mock_has_request_context, mock_secho, mock_callback_handler_class
+    ):
+        """Test the execution ARN is shown before waiting on the execution, not only once it completes"""
+        mock_has_request_context.return_value = False  # CLI context
+
+        mock_callback_handler = Mock()
+        mock_callback_handler.check_for_pending_callbacks.return_value = None
+        mock_callback_handler_class.return_value = mock_callback_handler
+
+        mock_execution_arn = "mock-durable-execution-arn"
+        mock_emulator = Mock()
+        mock_emulator._is_external_emulator = Mock(return_value=False)
+        mock_emulator.start_durable_execution = Mock(return_value={"ExecutionArn": mock_execution_arn})
+
+        secho_calls_when_first_polled = []
+
+        def _record_and_complete(_arn):
+            secho_calls_when_first_polled.append(mock_secho.call_count)
+            return {"Status": "SUCCEEDED", "Result": "{}"}
+
+        mock_emulator.lambda_client.get_durable_execution = Mock(side_effect=_record_and_complete)
+
+        container = self._create_container(mock_emulator)
+        container.start_logs_thread_if_not_alive = Mock()
+        container.get_port = Mock(return_value=8080)
+        container._wait_for_socket_connection = Mock()
+
+        container.wait_for_result(
+            full_path="test-function",
+            event={"test": "event"},
+            stdout=Mock(),
+            stderr=Mock(),
+            durable_execution_name="mock-durable-execution-name",
+        )
+
+        # The ARN was already printed by the time the execution was first polled
+        self.assertGreaterEqual(secho_calls_when_first_polled[0], 1)
+        self.assertIn(mock_execution_arn, mock_secho.call_args_list[0][0][0])
+
+    @parameterized.expand(
+        [
+            (False, "mock-durable-execution-arn", True),  # CLI context with an ARN - announce it
+            (True, "mock-durable-execution-arn", False),  # HTTP context - the caller gets the ARN in a header
+            (False, None, False),  # no ARN returned by the emulator - nothing to announce
+        ]
+    )
+    @patch("samcli.local.docker.durable_lambda_container.click.secho")
+    @patch("samcli.local.docker.durable_lambda_container.format_execution_started")
+    @patch("samcli.local.docker.durable_lambda_container.has_request_context")
+    def test_show_execution_started(
+        self,
+        has_flask_request_context,
+        execution_arn,
+        should_announce,
+        mock_has_request_context,
+        mock_format_execution_started,
+        mock_secho,
+    ):
+        """Test _show_execution_started only prints in CLI context and only when there is an ARN"""
+        mock_has_request_context.return_value = has_flask_request_context
+        mock_format_execution_started.return_value = "Execution started"
+
+        container = self._create_container()
+        container._show_execution_started(execution_arn)
+
+        if should_announce:
+            mock_format_execution_started.assert_called_once_with(execution_arn)
+            mock_secho.assert_called_once_with("Execution started", fg="yellow")
+        else:
+            mock_format_execution_started.assert_not_called()
+            mock_secho.assert_not_called()
+
     @parameterized.expand(
         [
             (False, "http://host.docker.internal:8080"),  # internal emulator
             (True, "http://localhost:8080"),  # external emulator
         ]
     )
+    # secho is patched to keep the started banner out of the test output. This test runs outside a
+    # flask request context, so it counts as CLI context and the banner is printed, even though a
+    # real Event invocation only ever arrives through start-lambda, where it is gated off.
+    @patch("samcli.local.docker.durable_lambda_container.click.secho")
     @patch("samcli.local.docker.durable_lambda_container.DurableCallbackHandler")
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.start")
     @patch("samcli.local.docker.durable_lambda_container.threading.Thread")
     def test_async_wait_for_result(
-        self, is_external_emulator, expected_emulator_endpoint, mock_thread, mock_start, mock_callback_handler_class
+        self,
+        is_external_emulator,
+        expected_emulator_endpoint,
+        mock_thread,
+        mock_start,
+        mock_callback_handler_class,
+        mock_secho,
     ):
         """Test wait_for_result with async invocation returns immediately and polls in background"""
         # Mock callback handler to return no pending callbacks

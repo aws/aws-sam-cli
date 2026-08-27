@@ -4,7 +4,7 @@ Shared formatting utilities for SAM CLI durable functions.
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from samcli.commands._utils.options import generate_next_command_recommendation
 
@@ -346,14 +346,39 @@ def _create_table(rows: List[Dict[str, Union[str, int]]], has_errors: bool = Fal
     return "\n".join(lines)
 
 
+def _execution_commands(execution_arn: str, actions: Sequence[str]) -> List[Tuple[str, str]]:
+    """Build the (description, command) pairs for the given `sam local execution` subcommands."""
+    descriptions = {
+        "get": "Get execution details",
+        "history": "View execution history",
+        "stop": "Stop the execution",
+    }
+    return [(descriptions[action], f"sam local execution {action} {execution_arn}") for action in actions]
+
+
+def format_execution_started(execution_arn: str) -> str:
+    """Format the message shown as soon as a durable execution has been started.
+
+    The execution ARN is the only handle the durable execution commands accept, so it needs to be
+    available while the execution is still running, not just once it reaches a terminal state.
+    """
+    commands = "\n".join(
+        f"[*] {description}: {command}"
+        for description, command in _execution_commands(execution_arn, ("get", "history", "stop"))
+    )
+    return f"""
+Durable execution started
+=========================
+ARN: {execution_arn}
+
+While this execution is running, you can inspect it from another terminal:
+{commands}
+"""
+
+
 def format_next_commands_after_invoke(execution_arn: str) -> str:
     """Format next command suggestions."""
-    return generate_next_command_recommendation(
-        [
-            ("Get execution details", f"sam local execution get {execution_arn}"),
-            ("View execution history", f"sam local execution history {execution_arn}"),
-        ]
-    )
+    return generate_next_command_recommendation(_execution_commands(execution_arn, ("get", "history")))
 
 
 def format_callback_success_message(callback_id: str, result: Optional[str] = None) -> str:
