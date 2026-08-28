@@ -6,6 +6,7 @@ values of the context and how to generate a project from the given template and 
 import logging
 from typing import Dict, List, Optional
 
+from cookiecutter import hooks as cookiecutter_hooks
 from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
@@ -20,6 +21,7 @@ from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.plugin import Plugin
 from samcli.lib.cookiecutter.processor import Processor
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
+from samcli.lib.utils.hook_script import patched_hook_runner
 
 LOG = logging.getLogger(__name__)
 
@@ -167,13 +169,14 @@ class Template:
 
         try:
             LOG.debug("Baking a new template with cookiecutter with all parameters")
-            cookiecutter(
-                template=self._location,
-                output_dir=output_dir,
-                no_input=True,
-                extra_context=context,
-                overwrite_if_exists=True,
-            )
+            with patched_hook_runner(cookiecutter_hooks):
+                cookiecutter(
+                    template=self._location,
+                    output_dir=output_dir,
+                    no_input=True,
+                    extra_context=context,
+                    overwrite_if_exists=True,
+                )
         except RepositoryNotFound:
             # cookiecutter.json is not found in the template. Let's just clone it directly without
             # using cookiecutter and call it done.

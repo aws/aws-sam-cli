@@ -16,7 +16,7 @@ from contextlib import contextmanager
 from types import ModuleType
 from typing import Iterator, Optional
 
-from samcli.lib.utils.subprocess_utils import is_pyinstaller_bundle
+from samcli.lib.utils.subprocess_utils import is_pyinstaller_bundle, isolate_library_paths_for_subprocess
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +38,9 @@ def run_hook_script_if_requested() -> None:
         return
 
     LOG.debug("Running template hook script %s through this executable", arguments[0])
+    # The bootloader re-points library paths into the bundle for this process, and the CLI callback
+    # that normally undoes that is never reached here. Hooks routinely shell out to git, npm and pip.
+    isolate_library_paths_for_subprocess()
     runpy.run_path(arguments[0], run_name="__main__")
     sys.exit(0)
 

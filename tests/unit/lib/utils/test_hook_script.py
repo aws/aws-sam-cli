@@ -134,8 +134,24 @@ class TestRunHookScriptIfRequested(TestCase):
                     run_hook_script_if_requested()
             self.assertNotIn(HOOK_SCRIPT_ENV_VAR, os.environ)
 
+    def test_library_paths_isolated_before_the_hook_runs(self):
+        # The bootloader re-points library paths into the bundle for this process, and the CLI
+        # callback that normally undoes it never runs on this path.
+        order = []
+        with patch(
+            "samcli.lib.utils.hook_script.isolate_library_paths_for_subprocess",
+            side_effect=lambda: order.append("isolate"),
+        ):
+            with patch("samcli.lib.utils.hook_script.runpy.run_path", side_effect=lambda *a, **k: order.append("run")):
+                with patch.dict(os.environ, {HOOK_SCRIPT_ENV_VAR: "1"}):
+                    with patch.object(sys, "argv", ["sam", "/tmp/hook.py"]):
+                        with self.assertRaises(SystemExit):
+                            run_hook_script_if_requested()
+        self.assertEqual(order, ["isolate", "run"])
+
+    @patch("samcli.lib.utils.hook_script.isolate_library_paths_for_subprocess")
     @patch("samcli.lib.utils.hook_script.runpy.run_path")
-    def test_no_op_without_a_script_argument(self, patched_run_path):
+    def test_no_op_without_a_script_argument(self, patched_run_path, patched_isolate):
         with patch.dict(os.environ, {HOOK_SCRIPT_ENV_VAR: "1"}):
             with patch.object(sys, "argv", ["sam"]):
                 run_hook_script_if_requested()
