@@ -684,7 +684,7 @@ INCOMPATIBLE_PARAM_MESSAGE = """Error: You must not provide both the --{0} and -
 You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
 \t--name, --location, or
 \t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
+\t--name, --runtime, --dependency-manager, --app-template
 """
 
 
