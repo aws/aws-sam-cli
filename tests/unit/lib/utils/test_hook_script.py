@@ -109,6 +109,13 @@ class TestFindSystemInterpreter(TestCase):
     def test_skips_candidate_that_cannot_be_executed(self, patched_which, patched_run):
         self.assertIsNone(find_system_interpreter())
 
+    @patch("samcli.lib.utils.hook_script.subprocess.run", return_value=Mock(returncode=0))
+    @patch("samcli.lib.utils.hook_script.shutil.which")
+    def test_finds_windows_launcher_when_nothing_else_is_on_path(self, patched_which, patched_run):
+        # A default python.org install on Windows puts only py.exe on PATH.
+        patched_which.side_effect = lambda name: r"C:\Windows\py.exe" if name == "py" else None
+        self.assertEqual(find_system_interpreter(), r"C:\Windows\py.exe")
+
 
 class TestRunHookScriptIfRequested(TestCase):
     @patch("samcli.lib.utils.hook_script.runpy.run_path")
@@ -133,6 +140,18 @@ class TestRunHookScriptIfRequested(TestCase):
                 with self.assertRaises(SystemExit):
                     run_hook_script_if_requested()
             self.assertNotIn(HOOK_SCRIPT_ENV_VAR, os.environ)
+
+    @patch("samcli.lib.utils.hook_script.isolate_library_paths_for_subprocess")
+    def test_hook_sees_only_its_own_path_in_argv(self, patched_isolate):
+        # A real interpreter gives the hook argv == [script]; our extra argument must not leak.
+        seen = []
+        with patch("samcli.lib.utils.hook_script.runpy.run_path", side_effect=lambda *a, **k: seen.append(sys.argv)):
+            with patch.dict(os.environ, {HOOK_SCRIPT_ENV_VAR: "1"}):
+                with patch.object(sys, "argv", ["/usr/local/bin/sam", "/tmp/hook.py"]):
+                    with self.assertRaises(SystemExit):
+                        run_hook_script_if_requested()
+                    self.assertEqual(sys.argv, ["/usr/local/bin/sam", "/tmp/hook.py"])
+        self.assertEqual(seen, [["/tmp/hook.py"]])
 
     def test_library_paths_isolated_before_the_hook_runs(self):
         # The bootloader re-points library paths into the bundle for this process, and the CLI

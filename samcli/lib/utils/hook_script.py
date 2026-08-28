@@ -24,8 +24,10 @@ LOG = logging.getLogger(__name__)
 HOOK_SCRIPT_ENV_VAR = "SAM_CLI_RUN_HOOK_SCRIPT"
 
 # A bundle ships no interpreter of its own, so a system one is preferred: it gives hooks the same
-# environment they get from a pip install, rather than this bundle's Python and dependencies.
-_INTERPRETER_CANDIDATES = ("python3", "python")
+# environment they get from a pip install, rather than this bundle's Python and dependencies. The
+# order matches _get_python_command_name in the terraform prepare hook, and includes the Windows
+# launcher because a default python.org install puts only py.exe on PATH.
+_INTERPRETER_CANDIDATES = ("python3", "py3", "python", "py")
 _PROBE_TIMEOUT = 10
 
 
@@ -41,7 +43,10 @@ def run_hook_script_if_requested() -> None:
     # The bootloader re-points library paths into the bundle for this process, and the CLI callback
     # that normally undoes that is never reached here. Hooks routinely shell out to git, npm and pip.
     isolate_library_paths_for_subprocess()
-    runpy.run_path(arguments[0], run_name="__main__")
+    # A hook launched by a real interpreter sees only its own path in argv; run_path fixes argv[0]
+    # but would leave our second argument behind, so give the hook the argv it expects.
+    with _replaced_attribute(sys, "argv", [arguments[0]]):
+        runpy.run_path(arguments[0], run_name="__main__")
     sys.exit(0)
 
 
