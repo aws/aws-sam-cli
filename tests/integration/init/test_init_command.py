@@ -994,7 +994,9 @@ class TestInitWithCheckoutOption(TestCase):
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "test-checkout-project").exists())
             self.assertFalse(Path(temp, "test-checkout-project", "cookiecutter.json").exists())
-            self.assertFalse(Path(temp, "test-checkout-project", ".env").exists()) #This branch does not have .env files, so they should not exist.
+            self.assertFalse(
+                Path(temp, "test-checkout-project", ".env").exists()
+            )  # This branch does not have .env files, so they should not exist.
 
     @pytest.mark.tier2
     def test_init_command_checkout_with_non_existent_branch(self):
@@ -1052,7 +1054,7 @@ class TestInitWithCheckoutOption(TestCase):
 
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "test-checkout-project").exists())
-        
+
     @pytest.mark.tier2
     def test_init_command_checkout_with_incompatible_params(self):
         stderr = None
