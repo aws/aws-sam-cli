@@ -58,9 +58,7 @@ class TestGenerateNonCookieCutterProject(TestCase):
 
             generate_non_cookiecutter_project(abbreviated_location, self.output_dir, checkout=checkout_ref)
 
-            clone_mock.assert_called_with(
-                repo_url=location, checkout=checkout_ref, no_input=True, clone_to_dir=ANY
-            )
+            clone_mock.assert_called_with(repo_url=location, checkout=checkout_ref, no_input=True, clone_to_dir=ANY)
 
             osutils_mock.copytree.assert_called_with("cloned_dir", self.output_dir, ignore=ANY)
 

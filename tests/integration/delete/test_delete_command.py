@@ -554,6 +554,43 @@ class TestDelete(DeleteIntegBase):
     #    - Create a stack using guided deploy of type image
     #    - Select no for deleting ECR repository and this will retain the non-empty repository
 
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_delete_express_mode(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process = run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name,
+            region=self._session.region_name,
+            no_prompts=True,
+            express=True,
+        )
+
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.assertIn("Deleted with CloudFormation Express mode", delete_process_execute.stdout.decode())
+        self._validate_stack_deleted(stack_name=stack_name)
+
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""
         method_name = method_name.split(".")[-1]

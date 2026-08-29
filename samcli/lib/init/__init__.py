@@ -78,12 +78,21 @@ def generate_project(
     checkout: Optional[str]
         Branch, tag or commit to checkout after git clone
 
+    Returns
+    -------
+    Optional[str]
+        Path to the generated project directory. This is not always ``output_dir/name``: a
+        cookiecutter template names its own project directory, so for a ``location`` template
+        without a ``name`` the project is nested one level below ``output_dir``. None when the
+        directory could not be determined.
+
     Raises
     ------
     GenerateProjectFailedError
         If the process of baking a project fails
     """
     template = None
+    project_directory = None
 
     if runtime and not is_custom_runtime(runtime) and package_type == ZIP:
         for mapping in list(itertools.chain(*(RUNTIME_DEP_TEMPLATE_MAPPING.values()))):
@@ -114,7 +123,9 @@ def generate_project(
 
     try:
         LOG.debug("Baking a new template with cookiecutter with all parameters")
-        cookiecutter(**params)
+        # cookiecutter returns the directory it created, which is the only reliable way to know
+        # where the project landed when the template chooses its own project directory name.
+        project_directory = cookiecutter(**params)
         # Fixes gradlew line ending issue caused by Windows git
         # gradlew is a shell script which should not have CR LF line endings
         # Putting the conversion after cookiecutter as cookiecutter processing will also change the line endings
@@ -129,13 +140,9 @@ def generate_project(
             "it as a cookiecutter template"
         )
         project_output_dir = str(Path(output_dir, name)) if name else output_dir
-        if checkout:
-            generate_non_cookiecutter_project(
-                location=params["template"], output_dir=project_output_dir, checkout=checkout
-            )
-        else:
-            generate_non_cookiecutter_project(location=params["template"], output_dir=project_output_dir)
-
+        project_directory = generate_non_cookiecutter_project(
+            location=params["template"], output_dir=project_output_dir, checkout=checkout
+        )
     except UnknownRepoType as e:
         raise InvalidLocationError(template=params["template"]) from e
     except (CookiecutterException, OSError) as e:
@@ -150,6 +157,8 @@ def generate_project(
     _enable_structured_logging(structured_logging, output_dir, name)
 
     _create_default_samconfig(package_type, output_dir, name)
+
+    return project_directory
 
 
 def _apply_tracing(tracing: bool, output_dir: str, name: str) -> None:

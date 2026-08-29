@@ -21,8 +21,16 @@ def do_generate(
     structured_logging,
     checkout=None,
 ):
+    """
+    Generate a project and return the directory it was created in.
+
+    Returns
+    -------
+    Optional[str]
+        Path to the generated project directory, or None if it could not be determined
+    """
     try:
-        generate_project(
+        return generate_project(
             location,
             package_type,
             runtime,

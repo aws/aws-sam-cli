@@ -2,6 +2,8 @@ import json
 import os.path
 from unittest import skipIf
 
+import pytest
+
 from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_LAMBDA_LAYERVERSION
 from tests.integration.sync.sync_integ_base import SyncIntegBase
@@ -16,6 +18,8 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
     folder = "code"
     dependency_layer = True
 
+    # Not rerun-safe: it edits test data in place and the class-scoped infra sync is not redone.
+    @pytest.mark.flaky(reruns=0)
     def test_sync_code_function_without_dependencies(self):
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)

@@ -109,6 +109,18 @@ class TestCfUtils(TestCase):
         with self.assertRaises(Exception):
             self.cf_utils.delete_stack("test", ["retain_logical_id"])
 
+    def test_cf_utils_delete_stack_without_deployment_config(self):
+        self.cf_utils._client.delete_stack = MagicMock()
+        self.cf_utils.delete_stack("test")
+        self.cf_utils._client.delete_stack.assert_called_once_with(StackName="test", RetainResources=[])
+
+    def test_cf_utils_delete_stack_with_express_deployment_config(self):
+        self.cf_utils._client.delete_stack = MagicMock()
+        self.cf_utils.delete_stack("test", deployment_config={"Mode": "EXPRESS"})
+        self.cf_utils._client.delete_stack.assert_called_once_with(
+            StackName="test", RetainResources=[], DeploymentConfig={"Mode": "EXPRESS"}
+        )
+
     def test_cf_utils_wait_for_delete_check_waiter_config(self):
         exception = WaiterError(
             name="wait_for_delete",

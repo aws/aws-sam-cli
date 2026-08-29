@@ -38,6 +38,36 @@ class TestDeleteCliCommand(TestCase):
             no_prompts=self.no_prompts,
             s3_bucket=self.s3_bucket,
             s3_prefix=self.s3_prefix,
+            express=False,
+        )
+
+        context_mock.run.assert_called_with()
+        self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.delete.command.click")
+    @patch("samcli.commands.delete.delete_context.DeleteContext")
+    def test_express_flag_is_passed_to_context(self, mock_delete_context, mock_delete_click):
+        context_mock = Mock()
+        mock_delete_context.return_value.__enter__.return_value = context_mock
+
+        do_cli(
+            stack_name=self.stack_name,
+            region=self.region,
+            profile=self.profile,
+            no_prompts=self.no_prompts,
+            s3_bucket=self.s3_bucket,
+            s3_prefix=self.s3_prefix,
+            express=True,
+        )
+
+        mock_delete_context.assert_called_with(
+            stack_name=self.stack_name,
+            region=self.region,
+            profile=self.profile,
+            no_prompts=self.no_prompts,
+            s3_bucket=self.s3_bucket,
+            s3_prefix=self.s3_prefix,
+            express=True,
         )
 
         context_mock.run.assert_called_with()

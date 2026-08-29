@@ -46,6 +46,7 @@ CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PAR
 ADDITIONAL_OPTIONS: List[str] = [
     "language_extensions",
     "no_progressbar",
+    "output",
     "signing_profiles",
     "template_file",
     "use_json",
