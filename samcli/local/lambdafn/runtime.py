@@ -361,6 +361,152 @@ class LambdaRuntime:
             self._container_manager.stop(container)
         self._clean_decompressed_paths()
 
+    @capture_parameter("runtimeMetric", "runtimes", 1, parameter_nested_identifier="runtime", as_list=True)
+    def invoke_streaming(
+        self,
+        function_config,
+        event,
+        tenant_id=None,
+        debug_context=None,
+        stderr: Optional[StreamWriter] = None,
+        container_host=None,
+        container_host_interface=None,
+        extra_hosts=None,
+        container_dns=None,
+    ):
+        """
+        Streaming counterpart of :meth:`invoke`.
+
+        Starts (or reuses, for warm runtimes) the container, arms a
+        streaming-specific timeout timer, then issues a single POST to
+        the RIE invoke endpoint with ``stream=True`` and returns a
+        tuple ``(response, cleanup)``:
+
+        * ``response`` is the raw :class:`requests.Response` whose body
+          can be iterated chunk-by-chunk to forward Server-Sent Events
+          or any other progressively-emitted Lambda response to a
+          browser.
+        * ``cleanup`` is a callable the caller MUST invoke once it has
+          finished reading the body. It cancels the timeout timer,
+          releases the container's concurrency slot, closes the
+          response, and (for non-warm runtimes) stops the container.
+          It is safe to call multiple times.
+
+        Why a dedicated timer instead of :meth:`_configure_interrupt`?
+        ``_configure_interrupt`` is overridden by :class:`WarmLambdaRuntime`
+        so that *its* ``timer_handler`` only logs — stopping the
+        container would defeat warm-container reuse for the buffered
+        path. But this method returns its :class:`requests.Response`
+        before the function finishes streaming, so for the streaming
+        path we need to actively unblock the consumer's
+        ``iter_content`` when the timeout elapses. The dedicated timer
+        here closes the upstream response (and only stops the container
+        for cold runtimes), which makes the consumer's body iterator
+        EOF and lets the standard ``cleanup`` chain run, while leaving
+        the warm-container's container reusable for the next request.
+        """
+        if isinstance(function_config, type(None)):  # pragma: no cover - defensive
+            raise ValueError("function_config is required")
+
+        container = None
+        timer = None
+        timer_fired = threading.Event()
+        try:
+            container = self.create(
+                function_config, debug_context, container_host, container_host_interface, extra_hosts, container_dns
+            )
+            container = self.run(
+                container,
+                function_config,
+                debug_context,
+                container_host,
+                container_host_interface,
+                extra_hosts,
+                container_dns,
+            )
+
+            if stderr is not None:
+                container.start_logs_thread_if_not_alive(stderr)
+
+            response, release_slot = container.wait_for_streaming_response(event, tenant_id=tenant_id)
+        except Exception:
+            # Failed before we got a response: cancel any timer we
+            # armed and fall back to the standard cleanup path (stop
+            # the cold container, leave warm ones alone).
+            if container is not None:
+                try:
+                    self._on_invoke_done(container)
+                except Exception:  # pragma: no cover - best effort
+                    LOG.debug("Cleanup after failed streaming invoke errored", exc_info=True)
+            raise
+
+        is_warm_runtime = isinstance(self, WarmLambdaRuntime)
+
+        def _on_timeout():
+            timer_fired.set()
+            LOG.info(
+                "Streaming function '%s' timed out after %d seconds",
+                function_config.full_path,
+                function_config.timeout,
+            )
+            # Closing the response forces the consumer's ``iter_content``
+            # to raise / EOF, which fires the body generator's ``finally``
+            # and triggers ``cleanup()`` below — that releases the slot
+            # and (for cold runtimes) stops the container.
+            try:
+                response.close()
+            except Exception:  # pragma: no cover - best effort
+                LOG.debug("Closing response in timeout handler errored", exc_info=True)
+            # For cold runtimes we also stop the container right away
+            # so the function process is killed instead of being left
+            # to keep writing to a now-closed connection. We intentionally
+            # do NOT stop warm containers here: WarmLambdaRuntime caches
+            # them across requests, and stopping would leak a stale entry
+            # in ``_containers`` that the next invoke would try to reuse.
+            # RIE's own internal timeout still applies in the warm case.
+            if not is_warm_runtime:
+                try:
+                    self._container_manager.stop(container)
+                except Exception:  # pragma: no cover - best effort
+                    LOG.debug("Stopping container in timeout handler errored", exc_info=True)
+
+        # Only arm the timer when not debugging — the buffered path
+        # skips its timer in debug mode for the same reason.
+        if function_config.timeout and not debug_context:
+            timer = threading.Timer(function_config.timeout, _on_timeout)
+            timer.daemon = True
+            timer.start()
+
+        cleanup_done = threading.Event()
+
+        def cleanup():
+            if cleanup_done.is_set():
+                return
+            cleanup_done.set()
+            # Cancel the timeout timer first. If it already fired this
+            # is a no-op; if the stream finished normally this prevents
+            # the timer from firing late and closing an already-closed
+            # response.
+            if timer is not None:
+                try:
+                    timer.cancel()
+                except Exception:  # pragma: no cover - best effort
+                    LOG.debug("Cancelling timeout timer errored", exc_info=True)
+            try:
+                response.close()
+            except Exception:  # pragma: no cover - best effort
+                LOG.debug("Closing streaming RIE response errored", exc_info=True)
+            try:
+                release_slot()
+            except Exception:  # pragma: no cover - best effort
+                LOG.debug("Releasing streaming slot errored", exc_info=True)
+            try:
+                self._on_invoke_done(container)
+            except Exception:  # pragma: no cover - best effort
+                LOG.debug("Post-streaming container cleanup errored", exc_info=True)
+
+        return response, cleanup
+
     def _check_exit_state(self, container: Container):
         """
         Check and validate the exit state of the invoke container.
