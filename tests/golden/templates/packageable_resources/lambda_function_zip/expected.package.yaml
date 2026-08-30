@@ -1,0 +1,15 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  HelloFunction:
+    Metadata:
+      SamResourceId: HelloFunction
+    Properties:
+      Code:
+        S3Bucket: golden-bucket
+        S3Key: 22186578b8d9d69e7157330653df80d6801d2e1bc7af9c2a7622640de339ae63
+      FunctionName: hello
+      Handler: app.handler
+      MemorySize: 128
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Runtime: python3.11
+    Type: AWS::Lambda::Function
