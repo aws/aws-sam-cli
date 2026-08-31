@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 from pathlib import Path
+from cookiecutter import hooks as cookiecutter_hooks
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound
 from parameterized import parameterized
 
@@ -21,6 +22,32 @@ class TestInit(TestCase):
         self.no_input = True
         self.extra_context = {"project_name": "testing project", "runtime": self.runtime}
         self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0]["init_location"]
+
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.patched_hook_runner")
+    def test_hook_runner_is_active_while_cookiecutter_runs(
+        self, hook_runner_mock, default_samconfig_mock, cookiecutter_patch
+    ):
+        # Without this the wrapper could be dropped and every other test would still pass, because
+        # patched_hook_runner is a no-op unless running from a bundle.
+        events = []
+        hook_runner_mock.return_value.__enter__.side_effect = lambda: events.append("enter")
+        hook_runner_mock.return_value.__exit__.side_effect = lambda *args: events.append("exit")
+        cookiecutter_patch.side_effect = lambda **kwargs: events.append("cookiecutter")
+
+        generate_project(
+            location=self.location,
+            runtime=self.runtime,
+            package_type=ZIP,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=self.no_input,
+        )
+
+        hook_runner_mock.assert_called_once_with(cookiecutter_hooks)
+        self.assertEqual(events, ["enter", "cookiecutter", "exit"])
 
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init._create_default_samconfig")

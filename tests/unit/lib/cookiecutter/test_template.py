@@ -8,6 +8,7 @@ from samcli.lib.cookiecutter.exceptions import (
     PreprocessingError,
     PostprocessingError,
 )
+from cookiecutter import hooks as cookiecutter_hooks
 from cookiecutter.exceptions import RepositoryNotFound, UnknownRepoType
 
 
@@ -101,6 +102,22 @@ class TestTemplate(TestCase):
             t.run_interactive_flows()
             mock_interactive_flow.run.assert_called_once_with({})
             mock_plugin.interactive_flow.run.assert_called_once_with(self._ANY_INTERACTIVE_FLOW_CONTEXT)
+
+    @patch("samcli.lib.cookiecutter.template.patched_hook_runner")
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    def test_hook_runner_is_active_while_cookiecutter_runs(self, mock_cookiecutter, mock_hook_runner):
+        # Without this the wrapper could be dropped and every other test would still pass, because
+        # patched_hook_runner is a no-op unless running from a bundle. This is the sam pipeline init
+        # path, which was missed on the first pass at this fix.
+        events = []
+        mock_hook_runner.return_value.__enter__.side_effect = lambda: events.append("enter")
+        mock_hook_runner.return_value.__exit__.side_effect = lambda *args: events.append("exit")
+        mock_cookiecutter.side_effect = lambda **kwargs: events.append("cookiecutter")
+
+        Template(location=self._ANY_LOCATION).generate_project(context={}, output_dir=Mock())
+
+        mock_hook_runner.assert_called_once_with(cookiecutter_hooks)
+        self.assertEqual(events, ["enter", "cookiecutter", "exit"])
 
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.lib.cookiecutter.interactive_flow")
