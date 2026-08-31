@@ -102,6 +102,20 @@ class TestTemplate(TestCase):
             mock_interactive_flow.run.assert_called_once_with({})
             mock_plugin.interactive_flow.run.assert_called_once_with(self._ANY_INTERACTIVE_FLOW_CONTEXT)
 
+    @patch("samcli.lib.cookiecutter.template.guarded_template_hooks")
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    def test_template_hooks_are_guarded_while_cookiecutter_runs(self, mock_cookiecutter, mock_guard):
+        # The guard is a no-op unless running from a bundle, so without this every other test
+        # would still pass if the wrapper were dropped.
+        events = []
+        mock_guard.return_value.__enter__.side_effect = lambda: events.append("enter")
+        mock_guard.return_value.__exit__.side_effect = lambda *args: events.append("exit")
+        mock_cookiecutter.side_effect = lambda **kwargs: events.append("cookiecutter")
+
+        Template(location=self._ANY_LOCATION).generate_project(context={}, output_dir=Mock())
+
+        self.assertEqual(events, ["enter", "cookiecutter", "exit"])
+
     @patch("samcli.lib.cookiecutter.template.cookiecutter")
     @patch("samcli.lib.cookiecutter.interactive_flow")
     @patch("samcli.lib.cookiecutter.processor")

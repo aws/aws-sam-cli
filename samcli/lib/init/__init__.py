@@ -23,6 +23,7 @@ from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XR
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.template_hooks import guarded_template_hooks
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 
 LOG = logging.getLogger(__name__)
@@ -119,7 +120,8 @@ def generate_project(
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         # cookiecutter returns the directory it created, which is the only reliable way to know
         # where the project landed when the template chooses its own project directory name.
-        project_directory = cookiecutter(**params)
+        with guarded_template_hooks():
+            project_directory = cookiecutter(**params)
         # Fixes gradlew line ending issue caused by Windows git
         # gradlew is a shell script which should not have CR LF line endings
         # Putting the conversion after cookiecutter as cookiecutter processing will also change the line endings

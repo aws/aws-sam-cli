@@ -24,6 +24,31 @@ class TestInit(TestCase):
 
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init._create_default_samconfig")
+    @patch("samcli.lib.init.guarded_template_hooks")
+    def test_template_hooks_are_guarded_while_cookiecutter_runs(
+        self, guard_mock, default_samconfig_mock, cookiecutter_patch
+    ):
+        # The guard is a no-op unless running from a bundle, so without this every other test
+        # would still pass if the wrapper were dropped.
+        events = []
+        guard_mock.return_value.__enter__.side_effect = lambda: events.append("enter")
+        guard_mock.return_value.__exit__.side_effect = lambda *args: events.append("exit")
+        cookiecutter_patch.side_effect = lambda **kwargs: events.append("cookiecutter")
+
+        generate_project(
+            location=self.location,
+            runtime=self.runtime,
+            package_type=ZIP,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            no_input=self.no_input,
+        )
+
+        self.assertEqual(events, ["enter", "cookiecutter", "exit"])
+
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init._create_default_samconfig")
     def test_init_successful(self, default_samconfig_mock, cookiecutter_patch):
         # GIVEN generate_project successfully created a project
         # WHEN a project name has been passed
