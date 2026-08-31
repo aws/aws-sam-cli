@@ -116,6 +116,8 @@ class TestBasicInitCommand(TestCase):
 
             self.assertNotIn(COMMIT_ERROR, stderr)
 
+    # The packaged macOS and Linux SAM CLI has no interpreter for Python hooks and rejects them.
+    @skipIf(not os.environ.get("SAM_CLI_DEV"), "Template hooks only run where sam is not a bundle")
     def test_init_command_output_json_with_template_hook_output(self):
         """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable.
 
