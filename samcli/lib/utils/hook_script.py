@@ -23,11 +23,14 @@ LOG = logging.getLogger(__name__)
 # Set on the hook subprocess so a re-launched bundle runs the script instead of parsing a command name.
 HOOK_SCRIPT_ENV_VAR = "SAM_CLI_RUN_HOOK_SCRIPT"
 
-# A bundle ships no interpreter of its own, so a system one is preferred: it gives hooks the same
-# environment they get from a pip install, rather than this bundle's Python and dependencies. The
-# order matches _get_python_command_name in the terraform prepare hook, and includes the Windows
-# launcher because a default python.org install puts only py.exe on PATH.
+# A bundle ships no interpreter of its own. A system one is preferred for isolation, so that SAM's
+# bundled dependencies do not become an implicit contract for template authors -- not for fidelity
+# with a pip install, where hooks can in fact import SAM's dependencies. The order matches
+# _get_python_command_name in the terraform prepare hook, and includes the Windows launcher because
+# a default python.org install puts only py.exe on PATH.
 _INTERPRETER_CANDIDATES = ("python3", "py3", "python", "py")
+# Matches requires-python, so a hook never sees an older Python than a pip install would give it.
+_MINIMUM_PYTHON_VERSION = (3, 10)
 _PROBE_TIMEOUT = 10
 
 
@@ -57,10 +60,11 @@ def find_system_interpreter() -> Optional[str]:
         if not path or os.path.realpath(path) == os.path.realpath(sys.executable):
             continue
         # Executed rather than trusted because Windows ships a "python" App Execution Alias that
-        # resolves on PATH without being an interpreter.
+        # resolves on PATH without being an interpreter, and because /usr/bin/python3 is 3.6 on
+        # older distributions, where a hook using newer syntax would fail with a SyntaxError.
         try:
             completed = subprocess.run(
-                [path, "-c", "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)"],
+                [path, "-c", f"import sys; sys.exit(0 if sys.version_info >= {_MINIMUM_PYTHON_VERSION} else 1)"],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 timeout=_PROBE_TIMEOUT,

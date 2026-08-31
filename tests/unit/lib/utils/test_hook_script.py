@@ -1,5 +1,6 @@
 import inspect
 import os
+import subprocess
 import sys
 from types import SimpleNamespace
 from unittest import TestCase
@@ -8,6 +9,7 @@ from unittest.mock import Mock, patch
 from cookiecutter import hooks as cookiecutter_hooks
 
 from samcli.lib.utils.hook_script import (
+    _MINIMUM_PYTHON_VERSION,
     HOOK_SCRIPT_ENV_VAR,
     find_system_interpreter,
     patched_hook_runner,
@@ -108,6 +110,21 @@ class TestFindSystemInterpreter(TestCase):
     @patch("samcli.lib.utils.hook_script.shutil.which", return_value="/fake/python3")
     def test_skips_candidate_that_cannot_be_executed(self, patched_which, patched_run):
         self.assertIsNone(find_system_interpreter())
+
+    def test_probe_enforces_the_requires_python_floor(self):
+        # /usr/bin/python3 is 3.6 on older distributions, where a hook using newer syntax would hit
+        # a SyntaxError that a pip-installed sam would never produce.
+        with patch("samcli.lib.utils.hook_script.shutil.which", return_value="/fake/python3"):
+            with patch("samcli.lib.utils.hook_script.subprocess.run", return_value=Mock(returncode=0)) as patched_run:
+                find_system_interpreter()
+                snippet = patched_run.call_args[0][0][2]
+
+        # Outside the patch, since patching the module attribute also patches subprocess.run here.
+        self.assertIn(str(_MINIMUM_PYTHON_VERSION), snippet)
+        # Run it for real, so the floor is verified rather than only spelled out.
+        self.assertEqual(subprocess.run([sys.executable, "-c", snippet], check=False).returncode, 0)
+        unreachable = snippet.replace(str(_MINIMUM_PYTHON_VERSION), "(99, 0)")
+        self.assertEqual(subprocess.run([sys.executable, "-c", unreachable], check=False).returncode, 1)
 
     @patch("samcli.lib.utils.hook_script.subprocess.run", return_value=Mock(returncode=0))
     @patch("samcli.lib.utils.hook_script.shutil.which")
