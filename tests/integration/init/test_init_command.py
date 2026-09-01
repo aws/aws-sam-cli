@@ -7,6 +7,7 @@ from click.testing import CliRunner
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.init import cli as init_cmd
+from samcli.commands.init.command import NON_INTERACTIVE_PARAM_COMBINATIONS, REQUIRED_PARAMS_HINT
 from unittest import TestCase, skipIf
 
 from parameterized import parameterized
@@ -674,20 +675,30 @@ class TestBasicInitCommand(TestCase):
         self.assertEqual(result.process.returncode, 0)
 
 
-MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
-Must provide one of the following required parameter combinations:
-\t--name, --location
-\t--name, --package-type, --base-image
-\t--name, --runtime, --dependency-manager, --app-template
-You can also re-run without the --no-interactive flag to be prompted for required values.
-"""
+# The accepted combinations are re-rendered from the command so that changing them cannot leave
+# these expectations behind, while the wording around them stays written out here to be asserted.
+def _render_combinations(separator: str) -> str:
+    return (
+        separator.join(
+            "\t" + ", ".join(f"--{param.replace('_', '-')}" for param in combination)
+            for combination in NON_INTERACTIVE_PARAM_COMBINATIONS
+        )
+        + "\n"
+    )
 
-INCOMPATIBLE_PARAM_MESSAGE = """Error: You must not provide both the --{0} and --{1} parameters.
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-\t--name, --location, or
-\t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
-"""
+
+MISSING_REQUIRED_PARAM_MESSAGE = (
+    "Error: Missing required parameters, with --no-interactive set.\n"
+    "Must provide one of the following required parameter combinations:\n"
+    + _render_combinations("\n")
+    + REQUIRED_PARAMS_HINT
+)
+
+INCOMPATIBLE_PARAM_MESSAGE = (
+    "Error: You must not provide both the --{0} and --{1} parameters.\n"
+    "You can run 'sam init' without any options for an interactive initialization flow, "
+    "or you can provide one of the following required parameter combinations:\n" + _render_combinations(", or\n")
+)
 
 
 @pytest.mark.xdist_group(name="sam_init")
