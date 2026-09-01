@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest.mock import patch, Mock, MagicMock
 from samcli.commands.exceptions import UserException
 from samcli.lib.cookiecutter.template import Template
+from samcli.lib.utils.template_hooks import UnsupportedTemplateHookError
 from samcli.lib.cookiecutter.exceptions import (
     GenerateProjectFailedError,
     InvalidLocationError,
@@ -101,6 +102,17 @@ class TestTemplate(TestCase):
             t.run_interactive_flows()
             mock_interactive_flow.run.assert_called_once_with({})
             mock_plugin.interactive_flow.run.assert_called_once_with(self._ANY_INTERACTIVE_FLOW_CONTEXT)
+
+    @patch("samcli.lib.cookiecutter.template.cookiecutter")
+    def test_unsupported_hook_is_surfaced_as_a_user_error(self, mock_cookiecutter):
+        # Otherwise the catch-all below turns an expected, actionable refusal into
+        # GenerateProjectFailedError, which is not a UserException and so is reported to the user as
+        # an unhandled exception with a "file a bug" link.
+        mock_cookiecutter.side_effect = UnsupportedTemplateHookError("remove the hook")
+        with self.assertRaises(UserException) as context:
+            Template(location=self._ANY_LOCATION).generate_project(context={}, output_dir=Mock())
+        self.assertEqual(str(context.exception), "remove the hook")
+        self.assertEqual(context.exception.wrapped_from, "UnsupportedTemplateHookError")
 
     @patch("samcli.lib.cookiecutter.template.guarded_template_hooks")
     @patch("samcli.lib.cookiecutter.template.cookiecutter")

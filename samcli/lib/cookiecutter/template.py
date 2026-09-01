@@ -20,7 +20,7 @@ from samcli.lib.cookiecutter.interactive_flow import InteractiveFlow
 from samcli.lib.cookiecutter.plugin import Plugin
 from samcli.lib.cookiecutter.processor import Processor
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
-from samcli.lib.utils.template_hooks import guarded_template_hooks
+from samcli.lib.utils.template_hooks import UnsupportedTemplateHookError, guarded_template_hooks
 
 LOG = logging.getLogger(__name__)
 
@@ -186,6 +186,10 @@ class Template:
             generate_non_cookiecutter_project(location=self._location, output_dir=".")
         except UnknownRepoType as e:
             raise InvalidLocationError(template=self._location) from e
+        except UnsupportedTemplateHookError as e:
+            # Actionable and expected, so surface it as a user error rather than letting the
+            # catch-all below turn it into an "unhandled exception, file a bug" report.
+            raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
         except Exception as e:
             raise GenerateProjectFailedError(template=self._location, provider_error=e) from e
 

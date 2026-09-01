@@ -1,3 +1,4 @@
+import logging
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -83,6 +84,16 @@ class TestGuardedTemplateHooksWhenBundled(TestCase):
             with guarded_template_hooks():
                 self.assertEqual(cookiecutter_main.run_pre_prompt_hook("/tpl"), "/repo")
             patched_original.assert_called_once_with("/tpl")
+
+    def test_cookiecutter_hook_logging_is_quieted_and_restored(self, patched_bundle):
+        # cookiecutter logs the failure with logger.exception before re-raising, which would put a
+        # traceback ahead of the remedy. Filtered by level, since a logger with no handlers of its
+        # own falls back to logging.lastResort and would still reach stderr.
+        hooks_logger = logging.getLogger(hooks.__name__)
+        original = hooks_logger.level
+        with guarded_template_hooks():
+            self.assertEqual(hooks_logger.level, logging.CRITICAL)
+        self.assertEqual(hooks_logger.level, original)
 
     def test_shell_hooks_are_delegated_untouched(self, patched_bundle):
         with patch.object(hooks, "run_script") as patched_original:

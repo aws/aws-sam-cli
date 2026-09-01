@@ -77,12 +77,20 @@ def guarded_template_hooks() -> Iterator[None]:
                 _reject_python_hook(script)
         return original_run_pre_prompt_hook(repo_dir)
 
+    # cookiecutter logs a hook failure with logger.exception before re-raising, which would print a
+    # traceback ahead of the remedy. Filtered by level rather than by propagation, because a logger
+    # with no handlers of its own falls back to logging.lastResort and still reaches stderr.
+    hooks_logger = logging.getLogger(hooks.__name__)
+    original_level = hooks_logger.level
+
     hooks.run_script = run_script
     hooks.run_script_with_context = run_script_with_context
     cookiecutter_main.run_pre_prompt_hook = run_pre_prompt_hook
+    hooks_logger.setLevel(logging.CRITICAL)
     try:
         yield
     finally:
         hooks.run_script = original_run_script
         hooks.run_script_with_context = original_run_script_with_context
         cookiecutter_main.run_pre_prompt_hook = original_run_pre_prompt_hook
+        hooks_logger.setLevel(original_level)
