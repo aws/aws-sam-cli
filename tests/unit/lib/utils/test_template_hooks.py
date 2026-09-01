@@ -139,23 +139,27 @@ class TestRealCookiecutterDispatch(TestCase):
             (template / "hooks" / hook_name).write_text("pass\n")
         output = Path(directory, "out")
         output.mkdir()
-        return str(template), str(output)
+        # Keep cookiecutter out of the home directory: without this it reads ~/.cookiecutterrc, whose
+        # default_context could decide project_name, and writes a replay file to ~/.cookiecutter_replay.
+        config = Path(directory, "config.yaml")
+        config.write_text(f"cookiecutters_dir: {Path(directory, 'cutters')}\nreplay_dir: {Path(directory, 'replay')}\n")
+        return str(template), str(output), str(config)
 
     def test_every_python_hook_is_reached_through_cookiecutter(self):
         # pre_prompt is dispatched through cookiecutter.main, the other two through cookiecutter.hooks.
         for hook_name in ("pre_prompt.py", "pre_gen_project.py", "post_gen_project.py"):
             with self.subTest(hook=hook_name):
                 with tempfile.TemporaryDirectory() as directory:
-                    template, output = self._write_template(directory, hook_name)
+                    template, output, config = self._write_template(directory, hook_name)
                     with patch("samcli.lib.utils.template_hooks.is_pyinstaller_bundle", return_value=True):
                         with guarded_template_hooks():
                             with self.assertRaises(UnsupportedTemplateHookError):
-                                cookiecutter(template=template, output_dir=output, no_input=True)
+                                cookiecutter(template=template, output_dir=output, no_input=True, config_file=config)
 
     def test_a_template_without_hooks_is_untouched(self):
         with tempfile.TemporaryDirectory() as directory:
-            template, output = self._write_template(directory)
+            template, output, config = self._write_template(directory)
             with patch("samcli.lib.utils.template_hooks.is_pyinstaller_bundle", return_value=True):
                 with guarded_template_hooks():
-                    cookiecutter(template=template, output_dir=output, no_input=True)
+                    cookiecutter(template=template, output_dir=output, no_input=True, config_file=config)
             self.assertTrue(Path(output, "app", "template.yaml").is_file())
