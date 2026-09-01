@@ -7,10 +7,12 @@ from click.testing import CliRunner
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.commands.init import cli as init_cmd
+from samcli.commands.init.command import NON_INTERACTIVE_PARAM_COMBINATIONS, REQUIRED_PARAMS_HINT
 from unittest import TestCase, skipIf
 
 from parameterized import parameterized
 from subprocess import Popen, TimeoutExpired, PIPE
+import json
 import os
 import shutil
 import tempfile
@@ -65,6 +67,126 @@ class TestBasicInitCommand(TestCase):
             self.assertEqual(process.returncode, 0)
             self.assertTrue(Path(temp, "sam-app").is_dir())
             self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_output_json(self):
+        with tempfile.TemporaryDirectory() as temp:
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--runtime",
+                    "nodejs18.x",
+                    "--dependency-manager",
+                    "npm",
+                    "--app-template",
+                    "hello-world",
+                    "--name",
+                    "sam-app",
+                    "--no-interactive",
+                    "-o",
+                    temp,
+                    "--output",
+                    "json",
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, stderr_data = process.communicate(timeout=TIMEOUT)
+                stdout = stdout_data.decode("utf-8")
+                stderr = stderr_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+
+            # stdout must hold nothing but the single result document, so a consumer can parse it
+            self.assertEqual(len(stdout.splitlines()), 1)
+            document = json.loads(stdout)
+
+            self.assertEqual(document["type"], "result")
+            self.assertEqual(document["status"], "success")
+
+            # The reported paths must be absolute and must actually exist. Compare against
+            # abspath rather than resolve(), since the command does not resolve symlinks
+            # (on macOS /var is a symlink to /private/var).
+            self.assertEqual(document["project_directory"], os.path.abspath(os.path.join(temp, "sam-app")))
+            self.assertTrue(Path(document["project_directory"]).is_dir())
+            self.assertTrue(Path(document["template_file"]).is_file())
+
+            self.assertNotIn(COMMIT_ERROR, stderr)
+
+    def test_init_command_output_json_with_template_hook_output(self):
+        """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable.
+
+        Also covers a --location template naming its own project directory, so output_dir/name
+        is not the answer. No --name is passed, which is why --no-interactive is absent too.
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            template_dir = Path(temp, "hook-template")
+            template_project_dir = Path(template_dir, "{{cookiecutter.project_name}}")
+            template_project_dir.mkdir(parents=True)
+            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "template-chosen-app"}))
+            Path(template_project_dir, "template.yaml").write_text("Resources: {}\n")
+
+            hooks_dir = Path(template_dir, "hooks")
+            hooks_dir.mkdir()
+            # print() covers ordinary hook output; os.write covers a hook writing to the descriptor
+            Path(hooks_dir, "post_gen_project.py").write_text(
+                'import os\nprint("hook said hello")\nos.write(1, b"raw descriptor write\\n")\n'
+            )
+
+            out_dir = Path(temp, "out")
+            out_dir.mkdir()
+
+            process = Popen(
+                [
+                    get_sam_command(),
+                    "init",
+                    "--location",
+                    str(template_dir),
+                    "-o",
+                    str(out_dir),
+                    "--output",
+                    "json",
+                ],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, _ = process.communicate(timeout=TIMEOUT)
+                stdout = stdout_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+
+            # THEN every line of stdout is valid JSON, so a consumer reading line by line survives
+            lines = stdout.splitlines()
+            documents = [json.loads(line) for line in lines]
+
+            # AND the hook output is reported rather than dropped or left raw on stdout
+            info_documents = [document for document in documents if document["type"] == "info"]
+            self.assertEqual(len(info_documents), 1)
+            self.assertEqual(info_documents[0]["source"], "template")
+            self.assertIn("hook said hello", info_documents[0]["message"])
+            self.assertIn("raw descriptor write", info_documents[0]["message"])
+
+            # AND the result document is last, so it remains the terminal document
+            result = documents[-1]
+            self.assertEqual(result["type"], "result")
+            self.assertEqual(result["status"], "success")
+
+            # AND the reported directory is the nested one the template named, not the parent
+            self.assertEqual(result["project_directory"], os.path.join(str(out_dir), "template-chosen-app"))
+            self.assertNotEqual(result["project_directory"], str(out_dir))
+            self.assertTrue(Path(result["project_directory"]).is_dir())
+
+            # AND the template inside it is found rather than reported as absent
+            self.assertIsNotNone(result["template_file"])
+            self.assertTrue(Path(result["template_file"]).is_file())
 
     def test_init_command_passes_and_dir_created_image(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -551,20 +673,30 @@ class TestBasicInitCommand(TestCase):
         self.assertEqual(result.process.returncode, 0)
 
 
-MISSING_REQUIRED_PARAM_MESSAGE = """Error: Missing required parameters, with --no-interactive set.
-Must provide one of the following required parameter combinations:
-\t--name, --location
-\t--name, --package-type, --base-image
-\t--name, --runtime, --dependency-manager, --app-template
-You can also re-run without the --no-interactive flag to be prompted for required values.
-"""
+# The accepted combinations are re-rendered from the command so that changing them cannot leave
+# these expectations behind, while the wording around them stays written out here to be asserted.
+def _render_combinations(separator: str) -> str:
+    return (
+        separator.join(
+            "\t" + ", ".join(f"--{param.replace('_', '-')}" for param in combination)
+            for combination in NON_INTERACTIVE_PARAM_COMBINATIONS
+        )
+        + "\n"
+    )
 
-INCOMPATIBLE_PARAM_MESSAGE = """Error: You must not provide both the --{0} and --{1} parameters.
-You can run 'sam init' without any options for an interactive initialization flow, or you can provide one of the following required parameter combinations:
-\t--name, --location, or
-\t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
-"""
+
+MISSING_REQUIRED_PARAM_MESSAGE = (
+    "Error: Missing required parameters, with --no-interactive set.\n"
+    "Must provide one of the following required parameter combinations:\n"
+    + _render_combinations("\n")
+    + REQUIRED_PARAMS_HINT
+)
+
+INCOMPATIBLE_PARAM_MESSAGE = (
+    "Error: You must not provide both the --{0} and --{1} parameters.\n"
+    "You can run 'sam init' without any options for an interactive initialization flow, "
+    "or you can provide one of the following required parameter combinations:\n" + _render_combinations(", or\n")
+)
 
 
 @pytest.mark.xdist_group(name="sam_init")
