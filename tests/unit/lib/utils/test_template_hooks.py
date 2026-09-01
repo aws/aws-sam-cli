@@ -85,15 +85,30 @@ class TestGuardedTemplateHooksWhenBundled(TestCase):
                 self.assertEqual(cookiecutter_main.run_pre_prompt_hook("/tpl"), "/repo")
             patched_original.assert_called_once_with("/tpl")
 
-    def test_cookiecutter_hook_logging_is_quieted_and_restored(self, patched_bundle):
+    def test_only_our_own_refusal_traceback_is_dropped(self, patched_bundle):
         # cookiecutter logs the failure with logger.exception before re-raising, which would put a
-        # traceback ahead of the remedy. Filtered by level, since a logger with no handlers of its
-        # own falls back to logging.lastResort and would still reach stderr.
+        # traceback ahead of the remedy. Everything else it logs has to survive, so that a failing
+        # shell hook still names the hook and --debug keeps its hook diagnostics.
         hooks_logger = logging.getLogger(hooks.__name__)
-        original = hooks_logger.level
         with guarded_template_hooks():
-            self.assertEqual(hooks_logger.level, logging.CRITICAL)
-        self.assertEqual(hooks_logger.level, original)
+            self.assertEqual(len(hooks_logger.filters), 1)
+            log_filter = hooks_logger.filters[0]
+
+            def record(exception):
+                return logging.LogRecord(
+                    hooks.__name__,
+                    logging.ERROR,
+                    __file__,
+                    1,
+                    "boom",
+                    None,
+                    (type(exception), exception, None) if exception else None,
+                )
+
+            self.assertFalse(log_filter.filter(record(UnsupportedTemplateHookError("refused"))))
+            self.assertTrue(log_filter.filter(record(FailedHookException("shell hook failed"))))
+            self.assertTrue(log_filter.filter(record(None)))
+        self.assertEqual(hooks_logger.filters, [])
 
     def test_shell_hooks_are_delegated_untouched(self, patched_bundle):
         with patch.object(hooks, "run_script") as patched_original:

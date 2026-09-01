@@ -36,6 +36,19 @@ class UnsupportedTemplateHookError(FailedHookException):
     """
 
 
+class _DropRefusalTraceback(logging.Filter):
+    """Drop cookiecutter's traceback for our own refusal, keeping every other hook log.
+
+    Attached to the logger rather than filtering by level, both so that a failing shell hook still
+    reports which hook failed and ``--debug`` keeps its hook diagnostics, and because a logger with
+    no handlers of its own would otherwise fall back to ``logging.lastResort`` and reach stderr.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exception = record.exc_info[1] if record.exc_info else None
+        return not isinstance(exception, UnsupportedTemplateHookError)
+
+
 def _reject_python_hook(script_path: str) -> None:
     """Raise if the hook is a Python script, which needs an interpreter this install lacks."""
     if not script_path.endswith(".py"):
@@ -78,19 +91,18 @@ def guarded_template_hooks() -> Iterator[None]:
         return original_run_pre_prompt_hook(repo_dir)
 
     # cookiecutter logs a hook failure with logger.exception before re-raising, which would print a
-    # traceback ahead of the remedy. Filtered by level rather than by propagation, because a logger
-    # with no handlers of its own falls back to logging.lastResort and still reaches stderr.
+    # traceback ahead of the remedy.
     hooks_logger = logging.getLogger(hooks.__name__)
-    original_level = hooks_logger.level
+    log_filter = _DropRefusalTraceback()
 
     hooks.run_script = run_script
     hooks.run_script_with_context = run_script_with_context
     cookiecutter_main.run_pre_prompt_hook = run_pre_prompt_hook
-    hooks_logger.setLevel(logging.CRITICAL)
+    hooks_logger.addFilter(log_filter)
     try:
         yield
     finally:
         hooks.run_script = original_run_script
         hooks.run_script_with_context = original_run_script_with_context
         cookiecutter_main.run_pre_prompt_hook = original_run_pre_prompt_hook
-        hooks_logger.setLevel(original_level)
+        hooks_logger.removeFilter(log_filter)
