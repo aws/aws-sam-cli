@@ -1,9 +1,13 @@
+import json
 import logging
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch
 
 from cookiecutter import hooks
 from cookiecutter import main as cookiecutter_main
+from cookiecutter.main import cookiecutter
 from cookiecutter.exceptions import CookiecutterException, FailedHookException
 
 from samcli.lib.utils.template_hooks import (
@@ -115,3 +119,43 @@ class TestGuardedTemplateHooksWhenBundled(TestCase):
             with guarded_template_hooks():
                 hooks.run_script("/tpl/hooks/post_gen_project.sh", "/project")
             patched_original.assert_called_once_with("/tpl/hooks/post_gen_project.sh", "/project")
+
+
+class TestRealCookiecutterDispatch(TestCase):
+    """Drives cookiecutter() itself, so a change in how it dispatches hooks cannot slip past.
+
+    The tests above call the patched attributes directly, which would keep passing if cookiecutter
+    started reaching its hook runners some other way -- and the guard would silently stop firing.
+    """
+
+    @staticmethod
+    def _write_template(directory, hook_name=None):
+        template = Path(directory, "tpl")
+        (template / "{{cookiecutter.project_name}}").mkdir(parents=True)
+        (template / "cookiecutter.json").write_text(json.dumps({"project_name": "app"}))
+        (template / "{{cookiecutter.project_name}}" / "template.yaml").write_text("Resources: {}\n")
+        if hook_name:
+            (template / "hooks").mkdir()
+            (template / "hooks" / hook_name).write_text("pass\n")
+        output = Path(directory, "out")
+        output.mkdir()
+        return str(template), str(output)
+
+    def test_every_python_hook_is_reached_through_cookiecutter(self):
+        # pre_prompt is dispatched through cookiecutter.main, the other two through cookiecutter.hooks.
+        for hook_name in ("pre_prompt.py", "pre_gen_project.py", "post_gen_project.py"):
+            with self.subTest(hook=hook_name):
+                with tempfile.TemporaryDirectory() as directory:
+                    template, output = self._write_template(directory, hook_name)
+                    with patch("samcli.lib.utils.template_hooks.is_pyinstaller_bundle", return_value=True):
+                        with guarded_template_hooks():
+                            with self.assertRaises(UnsupportedTemplateHookError):
+                                cookiecutter(template=template, output_dir=output, no_input=True)
+
+    def test_a_template_without_hooks_is_untouched(self):
+        with tempfile.TemporaryDirectory() as directory:
+            template, output = self._write_template(directory)
+            with patch("samcli.lib.utils.template_hooks.is_pyinstaller_bundle", return_value=True):
+                with guarded_template_hooks():
+                    cookiecutter(template=template, output_dir=output, no_input=True)
+            self.assertTrue(Path(output, "app", "template.yaml").is_file())
