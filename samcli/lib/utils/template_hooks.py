@@ -10,7 +10,8 @@ that is quietly missing whatever the hook was meant to do.
 import logging
 import os
 from contextlib import contextmanager
-from typing import Any, Iterator
+from pathlib import Path
+from typing import Any, Dict, Iterator, Union
 
 from cookiecutter import hooks
 from cookiecutter import main as cookiecutter_main
@@ -49,12 +50,14 @@ class _DropRefusalTraceback(logging.Filter):
         return not isinstance(exception, UnsupportedTemplateHookError)
 
 
-def _reject_python_hook(script_path: str) -> None:
+def _reject_python_hook(script_path: Union[Path, str]) -> None:
     """Raise if the hook is a Python script, which needs an interpreter this install lacks."""
-    if not script_path.endswith(".py"):
+    # cookiecutter types these paths as Path | str, so normalise rather than assuming str.
+    path = os.fspath(script_path)
+    if not path.endswith(".py"):
         return
-    hook = os.path.basename(script_path)
-    LOG.debug("Refusing to run template hook %s from a PyInstaller bundle", script_path)
+    hook = os.path.basename(path)
+    LOG.debug("Refusing to run template hook %s from a PyInstaller bundle", path)
     raise UnsupportedTemplateHookError(UNSUPPORTED_HOOK_MESSAGE.format(hook=hook))
 
 
@@ -75,16 +78,16 @@ def guarded_template_hooks() -> Iterator[None]:
     original_run_script_with_context = hooks.run_script_with_context
     original_run_pre_prompt_hook = cookiecutter_main.run_pre_prompt_hook
 
-    def run_script(script_path: str, cwd: str = ".") -> None:
+    def run_script(script_path: Union[Path, str], cwd: Union[Path, str] = ".") -> None:
         _reject_python_hook(script_path)
         original_run_script(script_path, cwd)
 
-    def run_script_with_context(script_path: str, cwd: str, context: dict) -> None:
+    def run_script_with_context(script_path: Union[Path, str], cwd: Union[Path, str], context: Dict[str, Any]) -> None:
         _reject_python_hook(script_path)
         original_run_script_with_context(script_path, cwd, context)
 
-    # Typed loosely because both the argument and the return are forwarded to untyped cookiecutter.
-    def run_pre_prompt_hook(repo_dir: Any) -> Any:
+    # Returns Any because the value comes straight back from untyped cookiecutter.
+    def run_pre_prompt_hook(repo_dir: Union[Path, str]) -> Any:
         with work_in(repo_dir):
             for script in hooks.find_hook("pre_prompt") or []:
                 _reject_python_hook(script)

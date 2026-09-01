@@ -59,6 +59,14 @@ class TestGuardedTemplateHooksWhenBundled(TestCase):
             with self.assertRaises(UnsupportedTemplateHookError):
                 hooks.run_script("/tpl/hooks/pre_gen_project.py")
 
+    def test_a_path_hook_is_handled_like_a_string(self, patched_bundle):
+        # cookiecutter types these as Path | str, so a Path must refuse rather than raise
+        # AttributeError from endswith.
+        with guarded_template_hooks():
+            with self.assertRaises(UnsupportedTemplateHookError) as context:
+                hooks.run_script_with_context(Path("/tpl/hooks/post_gen_project.py"), "/project", {})
+        self.assertIn("post_gen_project.py", str(context.exception))
+
     def test_error_lets_cookiecutter_clean_up_the_project(self, patched_bundle):
         # Cookiecutter only removes the partially generated project for its own hook failure, and
         # samcli.lib.init only converts CookiecutterException into a user-facing error.
