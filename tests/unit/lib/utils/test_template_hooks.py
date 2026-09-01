@@ -153,8 +153,11 @@ class TestRealCookiecutterDispatch(TestCase):
                     template, output, config = self._write_template(directory, hook_name)
                     with patch("samcli.lib.utils.template_hooks.is_pyinstaller_bundle", return_value=True):
                         with guarded_template_hooks():
-                            with self.assertRaises(UnsupportedTemplateHookError):
+                            with self.assertRaises(UnsupportedTemplateHookError) as context:
                                 cookiecutter(template=template, output_dir=output, no_input=True, config_file=config)
+                    # Naming the real hook is the deliverable. The run_script backstop would raise the
+                    # same type, but only knows the temporary copy cookiecutter renders the hook into.
+                    self.assertIn(hook_name, str(context.exception))
 
     def test_a_template_without_hooks_is_untouched(self):
         with tempfile.TemporaryDirectory() as directory:
