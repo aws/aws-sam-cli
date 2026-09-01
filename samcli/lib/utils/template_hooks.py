@@ -24,7 +24,7 @@ LOG = logging.getLogger(__name__)
 UNSUPPORTED_HOOK_MESSAGE = (
     "Cannot run the template hook {hook}: this SAM CLI installation has no Python interpreter "
     "available to run it. To unblock, either re-install SAM CLI from pip, or remove the hook from "
-    "the project."
+    "the template."
 )
 
 

@@ -48,7 +48,7 @@ class TestGuardedTemplateHooksWhenBundled(TestCase):
         message = str(context.exception)
         self.assertIn("post_gen_project.py", message)
         self.assertIn("re-install SAM CLI from pip", message)
-        self.assertIn("remove the hook from the project", message)
+        self.assertIn("remove the hook from the template", message)
 
     def test_run_script_is_a_backstop(self, patched_bundle):
         with guarded_template_hooks():

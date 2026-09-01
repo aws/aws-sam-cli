@@ -156,8 +156,12 @@ class TestBasicInitCommand(TestCase):
             self.assertTrue(Path(result["project_directory"]).is_dir())
             self.assertTrue(Path(result["template_file"]).is_file())
 
-    # The packaged macOS and Linux SAM CLI has no interpreter for Python hooks and rejects them.
-    @skipIf(not os.environ.get("SAM_CLI_DEV"), "Template hooks only run where sam is not a bundle")
+    # Only the packaged macOS and Linux CLI rejects Python hooks. The Windows installer ships an
+    # embedded interpreter, so hooks run there and this must keep covering it.
+    @skipIf(
+        not os.environ.get("SAM_CLI_DEV") and not IS_WINDOWS,
+        "Python template hooks are rejected by the packaged macOS and Linux CLI",
+    )
     def test_init_command_output_json_with_template_hook_output(self):
         """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable.
 
