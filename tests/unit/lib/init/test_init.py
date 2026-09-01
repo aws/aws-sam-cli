@@ -8,7 +8,9 @@ from parameterized import parameterized
 from samcli.lib.init import generate_project, InvalidLocationError, _create_default_samconfig
 from samcli.lib.init import GenerateProjectFailedError
 from samcli.lib.init import RUNTIME_DEP_TEMPLATE_MAPPING
+from samcli.commands.exceptions import UserException
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.template_hooks import UnsupportedTemplateHookError
 
 
 class TestInit(TestCase):
@@ -21,6 +23,17 @@ class TestInit(TestCase):
         self.no_input = True
         self.extra_context = {"project_name": "testing project", "runtime": self.runtime}
         self.template = RUNTIME_DEP_TEMPLATE_MAPPING["python"][0]["init_location"]
+
+    @patch("samcli.lib.init.cookiecutter")
+    @patch("samcli.lib.init._create_default_samconfig")
+    def test_unsupported_hook_is_surfaced_as_a_user_error(self, default_samconfig_mock, cookiecutter_patch):
+        # Otherwise the catch-all below buries the remedy behind "An error occurred while generating
+        # this project : ", and telemetry cannot tell this refusal from any other cookiecutter error.
+        cookiecutter_patch.side_effect = UnsupportedTemplateHookError("remove the hook")
+        with self.assertRaises(UserException) as context:
+            generate_project(location="/some/template", output_dir=self.output_dir)
+        self.assertEqual(str(context.exception), "remove the hook")
+        self.assertEqual(context.exception.wrapped_from, "UnsupportedTemplateHookError")
 
     @patch("samcli.lib.init.cookiecutter")
     @patch("samcli.lib.init._create_default_samconfig")
