@@ -131,12 +131,12 @@ class DurableLambdaContainer(LambdaContainer):
 
     def _show_execution_started(self, execution_arn: Optional[str]) -> None:
         """
-        Display the execution ARN as soon as the execution has been started, together with the
-        commands that can be used to inspect it while it is still running.
+        Display the execution ARN as soon as the execution has been started.
 
         The ARN is the only identifier the `sam local execution` commands accept, so waiting until
         the execution completes to show it leaves long running, suspended, or interrupted executions
-        undiscoverable without --debug.
+        undiscoverable without --debug. The commands themselves are suggested by the completion
+        output, where they really are the next thing to run.
 
         Note: This only runs through sam local invoke. start-lambda and start-api return the ARN to
               the caller in the X-Amz-Durable-Execution-Arn response header instead.
