@@ -21,9 +21,7 @@ aws-lambda-builders==1.66.0 \
 aws-sam-translator==1.113.0 \
     --hash=sha256:3a24b3c5bab9c24b6389cdf18a7a745d338363c57803364e028718fb078259e5 \
     --hash=sha256:b2db7e4f7c6ee8fafa89e718a82bfa33b8e97c4e64be643aa3595b27cd7a2e2b
-    # via
-    #   aws-sam-cli (pyproject.toml)
-    #   cfn-lint
+    # via aws-sam-cli (pyproject.toml)
 awscrt==0.36.0 \
     --hash=sha256:01a55a4de4d3d915714590bd50cd3cc430e8f5bce78a4c6b6308c6a7f513ca12 \
     --hash=sha256:0ef852c7bd977402f2c82959d9b6c68e39c74bca885d4578cec86e6a3b60c864 \
@@ -208,9 +206,9 @@ cffi==2.1.0 \
     --hash=sha256:fb62edb5bb52cca65fab91a63afa7561607120d26090a7e8fda6fb9f064726da \
     --hash=sha256:ff067a8d8d880e7809e4ac88eb009bb848870115317b306666502ccad30b147f
     # via cryptography
-cfn-lint==1.53.2 \
-    --hash=sha256:4de8a820b8a098b9d8ed0fbe25c7f2dd925b9425b48856c07120481b09bdd1a6 \
-    --hash=sha256:f2f4a63bc0e6dce802cc429993e6c7b2a4dac4bc1f4b0e743709cb684fad345b
+cfn-lint==1.55.1 \
+    --hash=sha256:1e870ec3dfad17bf2cf164decba961551aed00a3eb3e51182eca6987eddb5562 \
+    --hash=sha256:4de4ced80c898ce0753b64fc5707bebf011601eb2d027d95e2ab3f91692b99d8
     # via aws-sam-cli (pyproject.toml)
 charset-normalizer==3.5.1 \
     --hash=sha256:00668ebb0609751758682eb0b5857e7c35b9f00e84dfdef062e103244ec94d45 \
