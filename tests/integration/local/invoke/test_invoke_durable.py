@@ -49,7 +49,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
         self.assertEqual(invoke_return_code, 0)
 
         # Assert invoke output and get execution ARN
-        execution_arn = self.assert_invoke_output(stdout, input_data={}, execution_name=execution_name)
+        execution_arn = self.assert_invoke_output(stdout, input_data={}, execution_name=execution_name, stderr=stderr)
 
         if not example.skip_history_assertions:
             # Get and verify execution history
@@ -81,7 +81,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
 
         # Assert invoke output shows timeout
         execution_arn = self.assert_invoke_output(
-            stdout, input_data={}, execution_name=execution_name, expected_status="TIMED_OUT"
+            stdout, input_data={}, execution_name=execution_name, expected_status="TIMED_OUT", stderr=stderr
         )
 
         # Get and verify execution history
