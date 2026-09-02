@@ -11,6 +11,7 @@ from typing import Dict, Optional
 from cookiecutter.exceptions import CookiecutterException, RepositoryNotFound, UnknownRepoType
 from cookiecutter.main import cookiecutter
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_EXTENSION, DEFAULT_CONFIG_FILE_NAME
 from samcli.lib.init.arbitrary_project import generate_non_cookiecutter_project
 from samcli.lib.init.default_samconfig import DefaultSamconfig
@@ -23,6 +24,7 @@ from samcli.lib.init.template_modifiers.xray_tracing_template_modifier import XR
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.template_hooks import UnsupportedTemplateHookError, guarded_template_hooks
 from samcli.local.common.runtime_template import RUNTIME_DEP_TEMPLATE_MAPPING, is_custom_runtime
 
 LOG = logging.getLogger(__name__)
@@ -119,7 +121,8 @@ def generate_project(
         LOG.debug("Baking a new template with cookiecutter with all parameters")
         # cookiecutter returns the directory it created, which is the only reliable way to know
         # where the project landed when the template chooses its own project directory name.
-        project_directory = cookiecutter(**params)
+        with guarded_template_hooks():
+            project_directory = cookiecutter(**params)
         # Fixes gradlew line ending issue caused by Windows git
         # gradlew is a shell script which should not have CR LF line endings
         # Putting the conversion after cookiecutter as cookiecutter processing will also change the line endings
@@ -140,6 +143,10 @@ def generate_project(
 
     except UnknownRepoType as e:
         raise InvalidLocationError(template=params["template"]) from e
+    except UnsupportedTemplateHookError as e:
+        # Actionable and expected, so keep the remedy as the whole message rather than letting the
+        # generic handler bury it behind "An error occurred while generating this project : ".
+        raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
     except (CookiecutterException, OSError) as e:
         raise GenerateProjectFailedError(project=name if name else "", provider_error=e) from e
     except TypeError as ex:

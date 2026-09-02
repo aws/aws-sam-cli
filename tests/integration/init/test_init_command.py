@@ -117,6 +117,51 @@ class TestBasicInitCommand(TestCase):
 
             self.assertNotIn(COMMIT_ERROR, stderr)
 
+    def test_init_command_output_json_location_names_project_directory(self):
+        """A --location template names its own project directory, so output_dir/name is not the answer.
+
+        Kept free of hooks so it also covers the packaged CLI, where Python hooks are rejected.
+        """
+        with tempfile.TemporaryDirectory() as temp:
+            template_dir = Path(temp, "plain-template")
+            template_project_dir = Path(template_dir, "{{cookiecutter.project_name}}")
+            template_project_dir.mkdir(parents=True)
+            Path(template_dir, "cookiecutter.json").write_text(json.dumps({"project_name": "template-chosen-app"}))
+            Path(template_project_dir, "template.yaml").write_text("Resources: {}\n")
+
+            out_dir = Path(temp, "out")
+            out_dir.mkdir()
+
+            process = Popen(
+                [get_sam_command(), "init", "--location", str(template_dir), "-o", str(out_dir), "--output", "json"],
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            try:
+                stdout_data, _ = process.communicate(timeout=TIMEOUT)
+                stdout = stdout_data.decode("utf-8")
+            except TimeoutExpired:
+                process.kill()
+                raise
+
+            self.assertEqual(process.returncode, 0)
+
+            result = [json.loads(line) for line in stdout.splitlines()][-1]
+            self.assertEqual(result["type"], "result")
+            self.assertEqual(result["status"], "success")
+
+            # The reported directory is the nested one the template named, not the parent
+            self.assertEqual(result["project_directory"], os.path.join(str(out_dir), "template-chosen-app"))
+            self.assertNotEqual(result["project_directory"], str(out_dir))
+            self.assertTrue(Path(result["project_directory"]).is_dir())
+            self.assertTrue(Path(result["template_file"]).is_file())
+
+    # Only the packaged macOS and Linux CLI rejects Python hooks. The Windows installer ships an
+    # embedded interpreter, so hooks run there and this must keep covering it.
+    @skipIf(
+        not os.environ.get("SAM_CLI_DEV") and not IS_WINDOWS,
+        "Python template hooks are rejected by the packaged macOS and Linux CLI",
+    )
     def test_init_command_output_json_with_template_hook_output(self):
         """A template hook runs as a subprocess writing to our stdout; stdout must stay parseable.
 
