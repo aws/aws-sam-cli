@@ -368,17 +368,15 @@ class TestFormatExecutionStarted(TestCase):
     """Test cases for format_execution_started function"""
 
     def test_format_execution_started(self):
-        """Test format_execution_started shows the ARN and the commands to inspect a running execution"""
+        """Test format_execution_started shows the ARN and nothing else"""
         execution_arn = "test-arn"
         result = format_execution_started(execution_arn)
 
         self.assertIn("Durable execution started", result)
         self.assertIn(f"ARN: {execution_arn}", result)
-        # The command list is rendered by the shared next-command helper
-        self.assertIn("Commands you can use next", result)
-        self.assertIn(f"sam local execution get {execution_arn}", result)
-        self.assertIn(f"sam local execution history {execution_arn}", result)
-        self.assertIn(f"sam local execution stop {execution_arn}", result)
+        # Command suggestions belong to the completion output, where they really are the next step
+        self.assertNotIn("Commands you can use next", result)
+        self.assertNotIn("sam local execution", result)
 
 
 class TestFormatNextCommandsAfterInvoke(TestCase):
