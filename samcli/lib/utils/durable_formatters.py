@@ -362,18 +362,14 @@ def format_execution_started(execution_arn: str) -> str:
     The execution ARN is the only handle the durable execution commands accept, so it needs to be
     available while the execution is still running, not just once it reaches a terminal state.
     """
-    commands = "\n".join(
-        f"[*] {description}: {command}"
-        for description, command in _execution_commands(execution_arn, ("get", "history", "stop"))
-    )
-    return f"""
+    header = f"""
 Durable execution started
 =========================
 ARN: {execution_arn}
 
-While this execution is running, you can inspect it from another terminal:
-{commands}
+This execution can be inspected from another terminal while it is still running.
 """
+    return header + generate_next_command_recommendation(_execution_commands(execution_arn, ("get", "history", "stop")))
 
 
 def format_next_commands_after_invoke(execution_arn: str) -> str:

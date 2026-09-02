@@ -146,6 +146,7 @@ class DurableIntegBase(TestCase):
         input_data: Dict[str, Any] = {},
         execution_name: Optional[str] = None,
         expected_status: str = "SUCCEEDED",
+        stderr: Optional[str] = None,
     ) -> str:
         """Assert invoke output contains expected fields and return execution ARN."""
         stdout_str = stdout.strip()
@@ -153,17 +154,18 @@ class DurableIntegBase(TestCase):
         self.assertIn("Execution Summary:", stdout_str, f"Expected execution summary in output: {stdout_str}")
 
         # The started banner prints the ARN too, so anchor the lookup to the summary rather than
-        # taking the first match in the output
+        # taking the first match in the output. Callers that merge stderr into stdout see both.
         summary_start = stdout_str.index("Execution Summary:")
         arn_match = re.search(r"ARN:\s+(\S+)", stdout_str[summary_start:])
         self.assertIsNotNone(arn_match, f"Could not find ARN in execution summary: {stdout_str}")
         execution_arn = arn_match.group(1) if arn_match else ""
 
         # The ARN is also announced when the execution starts, so that it can be inspected while it
-        # is still running
-        before_summary = stdout_str[:summary_start]
-        self.assertIn("Durable execution started", before_summary, f"Expected started banner in output: {stdout_str}")
-        self.assertIn(execution_arn, before_summary, f"Expected ARN '{execution_arn}' in started banner: {stdout_str}")
+        # is still running. That banner is diagnostic output, so it goes to stderr; callers that
+        # merge the two streams pass the combined output as stdout and no stderr.
+        banner_output = stderr if stderr is not None else stdout_str[:summary_start]
+        self.assertIn("Durable execution started", banner_output, f"Expected started banner in output: {stdout_str}")
+        self.assertIn(execution_arn, banner_output, f"Expected ARN '{execution_arn}' in started banner: {stdout_str}")
 
         if execution_name:
             self.assertIn(

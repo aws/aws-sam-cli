@@ -144,7 +144,8 @@ class DurableLambdaContainer(LambdaContainer):
         if not self._is_cli_context() or not execution_arn:
             return
 
-        click.secho(format_execution_started(execution_arn), fg="yellow")
+        # Diagnostic output goes to stderr so that stdout stays reserved for the function result
+        click.secho(format_execution_started(execution_arn), fg="yellow", err=True)
 
     def _show_completion_commands(self, execution_arn: str, execution_details: dict):
         """

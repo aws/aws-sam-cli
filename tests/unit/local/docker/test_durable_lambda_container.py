@@ -188,7 +188,7 @@ class TestDurableLambdaContainer(TestCase):
             self.assertEqual(
                 mock_secho.call_args_list,
                 [
-                    mock.call("Execution started", fg="yellow"),
+                    mock.call("Execution started", fg="yellow", err=True),
                     mock.call("Execution details\nNext commands", fg="yellow"),
                 ],
             )
@@ -350,7 +350,7 @@ class TestDurableLambdaContainer(TestCase):
 
         if should_announce:
             mock_format_execution_started.assert_called_once_with(execution_arn)
-            mock_secho.assert_called_once_with("Execution started", fg="yellow")
+            mock_secho.assert_called_once_with("Execution started", fg="yellow", err=True)
         else:
             mock_format_execution_started.assert_not_called()
             mock_secho.assert_not_called()

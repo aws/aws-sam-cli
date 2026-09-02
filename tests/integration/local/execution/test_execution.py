@@ -55,10 +55,13 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
         )
         result = run_command(command_list)
         stdout_str = result.stdout.decode("utf-8") if isinstance(result.stdout, bytes) else result.stdout
+        stderr_str = result.stderr.decode("utf-8") if isinstance(result.stderr, bytes) else result.stderr
         self.assertEqual(result.process.returncode, 0)
 
         # Extract execution ARN
-        execution_arn = self.assert_invoke_output(stdout_str, input_data={}, execution_name=execution_name)
+        execution_arn = self.assert_invoke_output(
+            stdout_str, input_data={}, execution_name=execution_name, stderr=stderr_str
+        )
 
         # Try to stop already completed execution
         stop_command = [self.cmd, "local", "execution", "stop", execution_arn]
