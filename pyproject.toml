@@ -69,7 +69,7 @@ rust-tests = [
     "ziglang==0.16.0",
 ]
 pre-dev = [
-    "ruff==0.15.13",
+    "ruff==0.16.5",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
