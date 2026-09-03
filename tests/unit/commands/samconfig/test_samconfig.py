@@ -84,6 +84,7 @@ class TestSamConfigForAllCommands(TestCase):
                 None,
                 ANY,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.validate.validate.do_cli")
@@ -166,6 +167,7 @@ class TestSamConfigForAllCommands(TestCase):
                 True,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -228,6 +230,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -289,6 +292,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -351,6 +355,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -414,6 +419,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -474,6 +480,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.build.command.do_cli")
@@ -533,6 +540,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                "text",
             )
 
     @patch("samcli.commands.local.invoke.cli.do_cli")
@@ -992,6 +1000,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "ROLLBACK",
                 60,
                 True,
+                "text",
             )
 
     @patch("samcli.commands.deploy.command.do_cli")
@@ -1109,6 +1118,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "ROLLBACK",
                 60,
                 False,
+                "text",
             )
 
     @patch("samcli.commands._utils.experimental.is_experimental_enabled")

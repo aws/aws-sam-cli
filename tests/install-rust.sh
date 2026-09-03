@@ -1,8 +1,8 @@
 #!/bin/bash
 # Install Rust toolchain and cargo-lambda for SAM CLI integration tests.
-# Usage: ./tests/install-rust.sh [--uv] [CARGO_LAMBDA_VERSION]
+# Usage: ./tests/install-rust.sh [--uv]
 #   --uv                Use uv-managed Python 3.11 (for setup-uv workflows)
-#   CARGO_LAMBDA_VERSION defaults to env var or "v0.17.1"
+# cargo-lambda and zig versions come from the rust-tests extra in pyproject.toml.
 set -euo pipefail
 
 USE_UV=false
@@ -11,7 +11,7 @@ if [ "${1:-}" = "--uv" ]; then
   shift
 fi
 
-CARGO_LAMBDA_VERSION="${1:-${CARGO_LAMBDA_VERSION:-v0.17.1}}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Install rustup if not present
 if ! command -v rustup &> /dev/null; then
@@ -43,26 +43,34 @@ else
   rustup target add aarch64-unknown-linux-gnu --toolchain stable
 fi
 
-# Install cargo-lambda and ziglang
+# Install cargo-lambda and ziglang at the versions pinned in pyproject.toml's rust-tests extra
+read_rust_tools() {
+  "$1" -c 'import sys,tomllib;print(" ".join(tomllib.load(open(sys.argv[1],"rb"))["project"]["optional-dependencies"]["rust-tests"]))' "$REPO_ROOT/pyproject.toml"
+}
+
 if [ "$USE_UV" = true ]; then
   PYTHON311="$(uv python find 3.11)"
   PYTHON311_BIN="$(dirname "$PYTHON311")"
-  uv pip install --break-system-packages --python "$PYTHON311" "cargo-lambda==$CARGO_LAMBDA_VERSION" ziglang
+  # shellcheck disable=SC2046  # deliberate word splitting: one pip arg per pinned package
+  uv pip install --break-system-packages --python "$PYTHON311" $(read_rust_tools "$PYTHON311")
   PYTHON_CMD="$PYTHON311"
   if [ -n "${GITHUB_PATH:-}" ]; then
     echo "$PYTHON311_BIN" >> "$GITHUB_PATH"
   fi
 else
-  python3.11 -m pip install "cargo-lambda==$CARGO_LAMBDA_VERSION" ziglang
+  # shellcheck disable=SC2046
+  python3.11 -m pip install $(read_rust_tools python3.11)
   PYTHON_CMD="python3.11"
 fi
 
 # Create a zig wrapper so SAM CLI's cargo-lambda can find it
 if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
-  # Install zig via chocolatey (most reliable on Windows)
-  choco install zig --no-progress -y 2>/dev/null || true
+  # Pinned so choco's zig cannot float; the check below is on version, not mere presence, so
+  # a zig already on PATH cannot win over the pin.
+  ZIG_VERSION="$(read_rust_tools "$PYTHON_CMD" | tr ' ' '\n' | sed -n 's/^ziglang==//p')"
+  choco install zig --version="$ZIG_VERSION" --no-progress -y 2>/dev/null || true
   # Fallback: create wrappers using the Python that has ziglang installed
-  if ! command -v zig &>/dev/null; then
+  if ! zig version 2>/dev/null | grep -qx "$ZIG_VERSION"; then
     ZIG_PYTHON="$PYTHON_CMD"
     printf '#!/bin/bash\nexec "%s" -m ziglang "$@"\n' "$ZIG_PYTHON" > /c/Windows/zig
     printf '@echo off\r\n"%s" -m ziglang %%*\r\n' "$ZIG_PYTHON" > /c/Windows/zig.cmd

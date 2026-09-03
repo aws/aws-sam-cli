@@ -26,10 +26,12 @@ from samcli.commands._utils.constants import (
     DEFAULT_BUILT_TEMPLATE_PATH,
     DEFAULT_CACHE_DIR,
     DEFAULT_STACK_NAME,
+    SAM_TEMPLATE_FILE_NAMES,
 )
 from samcli.commands._utils.custom_options.hook_name_option import HookNameOption
 from samcli.commands._utils.custom_options.option_nargs import OptionNargs
 from samcli.commands._utils.custom_options.replace_help_option import ReplaceHelpSummaryOption
+from samcli.commands._utils.custom_options.structured_output_option import StructuredOutputOption
 from samcli.commands._utils.parameterized_option import parameterized_option
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_artifacts_format, get_template_data
 from samcli.lib.hook.hook_wrapper import get_available_hook_packages_ids
@@ -65,7 +67,7 @@ def get_or_default_template_file_name(ctx, param, provided_value, include_build)
 
     original_template_path = os.path.abspath(provided_value)
 
-    search_paths = ["template.yaml", "template.yml", "template.json"]
+    search_paths = list(SAM_TEMPLATE_FILE_NAMES)
 
     if include_build:
         search_paths.insert(0, DEFAULT_BUILT_TEMPLATE_PATH)
@@ -445,6 +447,28 @@ def common_observability_options(f):
         option(f)
 
     return f
+
+
+def structured_output_click_option():
+    """Shared --output option for commands that support structured (JSON) output.
+
+    Uses text|json choices matching the OutputOption enum in samcli.lib.observability.util.
+    Intended as the single shared contract for all commands adopting --output json.
+    """
+    return click.option(
+        "--output",
+        default=OutputOption.text.value,
+        help="Output the results from the command in a given output format. "
+        "Supported formats: text (default), json.",
+        # Derive choices from OutputOption so the accepted CLI values cannot drift from the enum.
+        type=click.Choice([option.value for option in OutputOption], case_sensitive=False),
+        # Lets --save-params recognise this option by type, so it is not persisted.
+        cls=StructuredOutputOption,
+    )
+
+
+def structured_output_option(f):
+    return structured_output_click_option()(f)
 
 
 def metadata_click_option():

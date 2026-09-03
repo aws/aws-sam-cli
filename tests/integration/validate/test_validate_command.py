@@ -124,7 +124,8 @@ class TestValidate(TestCase):
         template_file = "aws-serverless-function-cdk.yaml"
         template_path = test_data_path.joinpath(template_file)
         command_result = run_command(self.command_list(template_file=template_path))
-        output = command_result.stdout.decode("utf-8")
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        output = command_result.stderr.decode("utf-8")
 
         warning_message = (
             f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
@@ -161,6 +162,7 @@ class TestValidate(TestCase):
             ("ruby3.2",),
             ("dotnet6",),
             ("nodejs20.x"),
+            ("provided.al2",),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -214,7 +216,6 @@ class TestValidate(TestCase):
             "java8.al2",
             "nodejs22.x",
             "nodejs24.x",
-            "provided.al2",
             "provided.al2023",
             "python3.10",
             "python3.11",

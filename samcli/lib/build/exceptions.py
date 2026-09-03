@@ -2,10 +2,14 @@
 Build Related Exceptions.
 """
 
+from typing import List, Optional
+
 from samcli.commands.exceptions import UserException
 
 
 class UnsupportedBuilderLibraryVersionError(Exception):
+    resource_names: Optional[List[str]] = None
+
     def __init__(self, container_name: str, error_msg: str) -> None:
         msg = (
             "You are running an outdated version of Docker container '{container_name}' that is not compatible with"
@@ -15,13 +19,15 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
 
 class BuildError(Exception):
+    resource_names: Optional[List[str]] = None
+
     def __init__(self, wrapped_from: str, msg: str) -> None:
         self.wrapped_from = wrapped_from
         Exception.__init__(self, msg)
 
 
 class BuildInsideContainerError(Exception):
-    pass
+    resource_names: Optional[List[str]] = None
 
 
 class DockerConnectionError(BuildError):

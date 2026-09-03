@@ -1,4 +1,7 @@
+import io
+import json
 import os
+from contextlib import redirect_stdout
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
@@ -16,8 +19,10 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import Function, get_function_build_info
+from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
+from samcli.lib.observability.util import OutputOption
+from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -770,6 +775,22 @@ class TestBuildContext_setup_build_dir(TestCase):
     @patch("samcli.commands.build.build_context.shutil")
     @patch("samcli.commands.build.build_context.os")
     @patch("samcli.commands.build.build_context.pathlib")
+    def test_rmtree_oserror_is_converted_to_invalid_build_dir(self, pathlib_patch, os_patch, shutil_patch):
+        # A failure clearing the build dir (e.g. permission denied, file held open on Windows)
+        # must surface as InvalidBuildDirException so --output json still emits a JSON error.
+        path_mock = Mock()
+        pathlib_patch.Path.return_value = path_mock
+        os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
+        path_mock.exists.return_value = True
+        os_patch.listdir.return_value = True
+        shutil_patch.rmtree.side_effect = OSError("permission denied")
+
+        with self.assertRaises(InvalidBuildDirException):
+            BuildContext._setup_build_dir("/somepath", True)
+
+    @patch("samcli.commands.build.build_context.shutil")
+    @patch("samcli.commands.build.build_context.os")
+    @patch("samcli.commands.build.build_context.pathlib")
     def test_build_dir_exists_with_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
@@ -1088,15 +1109,70 @@ class TestBuildContext_run(TestCase):
                 # assert that nested stack manager is called by both root stack and child stack
                 given_nested_stack_manager.generate_auto_dependency_layer_stack.assert_has_calls([call(), call()])
 
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.find_root_stack")
+    @patch("samcli.commands.build.build_context.BuildContext.set_up")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_post_processing")
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.ApplicationBuilder")
+    def test_run_json_mode_emits_single_parseable_document(
+        self,
+        ApplicationBuilderMock,
+        is_sam_template_mock,
+        resources_mock,
+        pre_processing_mock,
+        post_processing_mock,
+        set_up_mock,
+        find_root_stack_mock,
+    ):
+        """run() in JSON mode must write exactly one parseable JSON document to stdout."""
+        resources_mock.return_value = Mock(functions=[get_function("Fn", runtime="python3.12")], layers=[])
+        ApplicationBuilderMock.return_value.build.return_value = ApplicationBuildResult(Mock(), "artifacts")
+        find_root_stack_mock.return_value.get_output_template_path.return_value = "build_dir/template.yaml"
+
+        build_context = BuildContext(
+            resource_identifier=None,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode=None,
+            output="json",
+        )
+
+        captured = io.StringIO()
+        with redirect_stdout(captured):
+            build_context.run()
+
+        # Must be exactly one JSON document on stdout -- json.loads fails on any extra output
+        result = json.loads(captured.getvalue())
+        self.assertEqual(result["status"], "success")
+        self.assertIn("build_dir", result)
+        self.assertIn("resources", result)
+
     @parameterized.expand(
         [
-            (UnsupportedRuntimeException(), "UnsupportedRuntimeException"),
-            (BuildInsideContainerError(), "BuildInsideContainerError"),
-            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap"),
+            # (exception, expected wrapped_from, expected resource_names)
+            # These reach run()'s handler untagged (ApplicationBuilder is mocked, so the build-strategy
+            # wrapper that would tag resource_names never runs). run() then resolves the requested
+            # identifier to its full path (the mocked function provider returns func1). In real runs the
+            # strategy wrapper tags these with the in-flight resources before run() sees them; that path is
+            # covered separately by the build_strategy tests.
+            (UnsupportedRuntimeException(), "UnsupportedRuntimeException", ["func1"]),
+            (UnsupportedBuilderException(), "UnsupportedBuilderException", ["func1"]),
+            (BuildInsideContainerError(), "BuildInsideContainerError", ["func1"]),
+            (BuildError(wrapped_from=DeepWrap().__class__.__name__, msg="Test"), "DeepWrap", ["func1"]),
             (
                 UnsupportedBuilderLibraryVersionError(container_name="name", error_msg="msg"),
                 "UnsupportedBuilderLibraryVersionError",
+                ["func1"],
             ),
+            # A corrupt build graph is not any single resource's fault, so it stays resource_names=None
+            # rather than blaming the requested identifier.
+            (InvalidBuildGraphException(msg="bad graph"), "InvalidBuildGraphException", None),
         ]
     )
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
@@ -1116,6 +1192,7 @@ class TestBuildContext_run(TestCase):
         self,
         exception,
         wrapped_exception,
+        expected_resource_names,
         esbuild_bundler_manager_mock,
         os_mock,
         get_template_data_mock,
@@ -1179,6 +1256,9 @@ class TestBuildContext_run(TestCase):
 
         self.assertEqual(str(ctx.exception), str(exception))
         self.assertEqual(wrapped_exception, ctx.exception.wrapped_from)
+        # Resource-tied failures fall back to the requested resource id; a corrupt build graph
+        # keeps resource_names=None so no innocent resource is blamed.
+        self.assertEqual(ctx.exception.resource_names, expected_resource_names)
 
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
@@ -1301,6 +1381,72 @@ class TestBuildContext_run(TestCase):
             EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, "FunctionNotFound"
         )
 
+    @patch("samcli.commands.build.build_context.prompt_user_to_enable_mount_with_write_if_needed")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
+    def test_skips_mount_prompt_in_json_mode(
+        self, mock_build, mock_experimental, mock_warning, mock_get_resources, mock_pre_processing, _, mock_prompt
+    ):
+        # --use-container without --mount-with WRITE normally prompts on stdin. In JSON mode the
+        # interactive prompt is never used; when no resource requires a writable mount the build
+        # proceeds READ-only. build() raises to short-circuit right after the decision.
+        mock_build.side_effect = FunctionNotFound()
+        mock_get_resources.return_value = Mock(functions=[], layers=[])
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+            use_container=True,
+            mount_with=MountMode.READ.value,
+            output="json",
+        )
+
+        with self.assertRaises(UserException):
+            context.run()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.resource_requiring_mount_with_write")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_json_mode_write_mount_required_raises_actionable_error(
+        self, mock_get_resources, mock_pre_processing, _, mock_requires_write
+    ):
+        # A workflow that requires a writable mount (e.g. .NET) cannot fall back to READ-only in JSON
+        # mode; it must fail up front with a message pointing at --mount-with WRITE rather than
+        # proceeding and failing later with a cryptic in-container permission error.
+        mock_get_resources.return_value = Mock(functions=[], layers=[])
+        mock_requires_write.return_value = (Mock(), "/src/DotnetFn")
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            parallel=False,
+            mode="mode",
+            use_container=True,
+            mount_with=MountMode.READ.value,
+            output="json",
+        )
+
+        with self.assertRaises(UserException) as ctx:
+            context.run()
+
+        self.assertIn("--mount-with WRITE", str(ctx.exception))
+        self.assertIn("/src/DotnetFn", str(ctx.exception))
+
 
 class TestBuildContext_is_sam_template(TestCase):
     @parameterized.expand(
@@ -1411,6 +1557,197 @@ Commands you can use next
         self.assertEqual(msg, expected_msg)
 
 
+class TestBuildContext_print_build_success(TestCase):
+    def setUp(self):
+        self.build_dir = ".aws-sam/build"
+        self.template_file = "template_file"
+
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file=self.template_file,
+            base_dir="base_dir",
+            build_dir=self.build_dir,
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+            output="json",
+        )
+        self.build_context._hook_name = False
+
+    @staticmethod
+    def _collector(functions=None, layers=None):
+        collector = ResourcesToBuildCollector()
+        collector.add_functions(functions or [])
+        collector.add_layers(layers or [])
+        return collector
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_with_functions_and_layers(self, echo_mock, secho_mock):
+        collector = self._collector(
+            functions=[get_function("Fn", runtime="python3.12")],
+            layers=[DummyLayer("Lyr", "python3.12")],
+        )
+        collector.layers[0].full_path = "Lyr"
+        collector.layers[0].compatible_runtimes = ["python3.12", "python3.11"]
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        # JSON goes to click.echo; text-mode secho must not be used
+        self.assertEqual(echo_mock.call_count, 1)
+        secho_mock.assert_not_called()
+
+        result = json.loads(echo_mock.call_args[0][0])
+        # Shared cross-command contract: a `type` discriminator plus a lowercase status.
+        self.assertEqual(result["type"], "result")
+        self.assertEqual(result["status"], "success")
+        self.assertEqual(result["build_dir"], "artifacts")
+        self.assertEqual(result["template_file"], "out_template")
+        # Order is functions first, then layers
+        self.assertEqual(result["resources"][0]["type"], "function")
+        self.assertEqual(result["resources"][0]["resource_id"], "Fn")
+        self.assertEqual(result["resources"][1]["type"], "layer")
+        self.assertEqual(result["resources"][1]["resource_id"], "Lyr")
+        self.assertEqual(result["resources"][1]["compatible_runtimes"], ["python3.12", "python3.11"])
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_reports_absolute_paths_unchanged(self, echo_mock, secho_mock):
+        # JSON must report the absolute paths it is handed, never relpath'd, so a machine consumer
+        # does not have to guess the process cwd (relpath is a text-banner-only affordance).
+        abs_build_dir = os.path.abspath(".aws-sam/build")
+        abs_template = os.path.abspath(".aws-sam/build/template.yaml")
+
+        self.build_context._print_build_success(abs_build_dir, abs_template, self._collector())
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(result["build_dir"], abs_build_dir)
+        self.assertEqual(result["template_file"], abs_template)
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_text_mode_relpaths_the_paths(self, echo_mock, secho_mock):
+        # Text mode keeps the human-readability relpath transform on the absolute paths it receives.
+        self.build_context._output = OutputOption.text
+        abs_build_dir = os.path.abspath(".aws-sam/build")
+
+        self.build_context._print_build_success(abs_build_dir, abs_build_dir, self._collector())
+
+        printed = " ".join(str(c.args[0]) for c in secho_mock.call_args_list)
+        self.assertIn(os.path.relpath(abs_build_dir), printed)
+
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_empty_collector(self, echo_mock):
+        self.build_context._print_build_success("artifacts", "out_template", self._collector())
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(result["resources"], [])
+
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_image_function_has_package_type_discriminator(self, echo_mock):
+        # Image functions have runtime: None; package_type lets a consumer distinguish them
+        # from a malformed Zip entry.
+        image_fn = get_function("ImgFn", runtime=None, packagetype=IMAGE)
+        collector = self._collector(functions=[image_fn])
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        resource = json.loads(echo_mock.call_args[0][0])["resources"][0]
+        self.assertEqual(resource["package_type"], "Image")
+        self.assertIsNone(resource["runtime"])
+
+    @parameterized.expand(
+        [
+            # (explicit architectures, expected reported value) - absent defaults to x86_64.
+            (None, "x86_64"),
+            (["arm64"], "arm64"),
+        ]
+    )
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_reports_function_architecture(self, architectures, expected, echo_mock):
+        function = get_function("Fn", runtime="python3.12")
+        if architectures is not None:
+            function = function._replace(architectures=architectures)
+        collector = self._collector(functions=[function])
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(result["resources"][0]["architecture"], expected)
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_text_mode_prints_banner_and_message(self, echo_mock, secho_mock):
+        self.build_context._output = OutputOption.text
+        collector = self._collector(functions=[get_function("Fn", runtime="python3.12")])
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        # Text mode uses secho, never echo
+        echo_mock.assert_not_called()
+        secho_mock.assert_any_call("\nBuild Succeeded", fg="green")
+        self.assertEqual(secho_mock.call_count, 2)
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_text_mode_banner_only_when_success_message_disabled(self, echo_mock, secho_mock):
+        self.build_context._output = OutputOption.text
+        self.build_context._print_success_message = False
+
+        self.build_context._print_build_success("artifacts", "out_template", self._collector())
+
+        echo_mock.assert_not_called()
+        secho_mock.assert_called_once_with("\nBuild Succeeded", fg="green")
+
+
+class TestBuildContext_print_build_failure(TestCase):
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier="function_identifier",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+            output="json",
+        )
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_text_mode_prints_banner(self, echo_mock, secho_mock):
+        self.build_context._output = OutputOption.text
+
+        self.build_context._print_build_failure()
+
+        echo_mock.assert_not_called()
+        secho_mock.assert_called_once_with("\nBuild Failed", fg="red")
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_mode_stays_silent(self, echo_mock, secho_mock):
+        # In JSON mode _print_build_failure emits nothing (do_cli serializes the failure).
+        self.build_context._output = OutputOption.json
+
+        self.build_context._print_build_failure()
+
+        echo_mock.assert_not_called()
+        secho_mock.assert_not_called()
+
+    def test_resolves_bare_id_to_full_path(self):
+        # A nested-stack function's full_path differs from the bare CLI id; resolving keeps
+        # error.resources in the same namespace as the success document's resource_id.
+        nested = get_function("MyFn")._replace(stack_path="ChildStack")
+        self.build_context._function_provider = Mock()
+        self.build_context._function_provider.get.return_value = nested
+        self.build_context._layer_provider = Mock()
+        self.build_context._layer_provider.get.return_value = None
+
+        self.assertEqual(self.build_context._resolve_resource_full_paths("MyFn"), ["ChildStack/MyFn"])
+
+
 class TestBuildContext_check_build_method_experimental_flag(TestCase):
     def setUp(self):
         self.build_context = BuildContext(
@@ -1455,6 +1792,24 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
     def test_check_build_method_experimental_flag_no_metadata(self, mock_get_resources, mock_prompt):
         mock_function = Mock()
         mock_function.metadata = None
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_skips_beta_prompt_in_json_mode_when_not_enabled(self, mock_get_resources, mock_prompt, _):
+        # A JSON consumer cannot answer the confirm; skip it (rather than aborting on EOF) and let the
+        # non-gating beta build proceed. If the flag were already enabled, prompt_experimental would run
+        # to update telemetry context - covered by is_experimental_enabled=False here.
+        self.build_context._output = OutputOption.json
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources
