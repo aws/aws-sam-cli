@@ -178,6 +178,41 @@ class TestSamConfig(TestCase):
             self.samconfig.document["myEnv"][DEFAULT_GLOBAL_CMDNAME]["mySection"], {"testKey": "ValueFromGlobal"}
         )
 
+    def test_get_all_does_not_leak_command_params_into_global_across_calls(self):
+        """Regression test: a prior get_all() call for one command must not pollute the
+        global section that a later get_all() call for a different command inherits from.
+        """
+        self._update_samconfig(
+            cmd_names=[DEFAULT_GLOBAL_CMDNAME],
+            section="parameters",
+            key="stack_name",
+            value="global-stack",
+            env="myEnv",
+        )
+        self._update_samconfig(
+            cmd_names=["deploy"], section="parameters", key="stack_name", value="deploy-only-stack", env="myEnv"
+        )
+        self._update_samconfig(cmd_names=["deploy"], section="parameters", key="region", value="us-east-1", env="myEnv")
+
+        self.assertEqual(
+            {"stack_name": "deploy-only-stack", "region": "us-east-1"},
+            self.samconfig.get_all(cmd_names=["deploy"], section="parameters", env="myEnv"),
+        )
+
+        # "build" has no command-specific parameters, so it must resolve to only the
+        # true global default. It must not inherit "deploy"'s command-specific values.
+        self.assertEqual(
+            {"stack_name": "global-stack"},
+            self.samconfig.get_all(cmd_names=["build"], section="parameters", env="myEnv"),
+        )
+
+        # Calling get_all() for "deploy" again must still return deploy's own values,
+        # not a further-corrupted mix.
+        self.assertEqual(
+            {"stack_name": "deploy-only-stack", "region": "us-east-1"},
+            self.samconfig.get_all(cmd_names=["deploy"], section="parameters", env="myEnv"),
+        )
+
     def test_check_config_get(self):
         self._setup_config()
         self.assertEqual(
