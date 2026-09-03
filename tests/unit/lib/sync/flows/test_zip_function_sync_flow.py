@@ -281,6 +281,39 @@ class TestZipFunctionSyncFlow(TestCase):
         sync_flow._get_lock_chain.return_value.__exit__.assert_called_once()
         remove_mock.assert_called_once_with("zip_file")
 
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.lib.sync.flows.function_sync_flow.wait_for_function_update_complete")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.open", mock_open(read_data=b"zip_content"), create=True)
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.remove")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.exists")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.S3Uploader")
+    @patch("samcli.lib.sync.flows.zip_function_sync_flow.os.path.getsize")
+    @patch("samcli.lib.sync.sync_flow.Session")
+    def test_s3_uploader_uses_deploy_context_force_upload(
+        self, force_upload, session_mock, getsize_mock, uploader_mock, exists_mock, remove_mock, wait_mock
+    ):
+        # The S3Uploader for oversized zips previously hardcoded
+        # force_upload=True, which defeated upload_with_dedup's SHA-based skip.
+        # It must now read the value from the deploy context so the new
+        # --force-upload sam sync flag actually controls this code path.
+        getsize_mock.return_value = 51 * 1024 * 1024
+        exists_mock.return_value = True
+        uploader_mock.return_value.upload_with_dedup.return_value = "s3://bucket_name/bucket/key"
+        sync_flow = self.create_function_sync_flow()
+        sync_flow._zip_file = "zip_file"
+        sync_flow._deploy_context.s3_bucket = "bucket_name"
+        sync_flow._deploy_context.force_upload = force_upload
+
+        sync_flow._get_lock_chain = MagicMock()
+        sync_flow.has_locks = MagicMock()
+        sync_flow.get_physical_id = MagicMock()
+        sync_flow.get_physical_id.return_value = "PhysicalFunction1"
+
+        sync_flow.set_up()
+        sync_flow.sync()
+
+        self.assertEqual(uploader_mock.call_args.kwargs["force_upload"], force_upload)
+
     @parameterized.expand(
         [
             # publish_to_latest_published, has_capacity_provider_config, expect_api_list
