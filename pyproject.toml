@@ -69,7 +69,7 @@ rust-tests = [
     "ziglang==0.16.0",
 ]
 pre-dev = [
-    "ruff==0.15.13",
+    "ruff==0.16.5",
 ]
 dev = [
     "aws-sam-cli[pre-dev]",
@@ -123,7 +123,7 @@ select = [
     "I",  # isort
     "TID", # flake8-tidy-imports
 ]
-ignore = ["PLR0913", "PLC0415", "PLW1641"]
+ignore = ["PLR0913", "PLC0415", "PLW1641", "PLR0917"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
