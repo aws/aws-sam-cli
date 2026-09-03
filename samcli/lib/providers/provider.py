@@ -499,6 +499,9 @@ class LayerVersion:
 
 
 class Api:
+    _HTTP_STATUS_CODE_4XX_LOWER_BOUND = 400
+    _HTTP_STATUS_CODE_4XX_UPPER_BOUND = 500
+
     def __init__(self, routes: Optional[Union[List["Route"], Set[str]]] = None) -> None:
         if routes is None:
             routes = []
@@ -517,6 +520,11 @@ class Api:
         self.stage_name: Optional[str] = None
         self.stage_variables: Optional[Dict] = None
 
+        # Headers configured through the API's GatewayResponses property, keyed by response type
+        # (e.g. "UNAUTHORIZED", "ACCESS_DENIED", "DEFAULT_5XX"). Only REST APIs (AWS::Serverless::Api)
+        # support GatewayResponses.
+        self.gateway_responses: Optional[Dict[str, Dict[str, str]]] = None
+
     def __hash__(self) -> int:
         # Other properties are not a part of the hash
         return hash(self.routes) * hash(self.cors) * hash(self.binary_media_types_set)
@@ -524,6 +532,32 @@ class Api:
     @property
     def binary_media_types(self) -> List[str]:
         return list(self.binary_media_types_set)
+
+    def get_gateway_response_headers(self, response_type: str, status_code: int) -> Dict[str, str]:
+        """
+        Returns the headers configured through this API's GatewayResponses property for the given
+        response type. If the specific type isn't configured, falls back to the generic DEFAULT_4XX
+        or DEFAULT_5XX response (matching the fallback behavior of API Gateway itself).
+
+        Parameters
+        ----------
+        response_type : str
+            The API Gateway response type this response corresponds to (e.g. "UNAUTHORIZED")
+        status_code : int
+            The HTTP status code being returned, used to select the DEFAULT_4XX/DEFAULT_5XX fallback
+
+        Returns
+        -------
+        dict
+            Headers configured for this response type, or an empty dict if none are configured
+        """
+        if not self.gateway_responses:
+            return {}
+
+        is_4xx = self._HTTP_STATUS_CODE_4XX_LOWER_BOUND <= status_code < self._HTTP_STATUS_CODE_4XX_UPPER_BOUND
+        default_response_type = "DEFAULT_4XX" if is_4xx else "DEFAULT_5XX"
+        headers = self.gateway_responses.get(response_type) or self.gateway_responses.get(default_response_type)
+        return dict(headers) if headers else {}
 
 
 _CorsTuple = namedtuple(

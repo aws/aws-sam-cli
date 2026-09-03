@@ -34,6 +34,7 @@ class ApiCollector:
         self.stage_name: Optional[str] = None
         self.stage_variables: Optional[Dict] = None
         self.cors: Optional[Cors] = None
+        self.gateway_responses: Optional[Dict[str, Dict[str, str]]] = None
 
     def __iter__(self) -> Iterator[Tuple[str, List[Route]]]:
         """
@@ -200,6 +201,7 @@ class ApiCollector:
         api.stage_name = self.stage_name
         api.stage_variables = self.stage_variables
         api.cors = self.cors
+        api.gateway_responses = self.gateway_responses
 
         for authorizers in self._authorizers_per_resources.values():
             if len(authorizers):
