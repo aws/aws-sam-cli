@@ -161,3 +161,9 @@ will not have corresponding artifacts in S3.
 Original CloudFormation error: {original_error}"""
 
         super().__init__(stack_name=stack_name, msg=message)
+
+
+class ECRPolicySetError(UserException):
+    def __init__(self, repo_name: str, msg: str):
+        message_fmt = "Failed to set ECR repository policy for '{repo_name}': {msg}"
+        super().__init__(message=message_fmt.format(repo_name=repo_name, msg=msg))
