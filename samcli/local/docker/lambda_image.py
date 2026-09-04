@@ -16,12 +16,14 @@ from typing import Optional
 
 import docker
 
+from samcli import __version__
 from samcli.commands.local.cli_common.user_exceptions import (
     DockerDistributionAPIError,
     ImageBuildException,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
+from samcli.lib.utils.hash import dir_checksum, file_checksum, str_checksum
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
@@ -38,6 +40,9 @@ LOG = logging.getLogger(__name__)
 RAPID_IMAGE_TAG_PREFIX = "rapid"
 
 TEST_RUNTIMES: list[str] = []
+
+# Build output, which is derived from the layer content rather than part of it
+_CONTENT_IGNORE_LIST = [".aws-sam"]
 
 
 class Runtime(Enum):
@@ -133,6 +138,9 @@ class LambdaImage:
     _SAM_INVOKE_REPO_PREFIX = "public.ecr.aws/sam/emulation"
     _SAM_CLI_REPO_NAME = "samcli/lambda"
     _RAPID_SOURCE_PATH = Path(__file__).parent.joinpath("..", "rapid").resolve()
+    # Records what an image was built from, so a later invoke can tell whether any of it has
+    # changed without unpacking the image.
+    _IMAGE_CONTENT_HASH_LABEL = "sam.cli.image.content.hash"
 
     def __init__(self, layer_downloader, skip_pull_image, force_image_build, docker_client=None, invoke_images=None):
         """
@@ -276,7 +284,7 @@ class LambdaImage:
         if (
             self.force_image_build
             or image_not_found
-            or any(layer.is_defined_within_template for layer in downloaded_layers)
+            or self._image_content_changed(rapid_image, image if image else base_image, downloaded_layers)
             or not runtime
         ):
             stream_writer = stream or StreamWriter(sys.stderr)
@@ -350,6 +358,119 @@ class LambdaImage:
             return config
 
     @staticmethod
+    def _checksum_layer_content(codeuri) -> Optional[str]:
+        """
+        Checksum a layer's local content, or None when it cannot be checksummed.
+
+        Deliberately not file_observer.calculate_checksum: that walks with followlinks, which never
+        returns for the relative parent symlink workspace tooling leaves in node_modules.
+
+        Parameters
+        ----------
+        codeuri str
+            Path to the layer content, either a directory or a file such as a zip
+
+        Returns
+        -------
+        Optional[str]
+            Checksum of the content, None when it is missing, unreadable or cannot be walked
+        """
+        if not isinstance(codeuri, str) or not os.path.exists(codeuri):
+            # dir_checksum answers with the empty directory digest for a path that is not there,
+            # which would then look unchanged forever.
+            return None
+
+        try:
+            if os.path.isfile(codeuri):
+                return file_checksum(codeuri, hash_generator=hashlib.sha256())
+
+            for dirpath, dirnames, _ in os.walk(codeuri):
+                # Skip what the checksum below skips, so content it never reads cannot decide this.
+                dirnames[:] = [dirname for dirname in dirnames if dirname not in _CONTENT_IGNORE_LIST]
+                if any(os.path.islink(os.path.join(dirpath, dirname)) for dirname in dirnames):
+                    # A directory symlink can point at one of its own ancestors, so leave a layer
+                    # holding one to the rebuild rather than walking it.
+                    return None
+
+            return dir_checksum(codeuri, ignore_list=_CONTENT_IGNORE_LIST, hash_generator=hashlib.sha256())
+        except (OSError, ValueError):
+            # Unreadable, dangling or undecodable content, which create_tarball tolerates and so
+            # must this.
+            return None
+
+    @staticmethod
+    def _generate_image_content_hash(base_image, layers) -> Optional[str]:
+        """
+        Identity of everything a layered image is built from that its tag does not already pin.
+
+        The tag of a function with layers is derived from the layer names, so it distinguishes
+        neither one revision of a locally defined layer from another, nor one base image from
+        another. A layer referenced by version ARN is immutable and its name carries the version,
+        so only layers defined in the template need their content hashing.
+
+        Parameters
+        ----------
+        base_image str
+            Base image the layers are added on top of
+        layers list(samcli.commands.local.lib.provider.Layer)
+            List of the layers, in the order they are added to the image
+
+        Returns
+        -------
+        Optional[str]
+            Hash to record on the image, empty when no layer is defined in the template, and None
+            when the content cannot be checksummed
+        """
+        checksums = []
+
+        for layer in layers:
+            if not layer.is_defined_within_template:
+                continue
+            checksum = LambdaImage._checksum_layer_content(layer.codeuri)
+            if checksum is None:
+                return None
+            checksums.append(checksum)
+
+        if not checksums:
+            return ""
+
+        # Ordering matters, a later layer overwrites the files of an earlier one. The SAM CLI
+        # version stands in for the RIE binary, which the tag does not pin either.
+        return str_checksum("-".join([__version__, str(base_image), *checksums]))
+
+    def _image_content_changed(self, rapid_image: str, base_image, layers) -> bool:
+        """
+        Whether an existing image was built from content that has since changed.
+
+        Parameters
+        ----------
+        rapid_image str
+            Tag of the image that would be reused
+        base_image str
+            Base image the layers are added on top of
+        layers list(samcli.commands.local.lib.provider.Layer)
+            List of the layers the image is built from
+
+        Returns
+        -------
+        bool
+            True when the image has to be rebuilt to pick the current content up
+        """
+        content_hash = self._generate_image_content_hash(base_image, layers)
+
+        if content_hash is None:
+            # Content we cannot checksum, so rebuild rather than risk missing a change.
+            return True
+
+        if not content_hash:
+            # No layer is defined in the template, so the image tag already pins the content.
+            return False
+
+        # An image built before this label existed has to be rebuilt once to gain it.
+        labels = (self.get_config(rapid_image) or {}).get("Labels") or {}
+        return bool(labels.get(self._IMAGE_CONTENT_HASH_LABEL) != content_hash)
+
+    @staticmethod
     def _generate_docker_image_version(layers, runtime_image_tag):
         """
         Generate the Docker TAG that will be used to create the image
@@ -402,7 +523,9 @@ class LambdaImage:
         samcli.commands.local.cli_common.user_exceptions.ImageBuildException
             When docker fails to build the image
         """
-        dockerfile_content = self._generate_dockerfile(base_image, layers, architecture)
+        dockerfile_content = self._generate_dockerfile(
+            base_image, layers, architecture, self._generate_image_content_hash(base_image, layers)
+        )
 
         # Create dockerfile in the same directory of the layer cache
         dockerfile_name = "dockerfile_" + str(uuid.uuid4())
@@ -498,7 +621,7 @@ class LambdaImage:
                 full_dockerfile_path.unlink()
 
     @staticmethod
-    def _generate_dockerfile(base_image, layers, architecture):
+    def _generate_dockerfile(base_image, layers, architecture, image_content_hash=""):
         """
         FROM public.ecr.aws/lambda/python:3.9-x86_64
 
@@ -516,6 +639,9 @@ class LambdaImage:
             List of Layers to be use to mount in the image
         architecture : str
             Architecture type either x86_64 or arm64 on AWS lambda
+        image_content_hash : Optional[str]
+            Hash of what the image is built from, recorded as a label so a later invoke can reuse
+            the image while none of it has changed
 
         Returns
         -------
@@ -539,6 +665,9 @@ class LambdaImage:
                 stage_dir = f"/tmp/layer{idx}"
                 dockerfile_content += f"ADD {layer.name} {stage_dir}\n"
                 dockerfile_content += f"RUN cp -rf {stage_dir}/. {LambdaImage._LAYERS_DIR}/ && rm -rf {stage_dir}\n"
+        if image_content_hash:
+            # Last so that a content change does not invalidate Docker's cache for the layers above.
+            dockerfile_content += f'LABEL {LambdaImage._IMAGE_CONTENT_HASH_LABEL}="{image_content_hash}"\n'
         return dockerfile_content
 
     def _remove_rapid_images(self, repo: str) -> None:

@@ -1,5 +1,6 @@
 import tempfile
 
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import patch, Mock, mock_open, ANY, call
 from parameterized import parameterized
@@ -327,6 +328,104 @@ class TestLambdaImage(TestCase):
         docker_client_mock.images.get.assert_called_once_with("samcli/lambda-runtime:image-version")
         build_image_patch.assert_not_called()
 
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_not_building_image_for_template_layer_whose_content_is_unchanged(
+        self, generate_docker_image_version_patch, build_image_patch, is_base_image_current_patch
+    ):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = Mock()
+            layer_mock.name = "layers1"
+            layer_mock.is_defined_within_template = True
+            layer_mock.codeuri = layer_dir
+
+            layer_downloader_mock = Mock()
+            layer_downloader_mock.download_all.return_value = [layer_mock]
+
+            generate_docker_image_version_patch.return_value = "runtime:image-version"
+            is_base_image_current_patch.return_value = True
+
+            docker_client_mock = Mock()
+            docker_client_mock.images.get.return_value.attrs = {
+                "Config": {
+                    "Labels": {
+                        LambdaImage._IMAGE_CONTENT_HASH_LABEL: LambdaImage._generate_image_content_hash(
+                            "public.ecr.aws/lambda/python:3.12-x86_64", [layer_mock]
+                        )
+                    }
+                }
+            }
+
+            lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+            lambda_image.build("python3.12", ZIP, None, [layer_mock], X86_64, function_name="function")
+
+            build_image_patch.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_building_image_for_template_layer_on_a_different_base_image(
+        self, generate_docker_image_version_patch, build_image_patch, is_base_image_current_patch
+    ):
+        # The tag of a layered function does not pin the base image, so --invoke-image would
+        # otherwise be served an image built on top of a different one.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = Mock()
+            layer_mock.name = "layers1"
+            layer_mock.is_defined_within_template = True
+            layer_mock.codeuri = layer_dir
+
+            layer_downloader_mock = Mock()
+            layer_downloader_mock.download_all.return_value = [layer_mock]
+
+            generate_docker_image_version_patch.return_value = "runtime:image-version"
+            is_base_image_current_patch.return_value = True
+
+            docker_client_mock = Mock()
+            docker_client_mock.images.get.return_value.attrs = {
+                "Config": {
+                    "Labels": {
+                        LambdaImage._IMAGE_CONTENT_HASH_LABEL: LambdaImage._generate_image_content_hash(
+                            "public.ecr.aws/lambda/python:3.11-x86_64", [layer_mock]
+                        )
+                    }
+                }
+            }
+
+            lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+            lambda_image.build("python3.12", ZIP, None, [layer_mock], X86_64, function_name="function")
+
+            build_image_patch.assert_called_once()
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_building_image_for_template_layer_whose_content_changed(
+        self, generate_docker_image_version_patch, build_image_patch, is_base_image_current_patch
+    ):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = Mock()
+            layer_mock.name = "layers1"
+            layer_mock.is_defined_within_template = True
+            layer_mock.codeuri = layer_dir
+
+            layer_downloader_mock = Mock()
+            layer_downloader_mock.download_all.return_value = [layer_mock]
+
+            generate_docker_image_version_patch.return_value = "runtime:image-version"
+            is_base_image_current_patch.return_value = True
+
+            docker_client_mock = Mock()
+            docker_client_mock.images.get.return_value.attrs = {
+                "Config": {"Labels": {LambdaImage._IMAGE_CONTENT_HASH_LABEL: "hash-of-the-previous-content"}}
+            }
+
+            lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+            lambda_image.build("python3.12", ZIP, None, [layer_mock], X86_64, function_name="function")
+
+            build_image_patch.assert_called_once()
+
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
@@ -491,6 +590,185 @@ class TestLambdaImage(TestCase):
 
         hashlib_patch.sha256.assert_called_once_with(b"layer1")
 
+    BASE_IMAGE = "public.ecr.aws/lambda/python:3.12-x86_64"
+
+    @staticmethod
+    def _template_layer(codeuri):
+        layer_mock = Mock()
+        layer_mock.is_defined_within_template = True
+        layer_mock.codeuri = codeuri
+        return layer_mock
+
+    def test_checksum_layer_content_hashes_a_directory_and_a_file(self):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            Path(layer_dir, "handler.py").write_text("first")
+            self.assertTrue(LambdaImage._checksum_layer_content(layer_dir))
+
+            layer_zip = Path(layer_dir, "layer.zip")
+            layer_zip.write_text("zipped")
+            self.assertTrue(LambdaImage._checksum_layer_content(str(layer_zip)))
+
+    def test_checksum_layer_content_follows_a_file_symlink(self):
+        # node_modules/.bin is full of these, so they must not stop the image being reused.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            target = Path(layer_dir, "handler.py")
+            target.write_text("first")
+            Path(layer_dir, "alias.py").symlink_to(target)
+
+            self.assertTrue(LambdaImage._checksum_layer_content(layer_dir))
+
+    @parameterized.expand([("..",), ("../..",)])
+    def test_checksum_layer_content_refuses_a_directory_symlink(self, target):
+        # Walking a link to an ancestor never returns, and workspace tooling leaves these behind.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            nested = Path(layer_dir, "pkg")
+            nested.mkdir()
+            Path(nested, "loop").symlink_to(target, target_is_directory=True)
+
+            self.assertIsNone(LambdaImage._checksum_layer_content(layer_dir))
+
+    def test_checksum_layer_content_ignores_a_directory_symlink_under_aws_sam(self):
+        # The checksum never reads .aws-sam, so what is in there cannot decide whether to rebuild.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            Path(layer_dir, "handler.py").write_text("first")
+            without_build_dir = LambdaImage._checksum_layer_content(layer_dir)
+
+            build_dir = Path(layer_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+            Path(build_dir, "loop").symlink_to("../..", target_is_directory=True)
+
+            self.assertEqual(without_build_dir, LambdaImage._checksum_layer_content(layer_dir))
+
+    def test_checksum_layer_content_refuses_a_dangling_symlink(self):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            Path(layer_dir, "gone.py").symlink_to(Path(layer_dir, "missing.py"))
+
+            self.assertIsNone(LambdaImage._checksum_layer_content(layer_dir))
+
+    @parameterized.expand([("this/path/does/not/exist",), (None,)])
+    def test_checksum_layer_content_refuses_content_it_cannot_locate(self, codeuri):
+        self.assertIsNone(LambdaImage._checksum_layer_content(codeuri))
+
+    def test_generate_image_content_hash_is_empty_without_a_template_layer(self):
+        layer_mock = Mock()
+        layer_mock.is_defined_within_template = False
+        layer_mock.codeuri = None
+
+        self.assertEqual(LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]), "")
+
+    def test_generate_image_content_hash_tracks_the_layer_content(self):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = self._template_layer(layer_dir)
+
+            content = Path(layer_dir, "handler.py")
+            content.write_text("first")
+            first_hash = LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+
+            self.assertEqual(first_hash, LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]))
+
+            content.write_text("second")
+            self.assertNotEqual(first_hash, LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]))
+
+    def test_generate_image_content_hash_tracks_the_base_image(self):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = self._template_layer(layer_dir)
+
+            self.assertNotEqual(
+                LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]),
+                LambdaImage._generate_image_content_hash("public.ecr.aws/lambda/python:3.11-x86_64", [layer_mock]),
+            )
+
+    def test_generate_image_content_hash_tracks_the_layer_order(self):
+        # A later layer overwrites the files of an earlier one, so the order is part of the content.
+        with tempfile.TemporaryDirectory() as first_dir, tempfile.TemporaryDirectory() as second_dir:
+            Path(first_dir, "handler.py").write_text("first")
+            Path(second_dir, "handler.py").write_text("second")
+            first_layer = self._template_layer(first_dir)
+            second_layer = self._template_layer(second_dir)
+
+            self.assertNotEqual(
+                LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [first_layer, second_layer]),
+                LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [second_layer, first_layer]),
+            )
+
+    def test_generate_image_content_hash_tracks_a_layer_that_is_a_file(self):
+        # A ContentUri can point at a local zip rather than a directory.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_zip = Path(layer_dir, "layer.zip")
+            layer_zip.write_text("first")
+            layer_mock = self._template_layer(str(layer_zip))
+
+            first_hash = LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+            self.assertTrue(first_hash)
+
+            layer_zip.write_text("second")
+            self.assertNotEqual(first_hash, LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]))
+
+    def test_generate_image_content_hash_is_none_when_the_content_cannot_be_read(self):
+        layer_mock = self._template_layer("this/path/does/not/exist")
+
+        self.assertIsNone(LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]))
+
+    def test_image_content_changed_is_false_without_a_template_layer(self):
+        layer_mock = Mock()
+        layer_mock.is_defined_within_template = False
+
+        lambda_image = LambdaImage(Mock(), False, False, docker_client=Mock())
+
+        self.assertFalse(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+
+    def test_image_content_changed_when_the_content_cannot_be_read(self):
+        # A dangling symlink or an unreadable file keeps the previous behaviour of rebuilding
+        # rather than failing the invoke.
+        layer_mock = self._template_layer("this/path/does/not/exist")
+
+        lambda_image = LambdaImage(Mock(), False, False, docker_client=Mock())
+
+        self.assertTrue(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+
+    def test_image_content_changed_for_an_image_built_before_the_label_existed(self):
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = self._template_layer(layer_dir)
+
+            docker_client_mock = Mock()
+            docker_client_mock.images.get.return_value.attrs = {"Config": {"Labels": None}}
+
+            lambda_image = LambdaImage(Mock(), False, False, docker_client=docker_client_mock)
+
+            self.assertTrue(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+
+    def test_generate_image_content_hash_only_covers_the_template_layers(self):
+        # A layer referenced by version ARN is immutable and its name already carries the version,
+        # so it must not contribute to the hash even when mixed with a template layer.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            template_layer = self._template_layer(layer_dir)
+            arn_layer = Mock()
+            arn_layer.is_defined_within_template = False
+            arn_layer.codeuri = None
+
+            self.assertEqual(
+                LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [template_layer]),
+                LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [arn_layer, template_layer]),
+            )
+
+    def test_generate_image_content_hash_tracks_the_sam_cli_version(self):
+        # The tag does not pin the RIE binary, so an upgrade has to rebuild the image.
+        with tempfile.TemporaryDirectory() as layer_dir:
+            layer_mock = self._template_layer(layer_dir)
+
+            with patch("samcli.local.docker.lambda_image.__version__", "0.0.0"):
+                older_hash = LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+
+            self.assertNotEqual(older_hash, LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock]))
+
+    def test_generate_dockerfile_records_the_image_content_hash(self):
+        layer_mock = Mock()
+        layer_mock.name = "layer1"
+
+        dockerfile = LambdaImage._generate_dockerfile("python", [layer_mock], X86_64, "thecontenthash")
+
+        self.assertIn(f'LABEL {LambdaImage._IMAGE_CONTENT_HASH_LABEL}="thecontenthash"\n', dockerfile)
+
     @patch("samcli.local.docker.lambda_image.docker")
     def test_generate_dockerfile(self, docker_patch):
         docker_client_mock = Mock()
@@ -548,6 +826,13 @@ class TestLambdaImage(TestCase):
 
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
+        # The label is what lets the next invoke reuse this image, so it must reach the Dockerfile.
+        generate_dockerfile_patch.assert_called_once_with(
+            "base_image",
+            [layer_version1],
+            "arm64",
+            LambdaImage._generate_image_content_hash("base_image", [layer_version1]),
+        )
         path_patch.assert_called_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
