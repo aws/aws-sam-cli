@@ -394,6 +394,27 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertEqual(environ["EmptyDefaultParameter"], "")
 
     @pytest.mark.flaky(reruns=3)
+    def test_invoke_with_env_using_fn_if_ignores_unresolvable_branch(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "EchoEnvWithFnIf",
+            template_path=self.template_path,
+            event_path=self.event_path,
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
+        environ = json.loads(process_stdout.decode("utf-8"))
+
+        self.assertEqual(environ["FunctionUrl"], "https://custom.example.com/")
+
+    @pytest.mark.flaky(reruns=3)
     def test_invoke_multi_tenant_function(self):
         command_list = InvokeIntegBase.get_command_list(
             "MultiTenantFunction",
