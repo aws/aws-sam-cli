@@ -217,7 +217,11 @@ Testing application behaviour against authorizers deployed on AWS can be done us
     @staticmethod
     def normalize_cors_methods(routes: List[Route], cors: Optional[Cors]) -> List[Route]:
         """
-        Adds OPTIONS method to all the route methods if cors exists
+        Adds OPTIONS method to route methods if cors exists while preserving
+        existing OPTIONS ownership for each function and path, regardless of
+        operation name. In get_api(), authorizers are linked before this step, so
+        synthesized OPTIONS prefers a route without a linked local authorizer. If
+        every sibling has one, the first route remains the fallback owner.
 
         Parameters
         -----------
@@ -229,52 +233,117 @@ Testing application behaviour against authorizers deployed on AWS can be done us
 
         Return
         -------
-        A list of routes without duplicate routes with the same function_name and method
+        A list of routes with existing OPTIONS ownership preserved and synthesized
+        OPTIONS assigned to at most one route per group
         """
+        if not cors:
+            return routes
 
-        def add_options_to_route(route: Route) -> Route:
-            if "OPTIONS" not in route.methods:
-                route.methods.append("OPTIONS")
-            return route
+        grouped_routes: Dict[Tuple[str, Optional[str], str], List[Route]] = {}
 
-        return routes if not cors else [add_options_to_route(route) for route in routes]
+        for route in routes:
+            key = (route.stack_path, route.function_name, route.path)
+            grouped_routes.setdefault(key, []).append(route)
+
+        result: List[Route] = []
+
+        for route_group in grouped_routes.values():
+            options_claimed = any("OPTIONS" in route.methods for route in route_group)
+
+            if not options_claimed:
+                owner = next(
+                    (route for route in route_group if route.authorizer_object is None),
+                    route_group[0],
+                )
+                owner.methods.append("OPTIONS")
+
+            result.extend(route_group)
+
+        return result
 
     @staticmethod
     def dedupe_function_routes(routes: List[Route]) -> List[Route]:
         """
-         Remove duplicate routes that have the same function_name and method
+         Remove duplicate routes that have the same function_name, path, and method while preserving method-specific
+         operation names.
 
          route: list(Route)
              List of Routes
 
         Return
         -------
-        A list of routes without duplicate routes with the same stack_path, function_name and method
+        A list of routes without duplicate routes with the same stack_path, function_name, path, and method
         """
-        grouped_routes: Dict[str, Route] = {}
+        grouped_routes: Dict[Tuple[str, Optional[str], str], List[Route]] = {}
 
         for route in routes:
-            key = "{}-{}-{}-{}".format(route.stack_path, route.function_name, route.path, route.operation_name or "")
-            config = grouped_routes.get(key, None)
-            methods = route.methods
-            if config:
-                methods += config.methods
-            sorted_methods = sorted(methods)
-            # Prefer route-specific CORS over None
-            cors = route.cors if route.cors is not None else (config.cors if config else None)
-            grouped_routes[key] = Route(
-                function_name=route.function_name,
-                path=route.path,
-                methods=sorted_methods,
-                event_type=route.event_type,
-                payload_format_version=route.payload_format_version,
-                operation_name=route.operation_name,
-                stack_path=route.stack_path,
-                authorizer_name=route.authorizer_name,
-                authorizer_object=route.authorizer_object,
-                cors=cors,
+            key = (route.stack_path, route.function_name, route.path)
+            grouped_routes.setdefault(key, []).append(route)
+
+        result: List[Route] = []
+
+        def has_same_authorizer(first: Route, second: Route) -> bool:
+            return (
+                first.authorizer_name == second.authorizer_name and first.authorizer_object == second.authorizer_object
             )
-        return list(grouped_routes.values())
+
+        def can_merge(first: Route, second: Route) -> bool:
+            return has_same_authorizer(first, second) and (first.operation_name or "") == (second.operation_name or "")
+
+        for route_group in grouped_routes.values():
+            merged_routes: List[Route] = []
+            group_cors = next((route.cors for route in route_group if route.cors is not None), None)
+
+            # Process broader routes first so a more specific route can own overlapping methods, even when operation
+            # names differ. Only routes with the same authorizer and operation-name metadata are merged into one Route.
+            for route in sorted(route_group, key=lambda item: len(item.methods), reverse=True):
+                methods = list(dict.fromkeys(route.methods))
+
+                for existing_route in merged_routes:
+                    if not can_merge(existing_route, route):
+                        existing_route.methods = [method for method in existing_route.methods if method not in methods]
+
+                matching_route = next(
+                    (existing_route for existing_route in merged_routes if can_merge(existing_route, route)),
+                    None,
+                )
+
+                if matching_route:
+                    matching_route.methods = sorted(set(matching_route.methods + methods))
+
+                    if matching_route.payload_format_version is None:
+                        matching_route.payload_format_version = route.payload_format_version
+
+                    if route.cors is not None:
+                        matching_route.cors = route.cors
+
+                    # Authorizers are already resolved by _link_authorizers() before
+                    # deduplication, so use_default_authorizer does not affect this merge.
+                    continue
+
+                merged_routes.append(
+                    Route(
+                        function_name=route.function_name,
+                        path=route.path,
+                        methods=sorted(methods),
+                        event_type=route.event_type,
+                        payload_format_version=route.payload_format_version,
+                        operation_name=route.operation_name,
+                        stack_path=route.stack_path,
+                        authorizer_name=route.authorizer_name,
+                        authorizer_object=route.authorizer_object,
+                        use_default_authorizer=route.use_default_authorizer,
+                        cors=route.cors,
+                    )
+                )
+
+            for merged_route in merged_routes:
+                if merged_route.cors is None:
+                    merged_route.cors = group_cors
+
+            result.extend(route for route in merged_routes if route.methods)
+
+        return result
 
     def add_binary_media_types(self, logical_id: str, binary_media_types: Optional[List[str]]) -> None:
         """
