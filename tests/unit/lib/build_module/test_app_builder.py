@@ -1287,6 +1287,29 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
         )
 
+    @parameterized.expand([(["python3.13"], 0), (["python3.13", "python3.12"], 1)])
+    @patch("samcli.lib.build.app_builder.LOG")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_warn_once_naming_layer_when_python_uv_layer_has_multiple_compatible_runtimes(
+        self, compatible_runtimes, expected_warnings, osutils_mock, get_workflow_config_mock, log_mock
+    ):
+        # uv installs ABI-specific wheels, so silently targeting the first runtime hides a compatibility gap.
+        # The warning must name the layer and the ignored runtimes so the user knows which resource to fix.
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, language="python", dependency_manager="uv")
+        self.builder._build_function_in_process = Mock()
+
+        self.builder._build_layer("layer_name", "code_uri", "python-uv", compatible_runtimes, X86_64, "full_path")
+
+        self.assertEqual(log_mock.warning.call_count, expected_warnings)
+        if expected_warnings:
+            warning_args = log_mock.warning.call_args.args
+            self.assertIn("layer_name", warning_args)
+            self.assertIn("python3.13", warning_args)
+            self.assertIn(["python3.12"], warning_args)
+
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
     def test_must_reject_python_uv_layer_build_in_container(self, osutils_mock, get_workflow_config_mock):

@@ -221,17 +221,14 @@ class Test_resolve_layer_build_runtime(TestCase):
     def test_must_pass_through_runtime_style_build_methods(self, build_method, compatible_runtimes, expected):
         self.assertEqual(resolve_layer_build_runtime(build_method, compatible_runtimes), expected)
 
-    @patch("samcli.lib.build.workflow_config.LOG")
-    def test_must_resolve_python_uv_from_single_compatible_runtime_without_warning(self, log_mock):
-        self.assertEqual(resolve_layer_build_runtime("python-uv", ["python3.13"]), "python3.13")
-        log_mock.warning.assert_not_called()
+    def test_must_raise_when_first_compatible_runtime_is_a_build_method_name(self):
+        # "python-uv" maps to the python subfolder like a runtime does, so a language comparison alone would
+        # accept it and hand the workflow name back to Lambda Builders as the runtime.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["python-uv", "python3.13"])
 
-    @patch("samcli.lib.build.workflow_config.LOG")
-    def test_must_warn_when_python_uv_has_multiple_compatible_runtimes(self, log_mock):
-        # uv installs ABI-specific wheels, so silently targeting the first runtime hides a real compatibility gap.
-        self.assertEqual(resolve_layer_build_runtime("python-uv", ["python3.13", "python3.12"]), "python3.13")
-        log_mock.warning.assert_called_once()
-        self.assertIn("python3.13", log_mock.warning.call_args.args)
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))
+        self.assertIn("found 'python-uv'", str(ctx.exception))
 
     def test_must_raise_when_first_compatible_runtime_is_an_unsupported_python_version(self):
         # A prefix check would let python3.7 through, to fail later inside Lambda Builders or as a bare

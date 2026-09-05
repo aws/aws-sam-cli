@@ -96,7 +96,8 @@ def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional
     Returns the runtime handed to Lambda Builders when building a layer.
 
     Runtime-style BuildMethods (python3.13, nodejs22.x, ...) and makefile pass through unchanged; workflow-style
-    ones such as python-uv resolve to the first CompatibleRuntimes entry.
+    ones such as python-uv resolve to the first CompatibleRuntimes entry. Callers that know the resource are
+    responsible for warning when several runtimes are declared and only the first is built for.
 
     Raises
     ------
@@ -121,17 +122,12 @@ def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional
         runtime_language: Optional[str] = get_layer_subfolder(runtime)
     except UnsupportedRuntimeException:
         runtime_language = None
-    if runtime_language != expected_language:
+    # Build method names share the subfolder map with runtimes, so exclude them explicitly: "python-uv" listed under
+    # CompatibleRuntimes would otherwise pass the language comparison and reach Lambda Builders as the runtime.
+    if runtime in DEPENDENCY_MANAGER_BUILD_METHODS or runtime_language != expected_language:
         raise UnsupportedRuntimeException(
             f"BuildMethod '{build_method}' for layers requires a supported {expected_language} runtime as the first "
             f"CompatibleRuntimes entry, but found '{runtime}'"
-        )
-    if len(compatible_runtimes) > 1:
-        LOG.warning(
-            "Layer declares multiple CompatibleRuntimes; building with %s for %s. Dependencies compiled for that "
-            "Python version may not work on the other declared runtimes.",
-            runtime,
-            build_method,
         )
     return runtime
 

@@ -37,6 +37,7 @@ from samcli.lib.build.exceptions import (
 from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
+    DEPENDENCY_MANAGER_BUILD_METHODS,
     UnsupportedBuilderException,
     UnsupportedRuntimeException,
     get_layer_subfolder,
@@ -645,6 +646,22 @@ class ApplicationBuilder:
                 else scratch_dir
             )
             build_runtime = resolve_layer_build_runtime(specified_workflow, compatible_runtimes)
+            if (
+                specified_workflow in DEPENDENCY_MANAGER_BUILD_METHODS
+                and compatible_runtimes
+                and len(compatible_runtimes) > 1
+            ):
+                # Warned here rather than in the resolver: this is the one call site per layer that knows its name
+                # (the --cached manifest pre-check resolves the runtime too), and uv installs ABI-specific wheels.
+                LOG.warning(
+                    "Layer %s declares multiple CompatibleRuntimes %s; building with %s for %s. Dependencies compiled "
+                    "for that Python version may not work on %s.",
+                    layer_name,
+                    compatible_runtimes,
+                    build_runtime,
+                    specified_workflow,
+                    compatible_runtimes[1:],
+                )
             options = ApplicationBuilder._get_build_options(
                 layer_name,
                 config.language,
