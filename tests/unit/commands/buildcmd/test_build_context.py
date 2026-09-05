@@ -1850,6 +1850,24 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
         mock_prompt.assert_not_called()
 
+    @patch("samcli.commands.build.build_context.prompt_experimental", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_aborts_when_declined(self, mock_get_resources, mock_prompt):
+        # Declining the beta prompt must stop the build; previously the answer was discarded and the build
+        # proceeded into the uv workflow anyway.
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_resources.layers = []
+        mock_get_resources.return_value = mock_resources
+
+        with self.assertRaises(UserException) as ctx:
+            self.build_context._check_build_method_experimental_flag()
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("--beta-features", str(ctx.exception))
+
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     def test_check_build_method_experimental_flag_dedupes_shared_build_method(self, mock_get_resources, mock_prompt):

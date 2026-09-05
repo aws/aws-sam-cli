@@ -5,6 +5,7 @@ from unittest.mock import patch
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
     get_layer_subfolder,
+    resolve_layer_build_runtime,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
 )
@@ -207,3 +208,26 @@ class Test_get_layer_subfolder(TestCase):
             get_layer_subfolder("foobar")
 
         self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported for layers")
+
+
+class Test_resolve_layer_build_runtime(TestCase):
+    @parameterized.expand(
+        [
+            ("python3.13", ["python3.13"], "python3.13"),
+            ("nodejs22.x", None, "nodejs22.x"),
+            ("makefile", ["python3.13"], "makefile"),
+        ]
+    )
+    def test_must_pass_through_runtime_style_build_methods(self, build_method, compatible_runtimes, expected):
+        self.assertEqual(resolve_layer_build_runtime(build_method, compatible_runtimes), expected)
+
+    def test_must_resolve_python_uv_from_first_compatible_runtime(self):
+        self.assertEqual(resolve_layer_build_runtime("python-uv", ["python3.13", "python3.12"]), "python3.13")
+
+    @parameterized.expand([([],), (None,)])
+    def test_must_raise_when_python_uv_has_no_compatible_runtimes(self, compatible_runtimes):
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", compatible_runtimes)
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))

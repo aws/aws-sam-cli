@@ -22,7 +22,7 @@ from samcli.lib.build.app_builder import (
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.exceptions import DockerConnectionError
-from samcli.lib.build.workflow_config import UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.providers.provider import Function, FunctionBuildInfo, ResourcesToBuildCollector
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.architecture import ARM64, X86_64
@@ -1251,6 +1251,71 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
             specified_workflow="python3.8",
         )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_resolve_python_uv_layer_runtime_from_compatible_runtimes_in_process(
+        self, osutils_mock, get_workflow_config_mock
+    ):
+        # Lambda Builders derives --python-version from the runtime it is handed; "python-uv" is a workflow
+        # name, not a runtime, so the layer's CompatibleRuntimes must supply it.
+        config_mock = Mock()
+        config_mock.manifest_name = None
+        config_mock.language = "python"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+
+        self.builder._build_function_in_process = build_function_in_process_mock
+        self.builder._build_layer("layer_name", "code_uri", "python-uv", ["python3.13"], ARM64, "full_path")
+
+        build_function_in_process_mock.assert_called_once_with(
+            config_mock,
+            PathValidator("code_uri"),
+            PathValidator("python"),
+            "scratch",
+            None,
+            "python3.13",
+            ARM64,
+            None,
+            None,
+            True,
+            True,
+            is_building_layer=True,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_reject_python_uv_layer_build_in_container(self, osutils_mock, get_workflow_config_mock):
+        # SAM build images don't ship uv yet and PYTHON_UV_CONFIG has no manifest to mount, so a container
+        # build would crash deep in LambdaBuildContainer; fail up front with an actionable message instead.
+        self.builder._container_manager = self.container_manager
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, language="python", dependency_manager="uv")
+        self.builder._build_function_on_container = Mock()
+
+        with self.assertRaises(UnsupportedBuilderException) as ctx:
+            self.builder._build_layer("layer_name", "code_uri", "python-uv", ["python3.13"], X86_64, "full_path")
+
+        self.assertIn("--use-container", str(ctx.exception))
+        self.assertIn("python-uv", str(ctx.exception))
+        self.builder._build_function_on_container.assert_not_called()
+
+    @parameterized.expand([([],), (None,)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_raise_when_python_uv_layer_has_no_compatible_runtimes(
+        self, compatible_runtimes, osutils_mock, get_workflow_config_mock
+    ):
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, language="python")
+        self.builder._build_function_in_process = Mock()
+
+        with self.assertRaises(UnsupportedRuntimeException):
+            self.builder._build_layer("layer_name", "code_uri", "python-uv", compatible_runtimes, ARM64, "full_path")
+
+        self.builder._build_function_in_process.assert_not_called()
 
 
 class TestApplicationBuilder_update_template(TestCase):
@@ -2832,6 +2897,29 @@ class TestApplicationBuilder_build_function(TestCase):
             None,
             specified_workflow=None,
         )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_reject_python_uv_function_build_in_container(self, osutils_mock, get_workflow_config_mock):
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, language="python", dependency_manager="uv")
+        self.builder._build_function_on_container = Mock()
+        self.builder._container_manager = Mock()
+
+        with self.assertRaises(UnsupportedBuilderException) as ctx:
+            self.builder._build_function(
+                "function_name",
+                "path/to/source",
+                None,
+                ZIP,
+                "python3.13",
+                X86_64,
+                "handler",
+                "/build/dir/function_full_path",
+                metadata={"BuildMethod": "python-uv"},
+            )
+
+        self.assertIn("--use-container", str(ctx.exception))
+        self.builder._build_function_on_container.assert_not_called()
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")

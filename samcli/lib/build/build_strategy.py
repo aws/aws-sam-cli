@@ -28,7 +28,11 @@ from samcli.lib.build.exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.utils import warn_on_invalid_architecture
-from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import (
+    UnsupportedBuilderException,
+    UnsupportedRuntimeException,
+    resolve_layer_build_runtime,
+)
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.async_utils import AsyncContext
@@ -538,7 +542,11 @@ class IncrementalBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         with _attribute_build_failure_to([layer_definition.full_path]):
             self._check_whether_manifest_is_changed(
-                layer_definition, layer_definition.codeuri, layer_definition.build_method
+                layer_definition,
+                layer_definition.codeuri,
+                resolve_layer_build_runtime(
+                    cast(str, layer_definition.build_method), layer_definition.compatible_runtimes
+                ),
             )
             return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 

@@ -1537,7 +1537,11 @@ Commands you can use next
                 'You can also enable this beta feature with "sam build --beta-features".'
             )
 
-            prompt_experimental(experimental_flag, WARNING_MESSAGE)
+            if not prompt_experimental(experimental_flag, WARNING_MESSAGE):
+                raise UserException(
+                    f'Build method "{build_method}" is a beta feature and was not confirmed. '
+                    'Re-run with "sam build --beta-features" to enable it.'
+                )
 
     @property
     def build_in_source(self) -> Optional[bool]:
