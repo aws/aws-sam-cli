@@ -1519,13 +1519,15 @@ Commands you can use next
 
         resources_to_build = self.get_resources_to_build()
         build_methods = {
-            function.metadata.get("BuildMethod", "") for function in resources_to_build.functions if function.metadata
+            function.metadata.get("BuildMethod") for function in resources_to_build.functions if function.metadata
         }
-        build_methods.update(layer.build_method for layer in resources_to_build.layers if layer.build_method)
+        build_methods.update(layer.build_method for layer in resources_to_build.layers)
+        # Filter before sorting: "BuildMethod:" with no value parses to None, and sorting a mixed set raises.
+        experimental_build_methods = sorted(
+            build_method for build_method in build_methods if build_method in EXPERIMENTAL_BUILD_METHODS
+        )
 
-        for build_method in sorted(build_methods):
-            if build_method not in EXPERIMENTAL_BUILD_METHODS:
-                continue
+        for build_method in experimental_build_methods:
             experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
             # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
             # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.

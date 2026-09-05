@@ -221,8 +221,26 @@ class Test_resolve_layer_build_runtime(TestCase):
     def test_must_pass_through_runtime_style_build_methods(self, build_method, compatible_runtimes, expected):
         self.assertEqual(resolve_layer_build_runtime(build_method, compatible_runtimes), expected)
 
-    def test_must_resolve_python_uv_from_first_compatible_runtime(self):
+    @patch("samcli.lib.build.workflow_config.LOG")
+    def test_must_resolve_python_uv_from_single_compatible_runtime_without_warning(self, log_mock):
+        self.assertEqual(resolve_layer_build_runtime("python-uv", ["python3.13"]), "python3.13")
+        log_mock.warning.assert_not_called()
+
+    @patch("samcli.lib.build.workflow_config.LOG")
+    def test_must_warn_when_python_uv_has_multiple_compatible_runtimes(self, log_mock):
+        # uv installs ABI-specific wheels, so silently targeting the first runtime hides a real compatibility gap.
         self.assertEqual(resolve_layer_build_runtime("python-uv", ["python3.13", "python3.12"]), "python3.13")
+        log_mock.warning.assert_called_once()
+        self.assertIn("python3.13", log_mock.warning.call_args.args)
+
+    def test_must_raise_when_first_compatible_runtime_is_not_python(self):
+        # uv derives --python-version from the runtime; a non-Python entry would fail deep inside Lambda Builders
+        # and, on --cached, hash the wrong manifest. Reject it here with a message naming the offending runtime.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["nodejs22.x", "python3.13"])
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("nodejs22.x", str(ctx.exception))
 
     @parameterized.expand([([],), (None,)])
     def test_must_raise_when_python_uv_has_no_compatible_runtimes(self, compatible_runtimes):

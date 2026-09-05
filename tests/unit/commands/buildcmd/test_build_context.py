@@ -1870,6 +1870,24 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_ignores_empty_build_method(self, mock_get_resources, mock_prompt):
+        # "BuildMethod:" with no value parses to None; sorting {None, "python-uv"} used to raise TypeError.
+        mock_function_1 = Mock()
+        mock_function_1.metadata = {"BuildMethod": None}
+        mock_function_2 = Mock()
+        mock_function_2.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function_1, mock_function_2]
+        mock_resources.layers = []
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
+        self.assertIn("python-uv", mock_prompt.call_args.args[1])
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
     def test_check_build_method_experimental_flag_dedupes_shared_build_method(self, mock_get_resources, mock_prompt):
         mock_function_1 = Mock()
         mock_function_1.metadata = {"BuildMethod": "python-uv"}

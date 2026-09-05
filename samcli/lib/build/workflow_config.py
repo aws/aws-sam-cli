@@ -84,10 +84,11 @@ def get_selector(
     return None
 
 
-# BuildMethods that name a workflow rather than a Lambda runtime, but whose workflow still needs a real runtime
-# (the uv packager derives --python-version from it, and container builds select the image by runtime).
-# For layers that runtime comes from CompatibleRuntimes.
-LAYER_BUILD_METHODS_REQUIRING_RUNTIME = {"python-uv"}
+# BuildMethods that name a dependency manager rather than a Lambda runtime. Their workflow still needs a real
+# runtime (the uv packager derives --python-version from it, and container builds select the image by runtime);
+# for layers that runtime comes from CompatibleRuntimes. The runtime alone does not identify their manifest either,
+# so the build method must accompany it wherever get_workflow_config is called for them.
+DEPENDENCY_MANAGER_BUILD_METHODS = {"python-uv"}
 
 
 def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional[List[str]]) -> str:
@@ -100,16 +101,29 @@ def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional
     Raises
     ------
     UnsupportedRuntimeException
-        When a workflow-style BuildMethod is used without CompatibleRuntimes.
+        When a workflow-style BuildMethod is used without CompatibleRuntimes, or the first entry is not Python.
     """
-    if build_method not in LAYER_BUILD_METHODS_REQUIRING_RUNTIME:
+    if build_method not in DEPENDENCY_MANAGER_BUILD_METHODS:
         return build_method
     if not compatible_runtimes:
         raise UnsupportedRuntimeException(
             f"BuildMethod '{build_method}' for layers requires CompatibleRuntimes to be set, "
             "so the Python version to build for can be determined"
         )
-    return compatible_runtimes[0]
+    runtime = compatible_runtimes[0]
+    if not runtime.startswith("python"):
+        raise UnsupportedRuntimeException(
+            f"BuildMethod '{build_method}' for layers requires a Python runtime as the first CompatibleRuntimes "
+            f"entry, but found '{runtime}'"
+        )
+    if len(compatible_runtimes) > 1:
+        LOG.warning(
+            "Layer declares multiple CompatibleRuntimes; building with %s for %s. Dependencies compiled for that "
+            "Python version may not work on the other declared runtimes.",
+            runtime,
+            build_method,
+        )
+    return runtime
 
 
 def get_layer_subfolder(build_workflow: str) -> str:

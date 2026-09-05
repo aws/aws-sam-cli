@@ -545,7 +545,9 @@ class ApplicationBuilder:
         Rejects workflows that cannot run inside a build container yet.
 
         SAM build images do not ship uv, and PYTHON_UV_CONFIG carries no manifest to mount, so a uv build
-        inside a container fails deep in LambdaBuildContainer. Fail up front with an actionable message instead.
+        inside a container fails deep in LambdaBuildContainer. Fail before invoking Lambda Builders for that
+        resource with an actionable message instead. The message names no command because ApplicationBuilder
+        also serves sam sync.
 
         Raises
         ------
@@ -556,7 +558,7 @@ class ApplicationBuilder:
             return
         raise UnsupportedBuilderException(
             f"Build method '{specified_workflow}' is not supported with --use-container yet, because the SAM build "
-            "images do not include uv. Re-run sam build without --use-container."
+            "images do not include uv. Re-run without --use-container."
         )
 
     def _build_layer(

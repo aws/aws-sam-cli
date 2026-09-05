@@ -1301,6 +1301,8 @@ class TestApplicationBuilderForLayerBuild(TestCase):
 
         self.assertIn("--use-container", str(ctx.exception))
         self.assertIn("python-uv", str(ctx.exception))
+        # ApplicationBuilder also serves sam sync, so the message must not name a specific command.
+        self.assertNotIn("sam build", str(ctx.exception))
         self.builder._build_function_on_container.assert_not_called()
 
     @parameterized.expand([([],), (None,)])
@@ -2919,6 +2921,7 @@ class TestApplicationBuilder_build_function(TestCase):
             )
 
         self.assertIn("--use-container", str(ctx.exception))
+        self.assertNotIn("sam build", str(ctx.exception))
         self.builder._build_function_on_container.assert_not_called()
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
