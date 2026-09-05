@@ -233,6 +233,16 @@ class Test_resolve_layer_build_runtime(TestCase):
         log_mock.warning.assert_called_once()
         self.assertIn("python3.13", log_mock.warning.call_args.args)
 
+    def test_must_raise_when_first_compatible_runtime_is_an_unsupported_python_version(self):
+        # A prefix check would let python3.7 through, to fail later inside Lambda Builders or as a bare
+        # "'python3.7' runtime is not supported" from the --cached manifest hash. Catch it at the template level.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["python3.7"])
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("python3.7", str(ctx.exception))
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))
+
     def test_must_raise_when_first_compatible_runtime_is_not_python(self):
         # uv derives --python-version from the runtime; a non-Python entry would fail deep inside Lambda Builders
         # and, on --cached, hash the wrong manifest. Reject it here with a message naming the offending runtime.

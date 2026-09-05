@@ -101,7 +101,8 @@ def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional
     Raises
     ------
     UnsupportedRuntimeException
-        When a workflow-style BuildMethod is used without CompatibleRuntimes, or the first entry is not Python.
+        When a workflow-style BuildMethod is used without CompatibleRuntimes, or the first entry is not a supported
+        runtime for that build method's language.
     """
     if build_method not in DEPENDENCY_MANAGER_BUILD_METHODS:
         return build_method
@@ -111,10 +112,19 @@ def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional
             "so the Python version to build for can be determined"
         )
     runtime = compatible_runtimes[0]
-    if not runtime.startswith("python"):
+    # Validate against the layer runtimes this module already knows, keyed off the build method's own language so
+    # the check stays correct for any future member of DEPENDENCY_MANAGER_BUILD_METHODS. A bare prefix test would let
+    # e.g. python3.7 through, to fail later inside Lambda Builders or as a bare "runtime is not supported" from the
+    # --cached manifest hash, neither of which points at CompatibleRuntimes.
+    expected_language = get_layer_subfolder(build_method)
+    try:
+        runtime_language: Optional[str] = get_layer_subfolder(runtime)
+    except UnsupportedRuntimeException:
+        runtime_language = None
+    if runtime_language != expected_language:
         raise UnsupportedRuntimeException(
-            f"BuildMethod '{build_method}' for layers requires a Python runtime as the first CompatibleRuntimes "
-            f"entry, but found '{runtime}'"
+            f"BuildMethod '{build_method}' for layers requires a supported {expected_language} runtime as the first "
+            f"CompatibleRuntimes entry, but found '{runtime}'"
         )
     if len(compatible_runtimes) > 1:
         LOG.warning(
