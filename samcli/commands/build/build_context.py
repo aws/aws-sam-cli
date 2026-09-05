@@ -1529,10 +1529,14 @@ Commands you can use next
 
         for build_method in experimental_build_methods:
             experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
-            # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
-            # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.
+            # JSON mode cannot prompt for beta confirmation, and a declined prompt aborts the build, so an
+            # unconfirmed JSON build must fail the same way rather than run the beta workflow silently. With the
+            # flag already enabled, prompt_experimental only updates telemetry and does not prompt.
             if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
-                continue
+                raise UserException(
+                    f'Build method "{build_method}" is a beta feature and cannot be confirmed with "--output json". '
+                    'Re-run with "sam build --beta-features" to enable it.'
+                )
             WARNING_MESSAGE = (
                 f'Build method "{build_method}" is a beta feature.\n'
                 "Please confirm if you would like to proceed\n"

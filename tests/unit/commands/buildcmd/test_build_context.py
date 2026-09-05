@@ -1834,10 +1834,10 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
     @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
-    def test_skips_beta_prompt_in_json_mode_when_not_enabled(self, mock_get_resources, mock_prompt, _):
-        # A JSON consumer cannot answer the confirm; skip it (rather than aborting on EOF) and let the
-        # non-gating beta build proceed. If the flag were already enabled, prompt_experimental would run
-        # to update telemetry context - covered by is_experimental_enabled=False here.
+    def test_fails_in_json_mode_when_beta_not_enabled(self, mock_get_resources, mock_prompt, _):
+        # A JSON consumer cannot answer the confirm, and declining it in text mode now aborts the build. Skipping
+        # the check would let --output json run the beta workflow unconfirmed, so fail with the same remedy
+        # instead of prompting. With the flag already enabled, prompt_experimental only updates telemetry.
         self.build_context._output = OutputOption.json
         mock_function = Mock()
         mock_function.metadata = {"BuildMethod": "python-uv"}
@@ -1846,9 +1846,13 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
-        self.build_context._check_build_method_experimental_flag()
+        with self.assertRaises(UserException) as ctx:
+            self.build_context._check_build_method_experimental_flag()
 
         mock_prompt.assert_not_called()
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("--output json", str(ctx.exception))
+        self.assertIn("--beta-features", str(ctx.exception))
 
     @patch("samcli.commands.build.build_context.prompt_experimental", return_value=False)
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
