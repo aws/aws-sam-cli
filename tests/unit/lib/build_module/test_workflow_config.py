@@ -4,6 +4,8 @@ from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import (
     get_workflow_config,
+    get_layer_subfolder,
+    resolve_layer_build_runtime,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
 )
@@ -187,3 +189,70 @@ class Test_get_workflow_config(TestCase):
             get_workflow_config(runtime, self.code_dir, self.project_dir)
 
         self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported")
+
+
+class Test_get_layer_subfolder(TestCase):
+    @parameterized.expand(
+        [
+            ("python3.12", "python"),
+            ("python-uv", "python"),
+            ("nodejs22.x", "nodejs"),
+            ("makefile", ""),
+        ]
+    )
+    def test_must_return_subfolder_for_supported_build_workflow(self, build_workflow, expected_subfolder):
+        self.assertEqual(get_layer_subfolder(build_workflow), expected_subfolder)
+
+    def test_must_raise_for_unsupported_build_workflow(self):
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            get_layer_subfolder("foobar")
+
+        self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported for layers")
+
+
+class Test_resolve_layer_build_runtime(TestCase):
+    @parameterized.expand(
+        [
+            ("python3.13", ["python3.13"], "python3.13"),
+            ("nodejs22.x", None, "nodejs22.x"),
+            ("makefile", ["python3.13"], "makefile"),
+        ]
+    )
+    def test_must_pass_through_runtime_style_build_methods(self, build_method, compatible_runtimes, expected):
+        self.assertEqual(resolve_layer_build_runtime(build_method, compatible_runtimes), expected)
+
+    def test_must_raise_when_first_compatible_runtime_is_a_build_method_name(self):
+        # "python-uv" maps to the python subfolder like a runtime does, so a language comparison alone would
+        # accept it and hand the workflow name back to Lambda Builders as the runtime.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["python-uv", "python3.13"])
+
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))
+        self.assertIn("found 'python-uv'", str(ctx.exception))
+
+    def test_must_raise_when_first_compatible_runtime_is_an_unsupported_python_version(self):
+        # A prefix check would let python3.7 through, to fail later inside Lambda Builders or as a bare
+        # "'python3.7' runtime is not supported" from the --cached manifest hash. Catch it at the template level.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["python3.7"])
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("python3.7", str(ctx.exception))
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))
+
+    def test_must_raise_when_first_compatible_runtime_is_not_python(self):
+        # uv derives --python-version from the runtime; a non-Python entry would fail deep inside Lambda Builders
+        # and, on --cached, hash the wrong manifest. Reject it here with a message naming the offending runtime.
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", ["nodejs22.x", "python3.13"])
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("nodejs22.x", str(ctx.exception))
+
+    @parameterized.expand([([],), (None,)])
+    def test_must_raise_when_python_uv_has_no_compatible_runtimes(self, compatible_runtimes):
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            resolve_layer_build_runtime("python-uv", compatible_runtimes)
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("CompatibleRuntimes", str(ctx.exception))

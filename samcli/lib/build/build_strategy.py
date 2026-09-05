@@ -28,7 +28,11 @@ from samcli.lib.build.exceptions import (
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.utils import warn_on_invalid_architecture
-from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
+from samcli.lib.build.workflow_config import (
+    UnsupportedBuilderException,
+    UnsupportedRuntimeException,
+    resolve_layer_build_runtime,
+)
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.async_utils import AsyncContext
@@ -538,7 +542,11 @@ class IncrementalBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         with _attribute_build_failure_to([layer_definition.full_path]):
             self._check_whether_manifest_is_changed(
-                layer_definition, layer_definition.codeuri, layer_definition.build_method
+                layer_definition,
+                layer_definition.codeuri,
+                resolve_layer_build_runtime(
+                    cast(str, layer_definition.build_method), layer_definition.compatible_runtimes
+                ),
             )
             return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 
@@ -550,7 +558,12 @@ class IncrementalBuildStrategy(BuildStrategy):
     ) -> None:
         """
         Checks whether the manifest file have been changed by comparing its hash with previously stored one and updates
-        download_dependencies property of build definition to True, if it is changed
+        download_dependencies property of build definition to True, if it is changed.
+
+        The hash is keyed by runtime, so a python-uv function/layer hashes requirements.txt like a pip build. That is
+        the manifest the uv workflow itself prefers when one exists (Lambda Builders' detect_uv_manifest checks
+        requirements*.txt before pyproject.toml); when only pyproject.toml exists the hash is None and dependencies
+        are re-downloaded every run. Either way the cache key never lags behind the manifest that was built.
         """
         manifest_hash = DependencyHashGenerator(
             cast(str, codeuri), self._base_dir, cast(str, runtime), self._manifest_path_override

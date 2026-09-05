@@ -84,6 +84,54 @@ def get_selector(
     return None
 
 
+# BuildMethods that name a dependency manager rather than a Lambda runtime. Their workflow still needs a real
+# runtime (the uv packager derives --python-version from it, and container builds select the image by runtime);
+# for layers that runtime comes from CompatibleRuntimes. The runtime alone does not identify their manifest either,
+# so the build method must accompany it wherever get_workflow_config is called for them.
+DEPENDENCY_MANAGER_BUILD_METHODS = {"python-uv"}
+
+
+def resolve_layer_build_runtime(build_method: str, compatible_runtimes: Optional[List[str]]) -> str:
+    """
+    Returns the runtime handed to Lambda Builders when building a layer.
+
+    Runtime-style BuildMethods (python3.13, nodejs22.x, ...) and makefile pass through unchanged; workflow-style
+    ones such as python-uv resolve to the first CompatibleRuntimes entry. Callers that know the resource are
+    responsible for warning when several runtimes are declared and only the first is built for.
+
+    Raises
+    ------
+    UnsupportedRuntimeException
+        When a workflow-style BuildMethod is used without CompatibleRuntimes, or the first entry is not a supported
+        runtime for that build method's language.
+    """
+    if build_method not in DEPENDENCY_MANAGER_BUILD_METHODS:
+        return build_method
+    if not compatible_runtimes:
+        raise UnsupportedRuntimeException(
+            f"BuildMethod '{build_method}' for layers requires CompatibleRuntimes to be set, "
+            "so the Python version to build for can be determined"
+        )
+    runtime = compatible_runtimes[0]
+    # Validate against the layer runtimes this module already knows, keyed off the build method's own language so
+    # the check stays correct for any future member of DEPENDENCY_MANAGER_BUILD_METHODS. A bare prefix test would let
+    # e.g. python3.7 through, to fail later inside Lambda Builders or as a bare "runtime is not supported" from the
+    # --cached manifest hash, neither of which points at CompatibleRuntimes.
+    expected_language = get_layer_subfolder(build_method)
+    try:
+        runtime_language: Optional[str] = get_layer_subfolder(runtime)
+    except UnsupportedRuntimeException:
+        runtime_language = None
+    # Build method names share the subfolder map with runtimes, so exclude them explicitly: "python-uv" listed under
+    # CompatibleRuntimes would otherwise pass the language comparison and reach Lambda Builders as the runtime.
+    if runtime in DEPENDENCY_MANAGER_BUILD_METHODS or runtime_language != expected_language:
+        raise UnsupportedRuntimeException(
+            f"BuildMethod '{build_method}' for layers requires a supported {expected_language} runtime as the first "
+            f"CompatibleRuntimes entry, but found '{runtime}'"
+        )
+    return runtime
+
+
 def get_layer_subfolder(build_workflow: str) -> str:
     subfolders_by_runtime = {
         "python3.8": "python",
@@ -93,6 +141,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "python3.12": "python",
         "python3.13": "python",
         "python3.14": "python",
+        "python-uv": "python",
         "nodejs8.10": "nodejs",
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",
