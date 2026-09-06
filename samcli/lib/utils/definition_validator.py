@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 import yaml
 from watchdog.events import FileOpenedEvent, FileSystemEvent
 
+from samcli.lib.utils.retry import retry
 from samcli.yamlhelper import parse_yaml_file
 
 LOG = logging.getLogger(__name__)
@@ -75,7 +76,7 @@ class DefinitionValidator:
             return False
 
         try:
-            self._data = parse_yaml_file(str(self._path))
+            self._data = self._parse_file()
         except (ValueError, yaml.YAMLError) as e:
             LOG.debug(
                 "File %s failed to validate due to it file cannot be parsed. \
@@ -84,4 +85,23 @@ Please verify that file is in the correct json or yaml format.",
                 exc_info=e,
             )
             return False
+        except OSError as e:
+            LOG.warning(
+                "File %s failed to validate because it cannot be read. \
+It may be locked by another process. The change will not be synced until the file is saved again.",
+                self._path,
+                exc_info=e,
+            )
+            return False
         return True
+
+    @retry(exc=OSError, exc_raise=OSError, exc_raise_msg="File cannot be read.")
+    def _parse_file(self) -> Dict[str, Any]:
+        """Read and parse the definition file, retrying while it is unreadable.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Parsed content of the definition file.
+        """
+        return parse_yaml_file(str(self._path))
