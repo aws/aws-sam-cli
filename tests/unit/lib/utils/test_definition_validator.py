@@ -70,18 +70,28 @@ class TestDefinitionValidator(TestCase):
         event = FileOpenedEvent("src_path")
         self.assertFalse(validator.validate_change(event))
 
-    @patch("samcli.lib.utils.retry.time.sleep")
+    @patch("samcli.lib.utils.definition_validator.time.sleep")
     @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
-    def test_detect_change_retries_unreadable_file(self, parse_yaml_file_mock, sleep_mock):
+    def test_detect_change_retries_locked_file(self, parse_yaml_file_mock, sleep_mock):
         parse_yaml_file_mock.side_effect = [{"A": 1}, PermissionError(13, "Permission denied"), {"B": 1}]
 
         validator = DefinitionValidator(self.path, detect_change=True, initialize_data=True)
         self.assertTrue(validator.validate_change())
 
-    @patch("samcli.lib.utils.retry.time.sleep")
+    @patch("samcli.lib.utils.definition_validator.time.sleep")
     @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
-    def test_detect_change_unreadable_file(self, parse_yaml_file_mock, sleep_mock):
+    def test_detect_change_locked_file(self, parse_yaml_file_mock, sleep_mock):
         parse_yaml_file_mock.side_effect = PermissionError(13, "Permission denied")
 
         validator = DefinitionValidator(self.path, detect_change=True, initialize_data=False)
         self.assertFalse(validator.validate_change())
+        self.assertEqual(parse_yaml_file_mock.call_count, 3)
+
+    @patch("samcli.lib.utils.definition_validator.time.sleep")
+    @patch("samcli.lib.utils.definition_validator.parse_yaml_file")
+    def test_detect_change_unreadable_file(self, parse_yaml_file_mock, sleep_mock):
+        parse_yaml_file_mock.side_effect = IsADirectoryError(21, "Is a directory")
+
+        validator = DefinitionValidator(self.path, detect_change=True, initialize_data=False)
+        self.assertFalse(validator.validate_change())
+        self.assertEqual(parse_yaml_file_mock.call_count, 1)

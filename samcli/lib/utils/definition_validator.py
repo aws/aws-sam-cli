@@ -1,16 +1,19 @@
 """DefinitionValidator for Validating YAML and JSON Files"""
 
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
 from watchdog.events import FileOpenedEvent, FileSystemEvent
 
-from samcli.lib.utils.retry import retry
 from samcli.yamlhelper import parse_yaml_file
 
 LOG = logging.getLogger(__name__)
+
+FILE_READ_ATTEMPTS = 3
+FILE_READ_RETRY_DELAY = 0.1
 
 
 class DefinitionValidator:
@@ -95,13 +98,22 @@ It may be locked by another process. The change will not be synced until the fil
             return False
         return True
 
-    @retry(exc=OSError, exc_raise=OSError, exc_raise_msg="File cannot be read.")
     def _parse_file(self) -> Dict[str, Any]:
-        """Read and parse the definition file, retrying while it is unreadable.
+        """Read and parse the definition file, retrying while it is locked by another process.
 
         Returns
         -------
         Dict[str, Any]
             Parsed content of the definition file.
         """
-        return parse_yaml_file(str(self._path))
+        remaining_attempts = FILE_READ_ATTEMPTS
+        delay = FILE_READ_RETRY_DELAY
+        while True:
+            try:
+                return parse_yaml_file(str(self._path))
+            except PermissionError:
+                remaining_attempts -= 1
+                if not remaining_attempts:
+                    raise
+                time.sleep(delay)
+                delay *= 2
