@@ -1,4 +1,5 @@
 from botocore.exceptions import ClientError
+from samcli.commands.exceptions import AWSServiceClientError
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, patch
@@ -146,6 +147,17 @@ class TestCompanionStackManager(TestCase):
         self.cfn_client.get_waiter.assert_called_once_with("stack_delete_complete")
         cfn_waiter.wait.assert_called_once_with(StackName=self.companion_stack_name, WaiterConfig=ANY)
 
+    def test_delete_companion_stack_with_role_arn(self):
+        cfn_waiter = Mock()
+        self.cfn_client.get_waiter.return_value = cfn_waiter
+
+        self.manager._role_arn = "role-arn"
+        self.manager._delete_companion_stack()
+
+        self.cfn_client.delete_stack.assert_called_once_with(
+            StackName=self.companion_stack_name, RoleARN="role-arn"
+        )
+
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.ECRRepo")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.boto3.resource")
     def test_list_deployed_repos(self, boto3_resource_mock, ecr_repo_mock):
@@ -253,6 +265,32 @@ class TestCompanionStackManager(TestCase):
 
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_a_id, force=True)
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_b_id, force=True)
+
+    def test_delete_unreferenced_repos_access_denied(self):
+        repo_a = Mock()
+        repo_a.physical_id = "ECRRepoA"
+
+        self.ecr_client.exceptions.RepositoryNotFoundException = type("RepositoryNotFoundException", (Exception,), {})
+        error = ClientError({"Error": {"Code": "AccessDeniedException"}}, "DeleteRepository")
+        self.ecr_client.delete_repository.side_effect = error
+
+        self.manager.get_unreferenced_repos = lambda: [repo_a]
+
+        with self.assertRaises(AWSServiceClientError):
+            self.manager.delete_unreferenced_repos()
+
+    def test_delete_unreferenced_repos_other_client_error(self):
+        repo_a = Mock()
+        repo_a.physical_id = "ECRRepoA"
+
+        self.ecr_client.exceptions.RepositoryNotFoundException = type("RepositoryNotFoundException", (Exception,), {})
+        error = ClientError({"Error": {"Code": "ThrottlingException"}}, "DeleteRepository")
+        self.ecr_client.delete_repository.side_effect = error
+
+        self.manager.get_unreferenced_repos = lambda: [repo_a]
+
+        with self.assertRaises(ClientError):
+            self.manager.delete_unreferenced_repos()
 
     def test_sync_repos_exists(self):
         self.manager.does_companion_stack_exist = lambda: True

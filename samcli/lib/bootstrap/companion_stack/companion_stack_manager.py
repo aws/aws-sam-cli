@@ -3,7 +3,7 @@ Companion stack manager
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import boto3
 from botocore.config import Config
@@ -118,7 +118,7 @@ class CompanionStackManager:
 
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
-        extra_args = {"RoleARN": self._role_arn} if self._role_arn else {}
+        extra_args: Dict[str, Any] = {"RoleARN": self._role_arn} if self._role_arn else {}
 
         exists = self.does_companion_stack_exist()
         if exists:
@@ -145,8 +145,9 @@ class CompanionStackManager:
         Blocking call to delete the companion stack
         """
         stack_name = self._companion_stack.stack_name
+        extra_args: Dict[str, Any] = {"RoleARN": self._role_arn} if self._role_arn else {}
         waiter = self._cfn_client.get_waiter("stack_delete_complete")
-        self._cfn_client.delete_stack(StackName=stack_name)
+        self._cfn_client.delete_stack(StackName=stack_name, **extra_args)
         waiter.wait(StackName=stack_name, WaiterConfig=self._delete_stack_waiter_config)
 
     def list_deployed_repos(self) -> List[ECRRepo]:
@@ -199,15 +200,25 @@ class CompanionStackManager:
         """
         Blocking call to delete all deployed ECR repos that are unreferenced by a function
         If repo does not exist, this will simply skip it.
+
+        This always deletes using the caller's own credentials, not role_arn: role_arn is a
+        CloudFormation execution role passed to create_stack/update_stack/delete_stack, not a
+        role the CLI itself assumes for direct service calls like ecr:DeleteRepository.
         """
         repos = self.get_unreferenced_repos()
         for repo in repos:
             try:
-                # self._ecr_client uses ambient credentials, not role_arn, so the caller's
-                # credentials (not the assumed role) need ecr:DeleteRepository permission.
                 self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except self._ecr_client.exceptions.RepositoryNotFoundException:
                 LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
+            except ClientError as ex:
+                if ex.response.get("Error", {}).get("Code") == "AccessDeniedException":
+                    raise AWSServiceClientError(
+                        f"Insufficient permissions to delete ECR repo [{repo.physical_id}]. "
+                        "The caller's own credentials need the ecr:DeleteRepository permission; "
+                        "--role-arn only applies to CloudFormation stack operations."
+                    ) from ex
+                raise
 
     def sync_repos(self) -> None:
         """
