@@ -41,7 +41,7 @@ class CompanionStackManager:
     _cfn_client: CloudFormationClient
     _s3_client: S3Client
 
-    def __init__(self, stack_name, region, s3_bucket, s3_prefix):
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix, role_arn=None):
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
@@ -49,6 +49,7 @@ class CompanionStackManager:
         self._delete_stack_waiter_config = {"Delay": 10, "MaxAttempts": 120}
         self._s3_bucket = s3_bucket
         self._s3_prefix = s3_prefix
+        self._role_arn = role_arn
         try:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
             self._ecr_client = boto3.client("ecr", config=self._boto_config)
@@ -116,16 +117,24 @@ class CompanionStackManager:
 
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
+        extra_args = {"RoleARN": self._role_arn} if self._role_arn else {}
+
         exists = self.does_companion_stack_exist()
         if exists:
             self._cfn_client.update_stack(
-                StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
+                StackName=stack_name,
+                TemplateURL=template_url,
+                Capabilities=["CAPABILITY_AUTO_EXPAND"],
+                **extra_args,
             )
             update_waiter = self._cfn_client.get_waiter("stack_update_complete")
             update_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
         else:
             self._cfn_client.create_stack(
-                StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
+                StackName=stack_name,
+                TemplateURL=template_url,
+                Capabilities=["CAPABILITY_AUTO_EXPAND"],
+                **extra_args,
             )
             create_waiter = self._cfn_client.get_waiter("stack_create_complete")
             create_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
@@ -279,7 +288,13 @@ class CompanionStackManager:
 
 
 def sync_ecr_stack(
-    template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
+    template_file: str,
+    stack_name: str,
+    region: str,
+    s3_bucket: str,
+    s3_prefix: str,
+    image_repositories: Dict[str, str],
+    role_arn: Optional[str] = None,
 ) -> Dict[str, str]:
     """Blocking call to sync local functions with ECR Companion Stack
 
@@ -297,6 +312,8 @@ def sync_ecr_stack(
         S3 prefix for the bucket
     image_repositories : Dict[str, str]
         Mapping between function logical ID and ECR URI
+    role_arn : Optional[str]
+        IAM role ARN used when creating/updating the companion stack
 
     Returns
     -------
@@ -305,7 +322,7 @@ def sync_ecr_stack(
         for Functions without a repo specified.
     """
     image_repositories = image_repositories.copy() if image_repositories else {}
-    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix, role_arn)
 
     stacks = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=False)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)

@@ -63,6 +63,7 @@ class GuidedContext:
         config_file=None,
         disable_rollback=None,
         language_extensions_enabled: bool = False,
+        role_arn=None,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -97,6 +98,7 @@ class GuidedContext:
         self.function_provider: Optional[SamFunctionProvider] = None
         self.disable_rollback = disable_rollback
         self._language_extensions_enabled = language_extensions_enabled
+        self.role_arn = role_arn
 
     @property
     def guided_capabilities(self):
@@ -189,7 +191,13 @@ class GuidedContext:
 
         image_repositories = (
             sync_ecr_stack(
-                self.template_file, stack_name, region, managed_s3_bucket, self.s3_prefix, self.image_repositories
+                self.template_file,
+                stack_name,
+                region,
+                managed_s3_bucket,
+                self.s3_prefix,
+                self.image_repositories,
+                self.role_arn,
             )
             if self.resolve_image_repositories
             else self.prompt_image_repository(
@@ -359,7 +367,7 @@ class GuidedContext:
             if repo_full_path:
                 updated_repositories[repo_full_path] = image_repo_uri
         self.function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
-        manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+        manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix, self.role_arn)
 
         function_logical_ids = [
             function.full_path for function in self.function_provider.get_all() if function.packagetype == IMAGE

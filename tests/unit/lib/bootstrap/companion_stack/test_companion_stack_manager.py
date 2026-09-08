@@ -73,6 +73,27 @@ class TestCompanionStackManager(TestCase):
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
+    def test_create_companion_stack_with_role_arn(
+        self,
+        parse_s3_url_mock,
+        s3_uploader_mock,
+        mktempfile_mock,
+    ):
+        cfn_waiter = Mock()
+        self.cfn_client.get_waiter.return_value = cfn_waiter
+
+        self.manager._role_arn = "role-arn"
+        self.manager.does_companion_stack_exist = lambda: False
+
+        self.manager.update_companion_stack()
+
+        self.cfn_client.create_stack.assert_called_once_with(
+            StackName=self.companion_stack_name, TemplateURL=ANY, Capabilities=ANY, RoleARN="role-arn"
+        )
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
     def test_update_companion_stack(
         self,
         parse_s3_url_mock,
@@ -93,6 +114,27 @@ class TestCompanionStackManager(TestCase):
         )
         self.cfn_client.get_waiter.assert_called_once_with("stack_update_complete")
         cfn_waiter.wait.assert_called_once_with(StackName=self.companion_stack_name, WaiterConfig=ANY)
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
+    def test_update_companion_stack_with_role_arn(
+        self,
+        parse_s3_url_mock,
+        s3_uploader_mock,
+        mktempfile_mock,
+    ):
+        cfn_waiter = Mock()
+        self.cfn_client.get_waiter.return_value = cfn_waiter
+
+        self.manager._role_arn = "role-arn"
+        self.manager.does_companion_stack_exist = lambda: True
+
+        self.manager.update_companion_stack()
+
+        self.cfn_client.update_stack.assert_called_once_with(
+            StackName=self.companion_stack_name, TemplateURL=ANY, Capabilities=ANY, RoleARN="role-arn"
+        )
 
     def test_delete_companion_stack(self):
         cfn_waiter = Mock()
@@ -276,8 +318,23 @@ class TestCompanionStackManager(TestCase):
 
         result = sync_ecr_stack("template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
 
-        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix")
+        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix", None)
         function_provider_mock.assert_called_once_with(stacks, ignore_code_extraction_warnings=True)
         manager_mock.return_value.sync_repos.assert_called_once_with()
 
         self.assertEqual(result, {"Function1": "uri1", "Function2": "uri2"})
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamFunctionProvider")
+    def test_sync_ecr_stack_with_role_arn(self, function_provider_mock, stack_provider_mock, manager_mock):
+        image_repositories = {"Function1": "uri1"}
+        stacks = MagicMock()
+        stack_provider_mock.get_stacks.return_value = (stacks, None)
+        manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+
+        sync_ecr_stack(
+            "template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories, "role-arn"
+        )
+
+        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix", "role-arn")

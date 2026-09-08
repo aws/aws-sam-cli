@@ -22,6 +22,7 @@ class TestGuidedContext(TestCase):
             image_repository=None,
             image_repositories={"RandomFunction": "image-repo"},
             disable_rollback=False,
+            role_arn="role_arn",
         )
 
         self.unreferenced_repo_mock = MagicMock()
@@ -236,6 +237,10 @@ class TestGuidedContext(TestCase):
             call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
+
+        self.companion_stack_manager_mock.assert_called_once_with(
+            "sam-app", "region", "managed_s3_stack", "sam-app", "role_arn"
+        )
 
     @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
