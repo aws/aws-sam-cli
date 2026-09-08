@@ -63,7 +63,7 @@ class GuidedContext:
         config_file=None,
         disable_rollback=None,
         language_extensions_enabled: bool = False,
-        role_arn=None,
+        role_arn: Optional[str] = None,
     ):
         self.template_file = template_file
         self.stack_name = stack_name

@@ -38,10 +38,11 @@ class CompanionStackManager:
     _delete_stack_waiter_config: WaiterConfigTypeDef
     _s3_bucket: str
     _s3_prefix: str
+    _role_arn: Optional[str]
     _cfn_client: CloudFormationClient
     _s3_client: S3Client
 
-    def __init__(self, stack_name, region, s3_bucket, s3_prefix, role_arn=None):
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix, role_arn: Optional[str] = None):
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
@@ -202,6 +203,8 @@ class CompanionStackManager:
         repos = self.get_unreferenced_repos()
         for repo in repos:
             try:
+                # self._ecr_client uses ambient credentials, not role_arn, so the caller's
+                # credentials (not the assumed role) need ecr:DeleteRepository permission.
                 self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except self._ecr_client.exceptions.RepositoryNotFoundException:
                 LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
