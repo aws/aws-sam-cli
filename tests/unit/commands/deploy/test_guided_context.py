@@ -239,7 +239,7 @@ class TestGuidedContext(TestCase):
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
 
         self.companion_stack_manager_mock.assert_called_once_with(
-            "sam-app", "region", "managed_s3_stack", "sam-app", "role_arn"
+            "sam-app", "region", "managed_s3_stack", self.gc.s3_prefix, "role_arn"
         )
 
     @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")

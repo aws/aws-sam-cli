@@ -460,7 +460,7 @@ class TestDeployCliCommand(TestCase):
                 "sam-app",
                 "us-east-1",
                 "managed-s3-bucket",
-                "sam-app",
+                self.s3_prefix,
                 None,
                 self.role_arn,
             )
