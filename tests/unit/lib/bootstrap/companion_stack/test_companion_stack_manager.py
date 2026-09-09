@@ -94,6 +94,45 @@ class TestCompanionStackManager(TestCase):
         self.cfn_client.get_waiter.assert_called_once_with("stack_update_complete")
         cfn_waiter.wait.assert_called_once_with(StackName=self.companion_stack_name, WaiterConfig=ANY)
 
+    def test_create_companion_stack_with_role_arn(
+        self,
+    ):
+        self._test_companion_stack_with_role_arn(exists=False)
+
+    def test_update_companion_stack_with_role_arn(
+        self,
+    ):
+        self._test_companion_stack_with_role_arn(exists=True)
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.mktempfile")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.S3Uploader")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.parse_s3_url")
+    def _test_companion_stack_with_role_arn(
+        self,
+        parse_s3_url_mock,
+        s3_uploader_mock,
+        mktempfile_mock,
+        exists,
+    ):
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+
+        cfn_waiter = Mock()
+        self.cfn_client.get_waiter.return_value = cfn_waiter
+
+        manager.does_companion_stack_exist = lambda: exists
+        manager.update_companion_stack()
+
+        stack_call = self.cfn_client.update_stack if exists else self.cfn_client.create_stack
+        stack_call.assert_called_once_with(
+            StackName=self.companion_stack_name, TemplateURL=ANY, Capabilities=ANY, RoleARN=role_arn
+        )
+        self.cfn_client.get_waiter.assert_called_once_with(
+            "stack_update_complete" if exists else "stack_create_complete"
+        )
+        cfn_waiter.wait.assert_called_once_with(StackName=self.companion_stack_name, WaiterConfig=ANY)
+
     def test_delete_companion_stack(self):
         cfn_waiter = Mock()
         self.cfn_client.get_waiter.return_value = cfn_waiter
@@ -276,7 +315,27 @@ class TestCompanionStackManager(TestCase):
 
         result = sync_ecr_stack("template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories)
 
-        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix")
+        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix", role_arn=None)
+        function_provider_mock.assert_called_once_with(stacks, ignore_code_extraction_warnings=True)
+        manager_mock.return_value.sync_repos.assert_called_once_with()
+
+        self.assertEqual(result, {"Function1": "uri1", "Function2": "uri2"})
+
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.CompanionStackManager")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamLocalStackProvider")
+    @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.SamFunctionProvider")
+    def test_sync_ecr_stack_with_role_arn(self, function_provider_mock, stack_provider_mock, manager_mock):
+        image_repositories = {"Function1": "uri1"}
+        stacks = MagicMock()
+        stack_provider_mock.get_stacks.return_value = (stacks, None)
+        manager_mock.return_value.get_repository_mapping.return_value = {"Function2": "uri2"}
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+
+        result = sync_ecr_stack(
+            "template.yaml", "stack-name", "region", "s3-bucket", "s3-prefix", image_repositories, role_arn=role_arn
+        )
+
+        manager_mock.assert_called_once_with("stack-name", "region", "s3-bucket", "s3-prefix", role_arn=role_arn)
         function_provider_mock.assert_called_once_with(stacks, ignore_code_extraction_warnings=True)
         manager_mock.return_value.sync_repos.assert_called_once_with()
 
