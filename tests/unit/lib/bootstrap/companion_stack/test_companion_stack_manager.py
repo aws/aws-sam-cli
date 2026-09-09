@@ -115,8 +115,26 @@ class TestCompanionStackManager(TestCase):
         exists,
     ):
         role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
-        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
+        role_ecr_client = Mock()
+        self.sts_client.assume_role.return_value = {
+            "Credentials": {
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+                "SecretAccessKey": "secret",
+                "SessionToken": "token",
+            }
+        }
+        self.boto3_client_mock.side_effect = [
+            self.cfn_client,
+            self.ecr_client,
+            self.s3_client,
+            self.sts_client,
+            role_ecr_client,
+        ]
         manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+
+        # the service role is assumed and the ECR client uses its credentials
+        self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
+        self.assertIs(manager._ecr_client, role_ecr_client)
 
         cfn_waiter = Mock()
         self.cfn_client.get_waiter.return_value = cfn_waiter
@@ -250,6 +268,54 @@ class TestCompanionStackManager(TestCase):
 
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_a_id, force=True)
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_b_id, force=True)
+
+    def test_delete_unreferenced_repos_with_role_arn_uses_assumed_role_client(self):
+        # With --role-arn set, direct ECR calls (delete_unreferenced_repos)
+        # must go through the assumed-role client, not the caller's.
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+        role_ecr_client = Mock()
+        self.sts_client.assume_role.return_value = {
+            "Credentials": {
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+                "SecretAccessKey": "secret",
+                "SessionToken": "token",
+            }
+        }
+        self.boto3_client_mock.side_effect = [
+            self.cfn_client,
+            self.ecr_client,
+            self.s3_client,
+            self.sts_client,
+            role_ecr_client,
+        ]
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+
+        repo = Mock()
+        repo.physical_id = "ECRRepoStale"
+        manager.get_unreferenced_repos = lambda: [repo]
+
+        manager.delete_unreferenced_repos()
+
+        role_ecr_client.delete_repository.assert_called_once_with(repositoryName="ECRRepoStale", force=True)
+        self.ecr_client.delete_repository.assert_not_called()
+
+    def test_assume_role_failure_raises_actionable_error(self):
+        from samcli.commands.exceptions import AWSServiceClientError
+
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+        error = ClientError({"Error": {"Code": "AccessDenied", "Message": "not authorized"}}, "AssumeRole")
+        self.sts_client.assume_role.side_effect = error
+        self.boto3_client_mock.side_effect = [
+            self.cfn_client,
+            self.ecr_client,
+            self.s3_client,
+            self.sts_client,
+            Mock(),
+        ]
+
+        with self.assertRaises(AWSServiceClientError) as ctx:
+            CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+        self.assertIn(role_arn, str(ctx.exception))
 
     def test_sync_repos_exists(self):
         self.manager.does_companion_stack_exist = lambda: True

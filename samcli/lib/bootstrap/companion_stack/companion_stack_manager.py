@@ -54,7 +54,14 @@ class CompanionStackManager:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
             self._ecr_client = boto3.client("ecr", config=self._boto_config)
             self._s3_client = boto3.client("s3", config=self._boto_config)
-            self._account_id = boto3.client("sts").get_caller_identity().get("Account")
+            sts_client = boto3.client("sts")
+            self._account_id = sts_client.get_caller_identity().get("Account")
+            if role_arn:
+                # The CloudFormation RoleARN only covers calls CloudFormation
+                # makes on our behalf, not SDK calls SAM CLI makes itself
+                # (e.g. deleting unreferenced ECR repos). Assume the same role
+                # so all companion-stack side effects use one identity.
+                self._ecr_client = self._ecr_client_for_role(sts_client, role_arn)
             self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
             raise AWSServiceClientError(
@@ -68,6 +75,42 @@ class CompanionStackManager:
                 "Error Setting Up Managed Stack Client: Unable to resolve a region. "
                 "Please provide a region via the --region parameter or by the AWS_DEFAULT_REGION environment variable."
             ) from ex
+
+    def _ecr_client_for_role(self, sts_client, role_arn: str):
+        """
+        Assume the deployment service role and return an ECR client that uses
+        the assumed-role credentials.
+
+        Parameters
+        ----------
+        sts_client
+            STS client used to assume the role
+        role_arn : str
+            ARN of the service role (e.g. from --role-arn) to assume
+
+        Returns
+        -------
+        An ECR client authenticated with the assumed-role credentials
+
+        Raises
+        ------
+        AWSServiceClientError
+            If the role cannot be assumed
+        """
+        try:
+            assumed_role = sts_client.assume_role(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
+        except ClientError as ex:
+            raise AWSServiceClientError(
+                f"Error assuming the provided role {role_arn} for companion stack ECR operations: {ex}"
+            ) from ex
+        credentials = assumed_role["Credentials"]
+        return boto3.client(
+            "ecr",
+            config=self._boto_config,
+            aws_access_key_id=credentials["AccessKeyId"],
+            aws_secret_access_key=credentials["SecretAccessKey"],
+            aws_session_token=credentials["SessionToken"],
+        )
 
     def set_functions(
         self, function_logical_ids: List[str], image_repositories: Optional[Dict[str, str]] = None
@@ -312,7 +355,8 @@ def sync_ecr_stack(
     role_arn : Optional[str]
         Optional service role ARN used when creating or updating the companion stack.
         When provided, the companion stack is created/updated with the same service
-        role as the main stack.
+        role as the main stack, and direct ECR calls made by SAM CLI (e.g. deleting
+        unreferenced repositories) assume the role so they run under one identity.
 
     Returns
     -------
