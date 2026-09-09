@@ -341,6 +341,7 @@ def do_cli(
                 config_file=config_file,
                 disable_rollback=disable_rollback,
                 language_extensions_enabled=language_extensions_enabled,
+                role_arn=role_arn,
             )
             guided_context.run()
         else:
