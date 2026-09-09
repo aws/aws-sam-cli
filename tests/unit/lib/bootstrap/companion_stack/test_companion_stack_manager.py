@@ -132,9 +132,11 @@ class TestCompanionStackManager(TestCase):
         ]
         manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
 
-        # the service role is assumed and the ECR client uses its credentials
-        self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
-        self.assertIs(manager._ecr_client, role_ecr_client)
+        # construction does not assume the role: the assume is lazy so
+        # deployments whose service role trust policy only covers
+        # cloudformation.amazonaws.com keep working.
+        self.sts_client.assume_role.assert_not_called()
+        self.assertIs(manager._ecr_client, self.ecr_client)
 
         cfn_waiter = Mock()
         self.cfn_client.get_waiter.return_value = cfn_waiter
@@ -290,32 +292,57 @@ class TestCompanionStackManager(TestCase):
         ]
         manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
 
+        # the assume is lazy: no STS call until a direct ECR call happens
+        self.sts_client.assume_role.assert_not_called()
+
         repo = Mock()
         repo.physical_id = "ECRRepoStale"
         manager.get_unreferenced_repos = lambda: [repo]
 
         manager.delete_unreferenced_repos()
 
+        self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
         role_ecr_client.delete_repository.assert_called_once_with(repositoryName="ECRRepoStale", force=True)
         self.ecr_client.delete_repository.assert_not_called()
 
-    def test_assume_role_failure_raises_actionable_error(self):
-        from samcli.commands.exceptions import AWSServiceClientError
-
+    def test_assume_role_failure_falls_back_to_caller_credentials(self):
+        # A CloudFormation service role's trust policy generally only trusts
+        # cloudformation.amazonaws.com, so the deploying principal usually
+        # cannot assume it. That must not abort the deploy: the assume is
+        # lazy and a failure falls back to caller credentials.
         role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
         error = ClientError({"Error": {"Code": "AccessDenied", "Message": "not authorized"}}, "AssumeRole")
         self.sts_client.assume_role.side_effect = error
-        self.boto3_client_mock.side_effect = [
-            self.cfn_client,
-            self.ecr_client,
-            self.s3_client,
-            self.sts_client,
-            Mock(),
-        ]
+        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
 
-        with self.assertRaises(AWSServiceClientError) as ctx:
-            CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
-        self.assertIn(role_arn, str(ctx.exception))
+        # construction succeeds even though the role cannot be assumed
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+        self.sts_client.assume_role.assert_not_called()
+
+        repo = Mock()
+        repo.physical_id = "ECRRepoStale"
+        manager.get_unreferenced_repos = lambda: [repo]
+
+        manager.delete_unreferenced_repos()
+        manager.delete_unreferenced_repos()
+
+        # the assume was attempted lazily, exactly once, then fell back to
+        # the caller's credentials
+        self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
+        self.assertEqual(self.ecr_client.delete_repository.call_count, 2)
+
+    def test_delete_companion_stack_with_role_arn(self):
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+        cfn_waiter = Mock()
+        self.cfn_client.get_waiter.return_value = cfn_waiter
+
+        manager._delete_companion_stack()
+
+        self.cfn_client.delete_stack.assert_called_once_with(StackName=self.companion_stack_name, RoleARN=role_arn)
+        self.cfn_client.get_waiter.assert_called_once_with("stack_delete_complete")
+        cfn_waiter.wait.assert_called_once_with(StackName=self.companion_stack_name, WaiterConfig=ANY)
 
     def test_sync_repos_exists(self):
         self.manager.does_companion_stack_exist = lambda: True
