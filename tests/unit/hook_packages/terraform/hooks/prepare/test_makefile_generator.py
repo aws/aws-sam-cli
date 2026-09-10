@@ -20,7 +20,9 @@ from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
     _build_jpath_string,
     _format_makefile_recipe,
     _build_makerule_python_command,
-    _write_makerule_args_file,
+    _get_args_file_path,
+    PendingArgsFile,
+    ARGS_FILE_NAME_HASH_LEN,
 )
 from samcli.hook_packages.terraform.hooks.prepare.types import TFResource
 
@@ -31,15 +33,24 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._get_makefile_build_target")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._format_makefile_recipe")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._write_makerule_args_file")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator._build_makerule_python_command")
     def test_generate_makefile_rule_for_lambda_resource(
-        self, write_args_file_mock, format_recipe_mock, get_build_target_mock
+        self, build_command_mock, format_recipe_mock, get_build_target_mock
     ):
-        write_args_file_mock.return_value = "/some/dir/path/.aws-sam/output/function_logical_id.args.json"
+        pending_args_file = PendingArgsFile(
+            path="/some/dir/path/.aws-sam/output/deadbeefdeadbeef.args.json",
+            expression="some-expression",
+            target="null_resource.sam_metadata_aws_lambda_function",
+        )
+        build_command_mock.return_value = (
+            'python3 ".aws-sam/iacs_metadata/copy_terraform_built_artifacts.py" '
+            '--directory "$(ARTIFACTS_DIR)" --args-file ".aws-sam/output/deadbeefdeadbeef.args.json"',
+            pending_args_file,
+        )
         format_recipe_mock.side_effect = [
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--directory "$(ARTIFACTS_DIR)" '
-            '--args-file ".aws-sam/output/function_logical_id.args.json"\n',
+            '--args-file ".aws-sam/output/deadbeefdeadbeef.args.json"\n',
         ]
         get_build_target_mock.return_value = "build-function_logical_id:\n"
         sam_metadata_resource = SamMetadataResource(
@@ -47,7 +58,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             resource={"address": "null_resource.sam_metadata_aws_lambda_function"},
             config_resource=TFResource("", "", None, {}),
         )
-        makefile_rule = generate_makefile_rule_for_lambda_resource(
+        makefile_rule, returned_pending_args_file = generate_makefile_rule_for_lambda_resource(
             python_command_name="python",
             output_dir="/some/dir/path/.aws-sam/output",
             sam_metadata_resource=sam_metadata_resource,
@@ -58,9 +69,13 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             "build-function_logical_id:\n"
             "\tpython3 .aws-sam/iacs_metadata/copy_terraform_built_artifacts.py "
             '--directory "$(ARTIFACTS_DIR)" '
-            '--args-file ".aws-sam/output/function_logical_id.args.json"\n'
+            '--args-file ".aws-sam/output/deadbeefdeadbeef.args.json"\n'
         )
         self.assertEqual(makefile_rule, expected_makefile_rule)
+        # generate_makefile_rule_for_lambda_resource performs no I/O of its own; it just passes
+        # the PendingArgsFile through from _build_makerule_python_command for the caller to
+        # collect and hand to generate_makefile() once every rule has been built successfully.
+        self.assertEqual(returned_pending_args_file, pending_args_file)
 
     @parameterized.expand(
         [
@@ -76,132 +91,71 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         sam_metadata_resource = SamMetadataResource(
             current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
         )
-        with tempfile.TemporaryDirectory() as tmpdir:
-            terraform_application_dir = os.path.join(tmpdir, "some", "dir", "path")
-            output_dir = os.path.join(terraform_application_dir, ".aws-sam", "output")
-            os.makedirs(output_dir)
+        terraform_application_dir = os.path.join("some", "dir", "path")
+        output_dir = os.path.join(terraform_application_dir, ".aws-sam", "output")
 
-            show_command = _build_makerule_python_command(
-                python_command_name="python",
-                output_dir=output_dir,
-                resource_address=resource,
-                sam_metadata_resource=sam_metadata_resource,
-                terraform_application_dir=terraform_application_dir,
-                logical_id="function_logical_id",
-            )
+        # _build_makerule_python_command is a pure function - it performs no I/O and can be
+        # tested without a real filesystem: the args file it references is only described by
+        # the returned PendingArgsFile, not written to disk here.
+        show_command, pending_args_file = _build_makerule_python_command(
+            python_command_name="python",
+            output_dir=output_dir,
+            resource_address=resource,
+            sam_metadata_resource=sam_metadata_resource,
+            terraform_application_dir=terraform_application_dir,
+            logical_id="function_logical_id",
+        )
 
-            script_path = ".aws-sam/output/copy_terraform_built_artifacts.py"
-            self.assertIn(f'python "{script_path}"', show_command)
-            self.assertIn('--directory "$(ARTIFACTS_DIR)"', show_command)
-            self.assertIn("--args-file", show_command)
+        script_path = ".aws-sam/output/copy_terraform_built_artifacts.py"
+        self.assertIn(f'python "{script_path}"', show_command)
+        self.assertIn('--directory "$(ARTIFACTS_DIR)"', show_command)
+        self.assertIn("--args-file", show_command)
 
-            # the args file path referenced in the recipe should point to a real file
-            # containing the expression/target values, written under output_dir
-            args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
-            args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
-            self.assertTrue(os.path.exists(args_file_path))
-            with open(args_file_path) as f:
-                args_file_contents = json.load(f)
-            self.assertEqual(args_file_contents, {"expression": jpath_string, "target": resource})
+        # the args file path referenced in the recipe should match the PendingArgsFile's path,
+        # and the PendingArgsFile should carry the expression/target this rule needs
+        args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
+        args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
+        self.assertEqual(pending_args_file.path, args_file_path)
+        self.assertEqual(pending_args_file.expression, jpath_string)
+        self.assertEqual(pending_args_file.target, resource)
 
-    def test_write_makerule_args_file_round_trips_arbitrary_values(self):
-        # Values written to the args file must come back byte-for-byte identical when read back
-        # as JSON, including values that were previously dangerous when embedded directly in a
-        # shell command line (backticks, $(...), embedded newlines, quotes, etc). JSON encoding
-        # neutralizes all of these without needing any shell- or make-specific escaping, because
-        # the value is never parsed as code - only ever as a JSON string.
-        malicious_values = [
-            'null_resource.sam_metadata["normal`touch /tmp/poc_sam_rce`"]',
-            'null_resource.sam_metadata["normal$(touch /tmp/poc_sam_rce)"]',
-            'null_resource.sam_metadata["normal${IFS}touch${IFS}/tmp/poc_sam_rce"]',
-            'null_resource.sam_metadata["normal" && touch /tmp/poc_sam_rce && echo "]',
-            'null_resource.sam_metadata["normal\ntouch /tmp/poc_sam_rce"]',
-            'null_resource.sam_metadata["normal\r\ntouch /tmp/poc_sam_rce"]',
+    def test_get_args_file_path_is_deterministic_and_pure(self):
+        # _get_args_file_path must be a pure function of its inputs - same logical_id, same
+        # output_dir, same path, every time, with no filesystem access - so that
+        # _build_makerule_python_command (and generate_makefile_rule_for_lambda_resource above
+        # it) can remain pure as well. Writing anything to disk is deferred entirely to
+        # generate_makefile(), once every rule has been built successfully.
+        first_path = _get_args_file_path("/some/dir/path/.aws-sam/output", "function_logical_id")
+        second_path = _get_args_file_path("/some/dir/path/.aws-sam/output", "function_logical_id")
+        self.assertEqual(first_path, second_path)
+        self.assertTrue(os.path.basename(first_path).endswith(".args.json"))
+
+    def test_get_args_file_path_keeps_file_name_short_regardless_of_logical_id(self):
+        # The args file is named by hashing logical_id to a fixed-length string, rather than
+        # embedding (even truncated) logical_id itself. logical_id can be up to 255 *characters*
+        # and is Unicode-aware ("alphanumeric" is not limited to ASCII - see
+        # build_cfn_logical_id()), so a truncation-based name would have to reason separately
+        # about the 255-*byte* per-component filesystem/OS filename limit and, on Windows, the
+        # 260-character MAX_PATH limit on the *total* path (which a real project path can push
+        # past well before the per-component limit, since it counts the project's own path
+        # depth too). A fixed-length hash sidesteps both regardless of how long or non-ASCII
+        # logical_id is: this asserts the file name is always the same short length for a
+        # maximally long ASCII logical_id, a maximally long non-ASCII (CJK) logical_id, and a
+        # short one alike.
+        logical_ids = [
+            "A" * 255,  # maximally long ASCII logical_id
+            "\u9577" * 255,  # maximally long CJK logical_id (3 bytes each in UTF-8 = 765 bytes)
+            "function_logical_id",  # a typical short logical_id
         ]
-        with tempfile.TemporaryDirectory() as tmpdir:
-            for malicious_value in malicious_values:
-                args_file_path = _write_makerule_args_file(
-                    tmpdir, "function_logical_id", malicious_value, malicious_value
-                )
-                with open(args_file_path) as f:
-                    contents = json.load(f)
-                self.assertEqual(contents, {"expression": malicious_value, "target": malicious_value})
-
-    def test_write_makerule_args_file_uses_deterministic_name_and_overwrites(self):
-        # The args file name must be deterministic (derived only from logical_id, no random
-        # component) so that re-running `sam build` (which always re-runs prepare) overwrites
-        # the previous run's file for this resource instead of accumulating a new file on disk
-        # on every build.
-        with tempfile.TemporaryDirectory() as tmpdir:
-            first_path = _write_makerule_args_file(tmpdir, "function_logical_id", "expr-1", "target-1")
-            second_path = _write_makerule_args_file(tmpdir, "function_logical_id", "expr-2", "target-2")
-
-            self.assertEqual(first_path, second_path)
-            self.assertTrue(os.path.basename(first_path).startswith("function_logical_id"))
-            self.assertTrue(os.path.basename(first_path).endswith(".args.json"))
-            self.assertEqual(len(os.listdir(tmpdir)), 1)
-
-            with open(second_path) as f:
-                contents = json.load(f)
-            self.assertEqual(contents, {"expression": "expr-2", "target": "target-2"})
-
-    def test_write_makerule_args_file_keeps_file_name_within_filesystem_limit(self):
-        # logical_id can be up to 255 characters (see build_cfn_logical_id's
-        # LOGICAL_ID_MAX_HUMAN_LEN + LOGICAL_ID_HASH_LEN), which combined with the ".args.json"
-        # suffix would otherwise exceed the 255-byte per-component filesystem/OS filename limit
-        # (NAME_MAX on ext4/xfs/btrfs/APFS, and the per-component limit on Windows). The limit is
-        # enforced in bytes, so this must hold for the UTF-8 encoded name, not just character count.
-        max_length_logical_id = "A" * 255
-        with tempfile.TemporaryDirectory() as tmpdir:
-            args_file_path = _write_makerule_args_file(tmpdir, max_length_logical_id, "expr", "target")
-            self.assertLessEqual(len(os.path.basename(args_file_path).encode("utf-8")), 255)
-            self.assertTrue(os.path.exists(args_file_path))
-
-    def test_write_makerule_args_file_keeps_file_name_within_filesystem_limit_for_non_ascii_logical_id(self):
-        # build_cfn_logical_id() strips non-alphanumeric characters, but str.isalnum() is
-        # Unicode-aware, so a logical_id built from a for_each key with non-ASCII characters
-        # (e.g. CJK) can be up to 255 *characters* while each character is multiple bytes in
-        # UTF-8 - well over the 255-byte limit if truncation were character-based instead of
-        # byte-based.
-        max_length_cjk_logical_id = "\u9577" * 255  # 255 chars, 3 bytes each in UTF-8 = 765 bytes
-        with tempfile.TemporaryDirectory() as tmpdir:
-            args_file_path = _write_makerule_args_file(tmpdir, max_length_cjk_logical_id, "expr", "target")
-            self.assertLessEqual(len(os.path.basename(args_file_path).encode("utf-8")), 255)
-            self.assertTrue(os.path.exists(args_file_path))
-            with open(args_file_path) as f:
-                self.assertEqual(json.load(f), {"expression": "expr", "target": "target"})
-
-    def test_write_makerule_args_file_disambiguates_logical_ids_sharing_a_truncated_prefix(self):
-        # Two different logical IDs that share the same first 236 characters must still map to
-        # different args files, since truncation alone would otherwise collide.
-        common_prefix = "A" * 240
-        logical_id_1 = common_prefix + "1"
-        logical_id_2 = common_prefix + "2"
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path_1 = _write_makerule_args_file(tmpdir, logical_id_1, "expr-1", "target-1")
-            path_2 = _write_makerule_args_file(tmpdir, logical_id_2, "expr-2", "target-2")
-            self.assertNotEqual(path_1, path_2)
-
-            with open(path_1) as f:
-                self.assertEqual(json.load(f), {"expression": "expr-1", "target": "target-1"})
-            with open(path_2) as f:
-                self.assertEqual(json.load(f), {"expression": "expr-2", "target": "target-2"})
-
-    def test_write_makerule_args_file_creates_output_dir_if_missing(self):
-        # _write_makerule_args_file can run before generate_makefile() has had a chance to
-        # create output_dir (the prepare-hook contract does not guarantee the directory
-        # pre-exists - see hook.py's prepare(), which creates it itself rather than assuming
-        # the caller did). It must not rely on a directory created elsewhere.
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_dir = os.path.join(tmpdir, "does", "not", "exist", "yet")
-            self.assertFalse(os.path.exists(output_dir))
-
-            args_file_path = _write_makerule_args_file(output_dir, "function_logical_id", "expr", "target")
-
-            self.assertTrue(os.path.exists(args_file_path))
-            with open(args_file_path) as f:
-                contents = json.load(f)
-            self.assertEqual(contents, {"expression": "expr", "target": "target"})
+        output_dir = os.path.join("some", "dir", "path", ".aws-sam", "output")
+        file_names = set()
+        for logical_id in logical_ids:
+            args_file_path = _get_args_file_path(output_dir, logical_id)
+            file_name = os.path.basename(args_file_path)
+            file_names.add(file_name)
+            self.assertEqual(len(file_name), ARGS_FILE_NAME_HASH_LEN + len(".args.json"))
+        # each distinct logical_id must still map to a distinct file
+        self.assertEqual(len(file_names), len(logical_ids))
 
     @parameterized.expand(
         [
@@ -246,12 +200,11 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
             terraform_application_dir = os.path.join(tmpdir, "some", "dir", "path")
             output_dir = os.path.join(terraform_application_dir, ".aws-sam", "output")
-            os.makedirs(output_dir)
 
             sam_metadata_resource = SamMetadataResource(
                 current_module_address=None, resource={}, config_resource=TFResource("", "", None, {})
             )
-            show_command = _build_makerule_python_command(
+            show_command, pending_args_file = _build_makerule_python_command(
                 python_command_name="python",
                 output_dir=output_dir,
                 resource_address=malicious_resource,
@@ -268,7 +221,10 @@ class TestPrepareMakefile(PrepareHookUnitBase):
 
             # Behavioral guarantee: actually executing the recipe (as make would, handing it to
             # a shell after its own macro expansion) must not run the injected command, since
-            # the untrusted value never reaches the shell in the first place.
+            # the untrusted value never reaches the shell in the first place. This function no
+            # longer writes the args file itself (that's deferred to generate_makefile()), but
+            # the recipe text is identical either way, so this remains a faithful test of what
+            # `make` would actually hand to a shell.
             if not IS_WINDOWS:
                 shell_command = show_command.replace("$$", "$")
                 subprocess.run(["sh", "-c", shell_command], capture_output=True, text=True)
@@ -277,13 +233,10 @@ class TestPrepareMakefile(PrepareHookUnitBase):
                     f"Command injection succeeded for payload: {malicious_resource!r}",
                 )
 
-            # The untrusted value must still reach the args file untouched, so the legitimate
-            # (non-injection) behavior of building this resource is preserved.
-            args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
-            args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
-            with open(args_file_path) as f:
-                args_file_contents = json.load(f)
-            self.assertEqual(args_file_contents, {"expression": malicious_jpath, "target": malicious_resource})
+            # The untrusted value must still reach the PendingArgsFile untouched, so the
+            # legitimate (non-injection) behavior of building this resource is preserved.
+            self.assertEqual(pending_args_file.expression, malicious_jpath)
+            self.assertEqual(pending_args_file.target, malicious_resource)
 
     def test_get_makefile_build_target(self):
         output_string = _get_makefile_build_target("function_logical_id")
@@ -348,15 +301,18 @@ class TestPrepareMakefile(PrepareHookUnitBase):
     @parameterized.expand([(True,), (False,)])
     @patch("builtins.open")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.shutil")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.glob")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.os")
     def test_generate_makefile(
         self,
         output_dir_exists,
         mock_os,
+        mock_glob,
         mock_shutil,
         mock_open,
     ):
         mock_os.path.exists.return_value = output_dir_exists
+        mock_glob.glob.return_value = []
 
         mock_copy_tf_backend_override_file_path = Mock()
         mock_copy_terraform_built_artifacts_script_path = Mock()
@@ -364,6 +320,7 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         mock_makefile_path = Mock()
         mock_os.path.dirname.return_value = ""
         mock_os.path.join.side_effect = [
+            "/output/dir/*.args.json",  # glob pattern for pruning stale args files
             mock_copy_tf_backend_override_file_path,
             mock_copy_terraform_built_artifacts_script_path,
             mock_zip_module_path,
@@ -371,17 +328,30 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         ]
 
         mock_makefile = Mock()
-        mock_open.return_value.__enter__.return_value = mock_makefile
+        mock_args_file = Mock()
+        mock_backend_override_file = Mock()
+        # __enter__ is consumed in call order: the args file write, then
+        # _generate_backend_override_file()'s own `with open(...)`, then the Makefile write
+        mock_open.return_value.__enter__.side_effect = [mock_args_file, mock_backend_override_file, mock_makefile]
 
         mock_makefile_rules = Mock()
-        mock_output_directory_path = Mock()
+        mock_pending_args_files = [
+            PendingArgsFile(path="/output/dir/aaaa.args.json", expression="expr", target="target"),
+        ]
+        mock_output_directory_path = "/output/dir"
 
-        generate_makefile(mock_makefile_rules, mock_output_directory_path)
+        with patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.json") as mock_json:
+            generate_makefile(mock_makefile_rules, mock_pending_args_files, mock_output_directory_path)
+
+            mock_json.dump.assert_called_once_with({"expression": "expr", "target": "target"}, mock_args_file)
 
         if output_dir_exists:
             mock_os.makedirs.assert_not_called()
         else:
             mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
+
+        # stale *.args.json files from a previous run are removed before this run's set is written
+        mock_glob.glob.assert_called_once_with("/output/dir/*.args.json")
 
         mock_shutil.copy.assert_has_calls(
             [
@@ -390,3 +360,32 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             ]
         )
         mock_makefile.writelines.assert_called_once_with(mock_makefile_rules)
+
+    def test_generate_makefile_prunes_stale_args_files_and_writes_new_ones(self):
+        # End-to-end (real filesystem) check of the two behaviors this test's mocked sibling
+        # can't observe directly: a *.args.json left behind by a previous run (e.g. for a Lambda
+        # resource that has since been renamed or removed) is deleted, and every current
+        # PendingArgsFile is written with its expression/target intact - including values that
+        # were previously dangerous when embedded directly in a shell command line (backticks,
+        # $(...), embedded newlines, quotes, etc), which JSON encoding neutralizes without
+        # needing any shell- or make-specific escaping.
+        with tempfile.TemporaryDirectory() as output_dir:
+            stale_args_file_path = os.path.join(output_dir, "stale0000.args.json")
+            with open(stale_args_file_path, "w") as f:
+                f.write('{"expression": "old", "target": "old"}')
+
+            malicious_value = 'null_resource.sam_metadata["normal`touch /tmp/poc_sam_rce`"]'
+            pending_args_files = [
+                PendingArgsFile(
+                    path=os.path.join(output_dir, "current1.args.json"),
+                    expression=malicious_value,
+                    target=malicious_value,
+                ),
+            ]
+
+            generate_makefile(["build-x:\n\techo hi\n"], pending_args_files, output_dir)
+
+            self.assertFalse(os.path.exists(stale_args_file_path))
+            with open(pending_args_files[0].path) as f:
+                contents = json.load(f)
+            self.assertEqual(contents, {"expression": malicious_value, "target": malicious_value})

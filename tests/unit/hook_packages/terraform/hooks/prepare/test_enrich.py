@@ -127,7 +127,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         }
 
         makefile_rules = [Mock() for _ in sam_metadata_resources]
-        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+        pending_args_files = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = list(zip(makefile_rules, pending_args_files))
 
         enrich_resources_and_generate_makefile(
             sam_metadata_resources,
@@ -153,7 +154,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ]
         )
 
-        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, pending_args_files, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
@@ -217,7 +218,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         }
 
         makefile_rules = [Mock() for _ in sam_metadata_resources]
-        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+        pending_args_files = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = list(zip(makefile_rules, pending_args_files))
 
         enrich_resources_and_generate_makefile(
             sam_metadata_resources,
@@ -243,7 +245,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ]
         )
 
-        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, pending_args_files, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
@@ -307,7 +309,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         ]
 
         makefile_rules = [Mock() for _ in sam_metadata_resources]
-        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+        pending_args_files = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = list(zip(makefile_rules, pending_args_files))
 
         enrich_resources_and_generate_makefile(
             sam_metadata_resources,
@@ -353,7 +356,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ]
         )
 
-        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, pending_args_files, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
@@ -530,7 +533,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         }
 
         makefile_rules = [Mock() for _ in sam_metadata_resources]
-        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+        pending_args_files = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = list(zip(makefile_rules, pending_args_files))
 
         enrich_resources_and_generate_makefile(
             sam_metadata_resources, cfn_resources, "/output/dir", "/terraform/project/root", {}, "/project/root"
@@ -551,7 +555,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ]
         )
 
-        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, pending_args_files, "/output/dir")
 
     @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
     @patch(
@@ -670,7 +674,8 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
         ]
 
         makefile_rules = [Mock() for _ in sam_metadata_resources]
-        mock_generate_makefile_rule_for_lambda_resource.side_effect = makefile_rules
+        pending_args_files = [Mock() for _ in sam_metadata_resources]
+        mock_generate_makefile_rule_for_lambda_resource.side_effect = list(zip(makefile_rules, pending_args_files))
 
         enrich_resources_and_generate_makefile(
             sam_metadata_resources,
@@ -704,7 +709,7 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
             ]
         )
 
-        mock_generate_makefile.assert_called_once_with(makefile_rules, "/output/dir")
+        mock_generate_makefile.assert_called_once_with(makefile_rules, pending_args_files, "/output/dir")
 
     @parameterized.expand(
         [
@@ -833,6 +838,92 @@ class TestPrepareHookMakefile(PrepareHookUnitBase):
                 {},
                 "/project/root",
             )
+
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_python_command_name")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich.generate_makefile")
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_relevant_cfn_resource")
+    @patch(
+        "samcli.hook_packages.terraform.hooks.prepare.enrich._validate_referenced_resource_matches_sam_metadata_type"
+    )
+    @patch("samcli.hook_packages.terraform.hooks.prepare.enrich._get_source_code_path")
+    def test_enrich_resources_and_generate_makefile_does_not_write_anything_when_a_later_resource_fails(
+        self,
+        mock_get_lambda_function_source_code_path,
+        mock_validate_referenced_resource_matches_sam_metadata_type,
+        mock_get_relevant_cfn_resource,
+        mock_generate_makefile,
+        mock_get_python_command_name,
+    ):
+        # Regression test for the case flagged in review: generate_makefile_rule_for_lambda_resource
+        # (called for each resource, one at a time, as this loop runs) must perform no I/O of its
+        # own, so that if a *later* resource in the same call fails, no earlier resource's args
+        # file has already been written to disk with no Makefile ever produced to go with it. All
+        # writes are deferred to the single generate_makefile() call at the end - which never
+        # happens here, because the second resource's invalid resource type raises before that
+        # point is ever reached. generate_makefile_rule_for_lambda_resource itself is intentionally
+        # NOT mocked here, so it really runs (and, being a pure function now, has nothing to leak).
+        mock_get_python_command_name.return_value = "python"
+        mock_get_lambda_function_source_code_path.return_value = "src/code/path1"
+
+        zip_function_1 = {
+            "Type": CFN_AWS_LAMBDA_FUNCTION,
+            "Properties": {
+                **self.expected_cfn_function_common_properties,
+                "Code": "file.zip",
+            },
+            "Metadata": {"SamResourceId": "aws_lambda_function.func1", "SkipBuild": True},
+        }
+        cfn_resources = {"logical_id1": zip_function_1}
+        mock_get_relevant_cfn_resource.side_effect = [[(zip_function_1, "logical_id1")]]
+
+        # output_dir must be a real subpath of terraform_application_dir - unlike the mocked
+        # sibling tests, generate_makefile_rule_for_lambda_resource is intentionally not mocked
+        # here, so it genuinely computes a path relative to terraform_application_dir
+        terraform_application_dir = "/terraform/project/root"
+        output_directory_path = "/terraform/project/root/.aws-sam-iacs/iacs_metadata"
+
+        sam_metadata_resources = [
+            # this resource is valid and will be fully enriched, including generating a real
+            # (unmocked) makefile rule for it
+            SamMetadataResource(
+                current_module_address=None,
+                resource=self.tf_lambda_function_resource_zip_sam_metadata,
+                config_resource=TFResource("", "", None, {}),
+            ),
+            # this resource has an invalid resource type and will raise before
+            # _get_relevant_cfn_resource (and therefore generate_makefile_rule_for_lambda_resource)
+            # is ever called for it
+            SamMetadataResource(
+                current_module_address=None,
+                resource={
+                    **self.tf_sam_metadata_resource_common_attributes,
+                    "values": {
+                        "triggers": {
+                            "resource_name": "aws_lambda_function.func2",
+                            "resource_type": "Invalid_resource_type",
+                        },
+                    },
+                    "address": "null_resource.sam_metadata_func2",
+                    "name": "sam_metadata_func2",
+                },
+                config_resource=TFResource("", "", None, {}),
+            ),
+        ]
+
+        with self.assertRaises(InvalidSamMetadataPropertiesException):
+            enrich_resources_and_generate_makefile(
+                sam_metadata_resources,
+                cfn_resources,
+                output_directory_path,
+                terraform_application_dir,
+                {},
+                "/project/root",
+            )
+
+        # generate_makefile is the only place args files (or the Makefile itself) are written to
+        # disk - it never being called here is what proves nothing was written for the first
+        # (successfully-enriched) resource despite the second resource failing.
+        mock_generate_makefile.assert_not_called()
 
     def test_validate_referenced_layer_resource_matches_sam_metadata_type_valid_types(self):
         cfn_resource = self.expected_cfn_layer_resource_zip
