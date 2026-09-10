@@ -4,7 +4,6 @@ Terraform Makefile and make rule generation
 This module generates the Makefile for the project and the rules for each of the Lambda functions found
 """
 
-import glob
 import json
 import logging
 import os
@@ -24,7 +23,7 @@ LOG = logging.getLogger(__name__)
 TERRAFORM_BUILD_SCRIPT = "copy_terraform_built_artifacts.py"
 ZIP_UTILS_MODULE = "zip.py"
 TF_BACKEND_OVERRIDE_FILENAME = "z_samcli_backend_override"
-ARGS_FILE_GLOB_PATTERN = "*.args.json"
+ARGS_FILE_SUFFIX = ".args.json"
 # a 16-char hex checksum plus ".args.json" is 26 characters total, comfortably clear of both the
 # 255-byte per-component filesystem/OS filename limit and Windows' 260-character MAX_PATH total
 # path length limit (see _get_args_file_path)
@@ -125,9 +124,16 @@ def generate_makefile(
         os.makedirs(output_directory_path, exist_ok=True)
 
     # remove any args files left behind by a previous run (e.g. for a Lambda resource that has
-    # since been renamed or removed) before writing this run's set
-    for stale_args_file_path in glob.glob(os.path.join(output_directory_path, ARGS_FILE_GLOB_PATTERN)):
-        os.remove(stale_args_file_path)
+    # since been renamed or removed) before writing this run's set. Listing the directory and
+    # filtering by suffix - rather than glob.glob(os.path.join(output_directory_path, "*.args.json")) -
+    # is deliberate: glob applies fnmatch pattern semantics to *every* path component, not just
+    # the final one, so a project path containing a glob metacharacter (e.g. "proj[1]") would
+    # silently make the pattern match nothing, leaving stale files to accumulate indefinitely
+    # with no error raised. os.listdir has no pattern-expansion semantics on the directory path
+    # at all, so it can't have that failure mode.
+    for entry in os.listdir(output_directory_path):
+        if entry.endswith(ARGS_FILE_SUFFIX):
+            os.remove(os.path.join(output_directory_path, entry))
 
     for pending_args_file in pending_args_files:
         with open(pending_args_file.path, "w+") as args_file:
@@ -280,7 +286,7 @@ def _get_args_file_path(output_dir: str, logical_id: str) -> str:
     str
         The absolute path of the args file (this function does not create it)
     """
-    args_file_name = f"{str_checksum(logical_id)[:ARGS_FILE_NAME_HASH_LEN]}.args.json"
+    args_file_name = f"{str_checksum(logical_id)[:ARGS_FILE_NAME_HASH_LEN]}{ARGS_FILE_SUFFIX}"
     return os.path.join(output_dir, args_file_name)
 
 

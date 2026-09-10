@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 from unittest.mock import patch, Mock, call
 from parameterized import parameterized
 
@@ -12,6 +13,7 @@ from tests.unit.hook_packages.terraform.hooks.prepare.prepare_base import Prepar
 from samcli.hook_packages.terraform.hooks.prepare.types import (
     SamMetadataResource,
 )
+from samcli.lib.utils.path_utils import convert_path_to_unix_path
 from samcli.hook_packages.terraform.hooks.prepare.makefile_generator import (
     generate_makefile_rule_for_lambda_resource,
     generate_makefile,
@@ -111,11 +113,16 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         self.assertIn('--directory "$(ARTIFACTS_DIR)"', show_command)
         self.assertIn("--args-file", show_command)
 
-        # the args file path referenced in the recipe should match the PendingArgsFile's path,
-        # and the PendingArgsFile should carry the expression/target this rule needs
+        # the args file path referenced in the recipe (always unix-style, since it's handed to
+        # a shell that may be cmd.exe on Windows) should match the PendingArgsFile's path
+        # (a native-OS-style absolute path) once converted the same way _build_makerule_python_command
+        # converts it - not via os.path.join, which on Windows would produce a mixed \ and /
+        # path if compared against an already-unix-style relative path
         args_file_relative_path = show_command.split("--args-file")[1].strip().strip('"')
-        args_file_path = os.path.join(terraform_application_dir, args_file_relative_path)
-        self.assertEqual(pending_args_file.path, args_file_path)
+        expected_relative_path = convert_path_to_unix_path(
+            str(Path(pending_args_file.path).relative_to(terraform_application_dir))
+        )
+        self.assertEqual(expected_relative_path, args_file_relative_path)
         self.assertEqual(pending_args_file.expression, jpath_string)
         self.assertEqual(pending_args_file.target, resource)
 
@@ -301,18 +308,17 @@ class TestPrepareMakefile(PrepareHookUnitBase):
     @parameterized.expand([(True,), (False,)])
     @patch("builtins.open")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.shutil")
-    @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.glob")
     @patch("samcli.hook_packages.terraform.hooks.prepare.makefile_generator.os")
     def test_generate_makefile(
         self,
         output_dir_exists,
         mock_os,
-        mock_glob,
         mock_shutil,
         mock_open,
     ):
         mock_os.path.exists.return_value = output_dir_exists
-        mock_glob.glob.return_value = []
+        # no stale args files in this directory - the pruning loop's os.remove is never reached
+        mock_os.listdir.return_value = []
 
         mock_copy_tf_backend_override_file_path = Mock()
         mock_copy_terraform_built_artifacts_script_path = Mock()
@@ -320,7 +326,6 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         mock_makefile_path = Mock()
         mock_os.path.dirname.return_value = ""
         mock_os.path.join.side_effect = [
-            "/output/dir/*.args.json",  # glob pattern for pruning stale args files
             mock_copy_tf_backend_override_file_path,
             mock_copy_terraform_built_artifacts_script_path,
             mock_zip_module_path,
@@ -350,8 +355,11 @@ class TestPrepareMakefile(PrepareHookUnitBase):
         else:
             mock_os.makedirs.assert_called_once_with(mock_output_directory_path, exist_ok=True)
 
-        # stale *.args.json files from a previous run are removed before this run's set is written
-        mock_glob.glob.assert_called_once_with("/output/dir/*.args.json")
+        # stale *.args.json files from a previous run are removed before this run's set is
+        # written - listing the directory and filtering by suffix rather than globbing, since
+        # glob.glob applies fnmatch semantics to every path component (see
+        # test_generate_makefile_prunes_stale_args_files_in_a_directory_with_glob_metacharacters)
+        mock_os.listdir.assert_called_once_with(mock_output_directory_path)
 
         mock_shutil.copy.assert_has_calls(
             [
@@ -389,3 +397,31 @@ class TestPrepareMakefile(PrepareHookUnitBase):
             with open(pending_args_files[0].path) as f:
                 contents = json.load(f)
             self.assertEqual(contents, {"expression": malicious_value, "target": malicious_value})
+
+    def test_generate_makefile_prunes_stale_args_files_in_a_directory_with_glob_metacharacters(self):
+        # Regression test for pruning via glob.glob(os.path.join(output_directory_path, "*.args.json")):
+        # glob applies fnmatch pattern semantics to *every* path component, not just the final
+        # one, so an output_directory_path containing a glob metacharacter (here "[1]", but "*"
+        # or "?" have the same effect) would make the pattern match nothing - silently leaving
+        # every stale args file in place with no error raised, which is the exact accumulation
+        # this pruning step exists to prevent. Pruning via os.listdir (which has no
+        # pattern-expansion semantics on the directory path at all) can't have that failure mode.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = os.path.join(tmpdir, "proj[1]", ".aws-sam-iacs", "iacs_metadata")
+            os.makedirs(output_dir)
+
+            stale_args_file_path = os.path.join(output_dir, "stale0000.args.json")
+            with open(stale_args_file_path, "w") as f:
+                f.write('{"expression": "old", "target": "old"}')
+
+            pending_args_files = [
+                PendingArgsFile(path=os.path.join(output_dir, "current1.args.json"), expression="e", target="t"),
+            ]
+
+            generate_makefile(["build-x:\n\techo hi\n"], pending_args_files, output_dir)
+
+            self.assertFalse(
+                os.path.exists(stale_args_file_path),
+                "stale args file was not pruned - likely a glob metacharacter in the path silently " "matched nothing",
+            )
+            self.assertTrue(os.path.exists(pending_args_files[0].path))
