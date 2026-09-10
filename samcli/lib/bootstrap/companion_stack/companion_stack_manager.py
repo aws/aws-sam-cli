@@ -97,22 +97,25 @@ class CompanionStackManager:
         """
         try:
             assumed_role = sts_client.assume_role(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
-        except (ClientError, BotoCoreError) as ex:
+            credentials = assumed_role["Credentials"]
+            return boto3.client(
+                "ecr",
+                config=self._boto_config,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+        except (ClientError, BotoCoreError, KeyError) as ex:
             # BotoCoreError covers ParamValidationError (e.g. a typo'd role
             # ARN, validated client-side), NoCredentialsError and
-            # endpoint/connection errors, so every assume_role failure becomes
-            # an AWSServiceClientError that _get_ecr_client can fall back from.
+            # endpoint/connection errors; KeyError covers a malformed assume
+            # response. The response-consumption statements live inside the
+            # try as well, so every failure here becomes an
+            # AWSServiceClientError that _get_ecr_client can fall back from
+            # instead of aborting the deploy.
             raise AWSServiceClientError(
                 f"Error assuming the provided role {role_arn} for companion stack ECR operations: {ex}"
             ) from ex
-        credentials = assumed_role["Credentials"]
-        return boto3.client(
-            "ecr",
-            config=self._boto_config,
-            aws_access_key_id=credentials["AccessKeyId"],
-            aws_secret_access_key=credentials["SecretAccessKey"],
-            aws_session_token=credentials["SessionToken"],
-        )
 
     def _get_ecr_client(self):
         """
@@ -289,6 +292,21 @@ class CompanionStackManager:
                 ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except ecr_client.exceptions.RepositoryNotFoundException:
                 LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
+            except ClientError as ex:
+                # A CloudFormation service role is commonly scoped to what CFN
+                # needs to create/update the stack; if it can be assumed but
+                # lacks ecr:DeleteRepository, the AccessDenied ClientError is
+                # unhandled above and would abort the deploy. Since the
+                # assumed role is best-effort, retry with the caller's
+                # credentials instead of failing.
+                error_code = ex.response.get("Error", {}).get("Code")
+                if ecr_client is self._ecr_client or error_code != "AccessDeniedException":
+                    raise
+                LOG.debug(
+                    "Assumed role not authorized to delete image repo [%s]; retrying with caller credentials.",
+                    repo.physical_id,
+                )
+                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
 
     def sync_repos(self) -> None:
         """
