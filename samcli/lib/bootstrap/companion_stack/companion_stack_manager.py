@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, NoRegionError
 from mypy_boto3_cloudformation.client import CloudFormationClient
 from mypy_boto3_cloudformation.type_defs import WaiterConfigTypeDef
 from mypy_boto3_s3.client import S3Client
@@ -97,7 +97,11 @@ class CompanionStackManager:
         """
         try:
             assumed_role = sts_client.assume_role(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
-        except ClientError as ex:
+        except (ClientError, BotoCoreError) as ex:
+            # BotoCoreError covers ParamValidationError (e.g. a typo'd role
+            # ARN, validated client-side), NoCredentialsError and
+            # endpoint/connection errors, so every assume_role failure becomes
+            # an AWSServiceClientError that _get_ecr_client can fall back from.
             raise AWSServiceClientError(
                 f"Error assuming the provided role {role_arn} for companion stack ECR operations: {ex}"
             ) from ex
@@ -274,6 +278,11 @@ class CompanionStackManager:
         If repo does not exist, this will simply skip it.
         """
         repos = self.get_unreferenced_repos()
+        if not repos:
+            # Nothing to delete: skip the (lazy) assume-role attempt so a
+            # routine deploy with --role-arn does not emit a pointless
+            # sts:AssumeRole call.
+            return
         ecr_client = self._get_ecr_client()
         for repo in repos:
             try:

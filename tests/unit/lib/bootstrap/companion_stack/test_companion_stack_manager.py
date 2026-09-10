@@ -331,6 +331,43 @@ class TestCompanionStackManager(TestCase):
         self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
         self.assertEqual(self.ecr_client.delete_repository.call_count, 2)
 
+    def test_assume_role_param_validation_error_falls_back_to_caller_credentials(self):
+        # --role-arn is an unvalidated free-form string; botocore validates it
+        # client-side and raises ParamValidationError (a BotoCoreError, not a
+        # ClientError). That must also translate into the documented fallback
+        # to caller credentials instead of aborting the deploy with a raw
+        # botocore traceback.
+        from botocore.exceptions import ParamValidationError
+
+        role_arn = "not-an-arn"
+        self.sts_client.assume_role.side_effect = ParamValidationError(report="Invalid RoleArn")
+        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
+
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+
+        repo = Mock()
+        repo.physical_id = "ECRRepoStale"
+        manager.get_unreferenced_repos = lambda: [repo]
+
+        manager.delete_unreferenced_repos()
+
+        self.sts_client.assume_role.assert_called_once_with(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
+        self.ecr_client.delete_repository.assert_called_once_with(repositoryName="ECRRepoStale", force=True)
+
+    def test_delete_unreferenced_repos_without_stale_repos_skips_assume_role(self):
+        # Zero stale repos is the steady state; the lazy assume-role attempt
+        # must not fire (and must not appear in CloudTrail) when there is
+        # nothing to delete.
+        role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
+        self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
+        manager = CompanionStackManager(self.stack_name, "region", "s3_bucket", "s3_prefix", role_arn=role_arn)
+        manager.get_unreferenced_repos = lambda: []
+
+        manager.delete_unreferenced_repos()
+
+        self.sts_client.assume_role.assert_not_called()
+        self.ecr_client.delete_repository.assert_not_called()
+
     def test_delete_companion_stack_with_role_arn(self):
         role_arn = "arn:aws:iam::123456789012:role/CloudFormationServiceRole"
         self.boto3_client_mock.side_effect = [self.cfn_client, self.ecr_client, self.s3_client, self.sts_client]
