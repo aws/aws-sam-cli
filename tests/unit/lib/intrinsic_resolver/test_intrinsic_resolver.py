@@ -3,7 +3,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from parameterized import parameterized
 
@@ -906,6 +906,38 @@ class TestIntrinsicFnIfResolver(TestCase):
         with self.assertRaises(InvalidIntrinsicException, msg="Invalid Condition"):
             self.resolver.intrinsic_property_resolver({"Fn::If": ["InvalidCondition", "test", "test"]}, True)
 
+    def test_fn_if_selects_resolvable_true_branch_ignoring_unresolvable_false_branch(self):
+        intrinsic = {"Fn::If": ["TestCondition", "resolved-value", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+        self.assertEqual(result, "resolved-value")
+
+    def test_fn_if_selects_resolvable_false_branch_ignoring_unresolvable_true_branch(self):
+        intrinsic = {"Fn::If": ["NotTestCondition", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}, "resolved-value"]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+        self.assertEqual(result, "resolved-value")
+
+    def test_fn_if_does_not_evaluate_unselected_false_branch(self):
+        mock_handle_fn_getatt = MagicMock()
+        self.resolver.intrinsic_key_function_map[IntrinsicResolver.FN_GET_ATT] = mock_handle_fn_getatt
+        intrinsic = {"Fn::If": ["TestCondition", "resolved-value", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+
+        self.assertEqual(result, "resolved-value")
+        mock_handle_fn_getatt.assert_not_called()
+
+    def test_fn_if_does_not_evaluate_unselected_true_branch(self):
+        mock_handle_fn_getatt = MagicMock()
+        self.resolver.intrinsic_key_function_map[IntrinsicResolver.FN_GET_ATT] = mock_handle_fn_getatt
+        intrinsic = {"Fn::If": ["NotTestCondition", {"Fn::GetAtt": ["Function2Url", "FunctionUrl"]}, "resolved-value"]}
+
+        result = self.resolver.intrinsic_property_resolver(intrinsic, False)
+
+        self.assertEqual(result, "resolved-value")
+        mock_handle_fn_getatt.assert_not_called()
+
 
 class TestIntrinsicAttribteResolution(TestCase):
     def setUp(self):
@@ -1012,6 +1044,54 @@ class TestIntrinsicAttribteResolution(TestCase):
             "RestApiResource": {"Properties": {"PathPart": "{proxy+}", "RestApiId": "RestApi", "parentId": "/"}},
         }
         self.assertEqual(expected_template, dict(result))
+
+    def test_template_ignore_errors_leaves_unresolvable_layer_getatt_as_dict(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"] = [
+            {"Fn::GetAtt": ["NestedStack", "Outputs.MyDepLayer"]}
+        ]
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertEqual(
+            result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"],
+            [{"Fn::GetAtt": ["NestedStack", "Outputs.MyDepLayer"]}],
+        )
+
+    def test_fn_if_no_value_drops_whole_property(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Layers"] = {
+            "Fn::If": ["TestCondition", [{"Ref": "MyCustomLambdaLayer"}], {"Ref": "AWS::NoValue"}]
+        }
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertNotIn("Layers", result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"])
+
+    def test_fn_if_no_value_drops_nested_dict_key(self):
+        resources = deepcopy(self.resources)
+        resources["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Events"] = {
+            "ApiEvent": {
+                "Fn::If": [
+                    "TestCondition",
+                    {"Type": "Api", "Properties": {"Path": "/", "Method": "get"}},
+                    {"Ref": "AWS::NoValue"},
+                ]
+            }
+        }
+        template = {"Mappings": self.mappings, "Conditions": self.conditions, "Resources": resources}
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator=self.logical_id_translator)
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+
+        result = resolver.resolve_attribute(resources, ignore_errors=True)
+
+        self.assertEqual(result["ReferenceLambdaLayerVersionLambdaFunction"]["Properties"]["Events"], {})
 
 
 class TestResolveTemplate(TestCase):

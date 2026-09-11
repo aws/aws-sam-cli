@@ -1302,6 +1302,26 @@ class TestSamFunctionProvider_extract_functions(TestCase):
         )
 
     @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
+    @patch.object(SamFunctionProvider, "_convert_sam_function_resource")
+    def test_must_treat_none_layers_as_empty_list(self, convert_mock, resources_mock):
+        # Layers resolves to None when it is defined as Fn::If selecting AWS::NoValue,
+        # e.g. Layers: !If [UseLayers, [!Ref MyLayer], !Ref "AWS::NoValue"]
+        convertion_result = Mock()
+        convertion_result.full_path = "A/B/C/Func1"
+        convert_mock.return_value = convertion_result
+
+        resources_mock.return_value = {
+            "Func1": {"Type": "AWS::Serverless::Function", "Properties": {"Layers": None}}
+        }
+
+        expected = {"A/B/C/Func1": convertion_result}
+
+        stack = make_root_stack(None)
+        result = SamFunctionProvider._extract_functions([stack])
+        self.assertEqual(expected, result)
+        convert_mock.assert_called_with(stack, "Func1", {"Layers": None}, [], False)
+
+    @patch("samcli.lib.providers.sam_function_provider.Stack.resources", new_callable=PropertyMock)
     @patch.object(SamFunctionProvider, "_convert_lambda_function_resource")
     def test_must_work_for_lambda_function(self, convert_mock, resources_mock):
         convertion_result = Mock()
