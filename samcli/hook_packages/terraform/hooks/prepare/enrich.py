@@ -83,6 +83,7 @@ def enrich_resources_and_generate_makefile(
     }
 
     makefile_rules = []
+    pending_args_files = []
     for sam_metadata_resource in sam_metadata_resources:
         # enrich resource
         resource_type = get_sam_metadata_planned_resource_value_attribute(
@@ -111,7 +112,7 @@ def enrich_resources_and_generate_makefile(
             )
 
             # get makefile rule for resource
-            makefile_rule = generate_makefile_rule_for_lambda_resource(
+            makefile_rule, pending_args_file = generate_makefile_rule_for_lambda_resource(
                 sam_metadata_resource,
                 logical_id,
                 terraform_application_dir,
@@ -120,10 +121,11 @@ def enrich_resources_and_generate_makefile(
                 mount_symlinks=mount_symlinks,
             )
             makefile_rules.append(makefile_rule)
+            pending_args_files.append(pending_args_file)
 
     # generate makefile
     LOG.debug("Generate Makefile in %s", output_directory_path)
-    generate_makefile(makefile_rules, output_directory_path)
+    generate_makefile(makefile_rules, pending_args_files, output_directory_path)
 
 
 def _enrich_zip_lambda_function(
