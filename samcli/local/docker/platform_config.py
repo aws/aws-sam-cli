@@ -123,11 +123,61 @@ class LinuxHandler(PlatformHandler):
 
     def get_finch_socket_path(self) -> Optional[str]:
         """
-        Returns the socket path for Linux.
+        Returns the socket path for Linux, checking multiple locations.
+
+        On Linux, Finch can use either a Finch-specific socket or the underlying
+        containerd socket via nerdctl.
+
+        Priority order:
+        1. XDG_RUNTIME_DIR/finch.sock (Finch-specific socket)
+        2. ~/.finch/finch.sock (user home directory)
+        3. /var/run/finch.sock (system-wide)
+        4. XDG_RUNTIME_DIR/containerd/containerd.sock (rootless containerd fallback)
+
+        Note: The containerd socket is checked last as a fallback since it may be
+        shared by multiple container tools. Finch-specific sockets are preferred
+        for accurate telemetry reporting.
+
+        Returns:
+            Optional[str]: Socket path if found, None otherwise
         """
 
-        # Default fallback to system socket
-        return "unix:///var/run/finch.sock"
+        # Check XDG_RUNTIME_DIR for Finch-specific socket first
+        xdg_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
+        if xdg_runtime_dir:
+            # Finch-specific socket in XDG_RUNTIME_DIR
+            finch_sock = os.path.join(xdg_runtime_dir, "finch.sock")
+            if os.path.exists(finch_sock):
+                LOG.debug(f"Found Finch socket at XDG_RUNTIME_DIR: {finch_sock}")
+                return f"unix://{finch_sock}"
+
+        # Check user home directory for Finch VM socket
+        home_dir = os.path.expanduser("~")
+        home_finch_sock = os.path.join(home_dir, ".finch", "finch.sock")
+        if os.path.exists(home_finch_sock):
+            LOG.debug(f"Found Finch socket in home directory: {home_finch_sock}")
+            return f"unix://{home_finch_sock}"
+
+        # System-wide socket
+        system_sock = "/var/run/finch.sock"
+        if os.path.exists(system_sock):
+            LOG.debug(f"Found Finch socket at system location: {system_sock}")
+            return f"unix://{system_sock}"
+
+        # Fallback: Check for rootless containerd socket
+        # This is checked last since containerd may be used by other tools
+        if xdg_runtime_dir:
+            containerd_sock = os.path.join(xdg_runtime_dir, "containerd", "containerd.sock")
+            if os.path.exists(containerd_sock):
+                LOG.debug(
+                    f"Found containerd socket at XDG_RUNTIME_DIR (fallback): {containerd_sock}. "
+                    "Note: This socket may be shared with other containerd-based tools."
+                )
+                return f"unix://{containerd_sock}"
+
+        # No socket found - return None to enable future CLI fallback
+        LOG.warning("No Finch socket found in standard locations")
+        return None
 
     def supports_finch(self) -> bool:
         """
