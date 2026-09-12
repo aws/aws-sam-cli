@@ -553,11 +553,13 @@ class SamApiProvider(CfnBaseApiProvider):
     @staticmethod
     def merge_routes(collector: ApiCollector) -> List[Route]:
         """
-        Quite often, an API is defined both in Implicit and Explicit Route definitions. In such cases, Implicit API
-        definition wins because that conveys clear intent that the API is backed by a function. This method will
-        merge two such list of routes with the right order of precedence. If a Path+Method combination is defined
-        in both the places, only one wins.
-        In a multi-stack situation, the API defined in the top level wins.
+        Quite often, an API is defined in both implicit and explicit route definitions. The implicit API normally
+        wins because that conveys clear intent that the API is backed by a function. When a later expanded ANY route
+        overlaps a single-method route from the same function, both are retained only if the narrower route explicitly
+        declares different authorizer intent. Downstream deduplication then preserves that method-level authorization,
+        including when the routes have different operation names. A payload format version is inherited only when the
+        later route actually replaces the earlier route. In a multi-stack situation, the API defined in the top level
+        wins.
 
         Parameters
         ----------
@@ -581,8 +583,8 @@ class SamApiProvider(CfnBaseApiProvider):
             else:
                 explicit_routes.extend(apis)
 
-        # We will use "path+method" combination as key to this dictionary and store the Api config for this combination.
-        # If an path+method combo already exists, then overwrite it if and only if this is an implicit API
+        # Use the "path+method" combination as the key. Later routes normally overwrite earlier routes, subject to
+        # the narrow authorizer-preservation exception below.
         all_routes: Dict[str, Route] = {}
 
         # By adding implicit APIs to the end of the list, they will be iterated last. If a configuration was already
@@ -594,13 +596,34 @@ class SamApiProvider(CfnBaseApiProvider):
         )
 
         for config in all_configs:
-            # Normalize the methods before de-duping to allow an ANY method in implicit API to override a regular HTTP
-            # method on explicit route.
+            # Normalize methods before de-duping so an ANY route normally overrides a regular HTTP method.
+            # A narrow route with explicit, different authorizer intent is conditionally preserved below.
             for normalized_method in config.methods:
                 key = config.path + normalized_method
                 route = all_routes.get(key)
+
+                # Preserve a single-method route when it explicitly declares different
+                # raw authorizer intent and both routes can be reconciled downstream.
+                if (
+                    route
+                    and len(route.methods) == 1
+                    and set(config.methods) == set(Route.ANY_HTTP_METHODS)
+                    and route.function_name == config.function_name
+                    and route.stack_path == config.stack_path
+                    and route.event_type == config.event_type
+                    and (route.authorizer_name is not None or not route.use_default_authorizer)
+                    and (
+                        route.authorizer_name != config.authorizer_name
+                        or route.use_default_authorizer != config.use_default_authorizer
+                    )
+                ):
+                    continue
+
+                # Inherit only from a route that config is about to replace. A preserved route must not mutate the
+                # shared expanded ANY route used by the other method keys.
                 if route and route.payload_format_version and config.payload_format_version is None:
                     config.payload_format_version = route.payload_format_version
+
                 all_routes[key] = config
 
         result = set(all_routes.values())  # Assign to a set() to de-dupe
