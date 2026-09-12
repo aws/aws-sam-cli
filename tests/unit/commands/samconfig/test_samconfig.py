@@ -85,6 +85,7 @@ class TestSamConfigForAllCommands(TestCase):
                 ANY,
                 None,
                 "text",
+                None,
             )
 
     @patch("samcli.commands.validate.validate.do_cli")

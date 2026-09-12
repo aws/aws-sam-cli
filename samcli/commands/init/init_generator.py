@@ -19,6 +19,7 @@ def do_generate(
     tracing,
     application_insights,
     structured_logging,
+    checkout=None,
 ):
     """
     Generate a project and return the directory it was created in.
@@ -41,6 +42,7 @@ def do_generate(
             tracing,
             application_insights,
             structured_logging,
+            checkout,
         )
     except InitErrorException as e:
         raise UserException(str(e), wrapped_from=e.__class__.__name__) from e
