@@ -1002,3 +1002,120 @@ class TestGuidedContext(TestCase):
             ),
         ]
         self.assertEqual(expected_prompt_calls, patched_prompt.call_args_list)
+
+
+class TestGuidedContextRoleArn(TestCase):
+    ROLE_ARN = "arn:aws:iam::123456789012:role/deploy-role"
+
+    def setUp(self):
+        self.gc = GuidedContext(
+            template_file="template",
+            stack_name="test",
+            s3_bucket="s3_b",
+            s3_prefix="s3_p",
+            confirm_changeset=True,
+            region="region",
+            image_repository=None,
+            image_repositories={"RandomFunction": "image-repo"},
+            disable_rollback=False,
+            role_arn=self.ROLE_ARN,
+        )
+        self.companion_stack_manager_patch = patch("samcli.commands.deploy.guided_context.CompanionStackManager")
+        self.companion_stack_manager_mock = self.companion_stack_manager_patch.start()
+        self.sync_ecr_stack_patch = patch("samcli.commands.deploy.guided_context.sync_ecr_stack")
+        self.sync_ecr_stack_mock = self.sync_ecr_stack_patch.start()
+        self.addCleanup(self.companion_stack_manager_patch.stop)
+        self.addCleanup(self.sync_ecr_stack_patch.stop)
+
+    def test_guided_context_stores_role_arn(self):
+        self.assertEqual(self.gc.role_arn, self.ROLE_ARN)
+        default_gc = GuidedContext(
+            template_file="template",
+            stack_name="test",
+            s3_bucket="s3_b",
+            s3_prefix="s3_p",
+            region="region",
+            image_repository=None,
+            image_repositories={},
+        )
+        self.assertIsNone(default_gc.role_arn)
+
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_forwards_role_arn_to_sync_ecr_stack(
+        self,
+        patched_signer_config_per_function,
+        patched_get_buildable_stacks,
+        patched_auth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        get_resource_full_path_by_id_mock,
+    ):
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_signer_config_per_function.return_value = (None, None)
+        patched_prompt.side_effect = ["sam-app", "region", "CAPABILITY_IAM", "samconfig.toml", "default"]
+        patched_confirm.side_effect = [True, True, False, True]
+        patched_auth_per_resource.return_value = [("HelloWorldFunction", True)]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        self.sync_ecr_stack_mock.return_value = {"HelloWorldFunction": "repo-uri"}
+
+        self.gc.resolve_image_repositories = True
+        self.gc.guided_prompts(parameter_override_keys=None)
+
+        self.sync_ecr_stack_mock.assert_called_once_with(
+            "template",
+            "sam-app",
+            "region",
+            "managed_s3_stack",
+            "s3_p",
+            {"RandomFunction": "image-repo"},
+            role_arn=self.ROLE_ARN,
+        )
+
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_prompt_image_repository_forwards_role_arn_to_companion_stack_manager(
+        self,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patched_auth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        get_resource_full_path_by_id_mock,
+    ):
+        function_mock = MagicMock()
+        function_mock.packagetype = IMAGE
+        function_mock.imageuri = "helloworld:v1"
+        function_mock.full_path = "HelloWorldFunction"
+        patched_sam_function_provider.return_value.get_all.return_value = [function_mock]
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patched_signer_config_per_function.return_value = (None, None)
+        patched_prompt.side_effect = ["sam-app", "region", "CAPABILITY_IAM", "samconfig.toml", "default"]
+        patched_confirm.side_effect = [True, True, False, True, True]
+        patched_auth_per_resource.return_value = [("HelloWorldFunction", True)]
+        get_resource_full_path_by_id_mock.return_value = None
+        patched_manage_stack.return_value = "managed_s3_stack"
+        # "do not create repos for all functions" then "do not delete unreferenced repos"
+        manager_instance = self.companion_stack_manager_mock.return_value
+        manager_instance.get_repository_mapping.return_value = {"HelloWorldFunction": "repo-uri"}
+        manager_instance.get_unreferenced_repos.return_value = []
+
+        self.gc.guided_prompts(parameter_override_keys=None)
+
+        self.companion_stack_manager_mock.assert_called_once_with(
+            "sam-app", "region", "managed_s3_stack", "s3_p", role_arn=self.ROLE_ARN
+        )
