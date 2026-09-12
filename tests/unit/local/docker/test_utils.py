@@ -18,6 +18,7 @@ from samcli.local.docker.utils import (
     is_image_current,
     get_local_image_digest,
     get_remote_image_digest,
+    safe_decode_docker_message,
 )
 from samcli.local.docker.exceptions import NoFreePortsError
 
@@ -200,3 +201,47 @@ class TestImageDigestUtils(TestCase):
         result = is_image_current(self.mock_docker_client, self.image_name)
 
         self.assertFalse(result)
+
+
+class TestSafeDecodeDockerMessage(TestCase):
+    """Tests for safe_decode_docker_message function"""
+
+    def test_decode_bytes_message(self):
+        """Test decoding a bytes message (docker-py < 7.0 behavior)"""
+        message = b"ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"
+        result = safe_decode_docker_message(message)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use")
+
+    def test_decode_str_message(self):
+        """Test handling a str message (docker-py >= 7.0 behavior)"""
+        message = "ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"
+        result = safe_decode_docker_message(message)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use")
+
+    def test_decode_bytes_with_utf8_characters(self):
+        """Test decoding bytes with UTF-8 characters"""
+        message = b"Error: Port occup\xc3\xa9"  # UTF-8 encoded "occupé"
+        result = safe_decode_docker_message(message)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "Error: Port occupé")
+
+    def test_decode_empty_bytes(self):
+        """Test decoding empty bytes"""
+        message = b""
+        result = safe_decode_docker_message(message)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "")
+
+    def test_decode_empty_str(self):
+        """Test handling empty str"""
+        message = ""
+        result = safe_decode_docker_message(message)
+
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "")
