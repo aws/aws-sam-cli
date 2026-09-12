@@ -165,7 +165,7 @@ class ZipFunctionSyncFlow(FunctionSyncFlow):
                 bucket_name=self._deploy_context.s3_bucket,
                 prefix=self._deploy_context.s3_prefix,
                 kms_key_id=self._deploy_context.kms_key_id,
-                force_upload=True,
+                force_upload=self._deploy_context.force_upload,
                 no_progressbar=True,
             )
             s3_url = uploader.upload_with_dedup(self._zip_file)
