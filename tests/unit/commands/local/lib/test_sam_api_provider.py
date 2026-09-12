@@ -1393,6 +1393,169 @@ class TestSamCors(TestCase):
         self.assertEqual(provider.api.cors, cors)
 
 
+class TestSamGatewayResponses(TestCase):
+    def test_gateway_responses_headers_are_extracted(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "GatewayResponses": {
+                            "UNAUTHORIZED": {
+                                "ResponseParameters": {
+                                    "Headers": {
+                                        "Access-Control-Allow-Origin": "'*'",
+                                        "Access-Control-Allow-Headers": "'*'",
+                                    }
+                                }
+                            },
+                            "DEFAULT_5XX": {"ResponseParameters": {"Headers": {"Access-Control-Allow-Origin": "'*'"}}},
+                        },
+                        "DefinitionBody": {
+                            "swagger": "2.0",
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                }
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        self.assertEqual(
+            provider.api.gateway_responses,
+            {
+                "UNAUTHORIZED": {
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                },
+                "DEFAULT_5XX": {"Access-Control-Allow-Origin": "*"},
+            },
+        )
+
+    def test_gateway_responses_not_set_results_in_empty_dict(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "DefinitionBody": {
+                            "swagger": "2.0",
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                }
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        self.assertEqual(provider.api.gateway_responses, {})
+
+    def test_gateway_responses_header_not_single_quoted_is_ignored(self):
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "GatewayResponses": {
+                            "UNAUTHORIZED": {"ResponseParameters": {"Headers": {"Access-Control-Allow-Origin": "*"}}},
+                        },
+                        "DefinitionBody": {
+                            "swagger": "2.0",
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                }
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        self.assertEqual(provider.api.gateway_responses, {})
+
+    def test_gateway_responses_with_empty_response_parameters_does_not_crash(self):
+        # ResponseParameters: (no value) parses to None, not a missing key, so a plain .get(key, {})
+        # chain would raise AttributeError. Reproduces the crash reported in review of PR for #9064.
+        template = {
+            "Resources": {
+                "TestApi": {
+                    "Type": "AWS::Serverless::Api",
+                    "Properties": {
+                        "StageName": "Prod",
+                        "GatewayResponses": {
+                            "UNAUTHORIZED": {"ResponseParameters": None},
+                            "ACCESS_DENIED": {"ResponseParameters": {"Headers": None}},
+                        },
+                        "DefinitionBody": {
+                            "swagger": "2.0",
+                            "paths": {
+                                "/path": {
+                                    "get": {
+                                        "x-amazon-apigateway-integration": {
+                                            "type": "aws_proxy",
+                                            "uri": {
+                                                "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31"
+                                                "/functions/${NoApiEventFunction.Arn}/invocations"
+                                            },
+                                            "responses": {},
+                                        }
+                                    }
+                                }
+                            },
+                        },
+                    },
+                }
+            }
+        }
+
+        provider = ApiProvider(make_mock_stacks_from_template(template))
+
+        self.assertEqual(provider.api.gateway_responses, {})
+
+
 class TestSamHttpApiCors(TestCase):
     def test_provider_parse_cors_with_unresolved_intrinsic(self):
         template = {
