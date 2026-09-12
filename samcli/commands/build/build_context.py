@@ -1511,28 +1511,43 @@ Commands you can use next
 
     def _check_build_method_experimental_flag(self) -> None:
         """
-        Prints warning message and confirms if user wants to use beta feature
+        Prompts once per distinct experimental build method used by any function/layer.
         """
         EXPERIMENTAL_BUILD_METHODS = {
             "python-uv": ExperimentalFlag.UvPackageManager,
         }
 
         resources_to_build = self.get_resources_to_build()
-        for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
-                build_method = function.metadata.get("BuildMethod", "")
-                experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
-                # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
-                # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.
-                if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
-                    continue
-                WARNING_MESSAGE = (
-                    f'Build method "{build_method}" is a beta feature.\n'
-                    "Please confirm if you would like to proceed\n"
-                    'You can also enable this beta feature with "sam build --beta-features".'
-                )
+        build_methods = {
+            function.metadata.get("BuildMethod") for function in resources_to_build.functions if function.metadata
+        }
+        build_methods.update(layer.build_method for layer in resources_to_build.layers)
+        # Filter before sorting: "BuildMethod:" with no value parses to None, and sorting a mixed set raises.
+        experimental_build_methods = sorted(
+            build_method for build_method in build_methods if build_method in EXPERIMENTAL_BUILD_METHODS
+        )
 
-                prompt_experimental(experimental_flag, WARNING_MESSAGE)
+        for build_method in experimental_build_methods:
+            experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
+            # JSON mode cannot prompt for beta confirmation, and a declined prompt aborts the build, so an
+            # unconfirmed JSON build must fail the same way rather than run the beta workflow silently. With the
+            # flag already enabled, prompt_experimental only updates telemetry and does not prompt.
+            if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):
+                raise UserException(
+                    f'Build method "{build_method}" is a beta feature and cannot be confirmed with "--output json". '
+                    'Re-run with "sam build --beta-features" to enable it.'
+                )
+            WARNING_MESSAGE = (
+                f'Build method "{build_method}" is a beta feature.\n'
+                "Please confirm if you would like to proceed\n"
+                'You can also enable this beta feature with "sam build --beta-features".'
+            )
+
+            if not prompt_experimental(experimental_flag, WARNING_MESSAGE):
+                raise UserException(
+                    f'Build method "{build_method}" is a beta feature and was not confirmed. '
+                    'Re-run with "sam build --beta-features" to enable it.'
+                )
 
     @property
     def build_in_source(self) -> Optional[bool]:
