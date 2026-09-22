@@ -163,10 +163,9 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 )
 @click.option(
     "--express/--no-express",
-    default=False,
+    default=True,
     required=False,
     is_flag=True,
-    # TODO: Flip default to True after public announcement of express mode support
     help="Use CloudFormation Express mode to speed up infrastructure deployments by completing once resource "
     "configuration is applied, without waiting for full stabilization.",
 )
