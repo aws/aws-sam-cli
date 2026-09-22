@@ -307,7 +307,7 @@ def do_cli(
     build_in_source: Optional[bool],
     watch_exclude: Optional[Dict[str, List[str]]],
     language_extensions: Optional[bool],
-    express: bool = False,
+    express: bool = True,
 ) -> None:
     """
     Implementation of the ``cli`` method
