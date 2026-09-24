@@ -11,9 +11,10 @@ from collections import namedtuple
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Union, cast
+from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Set, Tuple, Union, cast
 
 from samcli.commands.local.cli_common.user_exceptions import (
+    AmbiguousResourceIdentifier,
     InvalidFunctionPropertyType,
     InvalidLayerVersionArn,
     UnsupportedIntrinsic,
@@ -883,22 +884,52 @@ def get_resource_by_id(
     -------
     Dict
         Resource dict
+
+    Raises
+    ------
+    AmbiguousResourceIdentifier
+        If a bare logical ID (no stack path given) matches resources in more than one *nested*
+        stack, with no match in the root stack to prefer. The root stack, if it has a match, always
+        takes priority (this is relied upon by existing behavior); but silently picking the first
+        nested-stack match in stack-list order when there is no root match - and more than one
+        nested stack collides - could operate on the wrong physical resource (e.g.
+        `sam sync --resource-id`), so that specific case is now a clear, actionable error instead.
     """
     search_all_stacks = not identifier.stack_path and not explicit_nested
+    matches: List[Tuple[Stack, str, Dict[str, Any]]] = []
     for stack in stacks:
         if stack.stack_path == identifier.stack_path or search_all_stacks:
             found_resource = None
+            found_resource_id = None
             for logical_id, resource in stack.resources.items():
                 resource_id = ResourceMetadataNormalizer.get_resource_id(resource, logical_id)
                 if resource_id == identifier.resource_iac_id or (
                     not identifier.stack_path and logical_id == identifier.resource_iac_id
                 ):
                     found_resource = resource
+                    found_resource_id = resource_id
                     break
 
             if found_resource:
-                return cast(Dict[str, Any], found_resource)
-    return None
+                if not stack.stack_path:
+                    # The root stack always takes priority over nested stacks.
+                    return cast(Dict[str, Any], found_resource)
+                matches.append((stack, cast(str, found_resource_id), found_resource))
+                if not search_all_stacks:
+                    break
+
+    if len(matches) > 1:
+        # Build the remediation paths from the *matched* (normalized) resource ID, not the raw
+        # identifier the user typed: for CDK/SamResourceId resources the two can differ, and a
+        # path built from the raw logical ID would never resolve on retry.
+        colliding_paths = [get_full_path(stack.stack_path, resource_id) for stack, resource_id, _ in matches]
+        raise AmbiguousResourceIdentifier(
+            f"Resource ID '{identifier.resource_iac_id}' is ambiguous: it matches resources in more than one "
+            f"nested stack ({', '.join(colliding_paths)}). Qualify it with the full stack path, "
+            f"e.g. '{colliding_paths[0]}'."
+        )
+
+    return cast(Dict[str, Any], matches[0][2]) if matches else None
 
 
 def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdentifier) -> Optional[str]:
@@ -915,7 +946,28 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
     -------
     str
         return resource full path
+
+    Raises
+    ------
+    AmbiguousResourceIdentifier
+        If a bare logical ID (no stack path given) matches resources in more than one *nested*
+        stack, with no match in the root stack to prefer. Mirrors the precedence/ambiguity rule
+        enforced by get_resource_by_id, so the two entry points cannot disagree on what a bare ID
+        resolves to.
+
+        Note this function is also used outside `sam sync --resource-id` (package_context,
+        guided_context, image_repository_validation, all mapping a user-supplied image function
+        ID to an image repository URI): an ambiguous match there means the wrong function could
+        silently receive the wrong image repository, which is the same "operates on the wrong
+        physical resource" hazard this function exists to prevent for sync, so raising here is
+        intentional rather than sync-specific. This is a deliberately *stricter* policy than
+        `SamFunctionProvider.get()` (used by e.g. `sam local invoke`), which instead warns and
+        picks the alphabetically-first match; that entry point resolves a *running* local
+        function for interactive use, where a warning is recoverable, whereas the callers of this
+        function feed the result into a deploy/package/validation decision without a further
+        confirmation step.
     """
+    matches: List[str] = []
     for stack in stacks:
         if identifier.stack_path and identifier.stack_path != stack.stack_path:
             continue
@@ -924,8 +976,19 @@ def get_resource_full_path_by_id(stacks: List[Stack], identifier: ResourceIdenti
             if resource_id == identifier.resource_iac_id or (
                 not identifier.stack_path and logical_id == identifier.resource_iac_id
             ):
-                return get_full_path(stack.stack_path, resource_id)
-    return None
+                if not stack.stack_path:
+                    # The root stack always takes priority over nested stacks.
+                    return get_full_path(stack.stack_path, resource_id)
+                matches.append(get_full_path(stack.stack_path, resource_id))
+                break
+
+    if len(matches) > 1:
+        raise AmbiguousResourceIdentifier(
+            f"Resource ID '{identifier.resource_iac_id}' is ambiguous: it matches resources in more than one "
+            f"nested stack ({', '.join(matches)}). Qualify it with the full stack path, e.g. '{matches[0]}'."
+        )
+
+    return matches[0] if matches else None
 
 
 def get_resource_ids_by_type(stacks: List[Stack], resource_type: str) -> List[ResourceIdentifier]:
@@ -1045,8 +1108,7 @@ def get_function_build_info(
         loadable = imageuri and check_path_valid_type(imageuri) and Path(imageuri).is_file()
         if not buildable and not loadable:
             LOG.debug(
-                "Skip Building %s function, as it is missing either Dockerfile or DockerContext "
-                "metadata properties.",
+                "Skip Building %s function, as it is missing either Dockerfile or DockerContext metadata properties.",
                 full_path,
             )
             return FunctionBuildInfo.NonBuildableImage
