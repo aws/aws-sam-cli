@@ -765,6 +765,26 @@ class TestContainer_start(TestCase):
         with self.assertRaises(APIError):
             self.container.start()
 
+    @parameterized.expand([
+        ("str_explanation", "ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"),
+        ("bytes_explanation", b"ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"),
+        ("case_insensitive", "Ports are not available: listen tcp 127.0.0.1:5005: bind: address already in use"),
+    ])
+    def test_docker_api_error_port_in_use(self, _name, explanation):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        msg = explanation.decode() if isinstance(explanation, bytes) else explanation
+        api_error = APIError(msg, response=None, explanation=explanation)
+        container_mock.start.side_effect = api_error
+
+        with self.assertRaises(PortAlreadyInUse) as context:
+            self.container.start()
+
+        self.assertIn("ports are not available", str(context.exception).lower())
+
     def test_must_not_support_input_data(self):
         self.container.is_created.return_value = True
 
