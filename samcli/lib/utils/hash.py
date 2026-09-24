@@ -4,21 +4,13 @@ Hash calculation utilities for files and directories.
 
 import hashlib
 import os
-import sys
 from typing import Any, List, Optional, cast
 
 BLOCK_SIZE = 4096
-# earliest python version to support usedforsecurity option for hashlib.md5 is 3.9
-# https://docs.python.org/3/library/hashlib.html#hash-algorithms
-_MAJOR_PYTHON_VERSION = 3
-_MINOR_PYTHON_VERSION = 9
 
 
 def _get_md5():
-    if sys.version_info.major >= _MAJOR_PYTHON_VERSION and sys.version_info.minor >= _MINOR_PYTHON_VERSION:
-        return hashlib.md5(usedforsecurity=False)
-    else:
-        return hashlib.md5()
+    return hashlib.md5(usedforsecurity=False)
 
 
 def file_checksum(file_name: str, hash_generator: Any = None) -> str:
