@@ -3,11 +3,11 @@ Companion stack manager
 """
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import boto3
 from botocore.config import Config
-from botocore.exceptions import ClientError, NoCredentialsError, NoRegionError
+from botocore.exceptions import BotoCoreError, ClientError, NoCredentialsError, NoRegionError
 from mypy_boto3_cloudformation.client import CloudFormationClient
 from mypy_boto3_cloudformation.type_defs import WaiterConfigTypeDef
 from mypy_boto3_s3.client import S3Client
@@ -40,8 +40,11 @@ class CompanionStackManager:
     _s3_prefix: str
     _cfn_client: CloudFormationClient
     _s3_client: S3Client
+    _role_arn: Optional[str]
+    _sts_client: Any
+    _role_ecr_client: Any
 
-    def __init__(self, stack_name, region, s3_bucket, s3_prefix):
+    def __init__(self, stack_name, region, s3_bucket, s3_prefix, role_arn: Optional[str] = None):
         self._companion_stack = CompanionStack(stack_name)
         self._builder = CompanionStackBuilder(self._companion_stack)
         self._boto_config = Config(region_name=region if region else None)
@@ -49,11 +52,14 @@ class CompanionStackManager:
         self._delete_stack_waiter_config = {"Delay": 10, "MaxAttempts": 120}
         self._s3_bucket = s3_bucket
         self._s3_prefix = s3_prefix
+        self._role_arn = role_arn
+        self._role_ecr_client = None
         try:
             self._cfn_client = boto3.client("cloudformation", config=self._boto_config)
             self._ecr_client = boto3.client("ecr", config=self._boto_config)
             self._s3_client = boto3.client("s3", config=self._boto_config)
-            self._account_id = boto3.client("sts").get_caller_identity().get("Account")
+            self._sts_client = boto3.client("sts")
+            self._account_id = self._sts_client.get_caller_identity().get("Account")
             self._region_name = self._cfn_client.meta.region_name
         except NoCredentialsError as ex:
             raise AWSServiceClientError(
@@ -67,6 +73,79 @@ class CompanionStackManager:
                 "Error Setting Up Managed Stack Client: Unable to resolve a region. "
                 "Please provide a region via the --region parameter or by the AWS_DEFAULT_REGION environment variable."
             ) from ex
+
+    def _ecr_client_for_role(self, sts_client, role_arn: str):
+        """
+        Assume the deployment service role and return an ECR client that uses
+        the assumed-role credentials.
+
+        Parameters
+        ----------
+        sts_client
+            STS client used to assume the role
+        role_arn : str
+            ARN of the service role (e.g. from --role-arn) to assume
+
+        Returns
+        -------
+        An ECR client authenticated with the assumed-role credentials
+
+        Raises
+        ------
+        AWSServiceClientError
+            If the role cannot be assumed
+        """
+        try:
+            assumed_role = sts_client.assume_role(RoleArn=role_arn, RoleSessionName="sam-cli-companion-stack")
+            credentials = assumed_role["Credentials"]
+            return boto3.client(
+                "ecr",
+                config=self._boto_config,
+                aws_access_key_id=credentials["AccessKeyId"],
+                aws_secret_access_key=credentials["SecretAccessKey"],
+                aws_session_token=credentials["SessionToken"],
+            )
+        except (ClientError, BotoCoreError, KeyError) as ex:
+            # BotoCoreError covers ParamValidationError (e.g. a typo'd role
+            # ARN, validated client-side), NoCredentialsError and
+            # endpoint/connection errors; KeyError covers a malformed assume
+            # response. The response-consumption statements live inside the
+            # try as well, so every failure here becomes an
+            # AWSServiceClientError that _get_ecr_client can fall back from
+            # instead of aborting the deploy.
+            raise AWSServiceClientError(
+                f"Error assuming the provided role {role_arn} for companion stack ECR operations: {ex}"
+            ) from ex
+
+    def _get_ecr_client(self):
+        """
+        Return the ECR client to use for direct ECR calls (e.g. deleting
+        unreferenced repositories).
+
+        A CloudFormation service role's trust policy generally only trusts
+        cloudformation.amazonaws.com, so the deploying principal usually
+        cannot assume it; the assume is therefore attempted lazily — only
+        when a direct ECR call is actually about to be made — and any failure
+        falls back to the caller's credentials rather than aborting the
+        deploy. When no role ARN is configured, the caller's client is used.
+
+        Returns
+        -------
+        An ECR client.
+        """
+        if not self._role_arn:
+            return self._ecr_client
+        if self._role_ecr_client is None:
+            try:
+                self._role_ecr_client = self._ecr_client_for_role(self._sts_client, self._role_arn)
+            except AWSServiceClientError as ex:
+                LOG.debug(
+                    "Unable to assume %s for companion stack ECR operations, " "falling back to caller credentials: %s",
+                    self._role_arn,
+                    ex,
+                )
+                self._role_ecr_client = self._ecr_client
+        return self._role_ecr_client
 
     def set_functions(
         self, function_logical_ids: List[str], image_repositories: Optional[Dict[str, str]] = None
@@ -117,16 +196,21 @@ class CompanionStackManager:
         template_url = s3_uploader.to_path_style_s3_url(parts["Key"], parts.get("Version", None))
 
         exists = self.does_companion_stack_exist()
+        # Use the service role passed via --role-arn (if any) so the companion stack is created/updated
+        # with the same permissions as the main stack.
+        stack_kwargs: Dict[str, Any] = {
+            "StackName": stack_name,
+            "TemplateURL": template_url,
+            "Capabilities": ["CAPABILITY_AUTO_EXPAND"],
+        }
+        if self._role_arn:
+            stack_kwargs["RoleARN"] = self._role_arn
         if exists:
-            self._cfn_client.update_stack(
-                StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
-            )
+            self._cfn_client.update_stack(**stack_kwargs)
             update_waiter = self._cfn_client.get_waiter("stack_update_complete")
             update_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
         else:
-            self._cfn_client.create_stack(
-                StackName=stack_name, TemplateURL=template_url, Capabilities=["CAPABILITY_AUTO_EXPAND"]
-            )
+            self._cfn_client.create_stack(**stack_kwargs)
             create_waiter = self._cfn_client.get_waiter("stack_create_complete")
             create_waiter.wait(StackName=stack_name, WaiterConfig=self._update_stack_waiter_config)
 
@@ -136,7 +220,13 @@ class CompanionStackManager:
         """
         stack_name = self._companion_stack.stack_name
         waiter = self._cfn_client.get_waiter("stack_delete_complete")
-        self._cfn_client.delete_stack(StackName=stack_name)
+        # Use the service role passed via --role-arn (if any) so the delete
+        # runs under the same identity as create/update; stacks created
+        # without a role would otherwise fall back to caller credentials.
+        delete_kwargs: Dict[str, Any] = {"StackName": stack_name}
+        if self._role_arn:
+            delete_kwargs["RoleARN"] = self._role_arn
+        self._cfn_client.delete_stack(**delete_kwargs)
         waiter.wait(StackName=stack_name, WaiterConfig=self._delete_stack_waiter_config)
 
     def list_deployed_repos(self) -> List[ECRRepo]:
@@ -191,11 +281,32 @@ class CompanionStackManager:
         If repo does not exist, this will simply skip it.
         """
         repos = self.get_unreferenced_repos()
+        if not repos:
+            # Nothing to delete: skip the (lazy) assume-role attempt so a
+            # routine deploy with --role-arn does not emit a pointless
+            # sts:AssumeRole call.
+            return
+        ecr_client = self._get_ecr_client()
         for repo in repos:
             try:
-                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
-            except self._ecr_client.exceptions.RepositoryNotFoundException:
+                ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
+            except ecr_client.exceptions.RepositoryNotFoundException:
                 LOG.debug("Image repo [%s] not found in companion stack. Skipping deletion.", repo.physical_id)
+            except ClientError as ex:
+                # A CloudFormation service role is commonly scoped to what CFN
+                # needs to create/update the stack; if it can be assumed but
+                # lacks ecr:DeleteRepository, the AccessDenied ClientError is
+                # unhandled above and would abort the deploy. Since the
+                # assumed role is best-effort, retry with the caller's
+                # credentials instead of failing.
+                error_code = ex.response.get("Error", {}).get("Code")
+                if ecr_client is self._ecr_client or error_code != "AccessDeniedException":
+                    raise
+                LOG.debug(
+                    "Assumed role not authorized to delete image repo [%s]; retrying with caller credentials.",
+                    repo.physical_id,
+                )
+                self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
 
     def sync_repos(self) -> None:
         """
@@ -279,7 +390,13 @@ class CompanionStackManager:
 
 
 def sync_ecr_stack(
-    template_file: str, stack_name: str, region: str, s3_bucket: str, s3_prefix: str, image_repositories: Dict[str, str]
+    template_file: str,
+    stack_name: str,
+    region: str,
+    s3_bucket: str,
+    s3_prefix: str,
+    image_repositories: Dict[str, str],
+    role_arn: Optional[str] = None,
 ) -> Dict[str, str]:
     """Blocking call to sync local functions with ECR Companion Stack
 
@@ -297,6 +414,13 @@ def sync_ecr_stack(
         S3 prefix for the bucket
     image_repositories : Dict[str, str]
         Mapping between function logical ID and ECR URI
+    role_arn : Optional[str]
+        Optional service role ARN used when creating, updating, or deleting
+        the companion stack. When provided, the companion stack is managed
+        with the same service role as the main stack, and direct ECR calls
+        made by SAM CLI (e.g. deleting unreferenced repositories) attempt to
+        assume the role, falling back to caller credentials if it cannot be
+        assumed.
 
     Returns
     -------
@@ -305,7 +429,7 @@ def sync_ecr_stack(
         for Functions without a repo specified.
     """
     image_repositories = image_repositories.copy() if image_repositories else {}
-    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
+    manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix, role_arn=role_arn)
 
     stacks = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=False)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
