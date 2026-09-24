@@ -441,6 +441,27 @@ class TestContainerManager_stop(TestCase):
         manager.stop(container)
         container.delete.assert_called_with()
 
+    @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
+    def test_must_call_delete_even_when_container_stop_raises(self, mock_create_client):
+        """Regression test: container.delete() is what actually removes the container, and must
+        still run even if container.stop() raises (e.g. a docker.errors.APIError) -- otherwise a
+        failed stop() leaves the container running/orphaned with no further cleanup attempt.
+        """
+        with patch(
+            "samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference",
+            return_value=None,
+        ):
+            manager = ContainerManager(do_shutdown_event=True)
+        container = Mock()
+        container.stop = Mock(side_effect=RuntimeError("docker API error"))
+        container.delete = Mock()
+
+        with self.assertRaises(RuntimeError):
+            manager.stop(container)
+
+        container.stop.assert_called_once()
+        container.delete.assert_called_once()
+
 
 class TestContainerManager_inspect(TestCase):
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.create_client")
