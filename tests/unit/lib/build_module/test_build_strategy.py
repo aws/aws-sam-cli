@@ -720,6 +720,26 @@ class TestIncrementalBuildStrategy(TestCase):
             ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies, ANY
         )
 
+    def test_incremental_layer_manifest_hash_uses_resolved_runtime_for_python_uv(
+        self, patched_manifest_hash, patched_os
+    ):
+        # DependencyHashGenerator calls get_workflow_config(runtime) with no specified_workflow, so handing it
+        # the "python-uv" BuildMethod trips "'python-uv' runtime is not supported". Resolve a real runtime
+        # from CompatibleRuntimes, exactly as _build_layer does.
+        patched_manifest_hash.return_value = Mock(hash="hash1")
+        given_layer_build_def = Mock(
+            manifest_hash="hash1",
+            codeuri="layer_uri",
+            build_method="python-uv",
+            compatible_runtimes=["python3.13"],
+            dependencies_dir="deps",
+        )
+        given_layer_build_def.layer.compatible_architectures = None
+
+        self.build_strategy.build_single_layer_definition(given_layer_build_def)
+
+        patched_manifest_hash.assert_called_once_with("layer_uri", ANY, "python3.13", ANY)
+
     def test_manifest_pre_check_failure_is_attributed_to_function(self, patched_hash_gen, patched_os):
         # The manifest pre-check (get_workflow_config) can raise an unsupported-runtime error before the
         # delegate's attribution runs. Ensure that escaping failure still carries the function full paths

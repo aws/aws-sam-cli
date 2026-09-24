@@ -605,6 +605,66 @@ class TestBuildCommand_LayerBuilds(BuildIntegBase):
             "python",
         )
 
+    @parameterized.expand([("LayerOne", "ContentUri"), ("LambdaLayerOne", "Content")])
+    def test_build_single_layer_python_uv(self, layer_identifier, content_property):
+        # python-uv is a workflow name, not a runtime: the build must pick the Python version from the layer's
+        # CompatibleRuntimes and still lay dependencies out under the "python" subfolder.
+        overrides = {"LayerBuildMethod": "python-uv", "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides, function_identifier=layer_identifier, beta_features=True
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_built_artifact(
+            self.default_build_dir,
+            layer_identifier,
+            self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST,
+            content_property,
+            "python",
+        )
+
+    def test_build_single_layer_python_uv_cached(self):
+        # --cached routes python* layers through IncrementalBuildStrategy, which hashes the manifest by runtime.
+        # Both a cold and a warm run must succeed rather than fail on the "python-uv" BuildMethod.
+        overrides = {"LayerBuildMethod": "python-uv", "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides, function_identifier="LayerOne", beta_features=True, cached=True
+        )
+
+        for _ in range(2):
+            command_result = run_command(cmdlist, cwd=self.working_dir)
+            self.assertEqual(command_result.process.returncode, 0)
+            self.assertNotIn("runtime is not supported", command_result.stderr.decode())
+
+        self._verify_built_artifact(
+            self.default_build_dir, "LayerOne", self.EXPECTED_LAYERS_FILES_PROJECT_MANIFEST, "ContentUri", "python"
+        )
+
+    def test_build_single_layer_python_uv_without_compatible_runtimes_fails(self):
+        overrides = {"LayerBuildMethod": "python-uv", "LayerMakeContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            parameter_overrides=overrides,
+            function_identifier="LayerWithMakefileNoCompatibleRuntimes",
+            beta_features=True,
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertNotEqual(command_result.process.returncode, 0)
+        self.assertIn("requires CompatibleRuntimes", command_result.stderr.decode())
+
+    @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
+    def test_build_single_layer_python_uv_in_container_is_rejected(self):
+        overrides = {"LayerBuildMethod": "python-uv", "LayerContentUri": "PyLayer"}
+        cmdlist = self.get_command_list(
+            use_container=True, parameter_overrides=overrides, function_identifier="LayerOne", beta_features=True
+        )
+
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertNotEqual(command_result.process.returncode, 0)
+        self.assertIn("not supported with --use-container", command_result.stderr.decode())
+
     @parameterized.expand(
         [("makefile", False, "LayerWithMakefile"), ("makefile", "use_container", "LayerWithMakefile")],
         name_func=show_container_in_test_name,

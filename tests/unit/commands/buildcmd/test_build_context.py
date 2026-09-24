@@ -1768,6 +1768,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = {"BuildMethod": "python-uv"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
@@ -1781,6 +1782,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = {"BuildMethod": "python-pip"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
@@ -1794,6 +1796,35 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         mock_function.metadata = None
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_python_uv_layer(self, mock_get_resources, mock_prompt):
+        mock_layer = Mock()
+        mock_layer.build_method = "python-uv"
+        mock_resources = Mock()
+        mock_resources.functions = []
+        mock_resources.layers = [mock_layer]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_no_experimental_method_layer(self, mock_get_resources, mock_prompt):
+        mock_layer = Mock()
+        mock_layer.build_method = "python3.13"
+        mock_resources = Mock()
+        mock_resources.functions = []
+        mock_resources.layers = [mock_layer]
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
@@ -1803,20 +1834,79 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
     @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
-    def test_skips_beta_prompt_in_json_mode_when_not_enabled(self, mock_get_resources, mock_prompt, _):
-        # A JSON consumer cannot answer the confirm; skip it (rather than aborting on EOF) and let the
-        # non-gating beta build proceed. If the flag were already enabled, prompt_experimental would run
-        # to update telemetry context - covered by is_experimental_enabled=False here.
+    def test_fails_in_json_mode_when_beta_not_enabled(self, mock_get_resources, mock_prompt, _):
+        # A JSON consumer cannot answer the confirm, and declining it in text mode now aborts the build. Skipping
+        # the check would let --output json run the beta workflow unconfirmed, so fail with the same remedy
+        # instead of prompting. With the flag already enabled, prompt_experimental only updates telemetry.
         self.build_context._output = OutputOption.json
         mock_function = Mock()
         mock_function.metadata = {"BuildMethod": "python-uv"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
+        mock_resources.layers = []
+        mock_get_resources.return_value = mock_resources
+
+        with self.assertRaises(UserException) as ctx:
+            self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("--output json", str(ctx.exception))
+        self.assertIn("--beta-features", str(ctx.exception))
+
+    @patch("samcli.commands.build.build_context.prompt_experimental", return_value=False)
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_aborts_when_declined(self, mock_get_resources, mock_prompt):
+        # Declining the beta prompt must stop the build; previously the answer was discarded and the build
+        # proceeded into the uv workflow anyway.
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_resources.layers = []
+        mock_get_resources.return_value = mock_resources
+
+        with self.assertRaises(UserException) as ctx:
+            self.build_context._check_build_method_experimental_flag()
+
+        self.assertIn("python-uv", str(ctx.exception))
+        self.assertIn("--beta-features", str(ctx.exception))
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_ignores_empty_build_method(self, mock_get_resources, mock_prompt):
+        # "BuildMethod:" with no value parses to None; sorting {None, "python-uv"} used to raise TypeError.
+        mock_function_1 = Mock()
+        mock_function_1.metadata = {"BuildMethod": None}
+        mock_function_2 = Mock()
+        mock_function_2.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function_1, mock_function_2]
+        mock_resources.layers = []
         mock_get_resources.return_value = mock_resources
 
         self.build_context._check_build_method_experimental_flag()
 
-        mock_prompt.assert_not_called()
+        mock_prompt.assert_called_once()
+        self.assertIn("python-uv", mock_prompt.call_args.args[1])
+
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_dedupes_shared_build_method(self, mock_get_resources, mock_prompt):
+        mock_function_1 = Mock()
+        mock_function_1.metadata = {"BuildMethod": "python-uv"}
+        mock_function_2 = Mock()
+        mock_function_2.metadata = {"BuildMethod": "python-uv"}
+        mock_layer = Mock()
+        mock_layer.build_method = "python-uv"
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function_1, mock_function_2]
+        mock_resources.layers = [mock_layer]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_called_once()
 
 
 class TestBuildContext_get_template_for_output(TestCase):
