@@ -26,6 +26,17 @@ Parameters:
     Type: String
     Default: "2"
 
+  UseCustomFunctionUrl:
+    Type: String
+    Default: "true"
+
+  CustomFunctionUrl:
+    Type: String
+    Default: "https://custom.example.com/"
+
+Conditions:
+  ShouldUseCustomFunctionUrl: !Equals [!Ref UseCustomFunctionUrl, "true"]
+
 Mappings:
   common:
     LambdaFunction:
@@ -201,6 +212,30 @@ Resources:
           Timeout: !Ref DefaultTimeout
           MyRuntimeVersion: !Ref MyRuntimeVersion
           EmptyDefaultParameter: !Ref EmptyDefaultParameter
+
+  FunctionWithUrlConfig:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      FunctionUrlConfig:
+        AuthType: NONE
+
+  EchoEnvWithFnIf:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.env_var_echo_hanler
+      Runtime: python3.9
+      CodeUri: .
+      Timeout: 600
+      Environment:
+        Variables:
+          FunctionUrl: !If
+            - ShouldUseCustomFunctionUrl
+            - !Ref CustomFunctionUrl
+            - !GetAtt FunctionWithUrlConfigUrl.FunctionUrl
 
   TimeoutFunctionWithStringParameter:
     Type: AWS::Serverless::Function
