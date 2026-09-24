@@ -5,7 +5,7 @@ Lambda event construction and generation
 import base64
 import logging
 from datetime import datetime, timezone
-from time import time
+from time import time_ns
 from typing import Any, Dict
 
 from samcli.local.apigw.path_converter import PathConverter
@@ -23,7 +23,16 @@ LOG = logging.getLogger(__name__)
 
 
 def construct_v1_event(
-    flask_request, port, binary_types, stage_name=None, stage_variables=None, operation_name=None, api_type=Route.API
+    flask_request,
+    port,
+    binary_types,
+    stage_name=None,
+    stage_variables=None,
+    operation_name=None,
+    api_type=Route.API,
+    request_id=None,
+    request_time_epoch=None,
+    request_time=None,
 ) -> Dict[str, Any]:
     """
     Helper method that constructs the Event to be passed to Lambda.
@@ -35,6 +44,9 @@ def construct_v1_event(
     :param stage_name: Optional, the stage name string
     :param stage_variables: Optional, API Gateway Stage Variables
     :param api_type: Optional, the type of api payload being constructed
+    :param request_id: Optional, the request id to stamp on the request context
+    :param request_time_epoch: Optional, an epoch timestamp in milliseconds to override the request time
+    :param request_time: Optional, a formatted timestamp to override the request time
     :return: JSON object
     """
 
@@ -72,6 +84,9 @@ def construct_v1_event(
         protocol=protocol,
         domain_name=host,
         operation_name=operation_name,
+        request_id=request_id,
+        request_time_epoch=request_time_epoch,
+        request_time=request_time,
     )
 
     headers_dict, multi_value_headers_dict = _event_headers(flask_request, port)
@@ -104,8 +119,9 @@ def construct_v2_event_http(
     stage_name=None,
     stage_variables=None,
     route_key=None,
-    request_time_epoch=int(time()),
-    request_time=datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000"),
+    request_time_epoch=None,
+    request_time=None,
+    request_id=None,
 ) -> Dict[str, Any]:
     """
     Helper method that constructs the Event 2.0 to be passed to Lambda
@@ -118,8 +134,17 @@ def construct_v2_event_http(
     :param stage_name: Optional, the stage name string
     :param stage_variables: Optional, API Gateway Stage Variables
     :param route_key: Optional, the route key for the route
+    :param request_time_epoch: Optional, an epoch timestamp in milliseconds to override the request time
+    :param request_time: Optional, a formatted timestamp to override the request time
+    :param request_id: Optional, the request id to stamp on the request context
     :return: JSON object
     """
+    # payload format 2.0 reports requestContext.timeEpoch in milliseconds
+    if request_time_epoch is None:
+        request_time_epoch = int(time_ns() // 1_000_000)
+    if request_time is None:
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
+
     method = flask_request.method
 
     request_data = flask_request.get_data()
@@ -147,6 +172,7 @@ def construct_v2_event_http(
         stage=stage_name,
         request_time_epoch=request_time_epoch,
         request_time=request_time,
+        request_id=request_id,
     )
 
     event = ApiGatewayV2LambdaEvent(

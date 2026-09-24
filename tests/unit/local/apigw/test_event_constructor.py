@@ -1,7 +1,7 @@
 import base64
 from datetime import datetime, timezone
 import json
-from time import time
+from time import time_ns
 from unittest import TestCase
 from unittest.mock import Mock, patch
 from parameterized import parameterized, param
@@ -99,6 +99,31 @@ class TestService_construct_event(TestCase):
 
         self.assertEqual(actual_event_json["body"], base64_body)
         self.assertEqual(actual_event_json["isBase64Encoded"], True)
+
+    def test_construct_event_gives_every_call_its_own_request_id(self):
+        self.request_mock.headers.get.side_effect = ["application/json", "Value"] * 2
+        self.request_mock.headers.getlist.side_effect = [["application/json"], ["Value"]] * 2
+
+        first_event_json = construct_v1_event(self.request_mock, 3000, binary_types=[])
+        second_event_json = construct_v1_event(self.request_mock, 3000, binary_types=[])
+
+        self.assertNotEqual(
+            first_event_json["requestContext"]["requestId"], second_event_json["requestContext"]["requestId"]
+        )
+
+    def test_construct_event_uses_the_given_request_id_and_time(self):
+        event_json = construct_v1_event(
+            self.request_mock,
+            3000,
+            binary_types=[],
+            request_id="given-request-id",
+            request_time_epoch=1600000000123,
+            request_time="13/Sep/2020:12:26:40 +0000",
+        )
+
+        self.assertEqual(event_json["requestContext"]["requestId"], "given-request-id")
+        self.assertEqual(event_json["requestContext"]["requestTimeEpoch"], 1600000000123)
+        self.assertEqual(event_json["requestContext"]["requestTime"], "13/Sep/2020:12:26:40 +0000")
 
     def test_event_headers_with_empty_list(self):
         request_mock = Mock()
@@ -205,7 +230,7 @@ class TestService_construct_event_http(TestCase):
         cookies_mock.keys.return_value = ["cookie1", "cookie2"]
         cookies_mock.get.side_effect = ["test", "test"]
         self.request_mock.cookies = cookies_mock
-        self.request_time_epoch = int(time())
+        self.request_time_epoch = int(time_ns() // 1_000_000)
         self.request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         expected = f"""
@@ -277,6 +302,42 @@ class TestService_construct_event_http(TestCase):
         self.assertEqual(len(actual_event_dict["requestContext"]["requestId"]), 36)
         actual_event_dict["requestContext"]["requestId"] = ""
         self.assertEqual(actual_event_dict, self.expected_dict)
+
+    def test_construct_event_gives_every_call_its_own_request_id_and_time(self):
+        self.request_mock.headers.get.side_effect = ["application/json", "Value"] * 2
+        self.request_mock.cookies.get.side_effect = ["test", "test"] * 2
+
+        with patch("samcli.local.apigw.event_constructor.time_ns") as time_ns_mock:
+            time_ns_mock.side_effect = [1_600_000_000_123_456_789, 1_600_000_001_987_654_321]
+
+            first_event_dict = construct_v2_event_http(
+                self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            )
+            second_event_dict = construct_v2_event_http(
+                self.request_mock, 3000, binary_types=[], route_key="GET /endpoint"
+            )
+
+        self.assertNotEqual(
+            first_event_dict["requestContext"]["requestId"], second_event_dict["requestContext"]["requestId"]
+        )
+        # payload format 2.0 reports timeEpoch in milliseconds
+        self.assertEqual(first_event_dict["requestContext"]["timeEpoch"], 1600000000123)
+        self.assertEqual(second_event_dict["requestContext"]["timeEpoch"], 1600000001987)
+
+    def test_construct_event_uses_the_given_request_id_and_time(self):
+        event_dict = construct_v2_event_http(
+            self.request_mock,
+            3000,
+            binary_types=[],
+            route_key="GET /endpoint",
+            request_time_epoch=1600000000123,
+            request_time="13/Sep/2020:12:26:40 +0000",
+            request_id="given-request-id",
+        )
+
+        self.assertEqual(event_dict["requestContext"]["requestId"], "given-request-id")
+        self.assertEqual(event_dict["requestContext"]["timeEpoch"], 1600000000123)
+        self.assertEqual(event_dict["requestContext"]["time"], "13/Sep/2020:12:26:40 +0000")
 
     def test_v2_route_key(self):
         route_key = LocalApigwService._v2_route_key("GET", "/path", False)
