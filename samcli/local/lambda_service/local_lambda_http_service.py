@@ -398,12 +398,39 @@ class LocalLambdaHttpService(BaseLocalService):
 
         try:
             # Parse request body for error details - handle empty payloads gracefully
-            request_data = request.get_json(silent=True) or {}
+            request_data = request.get_json(silent=True)
+            if request_data is None:
+                request_data = {}
+            if not isinstance(request_data, dict):
+                LOG.debug("Request body is not a JSON object")
+                return LambdaErrorResponses.invalid_request_content("Request body must be a JSON object")
+
+            error_value = request_data.get("Error")
+            if error_value is not None and not isinstance(error_value, dict):
+                LOG.debug("Error field in request body is not a JSON object")
+                return LambdaErrorResponses.invalid_request_content("Error must be a JSON object")
+            error_dict = error_value or {}
+
+            # Validate leaf value types so a client mistake is a 400, not a botocore 500
+            stack_trace = error_dict.get("StackTrace")
+            if stack_trace is not None and not (
+                isinstance(stack_trace, list) and all(isinstance(entry, str) for entry in stack_trace)
+            ):
+                LOG.debug("Error.StackTrace in request body is not an array of strings")
+                return LambdaErrorResponses.invalid_request_content("Error.StackTrace must be an array of strings")
+            for field in ("ErrorMessage", "ErrorType", "ErrorData"):
+                value = error_dict.get(field)
+                if value is not None and not isinstance(value, str):
+                    LOG.debug("Error.%s in request body is not a string", field)
+                    return LambdaErrorResponses.invalid_request_content(f"Error.{field} must be a string")
 
             with DurableContext() as context:
                 response = context.client.stop_durable_execution(
                     durable_execution_arn=decoded_arn,
-                    error=request_data.get("Error"),
+                    error_message=error_dict.get("ErrorMessage"),
+                    error_type=error_dict.get("ErrorType"),
+                    error_data=error_dict.get("ErrorData"),
+                    stack_trace=error_dict.get("StackTrace"),
                 )
             return self.service_response(
                 json.dumps(response, cls=DateTimeEncoder), {"Content-Type": "application/json"}, 200

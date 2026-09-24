@@ -979,7 +979,14 @@ class TestDurableExecutionHandlers(TestCase):
         service_response_mock.return_value = "success response"
 
         request_mock = Mock()
-        request_mock.get_json.return_value = {"Error": "test error"}
+        request_mock.get_json.return_value = {
+            "Error": {
+                "ErrorMessage": "test error message",
+                "ErrorType": "TestError",
+                "ErrorData": "test data",
+                "StackTrace": ["line1", "line2"],
+            }
+        }
         local_lambda_http_service.request = request_mock
 
         lambda_runner_mock = Mock()
@@ -991,7 +998,10 @@ class TestDurableExecutionHandlers(TestCase):
         context_class_mock.assert_called_once()
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn="test-arn",
-            error="test error",
+            error_message="test error message",
+            error_type="TestError",
+            error_data="test data",
+            stack_trace=["line1", "line2"],
         )
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
@@ -1041,8 +1051,148 @@ class TestDurableExecutionHandlers(TestCase):
         context_class_mock.assert_called_once()
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn="test-arn",
-            error=None,  # Should be None when no payload
+            error_message=None,
+            error_type=None,
+            error_data=None,
+            stack_trace=None,
         )
+
+    @parameterized.expand(
+        [
+            ("string_error", "some error string"),
+            ("list_error", ["a", "b"]),
+            ("empty_string", ""),
+            ("empty_list", []),
+            ("false_error", False),
+        ]
+    )
+    @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
+    def test_stop_durable_execution_handler_malformed_error(
+        self, name, error_value, error_responses_mock, context_class_mock
+    ):
+        # Any non-object "Error" (string, list, "", [], False) must be rejected with a 400, not silently
+        # accepted or turned into a 500. Only an absent/null Error means "no error" (tested separately).
+        context_mock = Mock()
+        client_mock = Mock()
+        context_class_mock.return_value.__enter__.return_value = context_mock
+        context_mock.client = client_mock
+        error_responses_mock.invalid_request_content.return_value = "invalid request response"
+
+        request_mock = Mock()
+        request_mock.get_json.return_value = {"Error": error_value}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._stop_durable_execution_handler("test-arn")
+
+        self.assertEqual(response, "invalid request response")
+        error_responses_mock.invalid_request_content.assert_called_once_with("Error must be a JSON object")
+        client_mock.stop_durable_execution.assert_not_called()
+
+    @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LocalLambdaHttpService.service_response")
+    def test_stop_durable_execution_handler_null_error_treated_as_no_error(
+        self, service_response_mock, context_class_mock
+    ):
+        # A null "Error" means no error: the execution stops with all fields None
+        context_mock = Mock()
+        client_mock = Mock()
+        context_class_mock.return_value.__enter__.return_value = context_mock
+        context_mock.client = client_mock
+        client_mock.stop_durable_execution.return_value = {"StopDate": "2025-11-04T17:56:00Z"}
+        service_response_mock.return_value = "success response"
+
+        request_mock = Mock()
+        request_mock.get_json.return_value = {"Error": None}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._stop_durable_execution_handler("test-arn")
+
+        self.assertEqual(response, "success response")
+        client_mock.stop_durable_execution.assert_called_once_with(
+            durable_execution_arn="test-arn",
+            error_message=None,
+            error_type=None,
+            error_data=None,
+            stack_trace=None,
+        )
+
+    @parameterized.expand(
+        [
+            ("list_body", [1, 2]),
+            ("string_body", "oops"),
+            ("empty_list_body", []),
+            ("empty_string_body", ""),
+            ("false_body", False),
+            ("zero_body", 0),
+        ]
+    )
+    @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
+    def test_stop_durable_execution_handler_non_object_body(
+        self, name, body_value, error_responses_mock, context_class_mock
+    ):
+        # A parsed body that is a non-object -- truthy ([1,2], "oops") or falsy ([], "", False, 0) --
+        # must be rejected with a 400, not silently accepted or turned into a 500. Only None (absent/
+        # unparseable body) keeps the graceful empty-payload path (tested elsewhere).
+        context_mock = Mock()
+        client_mock = Mock()
+        context_class_mock.return_value.__enter__.return_value = context_mock
+        context_mock.client = client_mock
+        error_responses_mock.invalid_request_content.return_value = "invalid request response"
+
+        request_mock = Mock()
+        request_mock.get_json.return_value = body_value
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._stop_durable_execution_handler("test-arn")
+
+        self.assertEqual(response, "invalid request response")
+        error_responses_mock.invalid_request_content.assert_called_once_with("Request body must be a JSON object")
+        client_mock.stop_durable_execution.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("stacktrace_not_list", {"StackTrace": "not-a-list"}, "Error.StackTrace must be an array of strings"),
+            ("stacktrace_list_of_non_str", {"StackTrace": [1, 2]}, "Error.StackTrace must be an array of strings"),
+            ("message_not_str", {"ErrorMessage": {"a": 1}}, "Error.ErrorMessage must be a string"),
+            ("type_not_str", {"ErrorType": ["x"]}, "Error.ErrorType must be a string"),
+            ("data_not_str", {"ErrorData": 42}, "Error.ErrorData must be a string"),
+        ]
+    )
+    @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
+    @patch("samcli.local.lambda_service.local_lambda_http_service.LambdaErrorResponses")
+    def test_stop_durable_execution_handler_invalid_error_leaf_types(
+        self, name, error_obj, expected_message, error_responses_mock, context_class_mock
+    ):
+        # A well-shaped Error dict with a wrongly-typed leaf must be a 400, not a botocore-driven 500
+        context_mock = Mock()
+        client_mock = Mock()
+        context_class_mock.return_value.__enter__.return_value = context_mock
+        context_mock.client = client_mock
+        error_responses_mock.invalid_request_content.return_value = "invalid request response"
+
+        request_mock = Mock()
+        request_mock.get_json.return_value = {"Error": error_obj}
+        local_lambda_http_service.request = request_mock
+
+        lambda_runner_mock = Mock()
+        service = LocalLambdaHttpService(lambda_runner=lambda_runner_mock, port=3000, host="localhost")
+
+        response = service._stop_durable_execution_handler("test-arn")
+
+        self.assertEqual(response, "invalid request response")
+        error_responses_mock.invalid_request_content.assert_called_once_with(expected_message)
+        client_mock.stop_durable_execution.assert_not_called()
 
     @patch("samcli.local.lambda_service.local_lambda_http_service.DurableContext")
     @patch("samcli.local.lambda_service.local_lambda_http_service.LocalLambdaHttpService.service_response")
@@ -1070,7 +1220,10 @@ class TestDurableExecutionHandlers(TestCase):
         expected_decoded = "arn:aws:lambda:us-west-2:123456789012:function:test"
         client_mock.stop_durable_execution.assert_called_once_with(
             durable_execution_arn=expected_decoded,
-            error=None,
+            error_message=None,
+            error_type=None,
+            error_data=None,
+            stack_trace=None,
         )
         self.assertEqual(response, "success response")
 
