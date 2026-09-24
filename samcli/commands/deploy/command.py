@@ -341,6 +341,7 @@ def do_cli(
                 config_file=config_file,
                 disable_rollback=disable_rollback,
                 language_extensions_enabled=language_extensions_enabled,
+                role_arn=role_arn,
             )
             guided_context.run()
         else:
@@ -362,7 +363,7 @@ def do_cli(
             # after we figure out how to enable resolve-images-repos in package
             if resolve_image_repos:
                 image_repositories = sync_ecr_stack(
-                    template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories
+                    template_file, stack_name, region, s3_bucket, s3_prefix, image_repositories, role_arn
                 )
         with osutils.tempfile_platform_independent() as output_template_file:
             if guided:

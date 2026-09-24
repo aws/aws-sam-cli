@@ -455,6 +455,16 @@ class TestDeployCliCommand(TestCase):
                 express=self.express,
             )
 
+            mock_sync_ecr_stack.assert_called_with(
+                self.template_file,
+                "sam-app",
+                "us-east-1",
+                "managed-s3-bucket",
+                self.s3_prefix,
+                None,
+                self.role_arn,
+            )
+
             mock_deploy_context.assert_called_with(
                 template_file=ANY,
                 stack_name="sam-app",
@@ -1282,6 +1292,10 @@ class TestDeployCliCommand(TestCase):
             max_wait_duration=self.max_wait_duration,
             express=self.express,
             output="text",
+        )
+
+        mock_sync_ecr_stack.assert_called_with(
+            self.template_file, self.stack_name, self.region, self.s3_bucket, self.s3_prefix, None, self.role_arn
         )
 
         mock_deploy_context.assert_called_with(
