@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Resources:
+  HelloFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: hello
+      Runtime: python3.11
+      Handler: app.handler
+      Role: arn:aws:iam::123456789012:role/lambda-role
+      Code: ./src/
+      MemorySize: 128

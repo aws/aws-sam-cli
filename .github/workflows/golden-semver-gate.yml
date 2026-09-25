@@ -1,0 +1,69 @@
+name: Golden Templates Semver Gate
+
+# Run on every PR AND on every merge_group event. The check_semver_bump.py
+# script self-gates: it returns exit 0 when no expected.*.yaml files
+# changed, so an unconditional run is cheap and posts a definitive
+# status on every event.
+#
+# Two pitfalls this trigger configuration avoids — both flavors of the
+# "skipped but required check" problem:
+#
+# 1. on.pull_request.paths: filtering would skip the workflow entirely
+#    when no matching path changed, posting no status, which branch
+#    protection treats as missing/pending. We self-gate in the script
+#    instead so the status always posts.
+#
+# 2. listening on pull_request alone would skip the workflow when a PR
+#    enters the merge queue (which dispatches merge_group, not
+#    pull_request). The merge queue would then treat the required
+#    check as missing/pending and block the merge. We listen on both
+#    events to match build.yml.
+on:
+  pull_request:
+    branches:
+      - develop
+      - "feat/*"
+      - "feat-*"
+  merge_group:
+    types: [checks_requested]
+    branches:
+      - develop
+      - "feat/*"
+      - "feat-*"
+
+permissions:
+  contents: read
+
+jobs:
+  semver-gate:
+    if: github.repository_owner == 'aws'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          python-version: "3.11"
+      - name: Resolve base ref
+        id: baseref
+        env:
+          # github.base_ref is set on pull_request events. On merge_group
+          # events it's empty and the target branch lives at
+          # github.event.merge_group.base_ref as a full ref ("refs/heads/develop");
+          # strip the prefix to match the bare branch name pull_request emits.
+          PR_BASE_REF: ${{ github.base_ref }}
+          MG_BASE_REF: ${{ github.event.merge_group.base_ref }}
+        run: |
+          if [ -n "$PR_BASE_REF" ]; then
+            echo "base=$PR_BASE_REF" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=${MG_BASE_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run semver gate
+        env:
+          BASE_REF: ${{ steps.baseref.outputs.base }}
+        run: |
+          python tests/golden/check_semver_bump.py \
+            --base "origin/${BASE_REF}" \
+            --head HEAD
