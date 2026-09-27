@@ -2,14 +2,18 @@
 Unit test for Utils
 """
 
+import errno
 import os
+import socket as real_socket
+import samcli.local.docker.utils
 from parameterized import parameterized
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import call, patch, Mock
 import docker
 
 from samcli.lib.utils.architecture import InvalidArchitecture
 from samcli.local.docker.utils import (
+    WSAEADDRNOTAVAIL,
     to_posix_path,
     find_free_port,
     get_rapid_name,
@@ -39,11 +43,28 @@ class TestPosixPath(TestCase):
         self.assertEqual(self.current_working_dir, to_posix_path(self.current_working_dir))
 
 
+def resolved_address(address, family=real_socket.AF_INET):
+    """
+    One socket.getaddrinfo entry for a numeric address, in the shape find_free_port unpacks.
+
+    The IPv6 sockaddr carries flowinfo and scope id, which is how fe80::1%eth0 reaches bind().
+    """
+    sockaddr = (address, 0) if family == real_socket.AF_INET else (address, 0, 0, 7)
+    return [(family, real_socket.SOCK_STREAM, real_socket.IPPROTO_TCP, "", sockaddr)]
+
+
 class TestFreePorts(TestCase):
+    def setUp(self):
+        # The warn-once set is module state that outlives a single test.
+        samcli.local.docker.utils._UNPROBEABLE_INTERFACES.clear()
+
+    tearDown = setUp
+
     @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
     def test_free_port_first_attempt(self, network_interface, mock_random, mock_socket):
+        mock_socket.getaddrinfo.return_value = resolved_address(network_interface)
         mock_random.randrange = Mock(side_effect=[3093] * 1000)
         port = find_free_port(network_interface, start=3000, end=4000)
         self.assertEqual(port, 3093)
@@ -52,6 +73,7 @@ class TestFreePorts(TestCase):
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
     def test_free_port_second_attempt(self, network_interface, mock_random, mock_socket):
+        mock_socket.getaddrinfo.return_value = resolved_address(network_interface)
         mock_socket.socket.return_value.bind.side_effect = [OSError, None]
         mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
         port = find_free_port(network_interface, start=3000, end=4000)
@@ -61,10 +83,125 @@ class TestFreePorts(TestCase):
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
     def test_free_port_no_free_ports(self, network_interface, mock_random, mock_socket):
+        mock_socket.getaddrinfo.return_value = resolved_address(network_interface)
         mock_socket.socket.return_value.bind.side_effect = OSError
         mock_random.randrange = Mock(side_effect=[3093] * 1000)
         with self.assertRaises(NoFreePortsError):
             find_free_port(network_interface, start=3000, end=4000)
+
+    @parameterized.expand(
+        [
+            # POSIX "Cannot assign requested address".
+            (errno.EADDRNOTAVAIL,),
+            # Winsock WSAEADDRNOTAVAIL: CPython passes Winsock codes through unchanged, so
+            # this is what errno carries on Windows. Exercised on every platform.
+            (WSAEADDRNOTAVAIL,),
+        ]
+    )
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_returns_unprobed_port_when_interface_is_not_local(
+        self, address_not_available_errno, mock_random, mock_socket
+    ):
+        # The interface belongs to the machine running the container engine, so binding it here
+        # fails for every candidate. Report that and hand back a port rather than declaring
+        # the whole range busy; the daemon's bind is the real check.
+        mock_socket.getaddrinfo.return_value = resolved_address("172.17.0.1")
+        mock_socket.socket.return_value.bind.side_effect = OSError(
+            address_not_available_errno, "Cannot assign requested address"
+        )
+        mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
+
+        with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
+            port = find_free_port("172.17.0.1", start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        # Exactly one bind was attempted, and never against all interfaces.
+        self.assertEqual(mock_socket.socket.return_value.bind.call_args_list, [call(("172.17.0.1", 3093))])
+        self.assertTrue(any("172.17.0.1" in message and "without checking it" in message for message in log_ctx.output))
+        # The message must not tell the user to change the interface: for a remote daemon
+        # the other startup warning asks for an address that cannot be bound here, and the
+        # two instructions together would be a loop.
+        self.assertFalse(any("--container-host-interface" in message for message in log_ctx.output))
+        # Nor may it promise a named port-allocation error. Mapping the daemon's refusal to
+        # PortAlreadyInUse lives in Container.start, which this change does not touch, so on
+        # a merge-base checkout that promise would be false.
+        self.assertFalse(any("port allocation error" in message for message in log_ctx.output))
+
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_probes_ipv6_interface_on_an_ipv6_socket(self, mock_random, mock_socket):
+        # An IPv6 value cannot be probed on the AF_INET socket socket.socket() returns: the
+        # bind fails during address resolution with a negative gaierror errno, which is not
+        # an address-not-available errno, so every candidate "failed" and the range was
+        # reported busy. Resolving the address first picks the family, and carries the
+        # flowinfo and scope id that a link-local address needs.
+        mock_socket.getaddrinfo.return_value = resolved_address("fe80::1", family=real_socket.AF_INET6)
+        mock_random.randrange = Mock(side_effect=[3093] * 1000)
+
+        port = find_free_port("fe80::1%eth0", start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        mock_socket.socket.assert_called_once_with(
+            real_socket.AF_INET6, real_socket.SOCK_STREAM, real_socket.IPPROTO_TCP
+        )
+        self.assertEqual(mock_socket.socket.return_value.bind.call_args_list, [call(("fe80::1", 3093, 0, 7))])
+
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_returns_unprobed_port_when_address_does_not_resolve(self, mock_random, mock_socket):
+        # A value that does not resolve here cannot be probed here either, and the answer does
+        # not change per candidate: scanning the range would spend 1000 lookups to arrive at
+        # the same misleading NoFreePortsError.
+        mock_socket.getaddrinfo.side_effect = real_socket.gaierror(-2, "Name or service not known")
+        mock_random.randrange = Mock(side_effect=[3093] * 1000)
+
+        with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
+            port = find_free_port("daemon-host.internal", start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        mock_socket.socket.assert_not_called()
+        self.assertTrue(
+            any("daemon-host.internal" in message and "without checking it" in message for message in log_ctx.output)
+        )
+
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_warns_once_per_interface(self, mock_random, mock_socket):
+        # find_free_port runs once per container creation, i.e. once per invoke in
+        # cold-container mode, and the condition cannot change while the process lives.
+        mock_socket.getaddrinfo.side_effect = lambda host, *_args, **_kwargs: resolved_address(host)
+        mock_socket.socket.return_value.bind.side_effect = OSError(
+            errno.EADDRNOTAVAIL, "Cannot assign requested address"
+        )
+        # A callable rather than a list: each call builds a candidate list of end-start
+        # entries, so four calls would exhaust a fixed side_effect sequence.
+        mock_random.randrange = Mock(side_effect=lambda _start, _end: 3093)
+
+        with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
+            find_free_port("172.17.0.1", start=3000, end=4000)
+            find_free_port("172.17.0.1", start=3000, end=4000)
+            find_free_port("172.17.0.1", start=3000, end=4000)
+            # A different interface is a different report.
+            find_free_port("172.18.0.1", start=3000, end=4000)
+
+        warnings = [message for message in log_ctx.output if message.startswith("WARNING")]
+        self.assertEqual(len(warnings), 2)
+        self.assertIn("172.17.0.1", warnings[0])
+        self.assertIn("172.18.0.1", warnings[1])
+
+    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_still_scans_on_other_errors(self, network_interface, mock_random, mock_socket):
+        # An in-use port is EADDRINUSE, not EADDRNOTAVAIL: keep scanning the range.
+        mock_socket.getaddrinfo.return_value = resolved_address(network_interface)
+        mock_socket.socket.return_value.bind.side_effect = [OSError(errno.EADDRINUSE, "Address already in use"), None]
+        mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
+
+        port = find_free_port(network_interface, start=3000, end=4000)
+
+        self.assertEqual(port, 3094)
 
 
 class TestGetRapidName(TestCase):
