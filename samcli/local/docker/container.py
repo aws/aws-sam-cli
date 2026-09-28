@@ -40,6 +40,20 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix
 LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
+
+# A daemon reports a taken host port in three different ways, depending on which layer
+# refuses it and which daemon is answering: the port allocator when another container holds
+# it, and the userland proxy's bind when an ordinary process does. Verified against Docker
+# 25 on Linux and reported by Docker Desktop respectively.
+PORT_TAKEN_WORDINGS = (
+    "Ports are not available",  # Docker Desktop
+    "port is already allocated",  # Linux daemon, port held by another container
+    "bind: address already in use",  # Linux daemon, port held by a non-Docker process
+)
+
+# Not a port conflict: the address itself does not exist on the machine running the daemon,
+# which is what a stale or mistyped --container-host-interface produces.
+HOST_INTERFACE_MISSING_WORDING = "bind: cannot assign requested address"
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
@@ -453,9 +467,32 @@ class Container:
             # Start the container
             real_container.start()
         except docker.errors.APIError as ex:
-            if "Ports are not available" in str(ex):
-                raise PortAlreadyInUse(ex.explanation.decode()) from ex
+            message = str(ex)
+            detail = self._api_error_detail(ex)
+
+            if any(wording in message for wording in PORT_TAKEN_WORDINGS):
+                raise PortAlreadyInUse(detail) from ex
+
+            if HOST_INTERFACE_MISSING_WORDING in message:
+                raise ContainerNotStartableException(
+                    f"The Docker host cannot publish the container's port on the requested interface: {detail} "
+                    f"Pass --container-host-interface with an address that exists on the machine running the "
+                    f"Docker daemon."
+                ) from ex
+
             raise ex
+
+    @staticmethod
+    def _api_error_detail(ex: docker.errors.APIError) -> str:
+        """
+        Returns the daemon's own explanation for an APIError, falling back to the full message.
+
+        docker-py hands back a str today and bytes in older versions.
+        """
+        explanation = ex.explanation
+        if isinstance(explanation, bytes):
+            explanation = explanation.decode()
+        return explanation or str(ex)
 
     def _initialize_concurrency_control(self):
         """
