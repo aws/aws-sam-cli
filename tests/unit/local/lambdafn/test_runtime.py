@@ -301,6 +301,34 @@ class LambdaRuntime_create(TestCase):
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
 
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_warn_when_accelerator_config_is_set(self, LambdaContainerMock, LogMock):
+        lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime._get_code_dir = MagicMock(return_value="some code dir")
+        LambdaContainerMock.return_value = Mock()
+        self.func_config.accelerator_config = Mock()
+
+        self.runtime.create(self.func_config)
+
+        LogMock.warning.assert_called_once()
+        self.assertIn("AcceleratorConfig", LogMock.warning.call_args[0][0])
+        self.assertEqual(LogMock.warning.call_args[0][1], self.full_path)
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_not_warn_when_accelerator_config_is_unset(self, LambdaContainerMock, LogMock):
+        lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime._get_code_dir = MagicMock(return_value="some code dir")
+        LambdaContainerMock.return_value = Mock()
+        self.func_config.accelerator_config = None
+
+        self.runtime.create(self.func_config)
+
+        LogMock.warning.assert_not_called()
+
 
 class LambdaRuntime_run(TestCase):
     DEFAULT_MEMORY = 128
@@ -1223,6 +1251,33 @@ class TestWarmLambdaRuntime_create(TestCase):
         # validate that the manager.create method got called only one time
         self.manager_mock.create.assert_called_once_with(container, ContainerContext.INVOKE)
         self.assertEqual(result, container)
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_must_warn_about_accelerator_only_once_for_a_cached_container(
+        self, LambdaContainerMock, LambdaFunctionObserverMock, LogMock
+    ):
+        container = Mock()
+        debug_options = Mock()
+        debug_options.debug_function = self.name
+        lambda_image_mock = Mock()
+
+        self.runtime = WarmLambdaRuntime(self.manager_mock, lambda_image_mock)
+        self.runtime._get_code_dir = MagicMock(return_value="some code dir")
+
+        LambdaContainerMock.return_value = container
+        container.is_created.return_value = True
+        container.debug_options = debug_options
+        self.func_config.accelerator_config = Mock()
+
+        # Reusing a cached container must not re-warn, so `sam local start-api` /
+        # `start-lambda --warm-containers` does not repeat the warning on every request.
+        self.runtime.create(self.func_config, debug_context=debug_options)
+        self.runtime.create(self.func_config, debug_context=debug_options)
+
+        LogMock.warning.assert_called_once()
+        self.assertIn("AcceleratorConfig", LogMock.warning.call_args[0][0])
 
     @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")

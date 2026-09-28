@@ -57,6 +57,42 @@ class TestSamPythonHelloWorldCapacityProviderIntegration(IntegrationCliIntegBase
 @parameterized_class(
     ("template",),
     [
+        (Path("template-accelerator.yaml"),),
+    ],
+)
+class TestSamPythonHelloWorldAcceleratorIntegration(IntegrationCliIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_accelerator_function(self):
+        """
+        A function declaring AcceleratorConfig invokes locally on CPU -- SAM CLI accepts the property
+        rather than rejecting it -- and warns that accelerator hardware is not emulated.
+        """
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldAcceleratorFunction", template_path=self.template_path, event_path=self.event_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        process_stdout = stdout.strip()
+        response = json.loads(process_stdout.decode("utf-8"))
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(body["message"], "Hello world accelerator")
+
+        process_stderr = stderr.decode("utf-8")
+        self.assertIn("AcceleratorConfig", process_stderr)
+        self.assertIn("does not emulate", process_stderr)
+
+
+@parameterized_class(
+    ("template",),
+    [
         (Path("template.yml"),),
         (Path("nested-templates/template-parent.yaml"),),
     ],

@@ -327,6 +327,7 @@ class LocalLambdaRunner:
             runtime_management_config=function.runtime_management_config,
             code_real_path=code_real_path,
             capacity_provider_configuration=function.capacity_provider_configuration,
+            accelerator_config=function.accelerator_config,
             durable_config=function.durable_config,
         )
 
