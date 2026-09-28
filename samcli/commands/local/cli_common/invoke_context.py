@@ -27,7 +27,7 @@ from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container_client import ContainerClient
-from samcli.local.docker.exceptions import PortAlreadyInUse
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -409,8 +409,12 @@ class InvokeContext:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
             self._clean_running_containers_and_related_resources()
             raise
-        except PortAlreadyInUse as port_inuse_ex:
-            raise port_inuse_ex
+        except (PortAlreadyInUse, ContainerNotStartableException) as ex:
+            # Both name the flag the user has to change, so surface them instead of the generic
+            # wrapper below. The containers created before the failure still have to be released:
+            # this runs from __enter__, so __exit__ never gets the chance to clean them up.
+            self._clean_running_containers_and_related_resources()
+            raise ex
         except Exception as ex:
             LOG.error("Lambda functions containers initialization failed because of %s", ex)
             self._clean_running_containers_and_related_resources()
