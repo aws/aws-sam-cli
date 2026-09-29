@@ -25,6 +25,7 @@ from samcli.lib.build.build_strategy import (
     CachedOrIncrementalBuildStrategyWrapper,
     DefaultBuildStrategy,
     ParallelBuildStrategy,
+    WorkspaceAwareBuildStrategy,
 )
 from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
 from samcli.lib.build.exceptions import (
@@ -198,6 +199,8 @@ class ApplicationBuilder:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._image_build_client: Optional[ImageBuildClient] = None
+        # one SubprocessNpm per build session, so `npm prefix` answers are cached per directory
+        self._npm_subprocess: Optional[object] = None
 
     @property
     def _container_client(self) -> ContainerClient:
@@ -258,6 +261,19 @@ class ApplicationBuilder:
                 self._manifest_path_override,
                 self._is_building_specific_resource,
                 bool(self._container_manager),
+            )
+
+        if self._build_in_source and not self._cached and not self._container_manager:
+            # npm workspaces monorepo: install the shared dependency tree once per workspace root
+            # instead of once per function. Outside ParallelBuildStrategy on purpose - the install
+            # must complete before any grouped function build starts. --cached is excluded because
+            # it supplies dependencies from .aws-sam/deps and manages download_dependencies itself.
+            build_strategy = WorkspaceAwareBuildStrategy(
+                build_graph,
+                build_strategy,
+                self._base_dir,
+                self._resolve_npm_project_root,
+                self._install_workspace_shared_dependencies,
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
@@ -676,6 +692,67 @@ class ApplicationBuilder:
 
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
+
+    def _resolve_npm_project_root(self, code_dir: str) -> Optional[str]:
+        """
+        Ask npm (through aws-lambda-builders) which project root covers code_dir.
+
+        Returns None when the answer is unavailable for any reason - npm missing, an
+        aws-lambda-builders too old to expose the resolver - which disables workspace grouping for
+        that function and keeps today's per-function install.
+        """
+        try:
+            from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+            from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils as NpmOSUtils
+        except ImportError:
+            return None
+
+        if self._npm_subprocess is None:
+            self._npm_subprocess = SubprocessNpm(NpmOSUtils())
+        resolver = getattr(self._npm_subprocess, "resolve_project_root", None)
+        if resolver is None:
+            return None
+        try:
+            return cast(Optional[str], resolver(code_dir))
+        except OSError as ex:
+            LOG.debug("Could not resolve the npm project root of %s: %s", code_dir, ex)
+            return None
+
+    def _install_workspace_shared_dependencies(
+        self, project_root: str, build_definition: "FunctionBuildDefinition"
+    ) -> bool:
+        """
+        Install, once, the dependency tree shared by every workspace function under project_root.
+
+        The build definition supplies the workflow (npm or npm-esbuild) whose builder runs the
+        install; both funnel into the same npm project tree. Returns False on any failure so the
+        caller leaves the grouped functions on per-function installs.
+        """
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
+        specified_workflow = build_definition.metadata.get("BuildMethod") if build_definition.metadata else None
+        try:
+            config = get_workflow_config(
+                build_definition.runtime, code_dir, self._base_dir, specified_workflow=specified_workflow
+            )
+            builder = LambdaBuilder(
+                language=config.language,
+                dependency_manager=config.dependency_manager,
+                application_framework=config.application_framework,
+            )
+            installer = getattr(builder, "install_shared_dependencies", None)
+            if installer is None:
+                LOG.debug("Installed aws-lambda-builders has no shared dependency install; skipping grouping")
+                return False
+            installer(project_root)
+            return True
+        except (UnsupportedRuntimeException, LambdaBuilderError) as ex:
+            LOG.warning(
+                "Installing shared dependencies for workspace root %s failed (%s); "
+                "falling back to per-function installs",
+                project_root,
+                ex,
+            )
+            return False
 
     def _build_function(  # pylint: disable=R1710
         self,

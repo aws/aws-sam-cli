@@ -17,6 +17,7 @@ from samcli.lib.build.build_strategy import (
     CachedBuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
     IncrementalBuildStrategy,
+    WorkspaceAwareBuildStrategy,
     clean_redundant_folders,
 )
 from samcli.lib.utils import osutils
@@ -879,3 +880,121 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             else:
                 patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
                 patched_incremental_build_strategy.assert_not_called()
+
+
+@patch("samcli.lib.build.build_graph.BuildGraph._write")
+@patch("samcli.lib.build.build_graph.BuildGraph._read")
+class WorkspaceAwareBuildStrategyTest(TestCase):
+    BASE_DIR = "/base"
+
+    def setUp(self):
+        self.delegate = MagicMock()
+        self.resolver = Mock(return_value=None)
+        self.installer = Mock(return_value=True)
+
+    def _strategy(self, build_graph):
+        return WorkspaceAwareBuildStrategy(build_graph, self.delegate, self.BASE_DIR, self.resolver, self.installer)
+
+    def _graph(self, *definitions):
+        build_graph = BuildGraph("build_dir")
+        for index, definition in enumerate(definitions):
+            function = Mock()
+            function.inlinecode = None
+            function.full_path = f"function{index}"
+            build_graph.put_function_build_definition(definition, function)
+        return build_graph
+
+    @staticmethod
+    def _definition(runtime="nodejs22.x", codeuri="endpoints/fn", packagetype=ZIP, metadata=None):
+        return FunctionBuildDefinition(runtime, codeuri, None, packagetype, X86_64, metadata or {}, "handler")
+
+    def _code_dir(self, codeuri):
+        return str(Path(self.BASE_DIR, codeuri).resolve())
+
+    def test_functions_sharing_a_workspace_root_install_once_and_skip_their_own_installs(self, _read, _write):
+        definition1 = self._definition(codeuri="endpoints/fn1")
+        definition2 = self._definition(codeuri="endpoints/fn2", metadata={"BuildMethod": "esbuild"})
+        build_graph = self._graph(definition1, definition2)
+        self.resolver.return_value = "/base/mono"
+
+        strategy = self._strategy(build_graph)
+        result = strategy._build_functions(build_graph)
+
+        self.installer.assert_called_once_with("/base/mono", definition1)
+        self.assertFalse(definition1.download_dependencies)
+        self.assertFalse(definition2.download_dependencies)
+        self.delegate._build_functions.assert_called_once_with(build_graph)
+        self.assertEqual(result, self.delegate._build_functions.return_value)
+
+    def test_a_failed_shared_install_leaves_per_function_installs(self, _read, _write):
+        definition = self._definition()
+        build_graph = self._graph(definition)
+        self.resolver.return_value = "/base/mono"
+        self.installer.return_value = False
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.assertTrue(definition.download_dependencies)
+        self.delegate._build_functions.assert_called_once_with(build_graph)
+
+    def test_a_standalone_package_is_not_grouped(self, _read, _write):
+        # npm answers with the directory itself for anything that is not a workspace member
+        definition = self._definition(codeuri="standalone")
+        build_graph = self._graph(definition)
+        self.resolver.return_value = self._code_dir("standalone")
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_not_called()
+        self.assertTrue(definition.download_dependencies)
+
+    def test_out_of_scope_functions_never_resolve_a_root(self, _read, _write):
+        out_of_scope = [
+            ("python3.12", ZIP, None),
+            ("nodejs22.x", IMAGE, None),
+            ("nodejs22.x", ZIP, {"BuildMethod": "makefile"}),
+        ]
+        for runtime, packagetype, metadata in out_of_scope:
+            with self.subTest(runtime=runtime, packagetype=packagetype, metadata=metadata):
+                definition = self._definition(runtime=runtime, packagetype=packagetype, metadata=metadata)
+                build_graph = self._graph(definition)
+
+                self._strategy(build_graph)._build_functions(build_graph)
+
+                self.resolver.assert_not_called()
+                self.installer.assert_not_called()
+
+    def test_a_build_method_naming_the_runtime_is_in_scope(self, _read, _write):
+        definition = self._definition(metadata={"BuildMethod": "nodejs22.x"})
+        build_graph = self._graph(definition)
+        self.resolver.return_value = "/base/mono"
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_called_once()
+        self.assertFalse(definition.download_dependencies)
+
+    def test_distinct_workspace_roots_install_separately(self, _read, _write):
+        definition1 = self._definition(codeuri="monoA/endpoints/fn1")
+        definition2 = self._definition(codeuri="monoB/endpoints/fn2")
+        build_graph = self._graph(definition1, definition2)
+        self.resolver.side_effect = ["/base/monoA", "/base/monoB"]
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_has_calls([call("/base/monoA", definition1), call("/base/monoB", definition2)])
+        self.assertFalse(definition1.download_dependencies)
+        self.assertFalse(definition2.download_dependencies)
+
+    def test_build_enters_the_delegate_context_and_delegates_everything(self, _read, _write):
+        definition = self._definition(runtime="python3.12")
+        build_graph = self._graph(definition)
+        self.delegate._build_layers.return_value = {}
+        self.delegate._build_functions.return_value = {"function0": "artifacts"}
+
+        result = self._strategy(build_graph).build()
+
+        self.delegate.__enter__.assert_called_once()
+        self.delegate.__exit__.assert_called_once()
+        self.delegate._build_layers.assert_called_once_with(build_graph)
+        self.assertEqual(result, {"function0": "artifacts"})

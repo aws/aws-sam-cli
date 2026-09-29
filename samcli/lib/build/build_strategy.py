@@ -693,3 +693,113 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
                 return True
 
         return False
+
+
+class WorkspaceAwareBuildStrategy(BuildStrategy):
+    """
+    Wraps another build strategy to install nodejs dependencies once per npm workspace root.
+
+    In an npm workspaces monorepo npm keeps ONE dependency tree, hoisted to the workspace root, and
+    every member's install reconciles that whole tree. Building N functions from one monorepo with
+    --build-in-source therefore reconciles the same tree N times. This strategy resolves each nodejs
+    function's npm project root before any function builds, installs each distinct root once through
+    aws-lambda-builders, and marks the grouped functions with download_dependencies=False - the same
+    lever IncrementalBuildStrategy uses - so their builds link the artifacts to the tree that one
+    install wrote.
+
+    A function is grouped only when all of these hold, so anything else keeps today's per-function
+    install:
+
+    - Zip package type, nodejs runtime, npm or esbuild build method
+    - npm resolves the function's project root OUTSIDE its own code directory, which is what
+      distinguishes a workspace member from a standalone package
+    - the shared install itself succeeded; a failed root leaves its functions untouched
+
+    This strategy must wrap OUTSIDE ParallelBuildStrategy, whose _build_functions fires every
+    definition into one AsyncContext: running the install first is the barrier that keeps parallel
+    function builds from racing the shared tree. It is wired only for non-cached builds; --cached
+    supplies dependencies from .aws-sam/deps and manages download_dependencies itself.
+    """
+
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        project_root_resolver: Callable[[str], Optional[str]],
+        shared_install_function: Callable[[str, FunctionBuildDefinition], bool],
+    ) -> None:
+        """
+        Parameters
+        ----------
+        project_root_resolver:
+            Given a function's resolved code directory, returns npm's project root for it, or None
+            when it cannot be resolved (npm missing, too-old aws-lambda-builders, non-npm project).
+        shared_install_function:
+            Runs the shared install for (project_root, one grouped build definition); returns True
+            on success. Failures must be handled inside and reported with False.
+        """
+        super().__init__(build_graph)
+        self._delegate_build_strategy = delegate_build_strategy
+        self._base_dir = base_dir
+        self._project_root_resolver = project_root_resolver
+        self._shared_install_function = shared_install_function
+
+    def build(self) -> Dict[str, str]:
+        with self._delegate_build_strategy:
+            return super().build()
+
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._delegate_build_strategy._build_layers(build_graph)
+
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        self._install_shared_dependencies_for_workspace_groups(build_graph)
+        return self._delegate_build_strategy._build_functions(build_graph)
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def _install_shared_dependencies_for_workspace_groups(self, build_graph: BuildGraph) -> None:
+        groups: Dict[str, List[FunctionBuildDefinition]] = {}
+        for build_definition in build_graph.get_function_build_definitions():
+            project_root = self._workspace_root_for(build_definition)
+            if project_root:
+                groups.setdefault(project_root, []).append(build_definition)
+
+        for project_root, build_definitions in groups.items():
+            LOG.info(
+                "Installing dependencies once for workspace root %s, shared by (%s)",
+                project_root,
+                ", ".join(definition.get_resource_full_paths() for definition in build_definitions),
+            )
+            if self._shared_install_function(project_root, build_definitions[0]):
+                for build_definition in build_definitions:
+                    build_definition.download_dependencies = False
+
+    def _workspace_root_for(self, build_definition: FunctionBuildDefinition) -> Optional[str]:
+        """
+        The npm project root the function's install would write to, or None when the function is not
+        a workspace member covered by this strategy.
+        """
+        if build_definition.packagetype != ZIP or not build_definition.codeuri:
+            return None
+        runtime = build_definition.runtime or ""
+        if not runtime.startswith("nodejs"):
+            return None
+        # only the npm workflows install through the npm project tree; BuildMethod naming the
+        # runtime is the template's way of spelling the default
+        build_method = (build_definition.metadata or {}).get("BuildMethod")
+        if build_method not in (None, "esbuild", runtime):
+            return None
+
+        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+        project_root = self._project_root_resolver(code_dir)
+        if not project_root:
+            return None
+        if os.path.realpath(project_root) == os.path.realpath(code_dir):
+            # npm answers with the directory itself for anything that is not a workspace member
+            return None
+        return project_root
