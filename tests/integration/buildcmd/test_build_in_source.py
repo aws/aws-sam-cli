@@ -320,6 +320,76 @@ class TestBuildCommand_BuildInSource_NodejsWorkspaces(NpmCallLogMixin, BuildInte
         self.assertEqual(self.npm_install_commands(), [])
 
 
+class TestBuildCommand_BuildInSource_NodejsWorkspacesEsbuild(NpmCallLogMixin, BuildIntegBase):
+    """
+    The esbuild workflow reaches the same grouping, because both nodejs workflows funnel their
+    installs through the same npm project tree. What differs is the artifact side: esbuild bundles
+    what each entry point imports instead of linking a node_modules, so these functions are built
+    with no dependency directory at all and the bundle has to have resolved through the tree npm
+    hoisted to the workspace root.
+
+    This is the workflow aws/aws-sam-cli#6567 actually reports, and the fixture carries the reason
+    the shared install must not pass --omit=dev: `esbuild` is the ROOT's own devDependency, so an
+    install that pruned it would delete the bundler this build needs.
+    """
+
+    template = None  # the template lives inside the copied fixture
+
+    def setUp(self):
+        super().setUp()
+        osutils.copytree(Path(self.test_data_path, "NodeWorkspacesEsbuild"), self.working_dir)
+        self.template_path = str(Path(self.working_dir, "template.yaml"))
+        self.setup_npm_call_log()
+
+    def artifact_dir(self, logical_id) -> Path:
+        return Path(self.default_build_dir, logical_id)
+
+    def run_bundle(self, logical_id) -> dict:
+        result = run_command(
+            ["node", "-e", 'require("./index.js").handler().then(r => console.log(r.body))'],
+            cwd=str(self.artifact_dir(logical_id)),
+        )
+        self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
+        return json.loads(result.stdout.decode("utf-8").strip())
+
+    @pytest.mark.flaky(reruns=3)
+    def test_installs_once_then_bundles_each_function(self):
+        command_list = self.get_command_list(build_in_source=True, debug=True)
+        result = run_command(command_list, cwd=self.working_dir, env=self.npm_logging_env())
+        self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
+
+        self.assertIn(WORKSPACE_INSTALL_LOG_MESSAGE, result.stderr.decode("utf-8"))
+
+        # one install for the whole workspace, not one per function
+        installs = self.npm_install_commands()
+        self.assertEqual(len(installs), 1, f"expected exactly one npm install, saw: {installs}")
+        # --omit=dev here would remove the root's own esbuild and the bundling below could not run
+        self.assertNotIn("--omit=dev", installs[0])
+        self.assertTrue(
+            Path(self.working_dir, "node_modules", "esbuild").is_dir(),
+            "the shared install pruned the root's own esbuild devDependency",
+        )
+
+        for logical_id in ("LodashFunction", "AxiosFunction"):
+            artifacts = self.artifact_dir(logical_id)
+            self.assertTrue((artifacts / "index.js").is_file(), f"{logical_id} produced no bundle")
+            # esbuild inlines what it needs, so unlike the plain npm workflow there is nothing to link
+            self.assertFalse(
+                (artifacts / "node_modules").exists(),
+                f"{logical_id} got a node_modules; the bundle should carry its dependencies",
+            )
+
+        # each bundle resolved through the hoisted root tree, including the shared package's
+        # conflicting lodash, which npm keeps as a nested copy
+        lodash_body = self.run_bundle("LodashFunction")
+        self.assertEqual(lodash_body["ownLodashVersion"], "4.17.20")
+        self.assertEqual(lodash_body["sharedLodashVersion"], "4.17.15")
+
+        axios_body = self.run_bundle("AxiosFunction")
+        self.assertEqual(axios_body["axiosVersion"], "1.6.0")
+        self.assertEqual(axios_body["sharedLodashVersion"], "4.17.15")
+
+
 class TestBuildCommand_BuildInSource_NodejsStandaloneNotGrouped(NpmCallLogMixin, BuildIntegNodeBase):
     """A standalone (non-workspace) nodejs project keeps its per-function install unchanged."""
 
