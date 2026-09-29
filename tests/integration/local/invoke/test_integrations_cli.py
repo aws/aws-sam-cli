@@ -1,6 +1,7 @@
 import json
 import shutil
 import os
+import re
 import copy
 import tempfile
 from unittest import skipIf
@@ -78,7 +79,13 @@ class TestSamPythonHelloWorldAcceleratorIntegration(IntegrationCliIntegBase):
             process.kill()
             raise
 
-        self.assertEqual(process.returncode, 0)
+        self.assertEqual(
+            process.returncode,
+            0,
+            f"sam local invoke exited {process.returncode}.\n"
+            f"stderr:\n{stderr.decode('utf-8')}\n"
+            f"stdout:\n{stdout.decode('utf-8')}",
+        )
         process_stdout = stdout.strip()
         response = json.loads(process_stdout.decode("utf-8"))
         self.assertEqual(response["statusCode"], 200)
@@ -1382,9 +1389,13 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         stack_trace_lines = [
             "[ERROR] Exception: Lambda is raising an exception",
             "Traceback (most recent call last):",
-            '\xa0\xa0File "/var/task/main.py", line 81, in raise_exception',
             '\xa0\xa0\xa0\xa0raise Exception("Lambda is raising an exception")',
         ]
+        # Matched by pattern rather than exact text: main.py's line numbers shift whenever a
+        # handler is added above raise_exception, and a hard-coded number breaks silently.
+        stack_trace_file_pattern = (
+            re.escape('\xa0\xa0File "/var/task/main.py", line ') + r"\d+" + re.escape(", in raise_exception")
+        )
 
         result = run_command(command_list)
         stderr = result.stderr.decode("utf-8").strip()
@@ -1392,3 +1403,4 @@ class TestInvokeFunctionWithError(InvokeIntegBase):
         self.assertEqual(result.process.returncode, 0)
         for line in stack_trace_lines:
             self.assertIn(line, stderr)
+        self.assertRegex(stderr, stack_trace_file_pattern)
