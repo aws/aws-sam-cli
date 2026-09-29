@@ -40,7 +40,11 @@ dependencies = [
     "ruamel_yaml~=0.19.1",
     "PyYAML~=6.0",
     "cookiecutter>=2.6,<2.8",
-    "aws-sam-translator==1.113.0",
+    # TEMPORARY: direct reference to the private SAM Transform feature branch, which carries
+    # AcceleratorConfig on AWS::Serverless::Function. The released 1.113.0 has no knowledge of
+    # it, so local invoke of a SAM template declaring AcceleratorConfig fails the transform.
+    # Revert to a released pin once a version shipping AcceleratorConfig is published.
+    "aws-sam-translator @ git+https://github.com/aws/PRIVATE-aws-sam-development@feat-lmi-gpu-support",
     # docker minor version updates can include breaking changes. Auto update micro version only.
     "docker>=7.1,<7.3",
     "dateparser~=1.3",

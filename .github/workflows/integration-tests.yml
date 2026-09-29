@@ -218,6 +218,12 @@ jobs:
         shell: bash
         run: docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 
+      - name: Authorize private SAM Transform access
+        shell: bash
+        env:
+          SAM_TRANSFORM_SSH_PRIVATE_KEY: ${{ secrets.SAM_TRANSFORM_SSH_PRIVATE_KEY }}
+        run: bash tests/setup-private-samt-auth.sh
+
       - name: Initialize integration test
         if: env.TEST_TYPE == 'develop' || env.TEST_TYPE == 'master' || env.TEST_TYPE == 'other'
         shell: bash

@@ -89,6 +89,11 @@ jobs:
           cache-python: false
       - name: Install and activate Python
         run: bash tests/setup-python-uv.sh 3.11
+      - name: Authorize private SAM Transform access
+        shell: bash
+        env:
+          SAM_TRANSFORM_SSH_PRIVATE_KEY: ${{ secrets.SAM_TRANSFORM_SSH_PRIVATE_KEY }}
+        run: bash tests/setup-private-samt-auth.sh
       - run: make init
       - run: |
           diff <( cat schema/samcli.json ) <( python -m schema.make_schema && cat schema/samcli.json ) && \
@@ -188,6 +193,11 @@ jobs:
       - name: Install Rust toolchain and cargo-lambda
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: bash tests/install-rust.sh --uv
+      - name: Authorize private SAM Transform access
+        shell: bash
+        env:
+          SAM_TRANSFORM_SSH_PRIVATE_KEY: ${{ secrets.SAM_TRANSFORM_SSH_PRIVATE_KEY }}
+        run: bash tests/setup-private-samt-auth.sh
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
@@ -251,6 +261,11 @@ jobs:
           cache-python: false
       - name: Install and activate Python
         run: bash tests/setup-python-uv.sh ${{ matrix.python }}
+      - name: Authorize private SAM Transform access
+        shell: bash
+        env:
+          SAM_TRANSFORM_SSH_PRIVATE_KEY: ${{ secrets.SAM_TRANSFORM_SSH_PRIVATE_KEY }}
+        run: bash tests/setup-private-samt-auth.sh
       - name: Init samdev
         run: make init
       - name: Run ${{ matrix.tests_config.name }}
@@ -294,6 +309,11 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         shell: pwsh
         run: stop-service docker
+      - name: Authorize private SAM Transform access
+        shell: bash
+        env:
+          SAM_TRANSFORM_SSH_PRIVATE_KEY: ${{ secrets.SAM_TRANSFORM_SSH_PRIVATE_KEY }}
+        run: bash tests/setup-private-samt-auth.sh
       - name: Init samdev
         run: make init
       - name: uv install setuptools in Python3.12
