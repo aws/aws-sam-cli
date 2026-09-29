@@ -453,6 +453,173 @@ class TestApplicationBuilder_build(TestCase):
         mock_parallel_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_parallel_build_strategy.build())
 
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    def test_build_in_source_run_should_wrap_with_workspace_aware_strategy(
+        self,
+        mock_workspace_aware_build_strategy_class,
+        mock_default_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+        mock_workspace_aware_build_strategy = Mock()
+        mock_workspace_aware_build_strategy_class.return_value = mock_workspace_aware_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            build_in_source=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        # the wrapper takes the strategy it wraps, plus the two callbacks it delegates the npm work to
+        mock_workspace_aware_build_strategy_class.assert_called_once_with(
+            ANY,
+            mock_default_build_strategy,
+            "basedir",
+            builder._resolve_npm_project_root,
+            builder._install_workspace_shared_dependencies,
+        )
+        mock_workspace_aware_build_strategy.build.assert_called_once()
+        self.assertEqual(result, mock_workspace_aware_build_strategy.build())
+        # the wrapped strategy is only reached through the wrapper
+        mock_default_build_strategy.build.assert_not_called()
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    def test_build_in_source_with_parallel_should_wrap_outside_the_parallel_strategy(
+        self,
+        mock_workspace_aware_build_strategy_class,
+        mock_parallel_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        # the shared install has to finish before any grouped function build starts, so the wrapper
+        # must sit OUTSIDE ParallelBuildStrategy rather than inside it
+        mock_parallel_build_strategy = Mock()
+        mock_parallel_build_strategy_class.return_value = mock_parallel_build_strategy
+        mock_workspace_aware_build_strategy = Mock()
+        mock_workspace_aware_build_strategy_class.return_value = mock_workspace_aware_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            parallel=True,
+            build_in_source=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        self.assertEqual(
+            mock_workspace_aware_build_strategy_class.call_args[0][1],
+            mock_parallel_build_strategy,
+        )
+        self.assertEqual(result, mock_workspace_aware_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    def test_cached_run_should_not_wrap_with_workspace_aware_strategy(
+        self,
+        mock_workspace_aware_build_strategy_class,
+        mock_cached_and_incremental_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        # --cached supplies dependencies from .aws-sam/deps and manages download_dependencies
+        # itself, so the shared install must not take that over
+        mock_cached_and_incremental_build_strategy = Mock()
+        mock_cached_and_incremental_build_strategy_class.return_value = mock_cached_and_incremental_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            cached=True,
+            build_in_source=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        mock_workspace_aware_build_strategy_class.assert_not_called()
+        self.assertEqual(result, mock_cached_and_incremental_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    def test_container_run_should_not_wrap_with_workspace_aware_strategy(
+        self,
+        mock_workspace_aware_build_strategy_class,
+        mock_default_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        # the install would run on the host while the build runs in the container
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            container_manager=Mock(),
+            build_in_source=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        mock_workspace_aware_build_strategy_class.assert_not_called()
+        self.assertEqual(result, mock_default_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    def test_default_run_should_not_wrap_with_workspace_aware_strategy(
+        self,
+        mock_workspace_aware_build_strategy_class,
+        mock_default_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        # without --build-in-source the dependencies are installed into the build directory, where
+        # there is no shared tree to hoist into
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        mock_workspace_aware_build_strategy_class.assert_not_called()
+        self.assertEqual(result, mock_default_build_strategy.build())
+
     @patch("samcli.lib.build.build_graph.BuildGraph._write")
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.build_graph.BuildGraph._read")
