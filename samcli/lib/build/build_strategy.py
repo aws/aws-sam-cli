@@ -799,7 +799,10 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
         project_root = self._project_root_resolver(code_dir)
         if not project_root:
             return None
-        if os.path.realpath(project_root) == os.path.realpath(code_dir):
-            # npm answers with the directory itself for anything that is not a workspace member
+        # npm answers with the directory itself for anything that is not a workspace member. normcase
+        # because npm's stdout and this path are spelled independently, and on Windows two spellings
+        # differing only in case - a drive letter included - name the same directory; reading those as
+        # different roots would group a project that is not a workspace at all. No-op off Windows.
+        if os.path.normcase(os.path.realpath(project_root)) == os.path.normcase(os.path.realpath(code_dir)):
             return None
         return project_root
