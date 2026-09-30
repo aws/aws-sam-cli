@@ -72,11 +72,18 @@ DEFAULT_PARALLEL_UPLOAD_WORKERS = max(4, min(32, (os.cpu_count() or 1) * 2))
 
 
 class _ThreadSafeUploadCache(MutableMapping[str, str]):
-    """Simple thread-safe mapping used to deduplicate uploads across threads."""
+    """
+    Thread-safe mapping used to deduplicate uploads across threads.
 
-    def __init__(self, initial: Optional[MutableMapping[str, str]] = None):
+    With ``store=False`` it only provides per-key locks: results are not remembered, so jobs that
+    share a local path run one after another and rely on the uploader's own remote dedup, exactly
+    as a serial export does, without enabling the experimental upload cache.
+    """
+
+    def __init__(self, initial: Optional[MutableMapping[str, str]] = None, store: bool = True):
         # Copy into a regular dict so we can safely snapshot under a lock
         self._cache: Dict[str, str] = dict(initial or {})
+        self._store = store
         self._lock = threading.Lock()
         self._key_locks: Dict[str, threading.Lock] = {}
 
@@ -89,7 +96,9 @@ class _ThreadSafeUploadCache(MutableMapping[str, str]):
         with self._lock:
             return self._cache[key]
 
-    def __setitem__(self, key: str, value: str) -> None:  # pragma: no cover - small helper
+    def __setitem__(self, key: str, value: str) -> None:
+        if not self._store:
+            return
         with self._lock:
             self._cache[key] = value
 
@@ -655,8 +664,10 @@ class Template:
         cache: Optional[MutableMapping[str, str]] = None
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
-        if cache is not None and self.parallel_upload:
-            cache = _ThreadSafeUploadCache(cache)
+        if self.parallel_upload:
+            # Always provide per-path locks in parallel mode so jobs sharing a code path don't all
+            # upload it at once; only remember results when the experimental cache is enabled.
+            cache = _ThreadSafeUploadCache(cache, store=cache is not None)
 
         if not self.parallel_upload:
             for _, job in self._collect_export_jobs(cache, None):
@@ -728,6 +739,7 @@ class Template:
             for future in futures:
                 future.cancel()
             wait(futures)
+            Template._log_other_failures(futures)
             raise
         Template._wait_fail_fast(futures)
 
@@ -742,14 +754,18 @@ class Template:
         for future in futures:
             future.cancel()
         wait(futures)
-        first_error = cast(BaseException, failed[0].exception())
+        Template._log_other_failures(futures, surfaced=failed[0])
+        raise cast(BaseException, failed[0].exception())
+
+    @staticmethod
+    def _log_other_failures(futures: List[Future], surfaced: Optional[Future] = None) -> None:
+        """Log failures that are not the one being re-raised, so no upload error is silently lost."""
         for future in futures:
-            if future is failed[0] or future.cancelled():
+            if future is surfaced or future.cancelled():
                 continue
             error = future.exception()
             if error is not None:
                 LOG.error("Parallel artifact upload also failed: %s", error, exc_info=error)
-        raise first_error
 
     def delete(self, retain_resources: List):
         """

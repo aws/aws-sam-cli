@@ -1837,6 +1837,65 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertIs(shared_executor, captured["executor"])
 
+    def test_lock_only_upload_cache_does_not_remember_results(self):
+        cache = _ThreadSafeUploadCache(store=False)
+        cache["path"] = "s3://bucket/key"
+        self.assertNotIn("path", cache)
+        self.assertEqual(0, len(cache))
+        self.assertIs(cache.key_lock("path"), cache.key_lock("path"))
+
+    @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled", return_value=False)
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_without_experimental_cache_uses_lock_only_cache(
+        self, yaml_parse_mock, is_experimental_enabled_mock
+    ):
+        captured = {}
+
+        def capture_cache(uploaders, code_signer, cache):
+            captured["cache"] = cache
+            return Mock()
+
+        resource_type_class = Mock(side_effect=capture_cache)
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        yaml_parse_mock.return_value = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": {}}}}
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data="")):
+            Template(
+                os.path.join(os.path.sep, "foo", "path"),
+                os.path.sep,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                [resource_type_class],
+                parallel_upload=True,
+            ).export()
+
+        self.assertIsInstance(captured["cache"], _ThreadSafeUploadCache)
+        captured["cache"]["path"] = "s3://bucket/key"
+        self.assertNotIn("path", captured["cache"])
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_run_export_jobs_logs_upload_failures_when_nested_stack_fails(self, log_mock):
+        upload_failed = threading.Event()
+
+        def failing_upload():
+            try:
+                raise RuntimeError("upload failure")
+            finally:
+                upload_failed.set()
+
+        def failing_nested_stack():
+            upload_failed.wait(5)
+            raise ValueError("nested failure")
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            with self.assertRaises(ValueError):
+                Template._run_export_jobs([(False, failing_upload), (True, failing_nested_stack)], executor)
+
+        logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
+        self.assertTrue(any(isinstance(error, RuntimeError) for error in logged))
+
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()
         self.assertIs(cache.key_lock("a"), cache.key_lock("a"))

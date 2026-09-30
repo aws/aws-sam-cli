@@ -103,3 +103,49 @@ class TestPackageUtils(TestCase):
 
         self.assertEqual(1, len(calls))
         self.assertEqual(["s3://bucket/key"] * 4, results)
+
+    def test_upload_local_artifacts_serializes_shared_path_with_lock_only_cache(self):
+        from samcli.lib.package.artifact_exporter import _ThreadSafeUploadCache
+
+        cache = _ThreadSafeUploadCache(store=False)
+        active = []
+        overlaps = []
+        state_lock = threading.Lock()
+
+        def slow_zip_and_upload(local_path, *args, **kwargs):
+            with state_lock:
+                active.append(local_path)
+                overlaps.append(len(active))
+            time.sleep(0.05)
+            with state_lock:
+                active.remove(local_path)
+            return "s3://bucket/key"
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(utils, "zip_and_upload", side_effect=slow_zip_and_upload),
+        ):
+            threads = [
+                threading.Thread(
+                    target=utils.upload_local_artifacts,
+                    kwargs=dict(
+                        resource_type="AWS::Serverless::Function",
+                        resource_id="Function",
+                        resource_dict={"CodeUri": folder},
+                        property_path="CodeUri",
+                        parent_dir=folder,
+                        uploader=Mock(),
+                        previously_uploaded=cache,
+                    ),
+                )
+                for _ in range(4)
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+        # Without the experimental cache every job still zips (as a serial export does, with the
+        # uploader skipping objects that already exist), but never concurrently for the same path.
+        self.assertEqual(4, len(overlaps))
+        self.assertEqual(1, max(overlaps))
