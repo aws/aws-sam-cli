@@ -796,10 +796,14 @@ class TestLambdaImage(TestCase):
     @patch("samcli.local.docker.lambda_image.create_tarball")
     @patch("samcli.local.docker.lambda_image.uuid")
     @patch("samcli.local.docker.lambda_image.Path")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_content_hash")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_dockerfile")
-    def test_build_image(self, generate_dockerfile_patch, path_patch, uuid_patch, create_tarball_patch):
+    def test_build_image(
+        self, generate_dockerfile_patch, generate_image_content_hash_patch, path_patch, uuid_patch, create_tarball_patch
+    ):
         uuid_patch.uuid4.return_value = "uuid"
         generate_dockerfile_patch.return_value = "Dockerfile content"
+        generate_image_content_hash_patch.return_value = "thecontenthash"
 
         docker_full_path_mock = Mock()
         docker_full_path_mock.exists.return_value = True
@@ -827,12 +831,8 @@ class TestLambdaImage(TestCase):
         handle = m()
         handle.write.assert_called_with("Dockerfile content")
         # The label is what lets the next invoke reuse this image, so it must reach the Dockerfile.
-        generate_dockerfile_patch.assert_called_once_with(
-            "base_image",
-            [layer_version1],
-            "arm64",
-            LambdaImage._generate_image_content_hash("base_image", [layer_version1]),
-        )
+        generate_image_content_hash_patch.assert_called_once_with("base_image", [layer_version1])
+        generate_dockerfile_patch.assert_called_once_with("base_image", [layer_version1], "arm64", "thecontenthash")
         path_patch.assert_called_with("cached layers", "dockerfile_uuid")
         docker_client_mock.api.build.assert_called_once_with(
             fileobj=tarball_fileobj,
