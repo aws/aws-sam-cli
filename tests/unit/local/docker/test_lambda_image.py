@@ -11,6 +11,7 @@ from parameterized import parameterized
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.architecture import ARM64, X86_64
+from samcli.local.docker import lambda_image as lambda_image_module
 from samcli.local.docker.lambda_image import LambdaImage, RAPID_IMAGE_TAG_PREFIX, Runtime
 from samcli.commands.local.cli_common.user_exceptions import DockerDistributionAPIError, ImageBuildException
 from samcli import __version__ as version
@@ -116,6 +117,7 @@ class TestLambdaImage(TestCase):
             [],
             X86_64,
             stream=ANY,
+            content_hash=ANY,
         )
         # No Layers are added.
         layer_downloader_mock.assert_not_called()
@@ -179,6 +181,7 @@ class TestLambdaImage(TestCase):
             [],
             ARM64,
             stream=stream,
+            content_hash=ANY,
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
@@ -251,6 +254,7 @@ class TestLambdaImage(TestCase):
             [],
             X86_64,
             stream=ANY,
+            content_hash=ANY,
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
@@ -298,6 +302,7 @@ class TestLambdaImage(TestCase):
             [],
             X86_64,
             stream=ANY,
+            content_hash=ANY,
         )
 
     @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
@@ -426,6 +431,44 @@ class TestLambdaImage(TestCase):
 
             build_image_patch.assert_called_once()
 
+    @parameterized.expand([(False,), (True,)])
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_content_hash")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    def test_layer_content_is_hashed_at_most_once_per_build(
+        self,
+        force_image_build,
+        generate_docker_image_version_patch,
+        generate_image_content_hash_patch,
+        build_image_patch,
+        is_base_image_current_patch,
+    ):
+        layer_mock = Mock()
+        layer_mock.name = "layers1"
+        layer_mock.is_defined_within_template = True
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.download_all.return_value = [layer_mock]
+        generate_docker_image_version_patch.return_value = "runtime:image-version"
+        generate_image_content_hash_patch.return_value = "thecontenthash"
+        is_base_image_current_patch.return_value = True
+        docker_client_mock = Mock()
+        docker_client_mock.images.get.return_value.attrs = {"Config": {"Labels": {}}}
+
+        LambdaImage(layer_downloader_mock, False, force_image_build, docker_client=docker_client_mock).build(
+            "python3.12", ZIP, None, [layer_mock], X86_64, function_name="function"
+        )
+
+        passed_hash = build_image_patch.call_args.kwargs["content_hash"]
+        if force_image_build:
+            # Rebuilt regardless, so build() leaves the hashing to _build_image.
+            generate_image_content_hash_patch.assert_not_called()
+            self.assertIs(passed_hash, lambda_image_module._NOT_COMPUTED)
+        else:
+            # The hash that decided the rebuild is the one recorded on the image.
+            generate_image_content_hash_patch.assert_called_once()
+            self.assertEqual(passed_hash, "thecontenthash")
+
     @parameterized.expand(
         [
             ("python3.12", "python:3.12-x86_64", "public.ecr.aws/lambda/python:3.12-x86_64"),
@@ -465,6 +508,7 @@ class TestLambdaImage(TestCase):
             ["layers1"],
             X86_64,
             stream=stream,
+            content_hash=ANY,
         )
 
     @parameterized.expand(
@@ -506,6 +550,7 @@ class TestLambdaImage(TestCase):
             ["layers1"],
             X86_64,
             stream=stream,
+            content_hash=ANY,
         )
 
     @parameterized.expand(
@@ -573,6 +618,7 @@ class TestLambdaImage(TestCase):
             ["layers1"],
             ARM64,
             stream=stream,
+            content_hash=ANY,
         )
 
     @patch("samcli.local.docker.lambda_image.hashlib")
@@ -715,7 +761,11 @@ class TestLambdaImage(TestCase):
 
         lambda_image = LambdaImage(Mock(), False, False, docker_client=Mock())
 
-        self.assertFalse(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+        self.assertFalse(
+            lambda_image._image_content_changed(
+                "image-tag", LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+            )
+        )
 
     def test_image_content_changed_when_the_content_cannot_be_read(self):
         # A dangling symlink or an unreadable file keeps the previous behaviour of rebuilding
@@ -724,7 +774,11 @@ class TestLambdaImage(TestCase):
 
         lambda_image = LambdaImage(Mock(), False, False, docker_client=Mock())
 
-        self.assertTrue(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+        self.assertTrue(
+            lambda_image._image_content_changed(
+                "image-tag", LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+            )
+        )
 
     def test_image_content_changed_for_an_image_built_before_the_label_existed(self):
         with tempfile.TemporaryDirectory() as layer_dir:
@@ -735,7 +789,11 @@ class TestLambdaImage(TestCase):
 
             lambda_image = LambdaImage(Mock(), False, False, docker_client=docker_client_mock)
 
-            self.assertTrue(lambda_image._image_content_changed("image-tag", self.BASE_IMAGE, [layer_mock]))
+            self.assertTrue(
+                lambda_image._image_content_changed(
+                    "image-tag", LambdaImage._generate_image_content_hash(self.BASE_IMAGE, [layer_mock])
+                )
+            )
 
     def test_generate_image_content_hash_only_covers_the_template_layers(self):
         # A layer referenced by version ARN is immutable and its name already carries the version,

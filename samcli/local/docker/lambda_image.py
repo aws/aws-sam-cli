@@ -44,6 +44,9 @@ TEST_RUNTIMES: list[str] = []
 # Build output, which is derived from the layer content rather than part of it
 _CONTENT_IGNORE_LIST = [".aws-sam"]
 
+# Passed to _build_image when build() had no reason to hash the layers itself.
+_NOT_COMPUTED = object()
+
 
 class Runtime(Enum):
     nodejs16x = "nodejs16.x"
@@ -281,73 +284,105 @@ class LambdaImage:
             else:
                 self._remove_rapid_images(image_repo)
 
+        # Hash the layers only when an existing image might be reused; a forced or missing
+        # image is built anyway and _build_image hashes then. Either way it happens once.
+        content_hash = _NOT_COMPUTED
+        if not (self.force_image_build or image_not_found):
+            content_hash = self._generate_image_content_hash(image if image else base_image, downloaded_layers)
+
         if (
             self.force_image_build
             or image_not_found
-            or self._image_content_changed(rapid_image, image if image else base_image, downloaded_layers)
+            or self._image_content_changed(rapid_image, content_hash)
             or not runtime
         ):
-            stream_writer = stream or StreamWriter(sys.stderr)
-
-            # Use build lock to prevent concurrent builds of the same image
-            # Use system temp directory for lock files instead of layer cache to avoid polluting cache
-            build_lock = FileLock(Path(tempfile.gettempdir()), rapid_image, "building")
-
-            if build_lock.acquire_lock():
-                # We got the lock, proceed with build
-                try:
-                    stream_writer.write_str("Building image...")
-                    stream_writer.flush()
-                    self._build_image(
-                        image if image else base_image,
-                        rapid_image,
-                        downloaded_layers,
-                        architecture,
-                        stream=stream_writer,
-                    )
-                    build_lock.release_lock(success=True)
-                except Exception:
-                    build_lock.release_lock(success=False)
-                    raise
-            else:
-                # Another process is building, wait for it to complete
-                stream_writer.write_str("Another process is building the same image, waiting...")
-                stream_writer.flush()
-
-                if build_lock.wait_for_operation():
-                    # Build completed successfully by another process
-                    stream_writer.write_str("Image build completed by another process.")
-                    stream_writer.flush()
-
-                    # Verify the image actually exists
-                    try:
-                        self.docker_client.images.get(rapid_image)
-                    except docker.errors.ImageNotFound:
-                        # Image doesn't exist, fallback to building ourselves
-                        LOG.warning("Expected image not found after concurrent build, building ourselves")
-                        stream_writer.write_str("Building image...")
-                        stream_writer.flush()
-                        self._build_image(
-                            image if image else base_image,
-                            rapid_image,
-                            downloaded_layers,
-                            architecture,
-                            stream=stream_writer,
-                        )
-                else:
-                    # Build failed or timed out, build ourselves
-                    LOG.warning("Concurrent build failed or timed out, building ourselves")
-                    stream_writer.write_str("Building image...")
-                    stream_writer.flush()
-                    self._build_image(
-                        image if image else base_image,
-                        rapid_image,
-                        downloaded_layers,
-                        architecture,
-                        stream=stream_writer,
-                    )
+            self._build_image_with_lock(
+                image if image else base_image, rapid_image, downloaded_layers, architecture, stream, content_hash
+            )
 
         return rapid_image
+
+    def _build_image_with_lock(self, invoke_base_image, rapid_image, layers, architecture, stream, content_hash):
+        """
+        Build the image, or wait for another SAM CLI process that is already building it.
+
+        Parameters
+        ----------
+        invoke_base_image str
+            Base image the layers are added on top of
+        rapid_image str
+            Docker tag (REPOSITORY:TAG) to build
+        layers list(samcli.commands.local.lib.provider.Layer)
+            List of layers to add to the image
+        architecture str
+            Architecture, either x86_64 or arm64
+        stream io.RawIOBase
+            Stream to write build progress to, stderr when None
+        content_hash Optional[str]
+            The layers' content hash if already computed, passed through to `_build_image`
+        """
+        stream_writer = stream or StreamWriter(sys.stderr)
+
+        # Use build lock to prevent concurrent builds of the same image
+        # Use system temp directory for lock files instead of layer cache to avoid polluting cache
+        build_lock = FileLock(Path(tempfile.gettempdir()), rapid_image, "building")
+
+        if build_lock.acquire_lock():
+            # We got the lock, proceed with build
+            try:
+                stream_writer.write_str("Building image...")
+                stream_writer.flush()
+                self._build_image(
+                    invoke_base_image,
+                    rapid_image,
+                    layers,
+                    architecture,
+                    stream=stream_writer,
+                    content_hash=content_hash,
+                )
+                build_lock.release_lock(success=True)
+            except Exception:
+                build_lock.release_lock(success=False)
+                raise
+        else:
+            # Another process is building, wait for it to complete
+            stream_writer.write_str("Another process is building the same image, waiting...")
+            stream_writer.flush()
+
+            if build_lock.wait_for_operation():
+                # Build completed successfully by another process
+                stream_writer.write_str("Image build completed by another process.")
+                stream_writer.flush()
+
+                # Verify the image actually exists
+                try:
+                    self.docker_client.images.get(rapid_image)
+                except docker.errors.ImageNotFound:
+                    # Image doesn't exist, fallback to building ourselves
+                    LOG.warning("Expected image not found after concurrent build, building ourselves")
+                    stream_writer.write_str("Building image...")
+                    stream_writer.flush()
+                    self._build_image(
+                        invoke_base_image,
+                        rapid_image,
+                        layers,
+                        architecture,
+                        stream=stream_writer,
+                        content_hash=content_hash,
+                    )
+            else:
+                # Build failed or timed out, build ourselves
+                LOG.warning("Concurrent build failed or timed out, building ourselves")
+                stream_writer.write_str("Building image...")
+                stream_writer.flush()
+                self._build_image(
+                    invoke_base_image,
+                    rapid_image,
+                    layers,
+                    architecture,
+                    stream=stream_writer,
+                    content_hash=content_hash,
+                )
 
     def get_config(self, image_tag):
         config = {}
@@ -378,6 +413,7 @@ class LambdaImage:
         if not isinstance(codeuri, str) or not os.path.exists(codeuri):
             # dir_checksum answers with the empty directory digest for a path that is not there,
             # which would then look unchanged forever.
+            LOG.debug("Cannot checksum layer content at %s: path does not exist", codeuri)
             return None
 
         try:
@@ -387,15 +423,22 @@ class LambdaImage:
             for dirpath, dirnames, _ in os.walk(codeuri):
                 # Skip what the checksum below skips, so content it never reads cannot decide this.
                 dirnames[:] = [dirname for dirname in dirnames if dirname not in _CONTENT_IGNORE_LIST]
-                if any(os.path.islink(os.path.join(dirpath, dirname)) for dirname in dirnames):
+                linked = [dirname for dirname in dirnames if os.path.islink(os.path.join(dirpath, dirname))]
+                if linked:
                     # A directory symlink can point at one of its own ancestors, so leave a layer
                     # holding one to the rebuild rather than walking it.
+                    LOG.debug(
+                        "Cannot checksum layer content at %s: directory symlink %s",
+                        codeuri,
+                        os.path.join(dirpath, linked[0]),
+                    )
                     return None
 
             return dir_checksum(codeuri, ignore_list=_CONTENT_IGNORE_LIST, hash_generator=hashlib.sha256())
-        except (OSError, ValueError):
+        except (OSError, ValueError) as ex:
             # Unreadable, dangling or undecodable content, which create_tarball tolerates and so
             # must this.
+            LOG.debug("Cannot checksum layer content at %s: %s", codeuri, ex)
             return None
 
     @staticmethod
@@ -438,7 +481,7 @@ class LambdaImage:
         # version stands in for the RIE binary, which the tag does not pin either.
         return str_checksum("-".join([__version__, str(base_image), *checksums]))
 
-    def _image_content_changed(self, rapid_image: str, base_image, layers) -> bool:
+    def _image_content_changed(self, rapid_image: str, content_hash) -> bool:
         """
         Whether an existing image was built from content that has since changed.
 
@@ -446,20 +489,21 @@ class LambdaImage:
         ----------
         rapid_image str
             Tag of the image that would be reused
-        base_image str
-            Base image the layers are added on top of
-        layers list(samcli.commands.local.lib.provider.Layer)
-            List of the layers the image is built from
+        content_hash Optional[str]
+            What `_generate_image_content_hash` returned for the image's current inputs
 
         Returns
         -------
         bool
             True when the image has to be rebuilt to pick the current content up
         """
-        content_hash = self._generate_image_content_hash(base_image, layers)
+        if content_hash is _NOT_COMPUTED:
+            # build() only skips hashing when the image is being rebuilt regardless.
+            return True
 
         if content_hash is None:
             # Content we cannot checksum, so rebuild rather than risk missing a change.
+            LOG.info("Rebuilding %s because its layer content could not be checksummed", rapid_image)
             return True
 
         if not content_hash:
@@ -501,7 +545,7 @@ class LambdaImage:
             + hashlib.sha256("-".join([layer.name for layer in layers]).encode("utf-8")).hexdigest()[0:25]
         )
 
-    def _build_image(self, base_image, docker_tag, layers, architecture, stream=None):
+    def _build_image(self, base_image, docker_tag, layers, architecture, stream=None, content_hash=_NOT_COMPUTED):
         """
         Builds the image
 
@@ -517,15 +561,17 @@ class LambdaImage:
             Architecture, either x86_64 or arm64
         stream samcli.lib.utils.stream_writer.StreamWriter
             Stream to write the build output
+        content_hash Optional[str]
+            The layers' content hash if build() already computed it, so it is not read twice
 
         Raises
         ------
         samcli.commands.local.cli_common.user_exceptions.ImageBuildException
             When docker fails to build the image
         """
-        dockerfile_content = self._generate_dockerfile(
-            base_image, layers, architecture, self._generate_image_content_hash(base_image, layers)
-        )
+        if content_hash is _NOT_COMPUTED:
+            content_hash = self._generate_image_content_hash(base_image, layers)
+        dockerfile_content = self._generate_dockerfile(base_image, layers, architecture, content_hash)
 
         # Create dockerfile in the same directory of the layer cache
         dockerfile_name = "dockerfile_" + str(uuid.uuid4())
