@@ -11,6 +11,7 @@ from uuid import uuid4
 import docker
 from parameterized import parameterized
 
+from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.local.cli_common.user_exceptions import InvalidFunctionPropertyType
 from samcli.lib.build.app_builder import (
     ApplicationBuilder,
@@ -456,8 +457,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
     @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=True)
     def test_build_in_source_run_should_wrap_with_workspace_aware_strategy(
         self,
+        _flag_enabled,
         mock_workspace_aware_build_strategy_class,
         mock_default_build_strategy_class,
         mock_get_validated_client,
@@ -497,8 +500,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.app_builder.ParallelBuildStrategy")
     @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=True)
     def test_build_in_source_with_parallel_should_wrap_outside_the_parallel_strategy(
         self,
+        _flag_enabled,
         mock_workspace_aware_build_strategy_class,
         mock_parallel_build_strategy_class,
         mock_get_validated_client,
@@ -534,8 +539,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.app_builder.CachedOrIncrementalBuildStrategyWrapper")
     @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=True)
     def test_cached_run_should_not_wrap_with_workspace_aware_strategy(
         self,
+        _flag_enabled,
         mock_workspace_aware_build_strategy_class,
         mock_cached_and_incremental_build_strategy_class,
         mock_get_validated_client,
@@ -566,8 +573,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
     @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=True)
     def test_container_run_should_not_wrap_with_workspace_aware_strategy(
         self,
+        _flag_enabled,
         mock_workspace_aware_build_strategy_class,
         mock_default_build_strategy_class,
         mock_get_validated_client,
@@ -597,8 +606,10 @@ class TestApplicationBuilder_build(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
     @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=True)
     def test_default_run_should_not_wrap_with_workspace_aware_strategy(
         self,
+        _flag_enabled,
         mock_workspace_aware_build_strategy_class,
         mock_default_build_strategy_class,
         mock_get_validated_client,
@@ -617,6 +628,40 @@ class TestApplicationBuilder_build(TestCase):
 
         result = builder.build().artifacts
 
+        mock_workspace_aware_build_strategy_class.assert_not_called()
+        self.assertEqual(result, mock_default_build_strategy.build())
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.DefaultBuildStrategy")
+    @patch("samcli.lib.build.app_builder.WorkspaceAwareBuildStrategy")
+    @patch("samcli.lib.build.app_builder.is_experimental_enabled", return_value=False)
+    def test_workspace_grouping_is_off_without_the_experimental_flag(
+        self,
+        mock_is_experimental_enabled,
+        mock_workspace_aware_build_strategy_class,
+        mock_default_build_strategy_class,
+        mock_get_validated_client,
+    ):
+        # everything else about this build asks for the grouping; only the flag is missing, and that
+        # alone keeps every function on its own install - the behaviour of every release so far
+        mock_default_build_strategy = Mock()
+        mock_default_build_strategy_class.return_value = mock_default_build_strategy
+
+        mock_get_validated_client.return_value = Mock()
+
+        builder = ApplicationBuilder(
+            MagicMock(),
+            "builddir",
+            "basedir",
+            "cachedir",
+            build_in_source=True,
+            stream_writer=StreamWriter(sys.stderr),
+        )
+        builder._get_build_graph = Mock(return_value=Mock())
+
+        result = builder.build().artifacts
+
+        mock_is_experimental_enabled.assert_called_once_with(ExperimentalFlag.NodejsMonorepo)
         mock_workspace_aware_build_strategy_class.assert_not_called()
         self.assertEqual(result, mock_default_build_strategy.build())
 

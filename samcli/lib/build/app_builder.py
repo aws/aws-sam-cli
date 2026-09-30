@@ -18,7 +18,11 @@ from aws_lambda_builders import (
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    get_enabled_experimental_flags,
+    is_experimental_enabled,
+)
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     BuildStrategy,
@@ -263,11 +267,18 @@ class ApplicationBuilder:
                 bool(self._container_manager),
             )
 
-        if self._build_in_source and not self._cached and not self._container_manager:
+        if (
+            is_experimental_enabled(ExperimentalFlag.NodejsMonorepo)
+            and self._build_in_source
+            and not self._cached
+            and not self._container_manager
+        ):
             # npm workspaces monorepo: install the shared dependency tree once per workspace root
             # instead of once per function. Outside ParallelBuildStrategy on purpose - the install
             # must complete before any grouped function build starts. --cached is excluded because
             # it supplies dependencies from .aws-sam/deps and manages download_dependencies itself.
+            # Behind SAM_CLI_BETA_NODEJS_MONOREPO while the grouping rolls out: without it every
+            # function keeps its own install, which is the behaviour every release so far has had.
             build_strategy = WorkspaceAwareBuildStrategy(
                 build_graph,
                 build_strategy,

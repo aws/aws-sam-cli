@@ -237,8 +237,11 @@ class TestBuildCommand_BuildInSource_NodejsWorkspaces(NpmCallLogMixin, BuildInte
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
         return json.loads(result.stdout.decode("utf-8").strip())
 
-    def build_workspace(self, parallel=False):
-        command_list = self.get_command_list(build_in_source=True, parallel=parallel, debug=True)
+    def build_workspace(self, parallel=False, beta_features=True):
+        # the grouping is behind SAM_CLI_BETA_NODEJS_MONOREPO, which --beta-features turns on
+        command_list = self.get_command_list(
+            build_in_source=True, parallel=parallel, debug=True, beta_features=beta_features
+        )
         result = run_command(command_list, cwd=self.working_dir, env=self.npm_logging_env())
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
         return result
@@ -304,6 +307,27 @@ class TestBuildCommand_BuildInSource_NodejsWorkspaces(NpmCallLogMixin, BuildInte
         self.assert_artifacts_are_disjoint()
 
     @pytest.mark.flaky(reruns=3)
+    def test_without_beta_features_the_monorepo_behaves_exactly_as_it_does_today(self):
+        # What the flag holds back, stated as behaviour rather than as a promise. Off, this fixture gets
+        # the shape every release so far has produced: one install per function, no grouping, and - the
+        # part worth being explicit about - a build that SUCCEEDS while emitting artifacts with no
+        # dependencies in them at all. That is aws/aws-lambda-builders#933, and the flag is what opts a
+        # user into its fix along with the grouping. Turning the flag on flips every assertion here,
+        # which the other tests in this class cover.
+        result = self.build_workspace(beta_features=False)
+
+        self.assertNotIn(WORKSPACE_INSTALL_LOG_MESSAGE, result.stderr.decode("utf-8"))
+        installs = self.npm_install_commands()
+        self.assertEqual(len(installs), 2, f"expected one install per function, saw: {installs}")
+
+        for logical_id in ("LodashFunction", "AxiosFunction"):
+            modules = self.artifact_modules(logical_id)
+            self.assertFalse(
+                modules.exists() and any(modules.iterdir()),
+                f"{logical_id} has dependencies without the flag; #933 would then already be fixed",
+            )
+
+    @pytest.mark.flaky(reruns=3)
     def test_use_container_cannot_reach_the_workspace_grouping(self):
         # workspace grouping only activates under --build-in-source, and the CLI refuses that
         # flag together with --use-container, so a container build can never group: it keeps
@@ -354,7 +378,7 @@ class TestBuildCommand_BuildInSource_NodejsWorkspacesEsbuild(NpmCallLogMixin, Bu
 
     @pytest.mark.flaky(reruns=3)
     def test_installs_once_then_bundles_each_function(self):
-        command_list = self.get_command_list(build_in_source=True, debug=True)
+        command_list = self.get_command_list(build_in_source=True, debug=True, beta_features=True)
         result = run_command(command_list, cwd=self.working_dir, env=self.npm_logging_env())
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
 
@@ -407,7 +431,11 @@ class TestBuildCommand_BuildInSource_NodejsStandaloneNotGrouped(NpmCallLogMixin,
         overrides = self.get_override(
             runtime="nodejs24.x", code_uri=str(codeuri), architecture="x86_64", handler="main.lambdaHandler"
         )
-        command_list = self.get_command_list(build_in_source=True, parameter_overrides=overrides, debug=True)
+        # beta features ON deliberately: what keeps this project on a per-function install has to be
+        # its own npm root, not the flag being off
+        command_list = self.get_command_list(
+            build_in_source=True, parameter_overrides=overrides, debug=True, beta_features=True
+        )
         result = run_command(command_list, cwd=self.working_dir, env=self.npm_logging_env())
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
 
