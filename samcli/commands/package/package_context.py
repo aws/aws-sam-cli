@@ -154,13 +154,15 @@ class PackageContext:
         # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
         docker_client = None
 
+        # Progress bars redraw the terminal in place and interleave badly across threads.
+        no_progressbar = self.no_progressbar or self.parallel_upload
         s3_uploader = S3Uploader(
-            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, no_progressbar
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
         ecr_uploader = ECRUploader(
-            docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
+            docker_client, ecr_client, self.image_repository, self.image_repositories, no_progressbar
         )
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader)

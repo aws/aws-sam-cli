@@ -70,6 +70,11 @@ LOG = logging.getLogger(__name__)
 
 DEFAULT_PARALLEL_UPLOAD_WORKERS = max(4, min(32, (os.cpu_count() or 1) * 2))
 
+# Bounds in-flight artifact uploads across the whole export, including nested stacks. Nested-stack
+# exports only coordinate their children and do not take a slot, so a parent waiting on its
+# children can never starve them.
+_UPLOAD_SLOTS = threading.BoundedSemaphore(DEFAULT_PARALLEL_UPLOAD_WORKERS)
+
 
 class _ThreadSafeUploadCache(MutableMapping[str, str]):
     """Simple thread-safe mapping used to deduplicate uploads across threads."""
@@ -78,6 +83,12 @@ class _ThreadSafeUploadCache(MutableMapping[str, str]):
         # Copy into a regular dict so we can safely snapshot under a lock
         self._cache: Dict[str, str] = dict(initial or {})
         self._lock = threading.Lock()
+        self._key_locks: Dict[str, threading.Lock] = {}
+
+    def key_lock(self, key: str) -> threading.Lock:
+        """Lock serializing check-then-upload for a single key; other keys proceed concurrently."""
+        with self._lock:
+            return self._key_locks.setdefault(key, threading.Lock())
 
     def __getitem__(self, key: str) -> str:  # pragma: no cover - small helper
         with self._lock:
@@ -681,7 +692,11 @@ class Template:
             exporter.parent_parameter_values = self.parameter_values
             exporter.language_extensions_enabled = self.language_extensions_enabled
             exporter.parallel_upload = self.parallel_upload
-            exporter.export(resource_full_path, resource_dict, self.template_dir)
+            if not self.parallel_upload or isinstance(exporter, CloudFormationStackResource):
+                exporter.export(resource_full_path, resource_dict, self.template_dir)
+                return
+            with _UPLOAD_SLOTS:
+                exporter.export(resource_full_path, resource_dict, self.template_dir)
 
         return _job
 
@@ -691,11 +706,24 @@ class Template:
             jobs[0]()
             return
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        executor = ThreadPoolExecutor(max_workers=max_workers)
+        try:
             futures = [executor.submit(job) for job in jobs]
-            wait(futures, return_when=FIRST_EXCEPTION)
-            for future in futures:
-                future.result()
+            done, _ = wait(futures, return_when=FIRST_EXCEPTION)
+            failed = [future for future in done if future.exception() is not None]
+            if failed:
+                # Fail fast: drop queued jobs, let running ones finish, then report every failure.
+                executor.shutdown(wait=True, cancel_futures=True)
+                first_error = cast(BaseException, failed[0].exception())
+                for future in futures:
+                    if future.cancelled() or future is failed[0]:
+                        continue
+                    error = future.exception()
+                    if error is not None:
+                        LOG.error("Parallel artifact upload also failed: %s", error, exc_info=error)
+                raise first_error
+        finally:
+            executor.shutdown(wait=True)
 
     def delete(self, retain_resources: List):
         """

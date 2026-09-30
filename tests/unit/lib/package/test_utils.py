@@ -1,5 +1,8 @@
 import tempfile
+import threading
+import time
 from unittest import TestCase
+from unittest.mock import Mock, patch
 
 from parameterized import parameterized
 
@@ -61,3 +64,42 @@ class TestPackageUtils(TestCase):
                     previous_md5_hash = md5_hash
                 else:
                     self.assertEqual(previous_md5_hash, md5_hash)
+
+    def test_upload_local_artifacts_uploads_shared_path_once_across_threads(self):
+        from samcli.lib.package.artifact_exporter import _ThreadSafeUploadCache
+
+        cache = _ThreadSafeUploadCache({})
+        calls = []
+
+        def slow_zip_and_upload(local_path, *args, **kwargs):
+            calls.append(local_path)
+            time.sleep(0.1)
+            return "s3://bucket/key"
+
+        with (
+            tempfile.TemporaryDirectory() as folder,
+            patch.object(utils, "zip_and_upload", side_effect=slow_zip_and_upload),
+        ):
+            results = []
+
+            def upload():
+                results.append(
+                    utils.upload_local_artifacts(
+                        resource_type="AWS::Serverless::Function",
+                        resource_id="Function",
+                        resource_dict={"CodeUri": folder},
+                        property_path="CodeUri",
+                        parent_dir=folder,
+                        uploader=Mock(),
+                        previously_uploaded=cache,
+                    )
+                )
+
+            threads = [threading.Thread(target=upload) for _ in range(4)]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+        self.assertEqual(1, len(calls))
+        self.assertEqual(["s3://bucket/key"] * 4, results)

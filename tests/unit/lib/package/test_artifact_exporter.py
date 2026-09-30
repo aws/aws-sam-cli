@@ -8,8 +8,11 @@ import random
 import shutil
 import string
 import tempfile
+import threading
+import time
 import unittest
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager, closing
 from pathlib import Path
 from typing import Optional, Dict
@@ -1732,40 +1735,75 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_type_class.assert_not_called()
 
-    @patch("samcli.lib.package.artifact_exporter.wait")
-    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
-    def test_execute_jobs_in_parallel_submits_and_waits(self, executor_mock, wait_mock):
-        class _FakeFuture:
-            def __init__(self, job):
-                self._job = job
-
-            def result(self):
-                return self._job()
-
-        class _FakeExecutor:
-            def __init__(self, max_workers):
-                self.max_workers = max_workers
-
-            def __enter__(self):
-                return self
-
-            def __exit__(self, exc_type, exc, tb):
-                return False
-
-            def submit(self, job):
-                return _FakeFuture(job)
-
-        executor_mock.side_effect = lambda max_workers: _FakeExecutor(max_workers=max_workers)
-
+    @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor", wraps=ThreadPoolExecutor)
+    def test_execute_jobs_in_parallel_submits_and_waits(self, executor_mock):
         job1 = Mock()
         job2 = Mock()
         template_exporter = Template.__new__(Template)
         template_exporter._execute_jobs_in_parallel([job1, job2])
 
         executor_mock.assert_called_once_with(max_workers=2)
-        wait_mock.assert_called_once()
         job1.assert_called_once()
         job2.assert_called_once()
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    @patch("samcli.lib.package.artifact_exporter.DEFAULT_PARALLEL_UPLOAD_WORKERS", 2)
+    def test_execute_jobs_in_parallel_fails_fast_and_reports_all_failures(self, log_mock):
+        slow_started = threading.Event()
+        queued_runs = []
+
+        def fail_first():
+            slow_started.wait(5)
+            raise ValueError("first failure")
+
+        def fail_slow():
+            slow_started.set()
+            time.sleep(0.2)
+            raise RuntimeError("second failure")
+
+        def queued():
+            queued_runs.append(1)
+            time.sleep(0.05)
+
+        template_exporter = Template.__new__(Template)
+        with self.assertRaises(ValueError):
+            template_exporter._execute_jobs_in_parallel([fail_first, fail_slow] + [queued] * 20)
+
+        # Queued jobs are cancelled on the first failure; only jobs a free worker had already
+        # picked up can still run.
+        self.assertLess(len(queued_runs), 20)
+        logged = [call.args[1] for call in log_mock.error.call_args_list]
+        self.assertTrue(any(isinstance(error, RuntimeError) for error in logged))
+
+    @patch("samcli.lib.package.artifact_exporter._UPLOAD_SLOTS")
+    def test_parallel_export_job_bounds_leaf_uploads_but_not_nested_stacks(self, slots_mock):
+        class _NestedStack(CloudFormationStackResource):
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def export(self, *args, **kwargs):
+                pass
+
+        leaf_exporter = Mock()
+        template_exporter = Template.__new__(Template)
+        template_exporter.uploaders = Mock()
+        template_exporter.code_signer = Mock()
+        template_exporter.parameter_values = None
+        template_exporter.language_extensions_enabled = False
+        template_exporter.template_dir = "dir"
+        template_exporter.parallel_upload = True
+
+        template_exporter._build_export_job(_NestedStack, "Nested", {}, None)()
+        slots_mock.__enter__.assert_not_called()
+
+        template_exporter._build_export_job(Mock(return_value=leaf_exporter), "Leaf", {}, None)()
+        slots_mock.__enter__.assert_called_once()
+        leaf_exporter.export.assert_called_once_with("Leaf", {}, "dir")
+
+    def test_thread_safe_upload_cache_key_lock_is_per_key(self):
+        cache = _ThreadSafeUploadCache()
+        self.assertIs(cache.key_lock("a"), cache.key_lock("a"))
+        self.assertIsNot(cache.key_lock("a"), cache.key_lock("b"))
 
     @patch("samcli.lib.package.artifact_exporter.wait")
     @patch("samcli.lib.package.artifact_exporter.ThreadPoolExecutor")
