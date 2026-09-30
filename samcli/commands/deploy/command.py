@@ -163,7 +163,8 @@ LOG = logging.getLogger(__name__)
     "--parallel-upload",
     is_flag=True,
     default=False,
-    help="Enable parallel upload of artifacts to S3/ECR during packaging before deployment.",
+    help="Enable parallel upload of artifacts to S3/ECR during packaging before deployment. "
+    "Runs up to 8 uploads at once; set the SAM_CLI_PARALLEL_UPLOAD_WORKERS environment variable to change this.",
 )
 @s3_prefix_option
 @kms_key_id_option

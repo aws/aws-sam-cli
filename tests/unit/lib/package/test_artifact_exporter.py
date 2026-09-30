@@ -19,6 +19,7 @@ from typing import Optional, Dict
 from unittest import mock
 from unittest.mock import call, patch, Mock, MagicMock
 
+from parameterized import parameterized
 from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ExportFailedError
@@ -38,6 +39,7 @@ from samcli.lib.package.artifact_exporter import (
     _export_global_artifacts_pass,
     _resolve_nested_stack_parameters,
     _ThreadSafeUploadCache,
+    get_parallel_upload_workers,
 )
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -1738,20 +1740,26 @@ class TestArtifactExporter(unittest.TestCase):
 
         resource_type_class.assert_not_called()
 
-    def test_run_export_jobs_submits_uploads_and_runs_nested_stacks_inline(self):
-        caller = threading.current_thread()
+    def test_run_export_jobs_runs_nested_stacks_outside_the_upload_pool(self):
         ran_on = {}
 
         def record(name):
-            return lambda: ran_on.setdefault(name, threading.current_thread())
+            return lambda: ran_on.setdefault(name, threading.current_thread().name)
 
         jobs = [(False, record("upload1")), (True, record("nested")), (False, record("upload2"))]
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="upload") as executor:
             Template._run_export_jobs(jobs, executor)
 
-        self.assertIs(caller, ran_on["nested"])
-        self.assertIsNot(caller, ran_on["upload1"])
-        self.assertIsNot(caller, ran_on["upload2"])
+        self.assertTrue(ran_on["upload1"].startswith("upload"))
+        self.assertTrue(ran_on["upload2"].startswith("upload"))
+        self.assertFalse(ran_on["nested"].startswith("upload"))
+
+    def test_run_export_jobs_runs_sibling_nested_stacks_concurrently(self):
+        # Each nested stack waits for the other; this only completes if they run at the same time.
+        barrier = threading.Barrier(2, timeout=5)
+        jobs = [(True, barrier.wait), (True, barrier.wait)]
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            Template._run_export_jobs(jobs, executor)
 
     @patch("samcli.lib.package.artifact_exporter.LOG")
     def test_run_export_jobs_fails_fast_and_reports_all_failures(self, log_mock):
@@ -1876,7 +1884,7 @@ class TestArtifactExporter(unittest.TestCase):
         self.assertNotIn("path", captured["cache"])
 
     @patch("samcli.lib.package.artifact_exporter.LOG")
-    def test_run_export_jobs_logs_upload_failures_when_nested_stack_fails(self, log_mock):
+    def test_run_export_jobs_reports_nested_stack_and_upload_failures(self, log_mock):
         upload_failed = threading.Event()
 
         def failing_upload():
@@ -1890,11 +1898,19 @@ class TestArtifactExporter(unittest.TestCase):
             raise ValueError("nested failure")
 
         with ThreadPoolExecutor(max_workers=1) as executor:
-            with self.assertRaises(ValueError):
+            with self.assertRaises(RuntimeError):
                 Template._run_export_jobs([(False, failing_upload), (True, failing_nested_stack)], executor)
 
         logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
-        self.assertTrue(any(isinstance(error, RuntimeError) for error in logged))
+        self.assertTrue(any(isinstance(error, ValueError) for error in logged))
+
+    @parameterized.expand([(None, 8), ("3", 3), ("0", 8), ("-2", 8), ("abc", 8)])
+    def test_parallel_upload_workers_from_environment(self, value, expected):
+        env = {} if value is None else {"SAM_CLI_PARALLEL_UPLOAD_WORKERS": value}
+        with patch.dict(os.environ, env, clear=False):
+            if value is None:
+                os.environ.pop("SAM_CLI_PARALLEL_UPLOAD_WORKERS", None)
+            self.assertEqual(expected, get_parallel_upload_workers())
 
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()

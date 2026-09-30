@@ -68,7 +68,30 @@ LOG = logging.getLogger(__name__)
 
 # NOTE: sriram-mv, A cyclic dependency on `Template` needs to be broken.
 
-DEFAULT_PARALLEL_UPLOAD_WORKERS = max(4, min(32, (os.cpu_count() or 1) * 2))
+# Uploads are I/O bound, and every in-flight zip upload holds a temporary zip on disk (and member
+# files in memory), so the pool is kept small by default and is configurable via the environment.
+DEFAULT_PARALLEL_UPLOAD_WORKERS = 8
+PARALLEL_UPLOAD_WORKERS_ENV_VAR = "SAM_CLI_PARALLEL_UPLOAD_WORKERS"
+
+
+def get_parallel_upload_workers() -> int:
+    """Number of concurrent artifact uploads for --parallel-upload."""
+    value = os.environ.get(PARALLEL_UPLOAD_WORKERS_ENV_VAR)
+    if not value:
+        return DEFAULT_PARALLEL_UPLOAD_WORKERS
+    try:
+        workers = int(value)
+    except ValueError:
+        workers = 0
+    if workers < 1:
+        LOG.warning(
+            "Ignoring invalid %s=%r; using %d parallel upload workers",
+            PARALLEL_UPLOAD_WORKERS_ENV_VAR,
+            value,
+            DEFAULT_PARALLEL_UPLOAD_WORKERS,
+        )
+        return DEFAULT_PARALLEL_UPLOAD_WORKERS
+    return workers
 
 
 class _ThreadSafeUploadCache(MutableMapping[str, str]):
@@ -675,7 +698,7 @@ class Template:
         elif self.upload_executor is not None:
             self._run_export_jobs(self._collect_export_jobs(cache, self.upload_executor), self.upload_executor)
         else:
-            with ThreadPoolExecutor(max_workers=DEFAULT_PARALLEL_UPLOAD_WORKERS) as executor:
+            with ThreadPoolExecutor(max_workers=get_parallel_upload_workers()) as executor:
                 self._run_export_jobs(self._collect_export_jobs(cache, executor), executor)
 
         return self.template_dict
@@ -726,22 +749,20 @@ class Template:
     @staticmethod
     def _run_export_jobs(jobs: List[Tuple[bool, Callable[[], None]]], executor: ThreadPoolExecutor) -> None:
         """
-        Submit artifact uploads to the shared executor and run nested-stack exports in the calling
-        thread. A nested stack waits for its children, so running it inside a pool worker could
-        deadlock the shared pool; its children's uploads are submitted to the same executor.
+        Artifact uploads go to the shared upload executor. Nested-stack exports only coordinate:
+        they wait on their children's uploads, so they run on a separate pool with one thread per
+        nested stack at this level, never in the upload pool, where waiting could deadlock it.
+        Sibling nested stacks therefore proceed concurrently while the shared pool bounds uploads,
+        and a single fail-fast wait covers both.
         """
-        futures = [executor.submit(job) for is_nested_stack, job in jobs if not is_nested_stack]
-        try:
-            for is_nested_stack, job in jobs:
-                if is_nested_stack:
-                    job()
-        except BaseException:
-            for future in futures:
-                future.cancel()
-            wait(futures)
-            Template._log_other_failures(futures)
-            raise
-        Template._wait_fail_fast(futures)
+        upload_futures = [executor.submit(job) for is_nested_stack, job in jobs if not is_nested_stack]
+        nested_jobs = [job for is_nested_stack, job in jobs if is_nested_stack]
+        if not nested_jobs:
+            Template._wait_fail_fast(upload_futures)
+            return
+        with ThreadPoolExecutor(max_workers=len(nested_jobs)) as coordinator:
+            nested_futures = [coordinator.submit(job) for job in nested_jobs]
+            Template._wait_fail_fast(upload_futures + nested_futures)
 
     @staticmethod
     def _wait_fail_fast(futures: List[Future]) -> None:
