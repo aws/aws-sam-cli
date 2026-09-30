@@ -15,7 +15,14 @@ from pathlib import Path
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
+from tests.testing_utils import (
+    IS_WINDOWS,
+    RUNNING_ON_CI,
+    RUNNING_TEST_FOR_MASTER_ON_CI,
+    RUN_BY_CANARY,
+    USING_FINCH_RUNTIME,
+    run_command,
+)
 from samcli.local.docker.utils import get_validated_container_client
 
 # Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
@@ -1099,6 +1106,71 @@ class TestLocalZipLayerVersion(InvokeIntegBase):
         execute = run_command(command_list)
         self.assertEqual(0, execute.process.returncode)
         self.assertEqual('"Layer1"', execute.stdout.decode())
+
+
+# Finch does not report a locally built samcli/lambda-* image back through images.get, so the
+# invoke image is never found and always rebuilt regardless of its content.
+@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@skipIf(USING_FINCH_RUNTIME, "Finch cannot reuse a locally built invoke image")
+@pytest.mark.xdist_group(name="lambda_layers")
+class TestLayerVersionDefinedInTemplateImageReuse(InvokeIntegBase):
+    template = Path("layers", "layer-template.yml")
+    LAYER_OUTPUT = '"This is a Layer Ping from simple_python"'
+
+    def setUp(self):
+        self.layer_content_path = self.test_data_path.joinpath(
+            "invoke", "layers", "custom_layer", "my_layer", "simple_python.py"
+        )
+        self.original_layer_content = self.layer_content_path.read_text()
+
+    def tearDown(self):
+        self.layer_content_path.write_text(self.original_layer_content)
+
+    @pytest.mark.tier1
+    def test_image_is_reused_until_the_layer_content_changes(self):
+        # The layer is declared in the template with a local ContentUri, so its content can change
+        # between invokes and the image tag cannot tell one revision from another.
+        command_list = InvokeIntegBase.get_command_list(
+            "ReferenceServerlessLayerVersionServerlessFunction",
+            template_path=self.template_path,
+            no_event=True,
+        )
+
+        # Build once up front rather than removing images, so a test running beside this one keeps its own.
+        first_invoke = run_command(command_list + ["--force-image-build"])
+        self.assertEqual(0, first_invoke.process.returncode, first_invoke.stderr.decode())
+        self.assertEqual(self.LAYER_OUTPUT, first_invoke.stdout.decode().strip())
+
+        # Nothing touched, so the image built above has to be reused.
+        second_invoke = run_command(command_list)
+        self.assertEqual(0, second_invoke.process.returncode, second_invoke.stderr.decode())
+        self.assertEqual(self.LAYER_OUTPUT, second_invoke.stdout.decode().strip())
+        self.assertNotIn("Building image", second_invoke.stderr.decode())
+
+        # Changing the layer has to be picked up, otherwise the invoke serves stale layer code.
+        self.layer_content_path.write_text('def layer_ping():\n    return "Ping from the edited layer"\n')
+        third_invoke = run_command(command_list)
+        self.assertEqual(0, third_invoke.process.returncode, third_invoke.stderr.decode())
+        self.assertIn("Building image", third_invoke.stderr.decode())
+        self.assertEqual('"Ping from the edited layer"', third_invoke.stdout.decode().strip())
+
+    @pytest.mark.tier1
+    def test_image_is_reused_for_a_layer_whose_content_is_a_zip(self):
+        # A ContentUri can point at a local zip rather than a directory, which is checksummed too.
+        command_list = InvokeIntegBase.get_command_list(
+            "OneLayerVersionServerlessFunction",
+            template_path=str(self.test_data_path.joinpath("invoke", "layers", "local-zip-layer-template.yml")),
+            no_event=True,
+        )
+
+        first_invoke = run_command(command_list + ["--force-image-build"])
+        self.assertEqual(0, first_invoke.process.returncode, first_invoke.stderr.decode())
+        self.assertEqual('"Layer1"', first_invoke.stdout.decode().strip())
+
+        second_invoke = run_command(command_list)
+        self.assertEqual(0, second_invoke.process.returncode, second_invoke.stderr.decode())
+        self.assertEqual('"Layer1"', second_invoke.stdout.decode().strip())
+        self.assertNotIn("Building image", second_invoke.stderr.decode())
 
 
 @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
