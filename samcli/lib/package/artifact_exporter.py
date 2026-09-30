@@ -98,17 +98,25 @@ class _ThreadSafeUploadCache(MutableMapping[str, str]):
     """
     Thread-safe mapping used to deduplicate uploads across threads.
 
-    With ``store=False`` it only provides per-key locks: results are not remembered, so jobs that
-    share a local path run one after another and rely on the uploader's own remote dedup, exactly
-    as a serial export does, without enabling the experimental upload cache.
+    With ``key_by_packaging=True`` it is an export-scoped memo keyed by local path *and* how the
+    path is packaged (zip method and extension), so resources that share a directory but package it
+    differently, e.g. a Lambda function and an Elastic Beanstalk application version, never receive
+    each other's artifact. Without it, keys are plain local paths, matching the experimental
+    PackagePerformance cache.
     """
 
-    def __init__(self, initial: Optional[MutableMapping[str, str]] = None, store: bool = True):
+    def __init__(self, initial: Optional[MutableMapping[str, str]] = None, key_by_packaging: bool = False):
         # Copy into a regular dict so we can safely snapshot under a lock
         self._cache: Dict[str, str] = dict(initial or {})
-        self._store = store
+        self._key_by_packaging = key_by_packaging
         self._lock = threading.Lock()
         self._key_locks: Dict[str, threading.Lock] = {}
+
+    def cache_key(self, local_path: str, packaging: str, extension: Optional[str]) -> str:
+        """Key for an upload of ``local_path`` packaged as ``packaging`` with ``extension``."""
+        if not self._key_by_packaging:
+            return local_path
+        return f"{packaging}|{extension or ''}|{local_path}"
 
     def key_lock(self, key: str) -> threading.Lock:
         """Lock serializing check-then-upload for a single key; other keys proceed concurrently."""
@@ -119,9 +127,7 @@ class _ThreadSafeUploadCache(MutableMapping[str, str]):
         with self._lock:
             return self._cache[key]
 
-    def __setitem__(self, key: str, value: str) -> None:
-        if not self._store:
-            return
+    def __setitem__(self, key: str, value: str) -> None:  # pragma: no cover - small helper
         with self._lock:
             self._cache[key] = value
 
@@ -325,7 +331,13 @@ class CloudFormationStackResource(ResourceZip):
             temporary_file.write(exported_template_str)
             temporary_file.flush()
             remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
-            url = self.uploader.upload(temporary_file.name, remote_path)
+            upload_executor = getattr(self, "upload_executor", None)
+            if upload_executor is not None:
+                # Keep the rendered child template upload under the shared upload bound; this runs on
+                # a nested-stack coordination thread, which may wait on the upload pool.
+                url = upload_executor.submit(self.uploader.upload, temporary_file.name, remote_path).result()
+            else:
+                url = self.uploader.upload(temporary_file.name, remote_path)
 
             # TemplateUrl property requires S3 URL to be in path-style format
             parts = parse_s3_url(url, version_property="Version")
@@ -688,9 +700,10 @@ class Template:
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
         if self.parallel_upload:
-            # Always provide per-path locks in parallel mode so jobs sharing a code path don't all
-            # upload it at once; only remember results when the experimental cache is enabled.
-            cache = _ThreadSafeUploadCache(cache, store=cache is not None)
+            # Parallel jobs sharing a code path must not all zip and upload it at once. Keep the
+            # experimental cache's path keys when it is on; otherwise use an export-scoped memo that
+            # also keys on packaging, so it cannot conflate differently packaged artifacts.
+            cache = _ThreadSafeUploadCache(cache, key_by_packaging=cache is None)
 
         if not self.parallel_upload:
             for _, job in self._collect_export_jobs(cache, None):

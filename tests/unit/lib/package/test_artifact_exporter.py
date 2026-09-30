@@ -1845,16 +1845,17 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertIs(shared_executor, captured["executor"])
 
-    def test_lock_only_upload_cache_does_not_remember_results(self):
-        cache = _ThreadSafeUploadCache(store=False)
-        cache["path"] = "s3://bucket/key"
-        self.assertNotIn("path", cache)
-        self.assertEqual(0, len(cache))
-        self.assertIs(cache.key_lock("path"), cache.key_lock("path"))
+    def test_packaging_keyed_upload_cache_separates_packaging(self):
+        cache = _ThreadSafeUploadCache(key_by_packaging=True)
+        function_key = cache.cache_key("/code", "lambda-zip", None)
+        layer_key = cache.cache_key("/code", "zip", None)
+        self.assertNotEqual(function_key, layer_key)
+        self.assertNotEqual(function_key, cache.cache_key("/code", "lambda-zip", "jar"))
+        self.assertEqual("/code", _ThreadSafeUploadCache().cache_key("/code", "zip", None))
 
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled", return_value=False)
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
-    def test_template_export_parallel_without_experimental_cache_uses_lock_only_cache(
+    def test_template_export_parallel_without_experimental_cache_uses_packaging_keyed_cache(
         self, yaml_parse_mock, is_experimental_enabled_mock
     ):
         captured = {}
@@ -1880,8 +1881,7 @@ class TestArtifactExporter(unittest.TestCase):
             ).export()
 
         self.assertIsInstance(captured["cache"], _ThreadSafeUploadCache)
-        captured["cache"]["path"] = "s3://bucket/key"
-        self.assertNotIn("path", captured["cache"])
+        self.assertNotEqual("/code", captured["cache"].cache_key("/code", "zip", None))
 
     @patch("samcli.lib.package.artifact_exporter.LOG")
     def test_run_export_jobs_reports_nested_stack_and_upload_failures(self, log_mock):
@@ -1911,6 +1911,34 @@ class TestArtifactExporter(unittest.TestCase):
             if value is None:
                 os.environ.pop("SAM_CLI_PARALLEL_UPLOAD_WORKERS", None)
             self.assertEqual(expected, get_parallel_upload_workers())
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    @patch("samcli.lib.package.artifact_exporter.yaml_dump", return_value="template")
+    def test_nested_stack_template_upload_goes_through_shared_upload_pool(self, yaml_dump_mock, template_mock):
+        template_mock.return_value.export.return_value = {}
+        uploader = Mock()
+        uploader.upload.return_value = "s3://bucket/child.template"
+        uploader.to_path_style_s3_url.return_value = "https://s3.amazonaws.com/bucket/child.template"
+        uploaders = Mock()
+        uploaders.get.return_value = uploader
+        stack_resource = CloudFormationStackResource(uploaders, Mock())
+        stack_resource.language_extensions_enabled = False
+        stack_resource.parallel_upload = True
+
+        with (
+            tempfile.TemporaryDirectory() as parent_dir,
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix="upload") as executor,
+        ):
+            open(os.path.join(parent_dir, "child.yaml"), "w").close()
+            stack_resource.upload_executor = executor
+            upload_threads = []
+            uploader.upload.side_effect = lambda *args: (
+                upload_threads.append(threading.current_thread().name) or "s3://bucket/child.template"
+            )
+            stack_resource.do_export("Child", {"TemplateURL": "child.yaml"}, parent_dir)
+
+        self.assertEqual(1, len(upload_threads))
+        self.assertTrue(upload_threads[0].startswith("upload"))
 
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()

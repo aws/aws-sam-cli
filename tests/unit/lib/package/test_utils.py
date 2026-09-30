@@ -104,48 +104,47 @@ class TestPackageUtils(TestCase):
         self.assertEqual(1, len(calls))
         self.assertEqual(["s3://bucket/key"] * 4, results)
 
-    def test_upload_local_artifacts_serializes_shared_path_with_lock_only_cache(self):
+    def test_upload_local_artifacts_memoizes_by_packaging_across_threads(self):
         from samcli.lib.package.artifact_exporter import _ThreadSafeUploadCache
 
-        cache = _ThreadSafeUploadCache(store=False)
-        active = []
-        overlaps = []
-        state_lock = threading.Lock()
+        cache = _ThreadSafeUploadCache(key_by_packaging=True)
+        calls = []
 
-        def slow_zip_and_upload(local_path, *args, **kwargs):
-            with state_lock:
-                active.append(local_path)
-                overlaps.append(len(active))
+        def slow_zip_and_upload(local_path, uploader, extension, zip_method):
+            calls.append(zip_method)
             time.sleep(0.05)
-            with state_lock:
-                active.remove(local_path)
-            return "s3://bucket/key"
+            return f"s3://bucket/{len(calls)}"
 
         with (
             tempfile.TemporaryDirectory() as folder,
             patch.object(utils, "zip_and_upload", side_effect=slow_zip_and_upload),
         ):
-            threads = [
-                threading.Thread(
-                    target=utils.upload_local_artifacts,
-                    kwargs=dict(
-                        resource_type="AWS::Serverless::Function",
-                        resource_id="Function",
-                        resource_dict={"CodeUri": folder},
-                        property_path="CodeUri",
-                        parent_dir=folder,
-                        uploader=Mock(),
-                        previously_uploaded=cache,
-                    ),
+
+            def upload(resource_type):
+                return utils.upload_local_artifacts(
+                    resource_type=resource_type,
+                    resource_id="Resource",
+                    resource_dict={"CodeUri": folder},
+                    property_path="CodeUri",
+                    parent_dir=folder,
+                    uploader=Mock(),
+                    previously_uploaded=cache,
                 )
-                for _ in range(4)
+
+            results = []
+            threads = [
+                threading.Thread(target=lambda: results.append(upload("AWS::Serverless::Function"))) for _ in range(4)
             ]
             for thread in threads:
                 thread.start()
             for thread in threads:
                 thread.join()
+            bundle_url = upload("AWS::ElasticBeanstalk::ApplicationVersion")
 
-        # Without the experimental cache every job still zips (as a serial export does, with the
-        # uploader skipping objects that already exist), but never concurrently for the same path.
-        self.assertEqual(4, len(overlaps))
-        self.assertEqual(1, max(overlaps))
+        # Four functions sharing a directory zip and upload it once; a non-Lambda resource using the
+        # same directory is packaged differently, so it gets its own upload, not the functions' zip.
+        self.assertEqual(1, len(set(results)))
+        self.assertEqual(2, len(calls))
+        self.assertIs(utils.make_zip_with_lambda_permissions, calls[0])
+        self.assertIs(utils.make_zip, calls[1])
+        self.assertNotIn(bundle_url, results)
