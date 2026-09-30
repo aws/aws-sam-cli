@@ -1,7 +1,11 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from samcli.commands.deploy.utils import hide_noecho_parameter_overrides, print_deploy_args, sanitize_parameter_overrides
+from samcli.commands.deploy.utils import (
+    hide_noecho_parameter_overrides,
+    print_deploy_args,
+    sanitize_parameter_overrides,
+)
 
 
 class TestDeployUtils(TestCase):

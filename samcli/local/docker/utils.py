@@ -15,6 +15,7 @@ from typing import Optional
 import docker
 
 from samcli.lib.utils.architecture import ARM64, validate_architecture
+from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.container_client_factory import ContainerClientFactory
 from samcli.local.docker.exceptions import (
     NoFreePortsError,
@@ -132,7 +133,7 @@ def get_docker_platform(architecture: str) -> str:
     return f"linux/{get_image_arch(architecture)}"
 
 
-def get_validated_container_client():
+def get_validated_container_client() -> ContainerClient:
     """
     Get validated container client using strategy pattern.
     """

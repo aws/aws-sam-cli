@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  },
+  "Conditions": {
+    "Condition0": {
+      "Fn::Equals": [
+        "1",
+        "0"
+      ]
+    },
+    "Condition1": {
+      "Fn::Equals": [
+        "1",
+        "1"
+      ]
+    }
+  }
+}

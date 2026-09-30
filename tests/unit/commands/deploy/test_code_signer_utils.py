@@ -17,7 +17,7 @@ class TestCodeSignerUtils(TestCase):
             given_function_name: {"profile_name": given_profile_name, "profile_owner": given_profile_owner}
         }
 
-        (profile_name, profile_owner) = extract_profile_name_and_owner_from_existing(
+        profile_name, profile_owner = extract_profile_name_and_owner_from_existing(
             given_function_name, given_code_signing_config
         )
 
@@ -106,7 +106,7 @@ class TestCodeSignerUtils(TestCase):
                 ]
             ),
         }
-        (functions_with_code_sign, layers_with_code_sign) = signer_config_per_function(
+        functions_with_code_sign, layers_with_code_sign = signer_config_per_function(
             [Stack("", "", "", {}, template_dict)]
         )
 

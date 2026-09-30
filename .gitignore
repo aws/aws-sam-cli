@@ -407,6 +407,7 @@ cov.xml
 coverage.xml
 
 # Temporary scratch directory used by the tests
+tests/integration/*/tmp/*
 tests/integration/buildcmd/scratch
 tests/integration/testdata/buildcmd/Dotnet*/bin
 tests/integration/testdata/buildcmd/Dotnet*/obj

@@ -2297,6 +2297,29 @@ class TestRefreshableSamFunctionProvider(TestCase):
         self.assertTrue(provider.is_changed)
         self.file_observer.unwatch.assert_has_calls([call("template.yaml"), call("child/template.yaml")])
 
+    @patch("samcli.lib.providers.sam_function_provider.FileObserver")
+    @patch.object(SamFunctionProvider, "_extract_functions")
+    @patch("samcli.lib.providers.provider.SamBaseProvider.get_template")
+    def test_no_watch_skips_file_observer_creation(self, get_template_mock, extract_mock, FileObserverMock):
+        extract_mock.return_value = {"foo": "bar"}
+        template = {"Resources": {"a": "b"}}
+        get_template_mock.return_value = template
+        stack = make_root_stack(template, self.parameter_overrides)
+        stack2 = Stack("", "childStack", "child/template.yaml", self.parameter_overrides, template)
+
+        provider = RefreshableSamFunctionProvider(
+            [stack, stack2], self.parameter_overrides, self.global_parameter_overrides, no_watch=True
+        )
+
+        # Observer must not be constructed at all when no_watch is set
+        FileObserverMock.assert_not_called()
+        self.assertIsNone(provider._observer)
+
+        # Subsequent lifecycle methods must be no-ops, not crash
+        provider._set_templates_changed(["child/template.yaml"])
+        provider.stop_observer()
+        self.assertTrue(provider.is_changed)
+
     @patch("samcli.lib.providers.sam_function_provider.SamLocalStackProvider.get_stacks")
     @patch("samcli.lib.providers.sam_function_provider.FileObserver")
     @patch.object(SamFunctionProvider, "_extract_functions")

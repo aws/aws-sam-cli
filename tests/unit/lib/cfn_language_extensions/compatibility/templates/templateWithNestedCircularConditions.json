@@ -1,0 +1,53 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "A": {
+      "Fn::Equals": ["a", "a"]
+    },
+    "B": {
+      "Fn::And": [
+        {
+          "Fn::Equals": [
+            "b",
+            "b"
+          ]
+        },
+        {"Condition": "A"},
+        {"Condition": "E"}
+      ]
+    },
+    "C": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": ["C", "B"]
+        },
+        {
+          "Fn::Not": [
+            {"Condition": "A"}
+          ]
+        }
+      ]
+    },
+    "D": {
+      "Fn::Not": [{"Condition": "B"}]
+    },
+    "E": {
+      "Fn::And": [
+        {"Condition": "C"},
+        {"Fn::Not": [
+          {
+            "Fn::Not": [
+              {"Condition": "D"}
+            ]
+          }
+        ]}
+      ]
+    }
+  },
+  "Resources": {
+    "waitConditionHandles": {
+      "Condition": "B",
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}

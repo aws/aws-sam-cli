@@ -29,6 +29,7 @@ class TestRemoteExecutionGetCommand(unittest.TestCase):
             MockParams(rv=("--region", "Region"), name="region"),
             MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--config-file", ""), name="config_file"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -57,11 +58,11 @@ class TestRemoteExecutionGetCommand(unittest.TestCase):
                 )
             ],
             "Acronyms": [("ARN", "")],
-            "Formatting Options": [("", ""), ("--format", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
+            "Formatting Options": [("--format", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

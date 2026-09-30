@@ -12,6 +12,8 @@ from samcli.cli.cli_config_file import ConfigProvider, configuration_option, sav
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.pipeline.bootstrap.core.command import PipelineBootstrapCommand
+from samcli.commands.pipeline.bootstrap.guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
 from samcli.commands.pipeline.bootstrap.oidc_config import (
     BitbucketOidcConfig,
     GitHubOidcConfig,
@@ -22,8 +24,6 @@ from samcli.commands.pipeline.bootstrap.pipeline_oidc_provider import PipelineOi
 from samcli.lib.config.samconfig import SamConfig
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
-
-from .guided_context import BITBUCKET, GITHUB_ACTIONS, GITLAB, IAM, OPEN_ID_CONNECT
 
 SHORT_HELP = "Generates the required AWS resources to connect your CI/CD system."
 
@@ -38,7 +38,15 @@ PERMISSIONS_PROVIDERS = [OPEN_ID_CONNECT, IAM]
 OPENID_CONNECT = "OpenID Connect (OIDC)"
 
 
-@click.command("bootstrap", short_help=SHORT_HELP, help=HELP_TEXT, context_settings=dict(max_content_width=120))
+@click.command(
+    "bootstrap",
+    cls=PipelineBootstrapCommand,
+    short_help=SHORT_HELP,
+    help=HELP_TEXT,
+    description="",
+    requires_credentials=True,
+    context_settings=dict(max_content_width=120),
+)
 @configuration_option(provider=ConfigProvider(section="parameters"))
 @click.option(
     "--interactive/--no-interactive",
@@ -330,8 +338,7 @@ def do_cli(
     if interactive:
         if standalone:
             click.echo(
-                dedent(
-                    """\
+                dedent("""\
 
                     sam pipeline bootstrap generates the required AWS infrastructure resources to connect
                     to your CI/CD system. This step must be run for each deployment stage in your pipeline,
@@ -339,8 +346,7 @@ def do_cli(
 
                     We will ask for [1] stage definition, [2] account details, and
                     [3] references to existing resources in order to bootstrap these pipeline resources.
-                    """
-                ),
+                    """),
             )
 
         guided_context = GuidedContext(
@@ -413,26 +419,18 @@ def do_cli(
             config_dir=PIPELINE_CONFIG_DIR, filename=PIPELINE_CONFIG_FILENAME, cmd_names=_get_bootstrap_command_names()
         )
 
-        click.secho(
-            dedent(
-                f"""\
+        click.secho(dedent(f"""\
                 View the definition in {os.path.join(PIPELINE_CONFIG_DIR, PIPELINE_CONFIG_FILENAME)},
                 run sam pipeline bootstrap to generate another set of resources, or proceed to
                 sam pipeline init to create your pipeline configuration file.
-                """
-            )
-        )
+                """))
 
         if not environment.pipeline_user.is_user_provided and not environment.use_oidc_provider:
-            click.secho(
-                dedent(
-                    f"""\
+            click.secho(dedent(f"""\
                     Before running {Colored().bold("sam pipeline init")}, we recommend first setting up AWS credentials
                     in your CI/CD account. Read more about how to do so with your provider in
                     {CONFIG_AWS_CRED_ON_CICD_URL}.
-                    """
-                )
-            )
+                    """))
 
 
 def _get_pipeline_oidc_provider(

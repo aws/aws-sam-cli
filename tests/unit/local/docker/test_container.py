@@ -1360,7 +1360,7 @@ class TestContainer_copy(TestCase):
         # Verify get_archive was called with container ID and source path
         self.mock_client.get_archive.assert_called_with("containerid", source)
 
-        extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest)
+        extract_tarfile_mock.assert_called_with(file_obj=fp_mock, unpack_dir=dest, mount_symlinks=False)
 
         # Make sure archive data is written to the file
         fp_mock.write.assert_has_calls([call(x) for x in tar_stream], any_order=False)

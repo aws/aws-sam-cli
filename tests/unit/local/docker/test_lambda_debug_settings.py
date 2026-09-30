@@ -7,8 +7,11 @@ from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported, Lam
 
 _DEBUG_RUNTIMES = [
     Runtime.java8al2,
+    Runtime.java8al2023,
     Runtime.java11,
+    Runtime.java11al2023,
     Runtime.java17,
+    Runtime.java17al2023,
     Runtime.java21,
     Runtime.java25,
     Runtime.dotnet6,

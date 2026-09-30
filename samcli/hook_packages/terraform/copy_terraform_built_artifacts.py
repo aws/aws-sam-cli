@@ -195,20 +195,11 @@ class Searcher(object):
 
 
 def copytree(src, dst):
-    """Modified copytree method
-    Note: before python3.8 there is no `dir_exists_ok` argument, therefore
-    this function explicitly creates one if it does not exist.
+    """Copy a directory tree from src to dst, merging into dst if it already exists.
+
+    Symbolic links are preserved as symbolic links in the destination.
     """
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-    for item in os.listdir(src):
-        src_item = os.path.join(src, item)
-        dst_item = os.path.join(dst, item)
-        if os.path.isdir(src_item):
-            # recursively call itself.
-            copytree(src_item, dst_item)
-        else:
-            shutil.copy2(src_item, dst_item)
+    shutil.copytree(src, dst, symlinks=True, dirs_exist_ok=True)
 
 
 def cli_exit():
@@ -218,7 +209,7 @@ def cli_exit():
     sys.exit(1)
 
 
-def find_and_copy_assets(directory_path, expression, data_object):
+def find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=False):
     """
     Takes in an expression, directory_path and a json input from the standard input,
     tries to find the appropriate element within the json based on the element. It then takes action to
@@ -264,7 +255,7 @@ def find_and_copy_assets(directory_path, expression, data_object):
 
     try:
         if zipfile.is_zipfile(abs_attribute_path):
-            unzip(abs_attribute_path, directory_path)
+            unzip(abs_attribute_path, directory_path, mount_symlinks=mount_symlinks)
         else:
             copytree(abs_attribute_path, directory_path)
     except OSError as ex:
@@ -319,10 +310,10 @@ if __name__ == "__main__":
     argparser.add_argument(
         "--expression",
         type=str,
-        required=True,
+        required=False,
         help="Jpath query expression separated by | (delimiter) "
         "and allows for searching within a json object."
-        "eg: |values|sub_module|[?address==me]|output",
+        "eg: |values|sub_module|[?address==me]|output. Not required if --args-file is used.",
     )
     argparser.add_argument(
         "--directory",
@@ -337,10 +328,26 @@ if __name__ == "__main__":
         help="Terraform resource path for the SAM CLI Metadata resource. This option is not to be used with --json",
     )
     argparser.add_argument(
+        "--args-file",
+        type=str,
+        required=False,
+        help="Path to a JSON file containing 'expression' and/or 'target' values, as an alternative to "
+        "passing them directly via --expression/--target on the command line. This avoids embedding "
+        "untrusted Terraform resource addresses/expressions in a shell command line, since quoting "
+        "rules are not portable across shells (e.g. POSIX sh vs Windows cmd.exe). Values from this "
+        "file take precedence over --expression/--target if both are provided.",
+    )
+    argparser.add_argument(
         "--json",
         type=str,
         required=False,
         help="Terraform output json body. This option is not to be used with --target.",
+    )
+    argparser.add_argument(
+        "--mount-symlinks",
+        action="store_true",
+        default=False,
+        help="Allow symlinks pointing outside the extraction directory when unzipping artifacts.",
     )
 
     arguments = argparser.parse_args()
@@ -348,6 +355,23 @@ if __name__ == "__main__":
     expression = arguments.expression
     target = arguments.target
     json_str = arguments.json
+    mount_symlinks = arguments.mount_symlinks
+
+    if arguments.args_file:
+        try:
+            with open(arguments.args_file, "r") as args_file_handle:
+                file_args = json.load(args_file_handle)
+        except (OSError, ValueError):
+            LOG.error("Reading args file '%s' unsuccessful!", arguments.args_file, exc_info=True)
+            cli_exit()
+        if not isinstance(file_args, dict):
+            LOG.error("Args file '%s' must contain a JSON object.", arguments.args_file)
+            cli_exit()
+        expression = file_args.get("expression", expression)
+        target = file_args.get("target", target)
+
+    if not expression:
+        argparser.error("An --expression value must be provided, either directly or via --args-file.")
 
     # validate environment variables do not contain blocked arguments
     validate_environment_variables()
@@ -384,4 +408,4 @@ if __name__ == "__main__":
         cli_exit()
 
     LOG.info("Find and copy built assets")
-    find_and_copy_assets(directory_path, expression, data_object)
+    find_and_copy_assets(directory_path, expression, data_object, mount_symlinks=mount_symlinks)

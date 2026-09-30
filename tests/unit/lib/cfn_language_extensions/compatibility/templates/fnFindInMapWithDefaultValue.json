@@ -1,0 +1,170 @@
+{
+  "Mappings": {
+    "MapName": {
+      "TopKey1": {
+        "SecondKey1": "Value1",
+        "SecondKey2": "Value2"
+      },
+      "TopKey2": {
+        "SecondKey1": "Value3",
+        "SecondKey2": "Value4"
+      }
+    }
+  },
+  "Resources": {
+    "Cluster0": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey1",
+            "SecondKey1",
+            {
+              "DefaultValue": "Cluster0"
+            }
+          ]
+        }
+      }
+    },
+    "Cluster1": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey1",
+            "SecondKey3",
+            {
+              "DefaultValue": "Cluster1"
+            }
+          ]
+        }
+      }
+    },
+    "Cluster2": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey3",
+            "SecondKey1",
+            {
+              "DefaultValue": "Cluster2"
+            }
+          ]
+        }
+      }
+    },
+    "Cluster3": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey3",
+            "SecondKey3",
+            {
+              "DefaultValue": "Cluster3"
+            }
+          ]
+        }
+      }
+    },
+    "Mesh0": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Fn::Select": [0, {"Fn::Split": [".", "TopKey1.SecondKey1"]}]},
+            {"Fn::Select": [1, {"Fn::Split": [".", "TopKey1.SecondKey1"]}]},
+            {"DefaultValue": "Mesh0"}
+          ]
+        }
+      }
+    },
+    "Mesh1": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {
+              "Fn::Select": [
+                0,
+                [
+                  "TopKey1",
+                  "TopKey2"
+                ]
+              ]
+            },
+            "SecondKey1",
+            {
+              "DefaultValue": "Mesh1"
+            }
+          ]
+        }
+      }
+    },
+    "Mesh2": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {
+              "Fn::ToJsonString": {
+                "To": "Json",
+                "String": "Function"
+              }
+            },
+            "SecondKey1",
+            {
+              "DefaultValue": "Mesh2"
+            }
+          ]
+        }
+      }
+    },
+    "Mesh3": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            "TopKey1",
+            {
+              "Fn::Select": [
+                1,
+                {
+                  "Fn::Split": [
+                    ".",
+                    "V3N.OH1"
+                  ]
+                }
+              ]
+            },
+            {
+              "DefaultValue": "Mesh3"
+            }
+          ]
+        }
+      }
+    },
+    "Mesh4": {
+      "Type": "AWS::AppMesh::Mesh",
+      "Properties": {
+        "MeshName": {
+          "Fn::FindInMap": [
+            "MapName",
+            {"Fn::Select": [0, {"Fn::Split": [".", "V3N.0H1"]}]},
+            {"Fn::Select": [1, {"Fn::Split": [".", "V3N.0H1"]}]},
+            {"DefaultValue": "Mesh4"}
+          ]
+        }
+      }
+    }
+  }
+}

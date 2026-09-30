@@ -23,10 +23,8 @@ def get_option_names(option_names: List[str]) -> Dict[str, Dict]:
 CONFIGURATION_OPTION_INFO = {
     "option_names": get_option_names(CONFIGURATION_OPTION_NAMES),
     "extras": [
-        RowDefinition(name="Learn more about configuration files at:"),
         RowDefinition(
-            name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-            "-config.html. "
+            name="Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."  # noqa: E501
         ),
     ],
 }

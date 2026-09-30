@@ -1,0 +1,31 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "SameParam": {
+      "Type": "String",
+      "Default": "SameParam"
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::UniqueLoopName": [
+      {"Ref": "SameParam"},
+      ["1", "2"],
+      {
+        "Topic${VariableName}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "MyTopic${VariableName}"
+            }
+          }
+        }
+      }
+    ],
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  }
+}

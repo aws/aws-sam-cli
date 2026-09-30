@@ -105,19 +105,17 @@ class TestInvokeResponseStreamingLambdas(RemoteInvokeIntegBase):
         self.assertEqual(response_event_stream, expected_output_result)
 
 
-@skipIf(SKIP_LMI_TESTS, "Skip LMI tests when running on canary")
+@skipIf(
+    SKIP_LMI_TESTS,
+    'Skip LMI tests because required environment variables not set: "LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"',
+)
 class TestInvokeResponseStreamingCapacityProvider(RemoteInvokeIntegBase):
     template = Path("template-lambda-response-capacity-provider-stream-fn.yaml")
 
     @classmethod
     def setUpClass(cls):
-        if SKIP_LMI_TESTS:
-            raise SkipTest("Skip LMI tests when running on canary")
         super().setUpClass()
         cls.stack_name = f"{cls.__name__}-{uuid.uuid4().hex}"
-        # LMI is Lambda Managed Instance
-        assert os.environ.get("LMI_SUBNET_ID"), "LMI_SUBNET_ID environment variable must be set"
-        assert os.environ.get("LMI_SECURITY_GROUP_ID"), "LMI_SECURITY_GROUP_ID environment variable must be set"
 
         # Read LMI infrastructure from environment variables
         cls.parameter_overrides = {

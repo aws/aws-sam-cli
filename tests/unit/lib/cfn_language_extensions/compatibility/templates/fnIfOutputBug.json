@@ -1,0 +1,140 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Parameters": {
+    "cidr": {
+      "Type": "String",
+      "Default": "10.0.0.0/16"
+    },
+    "noOfAZ": {
+      "Type": "Number",
+      "MinValue": 1,
+      "MaxValue": 2,
+      "Default": 1
+    }
+  },
+  "Conditions": {
+    "noOfAZ1": {
+      "Fn::Equals": [
+        {
+          "Ref": "noOfAZ"
+        },
+        1
+      ]
+    },
+    "noOfAZ2": {
+      "Fn::Equals": [
+        {
+          "Ref": "noOfAZ"
+        },
+        2
+      ]
+    },
+    "azA": {
+      "Fn::Or": [
+        {
+          "Condition": "noOfAZ1"
+        },
+        {
+          "Condition": "azB"
+        }
+      ]
+    },
+    "azB": {
+      "Condition": "noOfAZ2"
+    }
+  },
+  "Resources": {
+    "vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": {
+          "Ref": "cidr"
+        },
+        "EnableDnsHostnames": true
+      }
+    },
+    "publicSubnetA": {
+      "Condition": "azA",
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vpc"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::Cidr": [
+                {
+                  "Ref": "cidr"
+                },
+                16,
+                8
+              ]
+            }
+          ]
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            0,
+            {
+              "Fn::GetAZs": {
+                "Ref": "AWS::Region"
+              }
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": true
+      }
+    },
+    "publicSubnetB": {
+      "Condition": "azB",
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": {
+          "Ref": "vpc"
+        },
+        "CidrBlock": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::Cidr": [
+                {
+                  "Ref": "cidr"
+                },
+                16,
+                8
+              ]
+            }
+          ]
+        },
+        "AvailabilityZone": {
+          "Fn::Select": [
+            1,
+            {
+              "Fn::GetAZs": {
+                "Ref": "AWS::Region"
+              }
+            }
+          ]
+        },
+        "MapPublicIpOnLaunch": true
+      }
+    }
+  },
+  "Outputs": {
+    "publicSubnets": {
+      "Value": {
+          "Fn::If": [
+            "azA",
+            {
+              "Ref": "publicSubnetA"
+            },
+            {
+              "Ref": "AWS::NoValue"
+            }
+          ]
+      }
+    }
+  }
+}

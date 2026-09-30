@@ -19,7 +19,7 @@ class LocalExecutionGetCommand(LocalExecutionBaseCommand):
             execution_id = "c63eec67-3415-4eb4-a495-116aa3a86278"
 
             with formatter.indented_section(name="Get execution details", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id}"),
@@ -29,7 +29,7 @@ class LocalExecutionGetCommand(LocalExecutionBaseCommand):
                 )
 
             with formatter.indented_section(name="Get execution details in JSON format", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} {execution_id} --format json"),

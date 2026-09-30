@@ -346,6 +346,21 @@ def _create_table(rows: List[Dict[str, Union[str, int]]], has_errors: bool = Fal
     return "\n".join(lines)
 
 
+def format_execution_started(execution_arn: str) -> str:
+    """Format the message shown as soon as a durable execution has been started.
+
+    The execution ARN is the only handle the durable execution commands accept, so it needs to be
+    available while the execution is still running, not just once it reaches a terminal state. Only
+    the ARN is shown here: the commands that take it are suggested by the completion output, where
+    they are genuinely the next thing to run.
+    """
+    return f"""
+Durable execution started
+=========================
+ARN: {execution_arn}
+"""
+
+
 def format_next_commands_after_invoke(execution_arn: str) -> str:
     """Format next command suggestions."""
     return generate_next_command_recommendation(

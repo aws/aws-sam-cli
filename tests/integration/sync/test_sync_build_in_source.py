@@ -33,6 +33,9 @@ class TestSyncInfra_BuildInSource_Makefile(SyncIntegBase):
             if os.path.isfile(path):
                 os.remove(path)
 
+        # Clear the build cache so reruns re-execute the Makefile and recreate marker files
+        shutil.rmtree(self.test_data_path.joinpath(".aws-sam"), ignore_errors=True)
+
     @parameterized.expand(
         [
             (True, True),  # build in source
@@ -93,6 +96,9 @@ class TestSyncCode_BuildInSource_Makefile(TestSyncCodeBase):
         for path in self.new_files_in_source:
             if os.path.isfile(path):
                 os.remove(path)
+
+        # Clear the build cache so reruns re-execute the Makefile and recreate marker files
+        shutil.rmtree(Path(self.test_data_path, ".aws-sam"), ignore_errors=True)
 
     @parameterized.expand(
         [

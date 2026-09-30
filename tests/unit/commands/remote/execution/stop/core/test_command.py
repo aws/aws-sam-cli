@@ -32,6 +32,7 @@ class TestRemoteExecutionStopCommand(unittest.TestCase):
             MockParams(rv=("--region", "Region"), name="region"),
             MockParams(rv=("--profile", ""), name="profile"),
             MockParams(rv=("--config-file", ""), name="config_file"),
+            MockParams(rv=("--beta-features / --no-beta-features", ""), name="beta_features"),
             MockParams(rv=("--debug", ""), name="debug"),
         ]
 
@@ -61,20 +62,15 @@ class TestRemoteExecutionStopCommand(unittest.TestCase):
             ],
             "Acronyms": [("ARN", "")],
             "Stop Options": [
-                ("", ""),
                 ("--error-message", ""),
-                ("", ""),
                 ("--error-type", ""),
-                ("", ""),
                 ("--error-data", ""),
-                ("", ""),
                 ("--stack-trace", ""),
-                ("", ""),
             ],
-            "AWS Credential Options": [("", ""), ("--region", ""), ("", ""), ("--profile", ""), ("", "")],
-            "Configuration Options": [("", ""), ("--config-file", ""), ("", "")],
-            "Beta Options": [("", "")],
-            "Other Options": [("", ""), ("--debug", ""), ("", "")],
+            "AWS Credential Options": [("--region", ""), ("--profile", "")],
+            "Configuration Options": [("--config-file", "")],
+            "Beta Options": [("--beta-features / --no-beta-features", "")],
+            "Other Options": [("--debug", "")],
         }
         cmd.format_options(ctx, formatter)
         self.assertEqual(expected_output, formatter.data)

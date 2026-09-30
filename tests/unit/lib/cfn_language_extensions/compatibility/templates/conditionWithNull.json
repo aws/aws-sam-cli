@@ -1,0 +1,24 @@
+{
+  "Conditions": {
+    "equals": {
+      "Fn::Equals": [
+        "prod",
+        "prod"
+      ]
+    }
+  },
+  "Resources": {
+    "cluster": {
+      "Condition": null,
+      "DeletionPolicy": "Delete",
+      "UpdateReplacePolicy": null,
+      "Metadata": null,
+      "Transform": null,
+      "DependsOn": null,
+      "CreationPolicy": null,
+      "UpdatePolicy": null,
+      "Type": "AWS::ECS::Cluster",
+      "Properties": null
+    }
+  }
+}

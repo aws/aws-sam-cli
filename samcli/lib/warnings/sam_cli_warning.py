@@ -5,6 +5,8 @@ Provides all Warnings checkers for sam template
 import logging
 from typing import Dict
 
+from samcli.lib.cfn_language_extensions.utils import iter_regular_resources
+
 LOG = logging.getLogger(__name__)
 
 
@@ -77,7 +79,7 @@ and how to mitigate it, please read these docs[1]
         """
         functions = [
             resource
-            for (_, resource) in template_dict.get("Resources", {}).items()
+            for (_, resource) in iter_regular_resources(template_dict)
             if resource.get("Type", "") == "AWS::Serverless::Function"
         ]
         deployment_features_enabled_count = sum(
@@ -109,7 +111,7 @@ please read these docs[1]
         """
         functions = [
             resource
-            for (_, resource) in template_dict.get("Resources", {}).items()
+            for (_, resource) in iter_regular_resources(template_dict)
             if resource.get("Type", "") == "AWS::Serverless::Function"
         ]
         for function in functions:

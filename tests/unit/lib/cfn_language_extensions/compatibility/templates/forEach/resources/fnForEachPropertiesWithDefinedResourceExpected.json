@@ -1,0 +1,22 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Mappings": {
+    "InstanceA": {
+      "Properties": {
+        "ImageId": "ami-id1",
+        "InstanceType": "m5.xlarge"
+      }
+    }
+  },
+  "Resources": {
+    "InstanceA": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "DisableApiTermination": true,
+        "ImageId": "ami-id1",
+        "InstanceType": "m5.xlarge"
+      }
+    }
+  }
+}

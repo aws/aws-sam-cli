@@ -226,6 +226,79 @@ class TestLambdaImage(TestCase):
         )
         build_image_patch.assert_not_called()
 
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_with_invoke_image_global(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={None: "my-custom-image:local"},
+        )
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"my-custom-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1",
+            f"my-custom-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+            [],
+            X86_64,
+            stream=ANY,
+        )
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_with_invoke_image_function_specific(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={
+                None: "global-image:latest",
+                "Function1": "function1-image:local",
+            },
+        )
+        # Function-specific override
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"function1-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function2"),
+            f"global-image:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_function_without_invoke_image_uses_template_image(self, build_image_patch):
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.images.get.return_value = Mock()
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+        self.assertEqual(
+            lambda_image.build(None, IMAGE, "mylambdaimage:v1", [], X86_64, function_name="Function1"),
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        build_image_patch.assert_called_once_with(
+            "mylambdaimage:v1",
+            f"mylambdaimage:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+            [],
+            X86_64,
+            stream=ANY,
+        )
+
     @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")

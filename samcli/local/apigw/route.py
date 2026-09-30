@@ -2,9 +2,12 @@
 Route definition for local start-api
 """
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from samcli.local.apigw.authorizers.authorizer import Authorizer
+
+if TYPE_CHECKING:
+    from samcli.lib.providers.provider import Cors
 
 
 class Route:
@@ -25,6 +28,7 @@ class Route:
         authorizer_name: Optional[str] = None,
         authorizer_object: Optional[Authorizer] = None,
         use_default_authorizer: bool = True,
+        cors: Optional["Cors"] = None,
     ):
         """
         Creates an ApiGatewayRoute
@@ -40,6 +44,7 @@ class Route:
         :param str authorizer_name: the authorizer this route is using, if any
         :param Authorizer authorizer_object: the authorizer object this route is using, if any
         :param bool use_default_authorizer: whether or not to use a default authorizer (if defined)
+        :param Cors cors: route-specific CORS configuration (optional)
         """
         self.methods = self.normalize_method(methods)
         self.function_name = function_name
@@ -52,6 +57,7 @@ class Route:
         self.authorizer_name = authorizer_name
         self.authorizer_object = authorizer_object
         self.use_default_authorizer = use_default_authorizer
+        self.cors = cors
 
     def __eq__(self, other):
         return (
@@ -64,6 +70,7 @@ class Route:
             and self.authorizer_name == other.authorizer_name
             and self.authorizer_object == other.authorizer_object
             and self.use_default_authorizer == other.use_default_authorizer
+            and self.cors == other.cors
         )
 
     def __hash__(self):

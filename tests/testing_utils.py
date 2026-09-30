@@ -32,17 +32,20 @@ RUNNING_TEST_FOR_MASTER_ON_CI = (
 CI_OVERRIDE = (
     os.environ.get("APPVEYOR_CI_OVERRIDE", False)
     or os.environ.get("CI_OVERRIDE", False)
-    or os.environ.get("GITHUB_ACTIONS_INTEG", False)
+    or os.environ.get("BY_CANARY", False)
 )
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
 
 # Tests require docker suffers from Docker Hub request limit
-SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
+FORCE_RUN_DOCKER_TEST = os.environ.get("FORCE_RUN_DOCKER_TEST", False)
+SKIP_DOCKER_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY and not FORCE_RUN_DOCKER_TEST
 
-# SKIP_LMI_TESTS = RUNNING_ON_CI and not RUN_BY_CANARY
-# SKIP LMI until test resource is deployed
-SKIP_LMI_TESTS = True
+
+# SKIP LMI unless test resource is deployed in the test accounts
+# Check if required environment variables are available
+SKIP_LMI_TESTS = not all(os.environ.get(var) for var in ["LMI_SUBNET_ID", "LMI_SECURITY_GROUP_ID"])
+
 
 # Set to True temporarily if the integration tests require updated build images
 # Build images aren't published until after the CLI is released
@@ -240,6 +243,11 @@ def read_until_string(process: Popen, expected_output: str, timeout: int = 30) -
         raise TimeoutError(
             f"Did not get expected output after {timeout} seconds. Expected output: {expected_output_bytes!r}"
         ) from ex
+    except ValueError as ex:
+        expected_output_bytes = expected_output.encode("utf-8")
+        raise ValueError(
+            f"Process ended before expected output was found. Expected output: {expected_output_bytes!r}"
+        ) from ex
 
 
 def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeout: int = 5):
@@ -282,7 +290,7 @@ def read_until(process: Popen, callback: Callable[[str, List[str]], bool], timeo
         if isinstance(result, Exception):
             raise result
     else:
-        raise ValueError()
+        raise ValueError("Process ended before expected output was found.")
 
 
 class FileCreator(object):

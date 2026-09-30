@@ -5,7 +5,7 @@ Implementation of Local Lambda runner
 import logging
 import os
 import platform
-from typing import Any, Dict, Optional, cast
+from typing import Any, Dict, Optional, Tuple, cast
 
 import boto3
 import click
@@ -65,6 +65,7 @@ class LocalLambdaRunner:
         container_host: Optional[str] = None,
         container_host_interface: Optional[str] = None,
         extra_hosts: Optional[dict] = None,
+        container_dns: Optional[Tuple[str]] = None,
     ) -> None:
         """
         Initializes the class
@@ -80,6 +81,7 @@ class LocalLambdaRunner:
         :param string container_host: Optional. Host of locally emulated Lambda container
         :param string container_host_interface: Optional. Interface that Docker host binds ports to
         :param dict extra_hosts: Optional. Dict of hostname to IP resolutions
+        :param tuple container_dns: Optional. Tuple of DNS server IP addresses for the container
         """
 
         self.local_runtime = local_runtime
@@ -95,48 +97,37 @@ class LocalLambdaRunner:
         self.container_host = container_host
         self.container_host_interface = container_host_interface
         self.extra_hosts = extra_hosts
+        self.container_dns = container_dns
 
-    def invoke(
-        self,
-        function_identifier: str,
-        event: str,
-        tenant_id: Optional[str] = None,
-        stdout: Optional[StreamWriter] = None,
-        stderr: Optional[StreamWriter] = None,
-        override_runtime: Optional[str] = None,
-        invocation_type: str = "RequestResponse",
-        durable_execution_name: Optional[str] = None,
-    ) -> Optional[Dict[str, str]]:
+    def get_function(self, function_identifier: str, tenant_id: Optional[str] = None) -> Function:
         """
-        Find the Lambda function with given name and invoke it. Pass the given event to the function and return
-        response through the given streams.
-
-        This function will block until either the function completes or times out.
+        Get a Lambda function by identifier, raising FunctionNotFound if not found.
 
         Parameters
         ----------
-        function_identifier str
-            Identifier of the Lambda function to invoke, it can be logicalID, function name or full path
-        event str
-            Event data passed to the function. Must be a valid JSON String.
-        stdout samcli.lib.utils.stream_writer.StreamWriter
-            Stream writer to write the output of the Lambda function to.
-        stderr samcli.lib.utils.stream_writer.StreamWriter
-            Stream writer to write the Lambda runtime logs to.
-        Runtime: str
-            To use instead of the runtime specified in the function configuration
-        durable_execution_name: str
-            Optional name for the durable execution (for durable functions only)
-
+        function_identifier : str
+            Identifier of the Lambda function, it can be logicalID, function name or full path
+        tenant_id : Optional[str]
+            Optional tenant ID for multi-tenant functions
         Returns
         -------
-        Optional[Dict[str, str]]
-            HTTP headers dict if this was a durable function invocation, None otherwise
+        Function
+            The Lambda function configuration
 
         Raises
         ------
-        FunctionNotfound
-            When we cannot find a function with the given name
+        InvalidFunctionNameException
+            When the function identifier doesn't match AWS Lambda's validation pattern
+        FunctionNotFound
+            When we cannot find a function with the given identifier
+        TenantIdValidationError
+            When the tenant ID is not provided for multi-tenant functions
+        UnsupportedInlineCodeError
+            When the function has inline code and is being invoked locally
+        InvalidIntermediateImageError
+            When the function has an intermediate image and is being invoked locally
+        UnsupportedRuntimeArchitectureError
+            When the function runtime and architecture are not compatible
         """
         # Normalize function identifier from ARN if provided
         normalized_function_identifier = normalize_sam_function_identifier(function_identifier)
@@ -182,6 +173,55 @@ class LocalLambdaRunner:
                 "Remove the tenant ID from your request and try again."
             )
 
+        return function
+
+    def invoke(
+        self,
+        function_identifier: str,
+        event: str,
+        tenant_id: Optional[str] = None,
+        stdout: Optional[StreamWriter] = None,
+        stderr: Optional[StreamWriter] = None,
+        override_runtime: Optional[str] = None,
+        invocation_type: str = "RequestResponse",
+        durable_execution_name: Optional[str] = None,
+        function: Optional[Function] = None,
+    ) -> Optional[Dict[str, str]]:
+        """
+        Find the Lambda function with given name and invoke it. Pass the given event to the function and return
+        response through the given streams.
+
+        This function will block until either the function completes or times out.
+
+        Parameters
+        ----------
+        function_identifier str
+            Identifier of the Lambda function to invoke, it can be logicalID, function name or full path
+        event str
+            Event data passed to the function. Must be a valid JSON String.
+        stdout samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer to write the output of the Lambda function to.
+        stderr samcli.lib.utils.stream_writer.StreamWriter
+            Stream writer to write the Lambda runtime logs to.
+        Runtime: str
+            To use instead of the runtime specified in the function configuration
+        durable_execution_name: str
+            Optional name for the durable execution (for durable functions only)
+
+        Returns
+        -------
+        Optional[Dict[str, str]]
+            HTTP headers dict if this was a durable function invocation, None otherwise
+
+        Raises
+        ------
+        FunctionNotfound
+            When we cannot find a function with the given name
+        """
+        # Get the function configuration
+        if not function:
+            function = self.get_function(function_identifier, tenant_id)
+
         config = self.get_invoke_config(function, override_runtime)
 
         if (
@@ -208,6 +248,7 @@ class LocalLambdaRunner:
                 container_host=self.container_host,
                 container_host_interface=self.container_host_interface,
                 extra_hosts=self.extra_hosts,
+                container_dns=self.container_dns,
             )
         except ContainerResponseException:
             # NOTE(sriram-mv): This should still result in a exit code zero to avoid regressions.

@@ -307,7 +307,7 @@ def sync_ecr_stack(
     image_repositories = image_repositories.copy() if image_repositories else {}
     manager = CompanionStackManager(stack_name, region, s3_bucket, s3_prefix)
 
-    stacks = SamLocalStackProvider.get_stacks(template_file)[0]
+    stacks = SamLocalStackProvider.get_stacks(template_file, language_extensions_enabled=False)[0]
     function_provider = SamFunctionProvider(stacks, ignore_code_extraction_warnings=True)
     function_logical_ids = [
         function.full_path for function in function_provider.get_all() if function.packagetype == IMAGE

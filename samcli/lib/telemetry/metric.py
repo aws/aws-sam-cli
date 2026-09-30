@@ -42,7 +42,7 @@ This creates a versatile telemetry tracking no matter where in the code. Somethi
 No side effect will result in this as it is write-only for code outside of telemetry.
 Decorators should be used to minimize logic involving telemetry.
 """
-_METRICS = dict()
+_METRICS: Dict[str, "Metric"] = dict()
 
 # Global container socket and runtime information for telemetry
 # This persists across context boundaries to ensure accurate telemetry reporting

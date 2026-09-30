@@ -241,6 +241,10 @@
           "type": "string",
           "default": "path/to/resource"
         },
+        "querystringparameters": {
+          "type": "dict",
+          "default": "{\"foo\": \"bar\"}"
+        },
         "account-id": {
           "default": "123456789012"
         },

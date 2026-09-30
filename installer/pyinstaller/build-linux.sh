@@ -12,15 +12,15 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.10";
+    python_version="3.11.15";
 fi
 
 if [ "$openssl_version" = "" ]; then
-    openssl_version="3.3.3";
+    openssl_version="3.3.7";
 fi
 
 if [ "$zlib_version" = "" ]; then
-    zlib_version="1.3.1";
+    zlib_version="1.3.2";
 fi
 
 if [ "$CI_OVERRIDE" = "1" ]; then
@@ -38,7 +38,7 @@ fi
 
 set -eux
 
-yum install -y libffi-devel perl-IPC-Cmd
+yum install -y libffi-devel perl-IPC-Cmd perl-Time-Piece
 
 echo "Making Folders"
 mkdir -p .build/src
@@ -58,7 +58,8 @@ ln -sf /opt/openssl/lib64 /opt/openssl/lib
 cd ../../
 
 echo "Building zlib"
-curl https://www.zlib.net/zlib-${zlib_version}.tar.gz --output zlib.tar.gz
+curl -fL "https://www.zlib.net/zlib-${zlib_version}.tar.gz" --output zlib.tar.gz || \
+    curl -fL "https://github.com/madler/zlib/releases/download/v${zlib_version}/zlib-${zlib_version}.tar.gz" --output zlib.tar.gz
 tar xvf zlib.tar.gz
 cd zlib-${zlib_version}
 ./configure && make -j8 && make -j8 install

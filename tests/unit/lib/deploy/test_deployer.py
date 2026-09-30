@@ -1,9 +1,12 @@
 from typing import Container, Iterable, Union
+import json
 import uuid
 import time
 import math
 import os
+from contextlib import redirect_stdout
 from datetime import datetime, timedelta, timezone
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 
@@ -15,9 +18,11 @@ from samcli.commands.deploy.exceptions import (
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
     DeployStackStatusMissingError,
+    MissingMappingKeyError,
 )
 from samcli.lib.deploy.deployer import Deployer
 from samcli.lib.deploy.utils import FailureMode
+from samcli.lib.observability.util import OutputOption
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.utils.time import utc_to_timestamp, to_datetime
 
@@ -90,6 +95,27 @@ class TestDeployer(CustomTestCase):
     def test_deployer_init_default_sleep(self):
         deployer = Deployer(MagicMock().client("cloudformation"))
         self.assertEqual(deployer.client_sleep, 0.5)
+
+    def test_deployer_output_mode_defaults_to_text_enum(self):
+        deployer = Deployer(MagicMock().client("cloudformation"))
+        self.assertIs(deployer.output_mode, OutputOption.text)
+
+    def test_deployer_output_mode_normalizes_string_to_enum(self):
+        # Callers pass the click-normalized string; it is converted to the enum at the boundary.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode="json")
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_accepts_enum_member(self):
+        # Passing an OutputOption member (rather than its string) must also work, so the enum can be
+        # forwarded directly without a caller having to know whether to send the value or the member.
+        deployer = Deployer(MagicMock().client("cloudformation"), output_mode=OutputOption.json)
+        self.assertIs(deployer.output_mode, OutputOption.json)
+
+    def test_deployer_output_mode_invalid_raises(self):
+        # An unrecognized value must fail loudly rather than silently degrade to table output and
+        # corrupt a JSON-lines stream.
+        with self.assertRaises(ValueError):
+            Deployer(MagicMock().client("cloudformation"), output_mode="jsonn")
 
     def test_deployer_has_no_stack(self):
         self.deployer._client.describe_stacks = MagicMock(return_value={"Stacks": []})
@@ -521,6 +547,76 @@ class TestDeployer(CustomTestCase):
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "test"],
             patched_pprint_columns.call_args_list[4][1]["columns"],
         )
+
+    @patch("time.sleep")
+    def test_describe_stack_events_json_output(self, patched_time):
+        start_timestamp = datetime(2022, 1, 1, 16, 42, 0, 0, timezone.utc)
+        self.deployer.output_mode = OutputOption.json
+
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                # Reverse-chronological. The first (latest) is a root-stack terminal event so the
+                # polling loop exits; the two resource events carry the detailed_status cases.
+                [
+                    {
+                        "StackEvents": [
+                            {
+                                "StackId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "EventId": str(uuid.uuid4()),
+                                "StackName": "test",
+                                "LogicalResourceId": "test",
+                                "PhysicalResourceId": "arn:aws:cloudformation:region:accountId:stack/test/uuid",
+                                "ResourceType": "AWS::CloudFormation::Stack",
+                                "Timestamp": start_timestamp + timedelta(seconds=2),
+                                "ResourceStatus": "CREATE_COMPLETE",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp + timedelta(seconds=1),
+                                "ResourceStatus": "CREATE_FAILED",
+                                "DetailedStatus": "VALIDATION_FAILED",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                                "ResourceStatusReason": "bad bucket name",
+                            }
+                        ]
+                    },
+                    {
+                        "StackEvents": [
+                            {
+                                "EventId": str(uuid.uuid4()),
+                                "Timestamp": start_timestamp,
+                                "ResourceStatus": "CREATE_IN_PROGRESS",
+                                "ResourceType": "s3",
+                                "LogicalResourceId": "mybucket",
+                            }
+                        ]
+                    },
+                ]
+            )
+        )
+
+        stdout = StringIO()
+        with redirect_stdout(stdout):
+            # The @pprint_column_names decorator reads output_mode from kwargs (real callers pass
+            # self.output_mode.value); pass it explicitly here so the JSON branch is exercised.
+            self.deployer.describe_stack_events(
+                "test", utc_to_timestamp(start_timestamp) - 1, output_mode=OutputOption.json.value
+            )
+
+        events = [json.loads(line) for line in stdout.getvalue().strip().splitlines()]
+        self.assertTrue(all(e["type"] == "event" for e in events))
+        # detailed_status is carried when CFN provides it (VALIDATION_FAILED on the failure event)...
+        failed = next(e for e in events if e["status"] == "CREATE_FAILED")
+        self.assertEqual(failed["detailed_status"], "VALIDATION_FAILED")
+        self.assertEqual(failed["reason"], "bad bucket name")
+        # ...and is null when CFN omits it, so the key is always present for consumers.
+        in_progress = next(e for e in events if e["status"] == "CREATE_IN_PROGRESS")
+        self.assertIsNone(in_progress["detailed_status"])
 
     @patch("time.sleep")
     @patch("samcli.lib.deploy.deployer.pprint_columns")
@@ -1480,3 +1576,141 @@ class TestDeployer(CustomTestCase):
             ["CREATE_COMPLETE", "AWS::CloudFormation::Stack", "my-stack-name"],
             patched_pprint_columns.call_args_list[2][1]["columns"],
         )
+
+
+class TestCreateDeployError(TestCase):
+    """Tests for the _create_deploy_error static method"""
+
+    def setUp(self):
+        self.session = MagicMock()
+        self.cloudformation_client = self.session.client("cloudformation")
+        self.deployer = Deployer(self.cloudformation_client)
+
+    def test_create_deploy_error_returns_missing_mapping_key_error_for_findmap_error(self):
+        """Test that _create_deploy_error returns MissingMappingKeyError for FindInMap errors"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = "Fn::FindInMap - Key 'Products' not found in Mapping 'SAMCodeUriServices'"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.stack_name, "test-stack")
+        self.assertEqual(error.missing_key, "Products")
+        self.assertEqual(error.mapping_name, "SAMCodeUriServices")
+
+    def test_create_deploy_error_returns_deploy_failed_error_for_other_errors(self):
+        """Test that _create_deploy_error returns DeployFailedError for non-FindInMap errors"""
+        error_message = "Some other CloudFormation error"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, DeployFailedError)
+        self.assertEqual(error.stack_name, "test-stack")
+        self.assertIn(error_message, error.msg)
+
+    def test_create_deploy_error_user_findmap_not_wrapped(self):
+        """Customer-authored Fn::FindInMap failures must not be wrapped as MissingMappingKeyError.
+
+        The SAM-specific re-package guidance is misleading when the Mapping was
+        written by the user (e.g. RegionMap) rather than generated by sam build.
+        """
+        error_message = "Fn::FindInMap - Key 'us-east-2' not found in Mapping 'RegionMap'"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertNotIsInstance(error, MissingMappingKeyError)
+        self.assertIsInstance(error, DeployFailedError)
+        self.assertIn(error_message, error.msg)
+
+    def test_create_deploy_error_sam_prefix_substring_not_wrapped(self):
+        """Mapping names that start with 'SAM' but aren't SAM-generated must not match.
+
+        The naming convention is SAM + PascalCase property + PascalCase segments;
+        names like 'SAMPLE' or 'SAMSUNG' share the prefix by accident.
+        """
+        for non_match in ("SAMPLE", "SAMSUNG", "SAM", "sam_CodeUri"):
+            with self.subTest(mapping=non_match):
+                msg = f"Fn::FindInMap - Key 'Foo' not found in Mapping '{non_match}'"
+                error = Deployer._create_deploy_error("test-stack", msg)
+                self.assertNotIsInstance(error, MissingMappingKeyError)
+                self.assertIsInstance(error, DeployFailedError)
+
+    def test_create_deploy_error_handles_waiter_error_format(self):
+        """Test that _create_deploy_error handles WaiterError format with FindInMap error"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = (
+            "Waiter StackCreateComplete failed: Waiter encountered a terminal failure state: "
+            'For expression "Stacks[].StackStatus" we matched expected path: "CREATE_FAILED" '
+            "at least once. Resource handler returned message: \"Fn::FindInMap - Key 'NewService' "
+            "not found in Mapping 'SAMCodeUriMyLoop'\" (RequestToken: abc123)"
+        )
+        error = Deployer._create_deploy_error("my-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.stack_name, "my-stack")
+        self.assertEqual(error.missing_key, "NewService")
+        self.assertEqual(error.mapping_name, "SAMCodeUriMyLoop")
+
+    def test_create_deploy_error_preserves_original_error_message(self):
+        """Test that the original error message is preserved in MissingMappingKeyError"""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        error_message = "Fn::FindInMap - Key 'Alpha' not found in Mapping 'SAMCodeUriLoop'"
+        error = Deployer._create_deploy_error("test-stack", error_message)
+
+        self.assertIsInstance(error, MissingMappingKeyError)
+        self.assertEqual(error.original_error, error_message)
+        self.assertIn(error_message, str(error))
+
+
+class TestCreateDeployErrorRouting(TestCase):
+    """Verifies create_stack / update_stack / create_and_wait_for_changeset
+    route ClientError through _create_deploy_error so SAM-generated
+    Fn::FindInMap failures surface as MissingMappingKeyError on every
+    deploy path (bot flagged sync was the only wired call site)."""
+
+    def setUp(self):
+        self.session = MagicMock()
+        self.cloudformation_client = self.session.client("cloudformation")
+        self.deployer = Deployer(self.cloudformation_client)
+
+    @staticmethod
+    def _findmap_client_error(op):
+        return ClientError(
+            error_response={
+                "Error": {
+                    "Message": "Fn::FindInMap - Key 'Products' not found in Mapping 'SAMCodeUriServices'",
+                }
+            },
+            operation_name=op,
+        )
+
+    def test_create_stack_wraps_findmap_error(self):
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        self.deployer._client.create_stack = MagicMock(side_effect=self._findmap_client_error("CreateStack"))
+        with self.assertRaises(MissingMappingKeyError) as cm:
+            self.deployer.create_stack(StackName="test-stack")
+        self.assertEqual(cm.exception.missing_key, "Products")
+        self.assertEqual(cm.exception.mapping_name, "SAMCodeUriServices")
+
+    def test_update_stack_wraps_findmap_error(self):
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        self.deployer._client.update_stack = MagicMock(side_effect=self._findmap_client_error("UpdateStack"))
+        with self.assertRaises(MissingMappingKeyError) as cm:
+            self.deployer.update_stack(StackName="test-stack")
+        self.assertEqual(cm.exception.missing_key, "Products")
+        self.assertEqual(cm.exception.mapping_name, "SAMCodeUriServices")
+
+    def test_create_stack_user_findmap_is_not_wrapped(self):
+        """User mappings (RegionMap) still fall through to generic DeployFailedError."""
+        from samcli.commands.deploy.exceptions import MissingMappingKeyError
+
+        err = ClientError(
+            error_response={"Error": {"Message": "Fn::FindInMap - Key 'us-east-2' not found in Mapping 'RegionMap'"}},
+            operation_name="CreateStack",
+        )
+        self.deployer._client.create_stack = MagicMock(side_effect=err)
+        with self.assertRaises(DeployFailedError) as cm:
+            self.deployer.create_stack(StackName="test-stack")
+        self.assertNotIsInstance(cm.exception, MissingMappingKeyError)

@@ -1,0 +1,21 @@
+{
+  "Conditions": {
+    "SupportsDNS": {
+      "Fn::Equals": [
+        "true",
+        "false"
+      ]
+    }
+  },
+  "Resources": {
+    "DNSDelegatorLambda": {
+      "Condition": "SupportsDNSDelegator",
+      "Properties": {
+        "MemorySize": 512,
+        "Runtime": "nodejs16.x",
+        "Timeout": 300
+      },
+      "Type": "AWS::Serverless::Function"
+    }
+  }
+}

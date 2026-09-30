@@ -7,10 +7,9 @@ from collections import OrderedDict
 
 import yaml
 
+from samcli.vendor.serverlessrepo.application_metadata import ApplicationMetadata
+from samcli.vendor.serverlessrepo.exceptions import ApplicationMetadataNotFoundError
 from samcli.yamlhelper import intrinsics_multi_constructor
-
-from .application_metadata import ApplicationMetadata
-from .exceptions import ApplicationMetadataNotFoundError
 
 METADATA = "Metadata"
 SERVERLESS_REPO_APPLICATION = "AWS::ServerlessRepo::Application"

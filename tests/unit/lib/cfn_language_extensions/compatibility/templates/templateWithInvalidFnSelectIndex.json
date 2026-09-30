@@ -1,0 +1,33 @@
+{
+  "Resources": {
+    "RecordSetB": {
+      "Type": "AWS::Route53::RecordSet",
+      "DependsOn": "RedirectCloudFrontDistribution",
+      "Properties": {
+        "AliasTarget": {
+          "DNSName": {"Fn::GetAtt": ["RedirectCloudFrontDistribution", "DomainName"]},
+          "HostedZoneId": "Z2FDTNDATAQYW2"
+        },
+        "Comment": {
+          "Fn::Join": [
+            "",
+            [
+              "Record set for the ",
+              {
+                "Fn::Select": [1, ["1"]]
+              },
+              " redirect"
+            ]
+          ]
+        },
+        "HostedZoneId": {
+          "Ref": "HostedZoneId"
+        },
+        "Name": {
+          "Fn::Select": [1, {"Ref": "RedirectHostnames"}]
+        },
+        "Type": "A"
+      }
+    }
+  }
+}

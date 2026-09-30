@@ -1,0 +1,28 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Conditions": {
+    "A": {
+      "Fn::Equals": ["a", "a"]
+    },
+    "F": {
+      "Fn::And": [
+        {"Condition": "A"},
+        {
+          "Fn::Not": [
+            {
+              "Fn::Not": [
+                {"Condition": "F"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "Resources": {
+    "waitConditionHandles": {
+      "Condition": "ConditionA",
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}

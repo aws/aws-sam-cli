@@ -1,0 +1,14 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "MyWaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  },
+  "Outputs": {
+    "Result": {
+      "Description": "Description exists, but no Outputs"
+    }
+  }
+}

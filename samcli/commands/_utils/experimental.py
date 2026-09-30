@@ -54,7 +54,9 @@ class ExperimentalFlag:
             "experimentalTerraformSupport", EXPERIMENTAL_ENV_VAR_PREFIX + "TERRAFORM_SUPPORT"
         )
     }
-    RustCargoLambda = ExperimentalEntry("experimentalCargoLambda", EXPERIMENTAL_ENV_VAR_PREFIX + "RUST_CARGO_LAMBDA")
+    UvPackageManager = ExperimentalEntry(
+        "experimentalUvPackageManager", EXPERIMENTAL_ENV_VAR_PREFIX + "UV_PACKAGE_MANAGER"
+    )
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:
@@ -270,7 +272,7 @@ def prompt_experimental(
     if is_experimental_enabled(config_entry):
         update_experimental_context()
         return True
-    confirmed = click.confirm(Colored().yellow(prompt), default=False)
+    confirmed = click.confirm(Colored().yellow(prompt), default=False, err=True)
     if confirmed:
         set_experimental(config_entry=config_entry, enabled=True)
         update_experimental_context()

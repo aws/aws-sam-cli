@@ -1,0 +1,31 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "NoEchoList": {
+      "Type": "CommaDelimitedList",
+      "NoEcho": true
+    }
+  },
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      {"Ref": "NoEchoList"},
+      {
+        "Condition${VariableName}": {
+          "Fn::Equals": ["1", {"Ref": "VariableName"}]
+        }
+      }
+    ],
+    "Condition0": {
+      "Fn::Equals": ["1", "0"]
+    }
+  },
+  "Resources": {
+    "Topic0": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic0"
+      }
+    }
+  }
+}

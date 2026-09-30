@@ -1,0 +1,47 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "foreach-demo"
+resolve_s3 = true
+s3_prefix = "foreach-demo"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Runtime=\"python3.13\" Environment=\"dev\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-west-2"
+
+[dev2.deploy.parameters]
+stack_name = "foreach-topics-test"
+resolve_s3 = true
+s3_prefix = "foreach-topics-test"
+region = "us-west-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Runtime=\"python3.13\" Environment=\"dev2\""
+image_repositories = []
+
+[dev2.global.parameters]
+region = "us-west-2"
+
+[dev.deploy.parameters]
+stack_name = "foreach-topics"
+resolve_s3 = true
+s3_prefix = "foreach-topics"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Runtime=\"python3.13\" Environment=\"dev\""
+image_repositories = []
+
+[dev.global.parameters]
+region = "us-west-2"
+
+[topics.deploy.parameters]
+stack_name = "foreach-topics-test"
+resolve_s3 = true
+s3_prefix = "foreach-topics-test"
+region = "us-west-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Runtime=\"python3.13\" Environment=\"dev\""
+image_repositories = []
+
+[topics.global.parameters]
+region = "us-west-2"

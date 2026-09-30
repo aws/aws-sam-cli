@@ -1,4 +1,4 @@
-from .integ_base import IntegBase, TelemetryServer
+from tests.integration.telemetry.integ_base import IntegBase, TelemetryServer
 
 
 class TestTelemetryContract(IntegBase):

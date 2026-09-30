@@ -2,8 +2,12 @@
 Init command to scaffold a project app from a template
 """
 
+import contextlib
 import json
 import logging
+import os
+import sys
+import tempfile
 from json import JSONDecodeError
 
 import click
@@ -11,6 +15,8 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.click_mutex import ClickMutex
+from samcli.commands._utils.constants import SAM_TEMPLATE_FILE_NAMES
+from samcli.commands._utils.options import structured_output_option
 from samcli.commands.init.core.command import InitCommand
 from samcli.commands.init.init_flow_helpers import _get_runtime_from_image, get_architectures, get_sorted_runtimes
 from samcli.lib.build.constants import DEPRECATED_RUNTIMES
@@ -34,14 +40,36 @@ DESCRIPTION = """ \b
   please take a look at our official documentation.
 """
 
-INCOMPATIBLE_PARAMS_HINT = """You can run 'sam init' without any options for an interactive initialization flow, \
-or you can provide one of the following required parameter combinations:
-\t--name, --location, or
-\t--name, --package-type, --base-image, or
-\t--name, --runtime, --app-template, --dependency-manager
-"""
+# The parameter combinations that identify a template without prompting. Enforced by
+# --no-interactive below and rendered into the hints, so the guidance cannot drift from the check.
+NON_INTERACTIVE_PARAM_COMBINATIONS = [
+    ["name", "location"],
+    ["name", "package_type", "base_image"],
+    ["name", "runtime", "dependency_manager", "app_template"],
+]
+
+
+def _format_param_combinations():
+    """Render the non-interactive parameter combinations as indented lists of CLI flags."""
+    combinations = [
+        "\t" + ", ".join(f"--{param.replace('_', '-')}" for param in combination)
+        for combination in NON_INTERACTIVE_PARAM_COMBINATIONS
+    ]
+    return ", or\n".join(combinations) + "\n"
+
+
+INCOMPATIBLE_PARAMS_HINT = (
+    "You can run 'sam init' without any options for an interactive initialization flow, "
+    "or you can provide one of the following required parameter combinations:\n" + _format_param_combinations()
+)
 
 REQUIRED_PARAMS_HINT = "You can also re-run without the --no-interactive flag to be prompted for required values."
+
+STRUCTURED_OUTPUT_PARAMS_HINT = (
+    "--output json cannot be used with the interactive flow, which prompts for values that cannot "
+    "be answered when the output is being consumed by another program. Provide one of the "
+    "following parameter combinations instead:\n" + _format_param_combinations()
+)
 
 INIT_INTERACTIVE_OPTION_GUIDE = """
 You can preselect a particular runtime or package type when using the `sam init` experience.
@@ -121,12 +149,8 @@ def non_interactive_validation(func):
     default=False,
     help="Disable interactive prompting for init parameters. (fail if any required values are missing)",
     cls=ClickMutex,
-    required_param_lists=[
-        ["name", "location"],
-        ["name", "package_type", "base_image"],
-        ["name", "runtime", "dependency_manager", "app_template"],
-        # check non_interactive_validation for additional validations
-    ],
+    # check non_interactive_validation for additional validations
+    required_param_lists=NON_INTERACTIVE_PARAM_COMBINATIONS,
     required_params_hint=REQUIRED_PARAMS_HINT,
 )
 @click.option(
@@ -232,6 +256,7 @@ def non_interactive_validation(func):
     default=None,
     help="Enable Structured Logging for application.",
 )
+@structured_output_option
 @common_options
 @save_params_option
 @non_interactive_validation
@@ -256,6 +281,7 @@ def cli(
     tracing,
     application_insights,
     structured_logging,
+    output,
     save_params,
     config_file,
     config_env,
@@ -281,6 +307,7 @@ def cli(
         tracing,
         application_insights,
         structured_logging,
+        output,
     )  # pragma: no cover
 
 
@@ -303,6 +330,7 @@ def do_cli(
     tracing,
     application_insights,
     structured_logging,
+    output="text",
 ):
     """
     Implementation of the ``cli`` method
@@ -312,6 +340,9 @@ def do_cli(
     from samcli.commands.init.init_generator import do_generate
     from samcli.commands.init.init_templates import InitTemplates
     from samcli.commands.init.interactive_init_flow import do_interactive
+    from samcli.lib.observability.util import OutputOption, failure_result_json
+
+    output_mode = OutputOption(output)
 
     _deprecate_notification(runtime)
 
@@ -319,45 +350,103 @@ def do_cli(
     zip_bool = name and runtime and dependency_manager and app_template
     image_bool = name and pt_explicit and base_image
     if location or zip_bool or image_bool:
-        # need to turn app_template into a location before we generate
-        templates = InitTemplates()
-        if package_type == IMAGE and image_bool:
-            runtime = _get_runtime_from_image(base_image)
-            if runtime is None:
-                raise LambdaImagesTemplateException("Unable to infer the runtime from the base image name")
-            options = templates.init_options(package_type, runtime, base_image, dependency_manager)
-            if not app_template:
-                if len(options) == 1:
-                    app_template = options[0].get("appTemplate")
-                elif len(options) > 1:
-                    raise LambdaImagesTemplateException(
-                        "Multiple lambda image application templates found. "
-                        "Please specify one using the --app-template parameter."
+        try:
+            # Wraps template resolution as well as do_generate, so those failures are serialized too.
+
+            # need to turn app_template into a location before we generate
+            templates = InitTemplates()
+            if package_type == IMAGE and image_bool:
+                runtime = _get_runtime_from_image(base_image)
+                if runtime is None:
+                    raise LambdaImagesTemplateException("Unable to infer the runtime from the base image name")
+                options = templates.init_options(package_type, runtime, base_image, dependency_manager)
+                if not app_template:
+                    if len(options) == 1:
+                        app_template = options[0].get("appTemplate")
+                    elif len(options) > 1:
+                        raise LambdaImagesTemplateException(
+                            "Multiple lambda image application templates found. "
+                            "Please specify one using the --app-template parameter."
+                        )
+
+            if app_template and not location:
+                location = templates.location_from_app_template(
+                    package_type, runtime, base_image, dependency_manager, app_template
+                )
+                no_input = True
+            extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
+
+            if not output_dir:
+                output_dir = "."
+            if output_mode is OutputOption.json:
+                # The --app-template path sets this above, but --location does not, and
+                # cookiecutter's prompts cannot be answered when output is being consumed
+                no_input = True
+            captured_stdout = None
+            try:
+                with contextlib.ExitStack() as stack:
+                    if output_mode is OutputOption.json:
+                        # Template hooks write plain text straight to our stdout, which would leave
+                        # a JSON consumer with unparseable output. Re-emitted as a document below.
+                        captured_stdout = stack.enter_context(_capture_stdout())
+                    generated_directory = do_generate(
+                        location,
+                        package_type,
+                        runtime,
+                        dependency_manager,
+                        output_dir,
+                        name,
+                        no_input,
+                        extra_context,
+                        tracing,
+                        application_insights,
+                        structured_logging,
                     )
+            finally:
+                # Emitted even when generation failed, since a failing hook prints its diagnostics
+                # to stdout and cookiecutter's own error does not carry them.
+                if captured_stdout is not None and captured_stdout.text:
+                    click.echo(json.dumps({"type": "info", "source": "template", "message": captured_stdout.text}))
 
-        if app_template and not location:
-            location = templates.location_from_app_template(
-                package_type, runtime, base_image, dependency_manager, app_template
-            )
-            no_input = True
-        extra_context = _get_cookiecutter_template_context(name, runtime, architecture, extra_context)
-
-        if not output_dir:
-            output_dir = "."
-        do_generate(
-            location,
-            package_type,
-            runtime,
-            dependency_manager,
-            output_dir,
-            name,
-            no_input,
-            extra_context,
-            tracing,
-            application_insights,
-            structured_logging,
-        )
+            if output_mode is OutputOption.json:
+                # Absolute so a consumer never has to guess the process cwd. output_dir/name is
+                # not a usable substitute, since a template names its own project directory.
+                # Null when unknown, rather than a fabricated path to a possibly empty directory.
+                project_directory = os.path.abspath(generated_directory) if generated_directory else None
+                click.echo(
+                    json.dumps(
+                        {
+                            "type": "result",
+                            "status": "success",
+                            "project_directory": project_directory,
+                            "template_file": _find_template_file(project_directory) if project_directory else None,
+                            "runtime": runtime,
+                            # Only reported for a managed template, identified by a resolved
+                            # runtime. A --location template decides these itself, so our
+                            # defaults would contradict it.
+                            "package_type": package_type if runtime else None,
+                            "dependency_manager": dependency_manager,
+                            "app_template": app_template,
+                            "architectures": get_architectures(architecture) if runtime else None,
+                        }
+                    )
+                )
+        except click.UsageError:
+            # Nothing was attempted, so there is no result to describe. Left to click, which
+            # reports it on stderr like every other usage error, including the guard below.
+            raise
+        except Exception as ex:
+            # Broad catch so any execution failure is serialized for a JSON consumer, which has no
+            # other way to learn why the command failed. Re-raise to keep exit codes, telemetry
+            # and text mode unchanged.
+            if output_mode is OutputOption.json:
+                click.echo(failure_result_json(ex))
+            raise
     else:
+        if output_mode is OutputOption.json:
+            # Rejected here rather than up front so any run reaching the branch above still works,
+            # with or without --no-interactive. Also keeps the banner below off stdout.
+            raise click.UsageError(STRUCTURED_OUTPUT_PARAMS_HINT)
         if not (pt_explicit or runtime or dependency_manager or base_image or architecture):
             click.secho(INIT_INTERACTIVE_OPTION_GUIDE, fg="yellow", bold=True)
 
@@ -378,6 +467,72 @@ def do_cli(
             application_insights,
             structured_logging,
         )
+
+
+class CapturedStdout:
+    """Holds whatever was written to stdout while _capture_stdout was active."""
+
+    def __init__(self):
+        self.text = ""
+
+
+@contextlib.contextmanager
+def _capture_stdout():
+    """Redirect stdout into a buffer for the duration of the block.
+
+    Cookiecutter runs a template's hooks as subprocesses inheriting this process's stdout, so
+    contextlib.redirect_stdout is not enough, as it only replaces sys.stdout within this process.
+    Redirecting file descriptor 1 covers subprocesses too. A temporary file is used rather than a
+    pipe so a hook writing a lot of output cannot fill a pipe and block.
+
+    The captured text is available once the block exits, including when the block raised.
+
+    Yields
+    ------
+    CapturedStdout
+        Object whose ``text`` attribute holds the captured output once the block has exited
+    """
+    capture = CapturedStdout()
+    # errors="replace" because a hook subprocess writes raw bytes in whatever encoding it likes,
+    # and a decode failure here would surface as the command's reported outcome
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8", errors="replace") as buffer:
+        sys.stdout.flush()
+        saved_stdout_fd = os.dup(1)
+        try:
+            os.dup2(buffer.fileno(), 1)
+            yield capture
+        finally:
+            sys.stdout.flush()
+            os.dup2(saved_stdout_fd, 1)
+            os.close(saved_stdout_fd)
+            buffer.seek(0)
+            capture.text = buffer.read().strip()
+
+
+def _find_template_file(project_directory):
+    """Return the absolute path of the generated project's SAM template, or None if it has none.
+
+    A cookiecutter template picks its own template file name, and a project cloned from
+    --location may not contain a SAM template at all, so the name cannot be assumed. The
+    search order matches get_or_default_template_file_name, so the path reported here is the
+    one a subsequent `sam build` in this project would resolve to.
+
+    Parameters
+    ----------
+    project_directory: str
+        An absolute path to the generated project
+
+    Returns
+    -------
+    Optional[str]
+        An absolute path to the template file, or None if the project has no SAM template
+    """
+    for template_name in SAM_TEMPLATE_FILE_NAMES:
+        candidate = os.path.join(project_directory, template_name)
+        if os.path.isfile(candidate):
+            return candidate
+
+    return None
 
 
 def _deprecate_notification(runtime):

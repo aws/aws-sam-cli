@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "QueueName": {
+      "Type": "String",
+      "Default": "q3"
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-west-1"
+    },
+    "Stage": {
+      "Type": "String",
+      "Default": "prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "Key": "q5"
+      },
+      "us-west-1" : {
+        "Key": "q5"
+      }
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": "alias/aws/sqs",
+        "DelaySeconds": { "Fn::Length" : [
+          { "Fn::Join": [ ",", [ "q1",
+            { "Fn::Select" : [ "1", { "Fn::Split" : [ "|" , "q1|q2|q3" ] } ] },
+            { "Fn::Sub" : [
+              "${QName}",
+              {
+                "QName": {
+                  "Ref": "QueueName"
+                }
+              }
+            ]
+            },
+            { "Fn::If": ["IsProd", "q4", "q5" ] },
+            {
+              "Fn::FindInMap" : [
+                "RegionMap",
+                { "Ref" :  "Region" },
+                "Key"
+              ]
+            },
+            { "Fn::Base64" : "q6" } ] ]
+          }
+        ]
+        }
+      }
+    }
+  }
+}

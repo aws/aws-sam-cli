@@ -16,9 +16,7 @@ class LocalCallbackHeartbeatCommand(LocalCallbackCommand):
     Command class for local callback heartbeat command.
     """
 
-    def format_options(
-        self, ctx: Context, formatter: CommandHelpTextFormatter  # type:ignore
-    ) -> None:
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         self.format_description(formatter)
         self.format_examples(ctx, formatter)
 
@@ -30,9 +28,8 @@ class LocalCallbackHeartbeatCommand(LocalCallbackCommand):
         """Format command examples for help text"""
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Send heartbeat callback", extra_indents=1):
-                formatter.write_rd(
+                formatter.write_text_rows(
                     [
-                        RowDefinition(text="\n"),
                         RowDefinition(
                             name=style(f"$ {ctx.command_path} my-callback-id"),
                             extra_row_modifiers=[ShowcaseRowModifier()],

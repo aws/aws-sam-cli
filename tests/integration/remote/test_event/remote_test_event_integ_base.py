@@ -14,7 +14,6 @@ from tests.testing_utils import (
 )
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 
-
 LOG = logging.getLogger(__name__)
 
 

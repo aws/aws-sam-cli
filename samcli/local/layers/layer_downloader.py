@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 class LayerDownloader:
-    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None):
+    def __init__(self, layer_cache, cwd, stacks: List[Stack], lambda_client=None, mount_symlinks=False):
         """
 
         Parameters
@@ -39,6 +39,7 @@ class LayerDownloader:
         self.cwd = cwd
         self._stacks = stacks
         self._lambda_client = lambda_client
+        self._mount_symlinks = mount_symlinks
 
     @property
     def lambda_client(self):
@@ -133,6 +134,7 @@ class LayerDownloader:
                     layer_zip_path,
                     unzip_output_dir=layer.codeuri,
                     progressbar_label="Downloading {}".format(layer.layer_arn),
+                    mount_symlinks=self._mount_symlinks,
                 )
 
                 download_lock.release_lock(success=True)

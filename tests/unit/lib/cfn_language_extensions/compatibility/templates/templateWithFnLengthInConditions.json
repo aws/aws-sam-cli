@@ -1,0 +1,23 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "ParameterList": {
+      "Type": "String"
+    }
+  },
+  "Conditions": {
+    "FnEquals": {
+      "Fn::Equals": [
+        {
+          "Fn::Length":  {"Fn::Split": [",", {"Ref": "ParameterList"}]}
+        },
+        2
+      ]
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}

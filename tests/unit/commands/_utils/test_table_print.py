@@ -30,6 +30,29 @@ class TestTablePrint(TestCase):
 
         self.assertEqual(output, self.redirect_out.getvalue())
 
+    def test_json_output_mode_skips_table_chrome(self):
+        # In JSON mode the decorator must not print any table borders/headers to stdout; the wrapped
+        # function owns its structured output.
+        @pprint_column_names(TABLE_FORMAT_STRING, TABLE_FORMAT_ARGS)
+        def to_be_decorated(*args, **kwargs):
+            return kwargs.get("output_mode")
+
+        with redirect_stdout(self.redirect_out):
+            result = to_be_decorated(output_mode="json")
+
+        self.assertEqual(self.redirect_out.getvalue(), "")
+        self.assertEqual(result, "json")
+
+    def test_unknown_output_mode_raises(self):
+        # A typo (anything other than text/json) must fail loudly rather than silently fall through
+        # to table output and corrupt a caller's JSON stream.
+        @pprint_column_names(TABLE_FORMAT_STRING, TABLE_FORMAT_ARGS)
+        def to_be_decorated(*args, **kwargs):
+            pass
+
+        with self.assertRaises(ValueError):
+            to_be_decorated(output_mode="jsonn")
+
     def test_pprint_column_names_and_text(self):
         @pprint_column_names(TABLE_FORMAT_STRING, TABLE_FORMAT_ARGS)
         def to_be_decorated(*args, **kwargs):

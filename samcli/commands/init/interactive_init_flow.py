@@ -193,9 +193,7 @@ Generating application:
 -----------------------
 Location: {location}
 Output Directory: {output_dir}
-    """.format(
-        location=location, output_dir=output_dir
-    )
+    """.format(location=location, output_dir=output_dir)
     click.echo(summary_msg)
     do_generate(
         location,

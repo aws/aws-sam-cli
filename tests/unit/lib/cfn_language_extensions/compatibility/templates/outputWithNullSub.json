@@ -1,0 +1,19 @@
+{
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  },
+  "Outputs": {
+    "MyOutput": {
+      "Value": {
+        "Fn::Sub": [
+          "https://${ApiGatewayId}.execute-api",
+          {
+            "ApiGatewayId": null
+          }
+        ]
+      }
+    }
+  }
+}

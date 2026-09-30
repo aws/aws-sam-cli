@@ -1,0 +1,52 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "InstanceList": {
+      "Type": "CommaDelimitedList",
+      "Default": "InstanceA,InstanceB,InstanceC"
+    }
+  },
+  "Resources": {
+    "Instance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "InstanceType": "t3.medium",
+        "ImageId": "ami-00ad2436e75246bba",
+        "DisableApiTermination": false
+      }
+    }
+  },
+  "Conditions": {
+    "Condition1": {
+      "Fn::Equals": [
+        "1",
+        "1"
+      ]
+    },
+    "Condition2": {
+      "Fn::Equals": [
+        "1",
+        "2"
+      ]
+    },
+    "Condition3": {
+      "Fn::Equals": [
+        "1",
+        "3"
+      ]
+    },
+    "Condition4": {
+      "Fn::Equals": [
+        "1",
+        "4"
+      ]
+    },
+    "Condition0": {
+      "Fn::Equals": [
+        "1",
+        "0"
+      ]
+    }
+  }
+}

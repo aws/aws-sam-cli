@@ -1,0 +1,13 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "ledc-test"
+resolve_s3 = true
+s3_prefix = "ledc-test"
+region = "us-west-2"
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "Runtime=\"python3.13\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-west-2"

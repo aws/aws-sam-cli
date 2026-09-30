@@ -1,0 +1,23 @@
+{
+  "Mappings": {
+    "MapName": {
+      "TopKey": {
+        "SecondKey": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Cluster0": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            {"Fn::Split": [".", "1.2.3.4"]},
+            "TopKey",
+            "SecondKey"
+          ]
+        }
+      }
+    }
+  }
+}

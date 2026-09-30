@@ -83,9 +83,10 @@ class TestBotoActionExecutor(TestCase):
             given_payload, None, None, None, given_parameters, given_output_format
         )
 
-        with patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action, patch.object(
-            self.boto_action_executor, "_execute_action_file"
-        ) as patched_execute_action_file:
+        with (
+            patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action,
+            patch.object(self.boto_action_executor, "_execute_action_file") as patched_execute_action_file,
+        ):
             given_result = Mock()
             patched_execute_action.return_value = given_result
 
@@ -102,9 +103,10 @@ class TestBotoActionExecutor(TestCase):
             None, given_payload_file, None, None, given_parameters, given_output_format
         )
 
-        with patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action, patch.object(
-            self.boto_action_executor, "_execute_action_file"
-        ) as patched_execute_action_file:
+        with (
+            patch.object(self.boto_action_executor, "_execute_action") as patched_execute_action,
+            patch.object(self.boto_action_executor, "_execute_action_file") as patched_execute_action_file,
+        ):
             given_result = Mock()
             patched_execute_action_file.return_value = given_result
 

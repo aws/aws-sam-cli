@@ -1,0 +1,52 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Parameters": {
+    "MyQueue1": {
+      "Type": "String",
+      "Default": "queue1"
+    },
+    "MyQueue2": {
+      "Type": "String",
+      "Default": "queue2"
+    },
+    "MyQueue3": {
+      "Type": "String",
+      "Default": "queue3"
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "HVM64" : "ami-0ff8a91507f77f867", "HVMG2" : "ami-0a584ac55a7631c0c"
+      },
+      "us-west-1" : {
+        "HVM64" : "ami-0bdb828fd58c52235", "HVMG2" : "ami-066ee5fd4a9ef77f1"
+      },
+      "eu-west-1" : {
+        "HVM64" : "ami-047bb4163c506cd98", "HVMG2" : "ami-0a7c483d527806435"
+      },
+      "ap-southeast-1" : {
+        "HVM64" : "ami-08569b978cc4dfa10", "HVMG2" : "ami-0be9df32ae9f92309"
+      },
+      "ap-northeast-1" : {
+        "HVM64" : "ami-06cd52961ce9f0d85", "HVMG2" : "ami-053cdd503598e4a9d"
+      }
+    }
+  },
+
+  "Resources" : {
+    "myQueuePolicy" : {
+      "Type" : "AWS::SQS::QueuePolicy",
+      "Properties" : {
+        "Queues" : {
+          "Fn::FindInMap" : [
+            "RegionMap",
+            "us-east-1",
+            "not-found",
+            {"DefaultValue": [{"Ref" :  "MyQueue1"}, {"Ref" :  "AWS::StackId"}, {"Ref" :  "AWS::StackName"}]}
+          ]
+        }
+      }
+    }
+  }
+}

@@ -235,10 +235,14 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.api_service.service_response = make_response_mock
-        self.api_service._get_current_route = MagicMock()
-        self.api_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.api_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.api_service._get_current_route.return_value.authorizer_object = None
+
+        route_mock = Route(
+            methods=["OPTIONS"],
+            function_name=self.function_name,
+            path="/",
+            payload_format_version="1.0",
+        )
+        self.api_service._get_current_route = MagicMock(return_value=route_mock)
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -262,10 +266,16 @@ class TestApiGatewayService(TestCase):
         make_response_mock = Mock()
 
         self.http_service.service_response = make_response_mock
-        self.http_service._get_current_route = MagicMock()
-        self.http_service._get_current_route.return_value.methods = ["OPTIONS"]
-        self.http_service._get_current_route.return_value.payload_format_version = "1.0"
-        self.http_service._get_current_route.return_value.authorizer_object = None
+
+        # Use actual Route object to get proper default values
+        route_mock = Route(
+            methods=["OPTIONS"],
+            function_name=self.function_name,
+            path="/",
+            event_type=Route.HTTP,
+            payload_format_version="1.0",
+        )
+        self.http_service._get_current_route = MagicMock(return_value=route_mock)
 
         parse_output_mock = Mock()
         parse_output_mock.return_value = ("status_code", Headers({"headers": "headers"}), "body")
@@ -1224,7 +1234,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '{"statusCode": 200, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1243,7 +1253,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1261,7 +1271,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '{"statusCode": 200, "headers":{"Content-Type": "text/xml"}, "body": "{}", ' '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1280,7 +1290,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1299,7 +1309,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1318,7 +1328,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"body": "{\\"message\\":\\"Hello from Lambda\\"}", "isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1343,7 +1353,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false, "another_key": "some value"}'
         )
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=Route.HTTP
         )
         self.assertEqual(status_code, 200)
@@ -1362,7 +1372,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1419,7 +1429,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         }
 
         flask_request_mock = Mock()
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=flask_request_mock, event_type=Route.API
         )
 
@@ -1483,7 +1493,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
         }
 
         flask_request_mock = Mock()
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=flask_request_mock, event_type=Route.API
         )
 
@@ -1515,7 +1525,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             "isBase64Encoded": encoded_response_value,
         }
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock(), event_type=Route.HTTP
         )
 
@@ -1575,7 +1585,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             "base64Encoded": encoded_response_value,
         }
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock(), event_type=Route.HTTP
         )
 
@@ -1593,7 +1603,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             "isBase64Encoded": False,
         }
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock(), event_type=Route.HTTP
         )
 
@@ -1630,7 +1640,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (status_code, _, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, _, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
         self.assertEqual(status_code, 200)
@@ -1667,7 +1677,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '{"headers": {}, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' '"isBase64Encoded": false}'
         )
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=Route.API
         )
 
@@ -1729,7 +1739,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
     def test_properties_are_null(self, event_type):
         lambda_output = '{"statusCode": 0, "headers": null, "body": null, ' '"isBase64Encoded": null}'
 
-        (status_code, headers, body) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1749,7 +1759,7 @@ class TestServiceParsingV1PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false, "cookies":{}}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v1_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v1_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock(), event_type=event_type
         )
 
@@ -1760,7 +1770,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '{"statusCode": 200, "body": "{\\"message\\":\\"Hello from Lambda\\"}", ' '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1773,7 +1783,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1785,7 +1795,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '{"statusCode": 200, "headers":{"Content-Type": "text/xml"}, "body": "{}", ' '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1798,7 +1808,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1810,7 +1820,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1822,7 +1832,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (_, headers, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        _, headers, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1834,7 +1844,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false, "another_key": "some value"}'
         )
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1848,7 +1858,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1877,7 +1887,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             "isBase64Encoded": False,
         }
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock()
         )
 
@@ -1895,7 +1905,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             "isBase64Encoded": True,
         }
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             json.dumps(lambda_output), binary_types=["*/*"], flask_request=Mock()
         )
 
@@ -1909,7 +1919,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
             '"isBase64Encoded": false}'
         )
 
-        (status_code, _, _) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, _, _ = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
         self.assertEqual(status_code, 200)
@@ -1946,7 +1956,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
     def test_lambda_output_string(self):
         lambda_output = '"some str"'
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
         self.assertEqual(status_code, 200)
@@ -1955,7 +1965,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
 
     def test_lambda_output_integer(self):
         lambda_output = "2"
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
         self.assertEqual(status_code, 200)
@@ -1965,7 +1975,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
     def test_properties_are_null(self):
         lambda_output = '{"statusCode": 0, "headers": null, "body": null, ' '"isBase64Encoded": null}'
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 
@@ -1976,7 +1986,7 @@ class TestServiceParsingV2PayloadFormatLambdaOutput(TestCase):
     def test_lambda_output_json_object_no_status_code(self):
         lambda_output = '{"message": "Hello from Lambda!"}'
 
-        (status_code, headers, body) = LocalApigwService._parse_v2_payload_format_lambda_output(
+        status_code, headers, body = LocalApigwService._parse_v2_payload_format_lambda_output(
             lambda_output, binary_types=[], flask_request=Mock()
         )
 

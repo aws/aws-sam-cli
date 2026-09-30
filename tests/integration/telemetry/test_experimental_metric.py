@@ -5,9 +5,9 @@ from pathlib import Path
 from unittest import skip
 from unittest.mock import ANY
 
-from .integ_base import IntegBase, TelemetryServer
+from tests.integration.telemetry.integ_base import IntegBase, TelemetryServer
 from samcli import __version__ as SAM_CLI_VERSION
-from ...testing_utils import strip_nightly_installer_suffix
+from tests.testing_utils import strip_nightly_installer_suffix
 
 
 class TestExperimentalMetric(IntegBase):

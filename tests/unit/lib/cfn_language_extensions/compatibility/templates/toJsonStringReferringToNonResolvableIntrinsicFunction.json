@@ -1,0 +1,35 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "PasswordParameter": {
+      "Type": "String",
+      "Default": "SecretPa$$"
+    },
+    "Stage": {
+      "Type": "String",
+      "Default": "prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Resources": {
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": {
+            "and": { "Fn::And": [
+              {"Fn::Equals": ["Pass", {"Ref": "PasswordParameter"}]},
+              {"Condition": "IsProd"}
+            ] }
+          }
+        }
+      }
+    }
+  }
+}

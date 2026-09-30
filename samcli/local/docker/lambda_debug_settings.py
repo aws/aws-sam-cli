@@ -63,6 +63,16 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.java8al2023.value: lambda: DebugSettings(
+                entry,
+                container_env_vars={
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address={debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k "
+                    "-XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation "
+                    "-Djava.net.preferIPv4Stack=true -Xshare:off" + " ".join(debug_args_list),
+                    **_container_env_vars,
+                },
+            ),
             Runtime.java11.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
@@ -73,7 +83,27 @@ class LambdaDebugSettings:
                     **_container_env_vars,
                 },
             ),
+            Runtime.java11al2023.value: lambda: DebugSettings(
+                entry,
+                container_env_vars={
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:MaxMetaspaceSize=163840k "
+                    "-XX:ReservedCodeCacheSize=81920k -XX:+UseSerialGC -XX:-TieredCompilation "
+                    "-Djava.net.preferIPv4Stack=true" + " ".join(debug_args_list),
+                    **_container_env_vars,
+                },
+            ),
             Runtime.java17.value: lambda: DebugSettings(
+                entry,
+                container_env_vars={
+                    "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"
+                    f"address=*:{debug_port} -XX:MaxHeapSize=2834432k -XX:+UseSerialGC "
+                    "-XX:+TieredCompilation -XX:TieredStopAtLevel=1 "
+                    "-Djava.net.preferIPv4Stack=true" + " ".join(debug_args_list),
+                    **_container_env_vars,
+                },
+            ),
+            Runtime.java17al2023.value: lambda: DebugSettings(
                 entry,
                 container_env_vars={
                     "_JAVA_OPTIONS": "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,quiet=y,"

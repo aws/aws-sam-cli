@@ -32,7 +32,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "ruby": [
         {
-            "runtimes": ["ruby3.4", "ruby3.3", "ruby3.2"],
+            "runtimes": ["ruby4.0", "ruby3.4", "ruby3.3", "ruby3.2"],
             "dependency_manager": "bundler",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-ruby"),
             "build": True,
@@ -64,13 +64,31 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "java": [
         {
-            "runtimes": ["java11", "java8.al2", "java17", "java21", "java25"],
+            "runtimes": [
+                "java8.al2023",
+                "java8.al2",
+                "java11.al2023",
+                "java11",
+                "java17.al2023",
+                "java17",
+                "java21",
+                "java25",
+            ],
             "dependency_manager": "maven",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-maven"),
             "build": True,
         },
         {
-            "runtimes": ["java11", "java8.al2", "java17", "java21", "java25"],
+            "runtimes": [
+                "java8.al2023",
+                "java8.al2",
+                "java11.al2023",
+                "java11",
+                "java17.al2023",
+                "java17",
+                "java21",
+                "java25",
+            ],
             "dependency_manager": "gradle",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-java-gradle"),
             "build": True,
@@ -115,8 +133,11 @@ INIT_RUNTIMES = [
     # java runtimes in descending order
     "java25",
     "java21",
+    "java17.al2023",
     "java17",
+    "java11.al2023",
     "java11",
+    "java8.al2023",
     "java8.al2",
     # nodejs runtimes in descending order
     "nodejs24.x",
@@ -137,6 +158,7 @@ INIT_RUNTIMES = [
     "python3.9",
     "python3.8",
     # ruby runtimes in descending order
+    "ruby4.0",
     "ruby3.4",
     "ruby3.3",
     "ruby3.2",
@@ -153,8 +175,11 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java25": "amazon/java25-base",
     "java21": "amazon/java21-base",
     "java17": "amazon/java17-base",
+    "java17.al2023": "amazon/java17.al2023-base",
     "java11": "amazon/java11-base",
+    "java11.al2023": "amazon/java11.al2023-base",
     "java8.al2": "amazon/java8.al2-base",
+    "java8.al2023": "amazon/java8.al2023-base",
     "nodejs24.x": "amazon/nodejs24.x-base",
     "nodejs22.x": "amazon/nodejs22.x-base",
     "nodejs20.x": "amazon/nodejs20.x-base",
@@ -167,6 +192,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "python3.10": "amazon/python3.10-base",
     "python3.9": "amazon/python3.9-base",
     "python3.8": "amazon/python3.8-base",
+    "ruby4.0": "amazon/ruby4.0-base",
     "ruby3.4": "amazon/ruby3.4-base",
     "ruby3.3": "amazon/ruby3.3-base",
     "ruby3.2": "amazon/ruby3.2-base",
@@ -179,8 +205,11 @@ LAMBDA_IMAGES_RUNTIMES: List = sorted(list(set(LAMBDA_IMAGES_RUNTIMES_MAP.values
 # event schema registry supports only java8, python3.6, dotnet6, and Go1 for code binding
 SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "java8.al2": "Java8",
+    "java8.al2023": "Java8",
     "java11": "Java8",
+    "java11.al2023": "Java8",
     "java17": "Java8",
+    "java17.al2023": "Java8",
     "java21": "Java8",
     "java25": "Java8",
     "python3.8": "Python36",

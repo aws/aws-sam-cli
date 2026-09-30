@@ -1,0 +1,18 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "MyEC2SecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "LOOK_AT_TAGS",
+        "Tags": [
+          {
+            "Key": "keyname1",
+            "Value": "value"
+          }
+        ]
+      }
+    }
+  }
+}

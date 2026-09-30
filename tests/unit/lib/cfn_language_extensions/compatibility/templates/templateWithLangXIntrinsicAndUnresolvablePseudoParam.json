@@ -1,0 +1,13 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "QueueName": { "Ref": "AWS::StackName" },
+        "DelaySeconds": { "Fn::Length" : ["a", "b"] }
+      }
+    }
+  }
+}

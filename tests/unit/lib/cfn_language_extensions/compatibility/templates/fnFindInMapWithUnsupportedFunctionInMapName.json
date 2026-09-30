@@ -1,0 +1,30 @@
+{
+  "Mappings": {
+    "MapName": {
+      "TopKey": {
+        "SecondKey": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Cluster0": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": "MapName"
+      }
+    },
+    "Cluster1": {
+      "Type": "AWS::ECS::Cluster",
+      "Properties": {
+        "ClusterName": {
+          "Fn::FindInMap": [
+            {"Fn::GetAtt": ["Cluster0", "ClusterName"]},
+            "TopKey",
+            "SecondKey",
+            {"DefaultValue": "cluster-default"}
+          ]
+        }
+      }
+    }
+  }
+}

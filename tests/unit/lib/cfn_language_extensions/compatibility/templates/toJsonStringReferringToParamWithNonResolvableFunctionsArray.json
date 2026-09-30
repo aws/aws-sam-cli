@@ -1,0 +1,55 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "PasswordParameter": {
+      "Type": "String",
+      "Default": "SecretPa$$"
+    },
+    "Region": {
+      "Type": "String",
+      "Default": "us-west-1"
+    },
+    "Stage": {
+      "Type": "String",
+      "Default": "prod"
+    }
+  },
+  "Conditions": {
+    "IsProd": {
+      "Fn::Equals": [ { "Ref": "Stage" }, "prod" ]
+    }
+  },
+  "Mappings" : {
+    "RegionMap" : {
+      "us-east-1" : {
+        "Key": "Value"
+      },
+      "us-west-1" : {
+        "Key": "Value"
+      }
+    }
+  },
+  "Resources": {
+    "Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": "test-bucket"
+      }
+    },
+    "CloudFormationCreatedSecret": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "Name": "MySecret",
+        "SecretString": {
+          "Fn::ToJsonString": [{
+            "base64": { "Fn::Base64": "SomeValueToEncode" },
+            "importValue": { "Fn::ImportValue": {"Fn::Sub": "${PasswordParameter}-SubnetID" } },
+            "getatt": { "Fn::GetAtt" : ["Bucket", "Arn"] },
+            "noValue": { "Ref": "AWS::NoValue" }
+          }]
+        }
+      }
+    }
+  }
+}

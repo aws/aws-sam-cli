@@ -2,4 +2,4 @@
 Expose top level prepare hook
 """
 
-from .main import prepare
+from samcli.hook_packages.terraform.main import prepare

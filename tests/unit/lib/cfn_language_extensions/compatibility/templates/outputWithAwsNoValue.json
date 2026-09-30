@@ -1,0 +1,10 @@
+{
+  "Transform": "LanguageExtensionsDev",
+  "Outputs": {
+    "MyOutput": {
+      "Value": {
+        "Ref": "AWS::NoValue"
+      }
+    }
+  }
+}

@@ -51,6 +51,9 @@ class MockFormatter:
     def write_rd(self, rows, col_max=None):
         self.data[list(self.data.keys())[-1]] = [(row.name, "" if self.scrub_text else row.text) for row in rows]
 
+    def write_text_rows(self, rows):
+        self.data[list(self.data.keys())[-1]] = [(row.name, "" if self.scrub_text else row.text) for row in rows]
+
 
 class TestBaseCommand(TestCase):
     def setUp(self):
@@ -157,15 +160,28 @@ class TestBaseCommand(TestCase):
         mock_get_params.return_value = [MockParams(rv=("--region", "Region"))]
 
         cmd = BaseCommand(cmd_packages=self.packages)
-        expected_output = {"Options": [("", ""), ("--region", "")], "Examples": [("", ""), ("Get Started:", "")]}
+        # Updated expected output to match compact formatting (no blank lines)
+        expected_output = {
+            "Options": [("--region", "")],
+            "Examples": [],
+            "Get Started": [("$ <Mock name='mock.command_path' id='4448557008'> init\x1b[0m", "")],
+        }
 
         cmd.format_options(ctx, formatter)
-        self.assertEqual(formatter.data, expected_output)
+        # Compare keys and structure, ignoring the exact mock ID in the command path
+        self.assertEqual(set(formatter.data.keys()), set(expected_output.keys()))
+        self.assertEqual(formatter.data["Options"], expected_output["Options"])
+        self.assertEqual(formatter.data["Examples"], expected_output["Examples"])
+        # Check that Get Started section exists and has the right structure
+        self.assertEqual(len(formatter.data["Get Started"]), 1)
+        # Check that the item contains "init" command
+        self.assertIn("init", formatter.data["Get Started"][0][0])
 
     def test_get_command_root_command_text(self):
         ctx = Mock()
         formatter = MockFormatter()
         cmd = BaseCommand()
+        # Updated expected output to match compact formatting (no blank lines)
         expected_output = {
             "Commands": [],
             "Learn": [("docs", "docs command output")],
@@ -177,8 +193,14 @@ class TestBaseCommand(TestCase):
                 ("sync", "sync command output"),
                 ("remote", "remote command output"),
             ],
-            "Deploy your App": [("package", "package command output"), ("deploy", "deploy command output")],
-            "Monitor your App": [("logs", "logs command output"), ("traces", "traces command output")],
+            "Deploy your App": [
+                ("package", "package command output"),
+                ("deploy", "deploy command output"),
+            ],
+            "Monitor your App": [
+                ("logs", "logs command output"),
+                ("traces", "traces command output"),
+            ],
             "And More": [
                 ("list", "list command output"),
                 ("delete", "delete command output"),

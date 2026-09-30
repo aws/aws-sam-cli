@@ -9,6 +9,7 @@ from tests.integration.local.start_api.start_api_integ_base import StartApiInteg
 from tests.integration.durable_integ_base import DurableIntegBase
 
 
+@pytest.mark.xdist_group(name="durable")
 class TestStartApiDurable(DurableIntegBase, StartApiIntegBaseClass):
     template_path = "/testdata/durable/template.yaml"
 

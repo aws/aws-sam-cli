@@ -15,6 +15,7 @@ from samcli.commands._utils.option_value_processor import process_image_options
 from samcli.commands._utils.options import (
     generate_next_command_recommendation,
     hook_name_click_option,
+    language_extensions_option,
     skip_prepare_infra_option,
     terraform_plan_file_option,
 )
@@ -99,6 +100,7 @@ DESCRIPTION = """
     required_param_lists=[["ssl_cert_file"]],
     help="Path to SSL key file (default: None)",
 )
+@language_extensions_option
 @invoke_common_options
 @warm_containers_common_options
 @local_common_options
@@ -143,9 +145,12 @@ def cli(
     hook_name,
     skip_prepare_infra,
     terraform_plan_file,
+    language_extensions,
     ssl_cert_file,
     ssl_key_file,
+    no_watch,
     no_memory_limit,
+    container_dns,
 ):
     """
     `sam local start-api` command entry point
@@ -179,9 +184,12 @@ def cli(
         add_host,
         invoke_image,
         hook_name,
+        language_extensions,
         ssl_cert_file,
         ssl_key_file,
         no_memory_limit,
+        no_watch,
+        container_dns,
     )  # pragma: no cover
 
 
@@ -212,9 +220,12 @@ def do_cli(  # pylint: disable=R0914
     add_host,
     invoke_image,
     hook_name,
+    language_extensions,
     ssl_cert_file,
     ssl_key_file,
     no_mem_limit,
+    no_watch,
+    container_dns,
 ):
     """
     Implementation of the ``cli`` method, just separated out for unit testing purposes
@@ -260,7 +271,10 @@ def do_cli(  # pylint: disable=R0914
             container_host_interface=container_host_interface,
             invoke_images=processed_invoke_images,
             add_host=add_host,
+            language_extensions=language_extensions,
             no_mem_limit=no_mem_limit,
+            no_watch=no_watch,
+            container_dns=container_dns,
         ) as invoke_context:
             ssl_context = (ssl_cert_file, ssl_key_file) if ssl_cert_file else None
             service = LocalApiService(

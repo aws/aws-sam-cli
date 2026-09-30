@@ -1,0 +1,38 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform:
+  - AWS::LanguageExtensions
+  - AWS::Serverless-2016-10-31
+
+Description: >
+  Test template for nested Fn::ForEach with dynamic CodeUri.
+  Outer loop over environments, inner loop over services with CodeUri: ./services/${Service}.
+
+Parameters:
+  Runtime:
+    Type: String
+    Default: python3.13
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: !Ref Runtime
+
+Resources:
+  Fn::ForEach::Environments:
+    - Env
+    - - dev
+      - prod
+    - Fn::ForEach::Services:
+        - Service
+        - - Users
+          - Orders
+        - ${Env}${Service}Function:
+            Type: AWS::Serverless::Function
+            Properties:
+              Handler: main.handler
+              CodeUri: ./services/${Service}
+              Environment:
+                Variables:
+                  ENV_NAME: !Sub ${Env}
+                  SERVICE_NAME: !Sub ${Service}

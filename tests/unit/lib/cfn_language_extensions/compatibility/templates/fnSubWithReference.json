@@ -1,0 +1,16 @@
+{
+  "Transform": "AWS::LanguageExtensions",
+  "Resources" : {
+    "Topic" : {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "TopicName" : {
+          "Fn::Sub": [
+            "hello-${test}",
+            {"Ref":  "abc"}
+          ]
+        }
+      }
+    }
+  }
+}

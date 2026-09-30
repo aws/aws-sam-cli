@@ -2,7 +2,6 @@
 Common OS utilities
 """
 
-import errno
 import io
 import logging
 import os
@@ -117,7 +116,7 @@ def stderr() -> io.TextIOWrapper:
 def remove(path):
     if path:
         try:
-            os.remove(path)
+            Path(path).unlink(missing_ok=True)
         except OSError:
             pass
 
@@ -134,60 +133,27 @@ def tempfile_platform_independent():
         remove(_tempfile.name)
 
 
-# NOTE: Py3.8 or higher has a ``dir_exist_ok=True`` parameter to provide this functionality.
-#       This method can be removed if we stop supporting Py37
 def copytree(source, destination, ignore=None):
     """
-    Similar to shutil.copytree except that it removes the limitation that the destination directory should
-    be present.
+    Recursively copy a directory tree from source to destination, allowing the destination
+    to already exist. Symbolic links in the source tree are preserved as symbolic links
+    in the destination.
+
+    Delegates to ``shutil.copytree`` with ``dirs_exist_ok=True`` and ``symlinks=True``.
+
     :type source: str
     :param source:
-        Path to the source folder to copy
+        Path to the source directory to copy
     :type destination: str
     :param destination:
-        Path to destination folder
-    :type ignore: function
+        Path to the destination directory. Will be created if it does not exist;
+        existing files will be overwritten by corresponding files from source.
+    :type ignore: callable, optional
     :param ignore:
-        A function that returns a set of file names to ignore, given a list of available file names. Similar to the
-        ``ignore`` property of ``shutils.copytree`` method
+        A callable that receives the directory being visited and a list of its contents,
+        and returns a set of names to ignore. See ``shutil.ignore_patterns`` for a helper.
     """
-
-    if not os.path.exists(destination):
-        os.makedirs(destination)
-
-        try:
-            # Let's try to copy the directory metadata from source to destination
-            shutil.copystat(source, destination)
-        except OSError as ex:
-            # Can't copy file access times in Windows
-            LOG.debug("Unable to copy file access times from %s to %s", source, destination, exc_info=ex)
-
-    names = os.listdir(source)
-    if ignore is not None:
-        ignored_names = ignore(source, names)
-    else:
-        ignored_names = set()
-
-    for name in names:
-        # Skip ignored names
-        if name in ignored_names:
-            continue
-
-        new_source = os.path.join(source, name)
-        new_destination = os.path.join(destination, name)
-
-        if os.path.isdir(new_source):
-            copytree(new_source, new_destination, ignore=ignore)
-        else:
-            try:
-                shutil.copy2(new_source, new_destination, follow_symlinks=False)
-            except OSError as e:
-                if e.errno != errno.EINVAL:
-                    raise e
-
-                # Symlinks do not get copied for Windows using shutil.copy2, which is why
-                # they are handled separately here.
-                create_symlink_or_copy(new_source, new_destination)
+    shutil.copytree(source, destination, symlinks=True, ignore=ignore, dirs_exist_ok=True)
 
 
 def convert_files_to_unix_line_endings(path: str, target_files: Optional[List[str]] = None) -> None:

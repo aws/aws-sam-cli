@@ -8,8 +8,9 @@ import os.path
 import pathlib
 import shutil
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, TypeVar, cast
+from typing import Any, Callable, Dict, Iterator, List, Optional, Set, Tuple, TypeVar, cast
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.build_graph import (
@@ -20,8 +21,14 @@ from samcli.lib.build.build_graph import (
     LayerBuildDefinition,
 )
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
-from samcli.lib.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.exceptions import (
+    BuildError,
+    BuildInsideContainerError,
+    MissingBuildMethodException,
+    UnsupportedBuilderLibraryVersionError,
+)
 from samcli.lib.build.utils import warn_on_invalid_architecture
+from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.utils import osutils
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.async_utils import AsyncContext
@@ -34,6 +41,33 @@ LOG = logging.getLogger(__name__)
 FunctionOrLayerBuildDefinition = TypeVar(
     "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
 )
+
+# Build failures that are attributable to specific resources. When one of these escapes a strategy
+# without resource_names already set, we tag it with the in-flight definition's resources so the
+# structured (JSON) failure document can report error.resources.
+_RESOURCE_ATTRIBUTABLE_BUILD_ERRORS = (
+    BuildError,
+    UnsupportedRuntimeException,
+    UnsupportedBuilderException,
+    BuildInsideContainerError,
+    UnsupportedBuilderLibraryVersionError,
+)
+
+
+@contextmanager
+def _attribute_build_failure_to(full_paths: List[str]) -> Iterator[None]:
+    """
+    Tag any resource-attributable build failure raised in the block with ``full_paths`` (unless it
+    already carries resource_names). A collapsed build definition can hold several functions, so the
+    full list keeps every affected resource in the failure document. Used by DefaultBuildStrategy and
+    IncrementalBuildStrategy's pre-delegation work so attribution is consistent across strategies.
+    """
+    try:
+        yield
+    except _RESOURCE_ATTRIBUTABLE_BUILD_ERRORS as ex:
+        if getattr(ex, "resource_names", None) is None:
+            ex.resource_names = full_paths
+        raise
 
 
 def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
@@ -144,6 +178,15 @@ class DefaultBuildStrategy(BuildStrategy):
         """
         Build the unique definition and then copy the artifact to the corresponding function folder
         """
+        # Functions sharing runtime + CodeUri + metadata collapse into one build definition, so one
+        # failure can affect several; report all of them, not just the first.
+        with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
+            return self._do_build_single_function_definition(build_definition)
+
+    def _do_build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        """
+        Internal implementation of build_single_function_definition
+        """
         function_build_results = {}
         LOG.info(
             "Building codeuri: %s runtime: %s architecture: %s functions: %s",
@@ -209,6 +252,13 @@ class DefaultBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         """
         Build the unique definition and then copy the artifact to the corresponding layer folder
+        """
+        with _attribute_build_failure_to([layer_definition.full_path]):
+            return self._do_build_single_layer_definition(layer_definition)
+
+    def _do_build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        """
+        Internal implementation of build_single_layer_definition
         """
         layer = layer_definition.layer
         LOG.info("Building layer '%s'", layer.full_path)
@@ -477,14 +527,20 @@ class IncrementalBuildStrategy(BuildStrategy):
         return result
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
-        self._check_whether_manifest_is_changed(build_definition, build_definition.codeuri, build_definition.runtime)
-        return self._delegate_build_strategy.build_single_function_definition(build_definition)
+        # The manifest pre-check runs before delegating and can raise before the delegate's own
+        # attribution, so wrap both to keep error.resources on --cached/--incremental failures.
+        with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
+            self._check_whether_manifest_is_changed(
+                build_definition, build_definition.codeuri, build_definition.runtime
+            )
+            return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
-        self._check_whether_manifest_is_changed(
-            layer_definition, layer_definition.codeuri, layer_definition.build_method
-        )
-        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+        with _attribute_build_failure_to([layer_definition.full_path]):
+            self._check_whether_manifest_is_changed(
+                layer_definition, layer_definition.codeuri, layer_definition.build_method
+            )
+            return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 
     def _check_whether_manifest_is_changed(
         self,

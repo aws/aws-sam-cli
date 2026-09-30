@@ -1,0 +1,30 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "QueueName": {
+      "Type": "String",
+      "Default": "q3"
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "KmsMasterKeyId": "alias/aws/sqs",
+        "DelaySeconds": { "Fn::Length" : [
+            { "Fn::Sub" : [
+              "${QName}",
+              {
+                "QName": {
+                  "Ref": "QueueName"
+                }
+              }
+            ]
+            },
+          "q2"]
+        }
+      }
+    }
+  }
+}

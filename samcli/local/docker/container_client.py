@@ -97,9 +97,6 @@ class ContainerClient(docker.DockerClient, ABC):
         # Specify minimum version
         self.client_params["version"] = os.environ.get(GlobalConfig.DOCKER_API_ENV_VAR, DOCKER_MIN_API_VERSION)
 
-        # Increase client timeout to tolerate longer pushes/pulls
-        self.client_params["timeout"] = int(os.environ.get("SAM_CLI_DOCKER_TIMEOUT", "600"))
-
         # Initialize DockerClient with processed parameters
         LOG.debug(f"Creating container client with parameters: {self.client_params}")
         super().__init__(**self.client_params)
@@ -385,7 +382,7 @@ class DockerContainerClient(ContainerClient):
         Check if error is a dockerfile-related error for Docker.
 
         Docker-specific error patterns for dockerfile-related issues typically
-        contain "Cannot locate specified Dockerfile" in the error message.
+        contain "Cannot locate specified Dockerfile" or "failed to read dockerfile" in the error message.
 
         Args:
             error: Exception or error message to check
@@ -393,14 +390,15 @@ class DockerContainerClient(ContainerClient):
         Returns:
             bool: True if the error indicates a dockerfile-related issue
         """
+        patterns = ["Cannot locate specified Dockerfile", "failed to read dockerfile"]
         if isinstance(error, docker.errors.APIError):
             if not error.is_server_error:
                 return False
             if not hasattr(error, "explanation") or error.explanation is None:
                 return False
-            return "Cannot locate specified Dockerfile" in str(error.explanation)
+            return any(pattern in str(error.explanation) for pattern in patterns)
         elif isinstance(error, str):
-            return "Cannot locate specified Dockerfile" in error
+            return any(pattern in error for pattern in patterns)
         return False
 
     def list_containers_by_image(self, image_name: str, all_containers: bool = True) -> List[Any]:

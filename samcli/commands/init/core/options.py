@@ -24,29 +24,34 @@ APPLICATION_OPTIONS: List[str] = [
 # Can be used instead of the options in the first list
 NON_INTERACTIVE_OPTIONS: List[str] = ["no_interactive", "no_input", "extra_context"]
 
+OUTPUT_OPTIONS: List[str] = ["output"]
+
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
 
 ADDITIONAL_OPTIONS: List[str] = ["tracing", "application_insights", "structured_logging"]
 
 ALL_OPTIONS: List[str] = (
-    APPLICATION_OPTIONS + NON_INTERACTIVE_OPTIONS + CONFIGURATION_OPTION_NAMES + ADDITIONAL_OPTIONS + ALL_COMMON_OPTIONS
+    APPLICATION_OPTIONS
+    + NON_INTERACTIVE_OPTIONS
+    + OUTPUT_OPTIONS
+    + CONFIGURATION_OPTION_NAMES
+    + ADDITIONAL_OPTIONS
+    + ALL_COMMON_OPTIONS
 )
 
 OPTIONS_INFO: Dict[str, Dict] = {
     "Application Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(APPLICATION_OPTIONS)},
-        "extras": [RowDefinition(name="")],
     },
     "Non Interactive Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(NON_INTERACTIVE_OPTIONS)}
     },
+    "Output Options": {"option_names": {opt: {"rank": idx} for idx, opt in enumerate(OUTPUT_OPTIONS)}},
     "Configuration Options": {
         "option_names": {opt: {"rank": idx} for idx, opt in enumerate(CONFIGURATION_OPTION_NAMES)},
         "extras": [
-            RowDefinition(name="Learn more about configuration files at:"),
             RowDefinition(
-                name="https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli"
-                "-config.html. "
+                name="Learn more about configuration files at: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-config.html."
             ),
         ],
     },

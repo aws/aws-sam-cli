@@ -6,7 +6,7 @@ import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from json import JSONDecodeError, loads
-from typing import Any, Dict, List, Optional, Tuple, Type, Union, cast
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from urllib.parse import parse_qsl
 
 from samcli.commands.local.lib.validators.identity_source_validator import IdentitySourceValidator
@@ -417,7 +417,7 @@ class LambdaAuthorizer(Authorizer):
                 f"Authorizer {self.authorizer_name} is missing or contains an invalid " f"{_SIMPLE_RESPONSE_IS_AUTH}"
             )
 
-        return cast(bool, is_authorized)
+        return is_authorized
 
     def get_context(self, response: Union[str, bytes]) -> Dict[str, Any]:
         """

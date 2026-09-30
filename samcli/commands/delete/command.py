@@ -10,6 +10,7 @@ import click
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.main import aws_creds_options, common_options, pass_context, print_cmdline_args
 from samcli.commands._utils.command_exception_handler import command_exception_handler
+from samcli.commands.delete.core.command import DeleteCommand
 from samcli.commands.delete.delete_context import CONFIG_COMMAND, CONFIG_SECTION
 from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
@@ -20,14 +21,23 @@ HELP_TEXT = """The sam delete command deletes the CloudFormation
 stack and all the artifacts which were created using sam deploy.
 """
 
+DESCRIPTION = """
+  Delete an AWS SAM application by deleting the AWS CloudFormation stack, 
+  the artifacts which were packaged and deployed to Amazon S3 and Amazon ECR, 
+  and the AWS CloudFormation template file from the Amazon S3 bucket.
+"""
+
 LOG = logging.getLogger(__name__)
 
 
 @click.command(
     "delete",
+    cls=DeleteCommand,
     short_help=SHORT_HELP,
-    context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
     help=HELP_TEXT,
+    description=DESCRIPTION,
+    requires_credentials=True,
+    context_settings={"ignore_unknown_options": False, "allow_interspersed_args": True, "allow_extra_args": True},
 )
 @configuration_option(provider=ConfigProvider(CONFIG_SECTION, [CONFIG_COMMAND]))
 @click.option(
@@ -55,6 +65,14 @@ LOG = logging.getLogger(__name__)
     default=None,
     required=False,
 )
+@click.option(
+    "--express/--no-express",
+    default=False,
+    required=False,
+    is_flag=True,
+    help="Use CloudFormation Express mode to speed up stack deletion by completing once resource "
+    "deletion is initiated, without waiting for full cleanup.",
+)
 @aws_creds_options
 @common_options
 @save_params_option
@@ -69,6 +87,7 @@ def cli(
     no_prompts: bool,
     s3_bucket: str,
     s3_prefix: str,
+    express: bool,
     config_env: str,
     config_file: str,
     save_params: bool,
@@ -85,6 +104,7 @@ def cli(
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,
+        express=express,
     )  # pragma: no cover
 
 
@@ -95,6 +115,7 @@ def do_cli(
     no_prompts: bool,
     s3_bucket: Optional[str],
     s3_prefix: Optional[str],
+    express: bool = False,
 ):
     """
     Implementation of the ``cli`` method
@@ -108,5 +129,6 @@ def do_cli(
         no_prompts=no_prompts,
         s3_bucket=s3_bucket,
         s3_prefix=s3_prefix,
+        express=express,
     ) as delete_context:
         delete_context.run()

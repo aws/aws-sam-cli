@@ -1,0 +1,21 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Resources": {
+    "Zone": {
+      "Type": "AWS::Route53::HostedZone",
+      "Properties": {
+        "Name": "banana.com"
+      }
+    }
+  },
+  "Outputs": {
+    "Output": {
+      "Value": {
+        "Fn::ToJsonString": {
+          "Fn::Split": ["/", "a/b/c"]
+        }
+      }
+    }
+  }
+}

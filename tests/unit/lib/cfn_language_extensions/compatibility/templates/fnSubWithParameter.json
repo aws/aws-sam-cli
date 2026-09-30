@@ -1,0 +1,22 @@
+{
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters" : {
+    "name" : {
+      "Type" : "String",
+      "Default": "myname"
+    }
+  },
+  "Resources" : {
+    "Topic" : {
+      "Type" : "AWS::SNS::Topic",
+      "Properties" : {
+        "TopicName" : {
+          "Fn::Sub": [
+            "topic-${prefix}-${name}",
+            {"prefix":  "bla"}
+          ]
+        }
+      }
+    }
+  }
+}

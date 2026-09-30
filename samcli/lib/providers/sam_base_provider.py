@@ -5,6 +5,7 @@ Base class for SAM Template providers
 import logging
 from typing import Any, Dict, Iterable, Optional, Union, cast
 
+from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
 from samcli.lib.iac.plugins_interfaces import Stack
 from samcli.lib.intrinsic_resolver.intrinsic_property_resolver import IntrinsicResolver
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -165,7 +166,10 @@ class SamBaseProvider:
 
     @staticmethod
     def get_template(
-        template_dict: Dict, parameter_overrides: Optional[Dict[str, str]] = None, use_sam_transform: bool = True
+        template_dict: Dict,
+        parameter_overrides: Optional[Dict[str, str]] = None,
+        use_sam_transform: bool = True,
+        language_extension_result: Optional[LanguageExtensionResult] = None,
     ) -> Dict:
         """
         Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
@@ -182,6 +186,11 @@ class SamBaseProvider:
         use_sam_transform: bool
             Whether to transform the given template with Serverless Application Model. Default is True
 
+        language_extension_result : LanguageExtensionResult, optional
+            Pre-computed result from expand_language_extensions(). When provided,
+            avoids redundant deep-copy in SamTranslatorWrapper and carries
+            original_template and dynamic_artifact_properties through.
+
         Returns
         -------
         dict
@@ -190,7 +199,11 @@ class SamBaseProvider:
         template_dict = template_dict or {}
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict and use_sam_transform:
-            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
+            template_dict = SamTranslatorWrapper(
+                template_dict,
+                parameter_values=parameters_values,
+                language_extension_result=language_extension_result,
+            ).run_plugins()
         ResourceMetadataNormalizer.normalize(template_dict)
 
         resolver = IntrinsicResolver(
@@ -205,6 +218,7 @@ class SamBaseProvider:
         template_dict: Stack,
         parameter_overrides: Optional[Dict[str, str]] = None,
         normalize_resource_metadata: bool = True,
+        language_extension_result: Optional[LanguageExtensionResult] = None,
     ) -> Stack:
         """
         Given a SAM template dictionary, return a cleaned copy of the template where SAM plugins have been run
@@ -218,6 +232,10 @@ class SamBaseProvider:
         normalize_resource_metadata: bool
             flag to normalize resource metadata or not; For package and deploy, we don't need to normalize resource
             metadata, which usually exists in a CDK-synthed template and is used for build and local testing
+        language_extension_result : LanguageExtensionResult, optional
+            Pre-computed result from expand_language_extensions(). When provided,
+            avoids redundant deep-copy in SamTranslatorWrapper and carries
+            original_template and dynamic_artifact_properties through.
         Returns
         -------
         dict
@@ -229,7 +247,11 @@ class SamBaseProvider:
         template_dict = template_dict or Stack()
         parameters_values = SamBaseProvider._get_parameter_values(template_dict, parameter_overrides)
         if template_dict:
-            template_dict = SamTranslatorWrapper(template_dict, parameter_values=parameters_values).run_plugins()
+            template_dict = SamTranslatorWrapper(
+                template_dict,
+                parameter_values=parameters_values,
+                language_extension_result=language_extension_result,
+            ).run_plugins()
         if normalize_resource_metadata:
             ResourceMetadataNormalizer.normalize(template_dict)
 

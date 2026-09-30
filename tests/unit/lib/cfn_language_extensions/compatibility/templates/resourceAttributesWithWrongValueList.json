@@ -1,0 +1,10 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": ["NotOneOfDeleteRetainSnapshot", "InvalidValue"]
+    }
+  }
+}

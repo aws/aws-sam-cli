@@ -1,0 +1,3 @@
+"""
+Delete Core Command
+"""

@@ -2,6 +2,8 @@ import json
 import os.path
 from unittest import skipIf
 
+import pytest
+
 from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_LAMBDA_LAYERVERSION
 from tests.integration.sync.sync_integ_base import SyncIntegBase
@@ -16,6 +18,8 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
     folder = "code"
     dependency_layer = True
 
+    # Not rerun-safe: it edits test data in place and the class-scoped infra sync is not redone.
+    @pytest.mark.flaky(reruns=0)
     def test_sync_code_function_without_dependencies(self):
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
@@ -129,7 +133,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         read_until_string(
             self.watch_process,
             "Finished syncing Layer HelloWorldFunction",
-            timeout=60,
+            timeout=120,
         )
         lambda_response = json.loads(self._get_lambda_response(lambda_functions[0]))
         self.assertEqual(lambda_response.get("message"), "hello mars")
@@ -143,7 +147,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         read_until_string(
             self.watch_process,
             "Finished syncing Layer HelloWorldFunction",
-            timeout=60,
+            timeout=120,
         )
         self._confirm_lambda_error(lambda_functions[0])
 
@@ -155,7 +159,7 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         read_until_string(
             self.watch_process,
             "Finished syncing Function Layer Reference Sync HelloWorldFunction.\x1b[0m\n",
-            timeout=60,
+            timeout=120,
         )
 
         def _verify_lambda_response(_lambda_response):

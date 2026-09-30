@@ -3,6 +3,7 @@ import time
 from unittest import skipIf
 
 import boto3
+import pytest
 
 from botocore.exceptions import ClientError
 from parameterized import parameterized
@@ -50,6 +51,9 @@ class TestDelete(DeleteIntegBase):
 
     @parameterized.expand(["aws-serverless-function.yaml", "aws-s3-with-lang-ext.yaml"])
     def test_s3_options(self, template_file):
+        self._do_s3_options_test(template_file)
+
+    def _do_s3_options_test(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)
 
         stack_name = self._method_to_stack_name(self.id())
@@ -82,11 +86,8 @@ class TestDelete(DeleteIntegBase):
         delete_process_execute = run_command(delete_command_list)
 
         self.validate_delete_process(delete_process_execute)
-
-        # Check if the stack was deleted
         self._validate_stack_deleted(stack_name=stack_name)
 
-        # Check for zero objects in bucket
         s3_objects_resp = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=self.s3_prefix)
         self.assertEqual(s3_objects_resp["KeyCount"], 0)
 
@@ -102,6 +103,11 @@ class TestDelete(DeleteIntegBase):
         self.assertIn(
             f"Error: The input stack {stack_name} does not exist on Cloudformation", str(delete_process_execute.stdout)
         )
+
+    @pytest.mark.tier1_extra
+    def test_tier1_delete(self):
+        """Single delete test for cross-platform validation."""
+        self._do_s3_options_test("aws-serverless-function.yaml")
 
     @parameterized.expand(
         [
@@ -130,15 +136,25 @@ class TestDelete(DeleteIntegBase):
 
         config_file_name = DEFAULT_CONFIG_FILE_NAME
         deploy_command_list = self.get_deploy_command_list(template_file=template_path, guided=True)
-        _ = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
+        deploy_result = run_command_with_input(deploy_command_list, "{}\n\n\n\n\n\n\n\n\n".format(stack_name).encode())
 
         config_file_path = self.test_data_path.joinpath(config_file_name)
+
+        # Deploy may fail due to CloudFormation validation (e.g. EarlyValidation hooks).
+        # Delete should still clean up whatever was created (stack in REVIEW_IN_PROGRESS, S3 artifacts).
         delete_command_list = self.get_delete_command_list(
-            stack_name=stack_name, region=self._session.region_name, no_prompts=True
+            stack_name=stack_name,
+            region=self._session.region_name,
+            no_prompts=True,
+            s3_prefix=stack_name,
         )
 
         delete_process_execute = run_command(delete_command_list)
-        self.validate_delete_process(delete_process_execute)
+
+        if deploy_result.process.returncode == 0:
+            # Deploy succeeded — delete must also succeed
+            self.validate_delete_process(delete_process_execute)
+
         self._validate_stack_deleted(stack_name=stack_name)
 
         # Remove the local config file created
@@ -537,6 +553,43 @@ class TestDelete(DeleteIntegBase):
     # 3. Retain ECR Repository that contains atleast 1 image.
     #    - Create a stack using guided deploy of type image
     #    - Select no for deleting ECR repository and this will retain the non-empty repository
+
+    @parameterized.expand(["aws-serverless-function.yaml"])
+    def test_delete_express_mode(self, template_file):
+        template_path = self.test_data_path.joinpath(template_file)
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            capabilities="CAPABILITY_IAM",
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            notification_arns=self.sns_arn,
+            parameter_overrides="Parameter=Clarity",
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+        )
+
+        deploy_process = run_command(deploy_command_list)
+        self.assertEqual(deploy_process.process.returncode, 0)
+
+        delete_command_list = self.get_delete_command_list(
+            stack_name=stack_name,
+            region=self._session.region_name,
+            no_prompts=True,
+            express=True,
+        )
+
+        delete_process_execute = run_command(delete_command_list)
+        self.assertEqual(delete_process_execute.process.returncode, 0)
+        self.assertIn("Deleted with CloudFormation Express mode", delete_process_execute.stdout.decode())
+        self._validate_stack_deleted(stack_name=stack_name)
 
     def _method_to_stack_name(self, method_name):
         """Method expects method name which can be a full path. Eg: test.integration.test_deploy_command.method_name"""

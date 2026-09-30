@@ -62,19 +62,8 @@ class StartLambdaIntegBaseClass(TestCase):
         # Create the Docker client with automatic container selection
         cls.docker_client = get_validated_container_client()
 
-        # Only remove containers with SAM CLI labels to avoid interfering with other processes
-        try:
-            sam_containers = cls.docker_client.containers.list(
-                all=True, filters={"label": "sam.cli.container.type=lambda"}
-            )
-            for container in sam_containers:
-                try:
-                    container.remove(force=True)
-                    LOG.info("Removed existing SAM CLI container %s", container.short_id)
-                except APIError as ex:
-                    LOG.error("Failed to remove existing SAM CLI container %s", container.short_id, exc_info=ex)
-        except Exception as ex:
-            LOG.error("Failed to clean up existing SAM CLI containers", exc_info=ex)
+        # Snapshot existing container IDs so we only clean up containers created by this test class
+        cls._pre_existing_container_ids = cls._get_sam_container_ids(cls.docker_client)
 
         cls.start_lambda_with_retry()
 
@@ -205,6 +194,15 @@ class StartLambdaIntegBaseClass(TestCase):
     def _make_parameter_override_arg(self, overrides):
         return " ".join(["ParameterKey={},ParameterValue={}".format(key, value) for key, value in overrides.items()])
 
+    @staticmethod
+    def _get_sam_container_ids(docker_client):
+        """Get the set of SAM CLI container IDs currently running."""
+        try:
+            sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
+            return {container.id for container in sam_containers}
+        except Exception:
+            return set()
+
     @classmethod
     def tearDownClass(cls):
         # After all the tests run, we need to kill the start_lambda process.
@@ -214,17 +212,17 @@ class StartLambdaIntegBaseClass(TestCase):
         except NoSuchProcess:
             LOG.info("Process has already been terminated")
 
-        # Clean up any remaining SAM CLI containers
+        # Only clean up containers created by this test class (not pre-existing ones)
         try:
             docker_client = get_validated_container_client()
-            # Only remove containers with SAM CLI labels to avoid interfering with other processes
             sam_containers = docker_client.containers.list(all=True, filters={"label": "sam.cli.container.type=lambda"})
             for container in sam_containers:
-                try:
-                    container.remove(force=True)
-                    LOG.info("Removed SAM CLI container %s", container.short_id)
-                except APIError as ex:
-                    LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
+                if container.id not in cls._pre_existing_container_ids:
+                    try:
+                        container.remove(force=True)
+                        LOG.info("Removed SAM CLI container %s", container.short_id)
+                    except APIError as ex:
+                        LOG.error("Failed to remove SAM CLI container %s", container.short_id, exc_info=ex)
         except Exception as ex:
             LOG.error("Failed to clean up SAM CLI containers", exc_info=ex)
 

@@ -17,6 +17,7 @@ from samcli.lib.build.workflows import (
     NODEJS_NPM_ESBUILD_CONFIG,
     PROVIDED_MAKE_CONFIG,
     PYTHON_PIP_CONFIG,
+    PYTHON_UV_CONFIG,
     RUBY_BUNDLER_CONFIG,
     RUST_CARGO_LAMBDA_CONFIG,
 )
@@ -26,11 +27,11 @@ LOG = logging.getLogger(__name__)
 
 
 class UnsupportedRuntimeException(Exception):
-    pass
+    resource_names: Optional[List[str]] = None
 
 
 class UnsupportedBuilderException(Exception):
-    pass
+    resource_names: Optional[List[str]] = None
 
 
 WorkFlowSelector = Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]
@@ -101,9 +102,13 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "ruby3.2": "ruby/lib",
         "ruby3.3": "ruby/lib",
         "ruby3.4": "ruby/lib",
-        "java11": "java",
+        "ruby4.0": "ruby/lib",
         "java8.al2": "java",
+        "java8.al2023": "java",
+        "java11": "java",
+        "java11.al2023": "java",
         "java17": "java",
+        "java17.al2023": "java",
         "java21": "java",
         "java25": "java",
         "dotnet6": "dotnet",
@@ -155,6 +160,7 @@ def get_workflow_config(
         "dotnet7": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "rust-cargolambda": BasicWorkflowSelector(RUST_CARGO_LAMBDA_CONFIG),
+        "python-uv": BasicWorkflowSelector(PYTHON_UV_CONFIG),
     }
 
     selectors_by_runtime = {
@@ -173,6 +179,7 @@ def get_workflow_config(
         "ruby3.2": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.3": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "ruby3.4": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
+        "ruby4.0": BasicWorkflowSelector(RUBY_BUNDLER_CONFIG),
         "dotnet6": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet8": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
         "dotnet10": BasicWorkflowSelector(DOTNET_CLIPACKAGE_CONFIG),
@@ -195,7 +202,31 @@ def get_workflow_config(
                 JAVA_MAVEN_CONFIG,
             ]
         ),
+        "java8.al2023": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java11.al2023": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
         "java17": ManifestWorkflowSelector(
+            [
+                # Gradle builder needs custom executable paths to find `gradlew` binary
+                JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_KOTLIN_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),
+                JAVA_MAVEN_CONFIG,
+            ]
+        ),
+        "java17.al2023": ManifestWorkflowSelector(
             [
                 # Gradle builder needs custom executable paths to find `gradlew` binary
                 JAVA_GRADLE_CONFIG._replace(executable_search_paths=[code_dir, project_dir]),

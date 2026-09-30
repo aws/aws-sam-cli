@@ -8,24 +8,29 @@ from click import Context, style
 
 from samcli.cli.core.command import CoreCommand
 from samcli.cli.row_modifiers import RowDefinition, ShowcaseRowModifier
-from samcli.commands.remote.invoke.core.formatters import RemoteInvokeCommandHelpTextFormatter
-from samcli.commands.remote.invoke.core.options import OPTIONS_INFO
+from samcli.commands.common.formatters import CommandHelpTextFormatter
+from samcli.commands.remote.invoke.core.options import ALL_OPTIONS, OPTIONS_INFO
 
 
 class RemoteInvokeCommand(CoreCommand):
     class CustomFormatterContext(Context):
-        formatter_class = RemoteInvokeCommandHelpTextFormatter
+        def make_formatter(self):
+            return CommandHelpTextFormatter(
+                options=ALL_OPTIONS,
+                width=self.terminal_width,
+                max_width=self.max_content_width,
+            )
 
     context_class = CustomFormatterContext
 
     @staticmethod
-    def format_examples(ctx: Context, formatter: RemoteInvokeCommandHelpTextFormatter):
+    def format_examples(ctx: Context, formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
             with formatter.indented_section(name="Lambda Functions", extra_indents=1):
                 with formatter.indented_section(
                     name="Invoke default lambda function with empty event", extra_indents=1
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} --stack-name hello-world"),
@@ -36,7 +41,7 @@ class RemoteInvokeCommand(CoreCommand):
                 with formatter.indented_section(
                     name="Invoke default lambda function with event passed as text input", extra_indents=1
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -50,7 +55,7 @@ class RemoteInvokeCommand(CoreCommand):
                 with formatter.indented_section(
                     name="Invoke named lambda function with an event file", extra_indents=1
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -62,7 +67,7 @@ class RemoteInvokeCommand(CoreCommand):
                         ]
                     )
                 with formatter.indented_section(name="Invoke function with event as stdin input", extra_indents=1):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -76,7 +81,7 @@ class RemoteInvokeCommand(CoreCommand):
                 with formatter.indented_section(
                     name="Invoke function using lambda ARN and get the full AWS API response", extra_indents=1
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -90,7 +95,7 @@ class RemoteInvokeCommand(CoreCommand):
                 with formatter.indented_section(
                     name="Asynchronously invoke function with additional boto parameters", extra_indents=1
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -105,7 +110,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Dry invoke a function to validate parameter values and user/role permissions",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -121,7 +126,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Start execution with event passed as text input",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -136,7 +141,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Start execution using its physical-id or ARN with an execution name parameter",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -151,7 +156,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Start execution with an event file and get the full AWS API response",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -166,7 +171,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Start execution with event as stdin input and pass the X-ray trace header to the execution",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -183,7 +188,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Send a message with the MessageBody passed as event",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} --stack-name mock-stack MySQSQueue -e hello-world"),
@@ -195,7 +200,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Send a message using its physical-id and pass event using --event-file",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -210,7 +215,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Send a message using its ARN and delay the specified message",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -225,7 +230,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Send a message along with message attributes and get the full AWS API response",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -242,7 +247,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Send a message to a FIFO SQS Queue",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -259,7 +264,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Put a record using the data provided as event",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -274,7 +279,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Put a record using its physical-id and pass event using --event-file",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(f"$ {ctx.command_path} MyKinesisStreamName" f" --event-file event.json"),
@@ -286,7 +291,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Put a record using its ARN and override the key hash",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -302,7 +307,7 @@ class RemoteInvokeCommand(CoreCommand):
                     name="Put a record with a sequence number for ordering with a PartitionKey",
                     extra_indents=1,
                 ):
-                    formatter.write_rd(
+                    formatter.write_text_rows(
                         [
                             RowDefinition(
                                 name=style(
@@ -316,7 +321,7 @@ class RemoteInvokeCommand(CoreCommand):
                     )
 
     @staticmethod
-    def format_acronyms(formatter: RemoteInvokeCommandHelpTextFormatter):
+    def format_acronyms(formatter: CommandHelpTextFormatter):
         with formatter.indented_section(name="Acronyms", extra_indents=1):
             formatter.write_rd(
                 [
@@ -328,7 +333,7 @@ class RemoteInvokeCommand(CoreCommand):
                 ]
             )
 
-    def format_options(self, ctx: Context, formatter: RemoteInvokeCommandHelpTextFormatter) -> None:  # type:ignore
+    def format_options(self, ctx: Context, formatter: CommandHelpTextFormatter) -> None:  # type: ignore
         # NOTE: `ignore` is put in place here for mypy even though it is the correct behavior,
         # as the `formatter_class` can be set in subclass of Command. If ignore is not set,
         # mypy raises argument needs to be HelpFormatter as super class defines it.

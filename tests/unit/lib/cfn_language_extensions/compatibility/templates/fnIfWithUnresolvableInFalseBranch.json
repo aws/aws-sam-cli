@@ -1,0 +1,142 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Parameters": {
+    "env": {
+      "Type": "String",
+      "AllowedValues": [
+        "DEV",
+        "PROD"
+      ],
+      "Default": "DEV"
+    },
+    "subnets": {
+      "Type": "List<AWS::EC2::Subnet::Id>",
+      "Default": "subnet-1"
+    },
+    "subnetCount": {
+      "Type": "Number",
+      "MinValue": 1,
+      "MaxValue": 2,
+      "Default":  1
+    }
+  },
+  "Conditions": {
+    "isProd": {
+      "Fn::Equals": [
+        {
+          "Ref": "env"
+        },
+        "PROD"
+      ]
+    },
+    "configureSubnet1": {
+      "Fn::Or": [
+        {
+          "Fn::Equals": [
+            {
+              "Ref": "subnetCount"
+            },
+            1
+          ]
+        },
+        {
+          "Condition": "configureSubnet2"
+        }
+      ]
+    },
+    "configureSubnet2": {
+      "Fn::Equals": [
+        {
+          "Ref": "subnetCount"
+        },
+        2
+      ]
+    }
+  },
+  "Resources": {
+    "executionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "test-lambda-exec-role",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "allow-manage-ec2-network-interface-policy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "ec2:CreateNetworkInterface",
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:network-interface/*"
+                    },
+                    {
+                      "Fn::If": [
+                        "configureSubnet1",
+                        {
+                          "Fn::Sub": [
+                            "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${subnet}",
+                            {
+                              "subnet": {
+                                "Fn::Select": [
+                                  0,
+                                  {
+                                    "Ref": "subnets"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "Ref": "AWS::NoValue"
+                        }
+                      ]
+                    },
+                    {
+                      "Fn::If": [
+                        "configureSubnet2",
+                        {
+                          "Fn::Sub": [
+                            "arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:subnet/${subnet}",
+                            {
+                              "subnet": {
+                                "Fn::Select": [
+                                  1,
+                                  {
+                                    "Ref": "subnets"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "Ref": "AWS::NoValue"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,32 +1,28 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
-func handler(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	svc := sts.New(session.New())
-	input := &sts.GetCallerIdentityInput{}
-
-	result, err := svc.GetCallerIdentity(input)
+func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		if aerr, ok := err.(awserr.Error); ok {
-			switch aerr.Code() {
-			default:
-				fmt.Println(aerr.Error())
-			}
-		} else {
-			fmt.Println(err.Error())
-		}
+		return events.APIGatewayProxyResponse{StatusCode: 500}, fmt.Errorf("unable to load SDK config: %w", err)
 	}
 
-    response := fmt.Sprintf("{\"message\": \"Hello world\", \"account\": \"%v\"}", *result.Account)
+	svc := sts.NewFromConfig(cfg)
+	result, err := svc.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return events.APIGatewayProxyResponse{StatusCode: 500}, fmt.Errorf("STS call failed: %w", err)
+	}
+
+	response := fmt.Sprintf(`{"message": "Hello world", "account": "%s"}`, *result.Account)
 	return events.APIGatewayProxyResponse{
 		Body:       response,
 		StatusCode: 200,

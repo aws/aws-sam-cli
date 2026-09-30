@@ -1,0 +1,35 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "AWS::LanguageExtensions",
+  "Mappings" : {
+    "PartitionMap" : {
+      "aws" : {
+        "$RESOURCE_ATTRIBUTE": "Delete"
+      },
+      "aws-us-gov" : {
+        "$RESOURCE_ATTRIBUTE": "Retain"
+      },
+      "aws-cn" : {
+        "$RESOURCE_ATTRIBUTE": "Delete"
+      },
+      "aws-iso" : {
+        "$RESOURCE_ATTRIBUTE": "Retain"
+      },
+      "aws-iso-b" : {
+        "$RESOURCE_ATTRIBUTE": "Retain"
+      }
+    }
+  },
+  "Resources": {
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle",
+      "$RESOURCE_ATTRIBUTE": {
+        "Fn::FindInMap" : [
+          "PartitionMap",
+          { "Ref" :  "AWS::Partition" },
+          "$RESOURCE_ATTRIBUTE"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Conditions": {
+    "Fn::ForEach::UniqueLoopName1": [
+      "VariableName",
+      ["1", "2"],
+      {
+        "Condition${VariableName}": {
+          "Fn::Equals": ["1", {"Ref": "VariableName"}]
+        }
+      }
+    ],
+    "Fn::ForEach::UniqueLoopName2": [
+      "VariableName",
+      ["3", "4"],
+      {
+        "Condition${VariableName}": {
+          "Fn::Equals": ["1", {"Ref": "VariableName"}]
+        }
+      }
+    ],
+    "Condition0": {
+      "Fn::Equals": ["1", "0"]
+    }
+  },
+  "Resources": {
+    "Topic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "MyTopic"
+      }
+    }
+  }
+}

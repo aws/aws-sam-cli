@@ -1,0 +1,26 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "ParamName": {
+      "Type": "String",
+      "Default": "ABC"
+    }
+  },
+  "Resources": {
+    "Fn::ForEach::UniqueLoopName": [
+      "VariableName",
+      ["1", "2"],
+      {
+        "Topic${VariableName}${ParamName}": {
+          "Type": "AWS::SNS::Topic",
+          "Properties": {
+            "TopicName": {
+              "Fn::Sub": "MyTopic${VariableName}"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

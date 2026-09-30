@@ -1,0 +1,17 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  "Transform": "LanguageExtensionsDev",
+  "Parameters": {
+    "queues": {
+      "Type": "CommaDelimitedList"
+    }
+  },
+  "Resources": {
+    "Queue": {
+      "Type": "AWS::SQS::Queue",
+      "Properties": {
+        "DelaySeconds": { "Fn::Length" : { "Ref": "queues" } }
+      }
+    }
+  }
+}

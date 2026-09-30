@@ -108,8 +108,7 @@ class TestTar(TestCase):
         extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
 
         is_within_directory_patch.assert_called_once()
-        tarfile_file_mock.getmembers.assert_called_once()
-        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir)
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir, filter="data")
 
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar._is_within_directory")
@@ -118,8 +117,8 @@ class TestTar(TestCase):
         unpack_dir = "/test_unpack_dir/"
         is_within_directory_patch.return_value = True
 
-        tarfile_file_mock = Mock()  # Mock tarfile
-        tar_file_obj_mock = Mock()  # Mock member inside tarfile
+        tarfile_file_mock = Mock()
+        tar_file_obj_mock = Mock()
         tar_file_obj_mock.name = "obj_name"
         tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
@@ -128,7 +127,7 @@ class TestTar(TestCase):
 
         is_within_directory_patch.assert_called_once()
         tarfile_file_mock.getmembers.assert_called_once()
-        tarfile_file_mock.extractall.assert_called_once_with(unpack_dir)
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir, filter="data")
 
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar._is_within_directory")
@@ -140,6 +139,7 @@ class TestTar(TestCase):
         tarfile_file_mock = Mock()
         tar_file_obj_mock = Mock()
         tar_file_obj_mock.name = "obj_name"
+        tar_file_obj_mock.issym.return_value = False
         tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
         tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
 
@@ -231,3 +231,104 @@ class TestTar(TestCase):
         result = _validate_destinations_exists(["mock_folder"])
 
         self.assertEqual(result, file_exists)
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_allows_safe_symlinks(self, is_within_directory_patch, tarfile_open_patch):
+        """When mount_symlinks is False (default), filter='data' is used."""
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()
+
+        regular_file_1 = Mock()
+        regular_file_1.name = "regular_file_1.txt"
+
+        safe_symlink = Mock()
+        safe_symlink.name = "safe_symlink"
+
+        tarfile_file_mock.getmembers.return_value = [regular_file_1, safe_symlink]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir, filter="data")
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_skips_unsafe_symlinks(self, is_within_directory_patch, tarfile_open_patch):
+        """When mount_symlinks is False (default), filter='data' handles symlink safety."""
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()
+
+        regular_file_1 = Mock()
+        regular_file_1.name = "regular_file_1.txt"
+
+        unsafe_symlink = Mock()
+        unsafe_symlink.name = "unsafe_symlink"
+
+        tarfile_file_mock.getmembers.return_value = [regular_file_1, unsafe_symlink]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+        # filter='data' is passed to extractall to handle symlink filtering
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir, filter="data")
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_allows_outside_symlinks_when_mount_symlinks_enabled(
+        self, is_within_directory_patch, tarfile_open_patch
+    ):
+        """When mount_symlinks is True, no filter is applied so symlinks are preserved."""
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()
+
+        regular_file = Mock()
+        regular_file.name = "regular_file.txt"
+
+        outside_symlink = Mock()
+        outside_symlink.name = "outside_symlink"
+
+        tarfile_file_mock.getmembers.return_value = [regular_file, outside_symlink]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir, mount_symlinks=True)
+
+        # No filter applied — symlinks pointing outside are allowed
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir)
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_raises_when_data_filter_unavailable(self, is_within_directory_patch, tarfile_open_patch):
+        """When data_filter is not available, raises ExtractError."""
+        tarfile_path = "/test_tarfile_path/"
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+
+        tarfile_file_mock = Mock()
+        tar_file_obj_mock = Mock()
+        tar_file_obj_mock.name = "obj_name"
+        tarfile_file_mock.getmembers.return_value = [tar_file_obj_mock]
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        # Temporarily remove data_filter to simulate older Python
+        data_filter = getattr(tarfile, "data_filter", None)
+        try:
+            if hasattr(tarfile, "data_filter"):
+                delattr(tarfile, "data_filter")
+
+            with self.assertRaises(tarfile.ExtractError) as ctx:
+                extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir)
+
+            self.assertIn("does not support tarfile extraction filters", str(ctx.exception))
+        finally:
+            if data_filter is not None:
+                tarfile.data_filter = data_filter

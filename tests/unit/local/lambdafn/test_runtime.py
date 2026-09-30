@@ -20,6 +20,7 @@ from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.docker.container import ContainerContext
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
+from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 
 
 class LambdaRuntime_create(TestCase):
@@ -103,6 +104,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -170,6 +172,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -220,6 +223,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -292,6 +296,7 @@ class LambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=True,
+            container_dns=None,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -360,6 +365,7 @@ class LambdaRuntime_run(TestCase):
             container_host=None,
             container_host_interface=None,
             extra_hosts=None,
+            container_dns=None,
         )
         self.manager_mock.run.assert_called_with(container, ContainerContext.INVOKE)
 
@@ -478,6 +484,7 @@ class LambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -664,6 +671,62 @@ class LambdaRuntime_invoke(TestCase):
         self.assertEqual(headers["X-Amz-Durable-Execution-Arn"], "test-arn")
         self.runtime._check_exit_state.assert_called_with(container)
 
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_unsupported_invocation_type_raises_exception(self, LambdaContainerMock):
+        """Test that unsupported invocation types raise UnsupportedInvocationType for regular Lambda functions"""
+        event = "event"
+        code_dir = "some code dir"
+        stdout = "stdout"
+        stderr = "stderr"
+        container = Mock()
+        start_timer = Mock()
+        debug_options = Mock()
+        lambda_image_mock = Mock()
+        unsupported_invocation_type = "DryRun"  # An unsupported invocation type
+
+        self.runtime = LambdaRuntime(self.manager_mock, lambda_image_mock)
+
+        # Using MagicMock to mock the context manager
+        self.runtime._get_code_dir = MagicMock()
+        self.runtime._get_code_dir.return_value = code_dir
+
+        self.runtime._clean_decompressed_paths = MagicMock()
+
+        # Configure interrupt handler
+        self.runtime._configure_interrupt = Mock()
+        self.runtime._configure_interrupt.return_value = start_timer
+
+        self.runtime._check_exit_state = Mock()
+
+        # Mock create and run to return the container
+        self.runtime.create = Mock(return_value=container)
+        self.runtime.run = Mock(return_value=container)
+
+        LambdaContainerMock.return_value = container
+        container.is_running.return_value = False
+
+        # Regular LambdaContainer (not DurableLambdaContainer) should raise exception for unsupported types
+        with self.assertRaises(UnsupportedInvocationType) as context:
+            self.runtime.invoke(
+                self.func_config,
+                event,
+                debug_context=debug_options,
+                stdout=stdout,
+                stderr=stderr,
+                invocation_type=unsupported_invocation_type,
+            )
+
+        # Verify the exception message
+        self.assertIn("invocation-type: DryRun is not supported", str(context.exception))
+        self.assertIn("Only Event and RequestResponse are supported", str(context.exception))
+
+        # Verify that wait_for_result was not called due to the exception
+        container.wait_for_result.assert_not_called()
+
+        # Verify cleanup was still called
+        self.manager_mock.stop.assert_called_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_with()
+
 
 class TestLambdaRuntime_configure_interrupt(TestCase):
     def setUp(self):
@@ -764,7 +827,7 @@ class TestLambdaRuntime_get_code_dir(TestCase):
         result = self.runtime._get_code_dir(code_path)
         self.assertEqual(result, decompressed_dir)
 
-        unzip_file_mock.assert_called_with(code_path)
+        unzip_file_mock.assert_called_with(code_path, mount_symlinks=False)
         os_mock.path.isfile.assert_called_with(code_path)
 
     @patch("samcli.local.lambdafn.runtime.os")
@@ -787,6 +850,46 @@ class TestLambdaRuntime_get_code_dir(TestCase):
 
         # Because we never unzipped anything, we should never delete
         shutil_mock.rmtree.assert_not_called()
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_warn_when_code_path_does_not_exist(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a path that does not exist on the local machine
+        """
+        code_path = "/nonexistent/path"
+
+        os_mock.path.exists.return_value = False
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        # code path must still be returned as is
+        self.assertEqual(result, code_path)
+
+        unzip_file_mock.assert_not_called()
+        log_mock.warning.assert_called_once()
+        # The warning must include the offending path
+        self.assertIn(code_path, log_mock.warning.call_args[0])
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    @patch("samcli.local.lambdafn.runtime.os")
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    def test_must_not_warn_when_code_path_exists(self, unzip_file_mock, shutil_mock, os_mock, log_mock):
+        """
+        Input is a directory that exists, no warning must be logged
+        """
+        code_path = "codedir"
+
+        os_mock.path.exists.return_value = True
+        os_mock.path.isfile.return_value = False
+
+        result = self.runtime._get_code_dir(code_path)
+        self.assertEqual(result, code_path)
+
+        log_mock.warning.assert_not_called()
 
 
 class TestLambdaRuntime_unarchived_layer(TestCase):
@@ -904,6 +1007,7 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         # Run the container and get results
@@ -1007,6 +1111,7 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -1055,6 +1160,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
                 call(
                     self.lang,
@@ -1074,6 +1180,7 @@ class TestWarmLambdaRuntime_create(TestCase):
                     extra_hosts=None,
                     function_full_path=self.full_path,
                     mount_symlinks=False,
+                    container_dns=None,
                 ),
             ]
         )
@@ -1157,10 +1264,59 @@ class TestWarmLambdaRuntime_create(TestCase):
             extra_hosts=None,
             function_full_path=self.full_path,
             mount_symlinks=False,
+            container_dns=None,
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached
         self.assertEqual(self.runtime._containers[self.full_path], container)
+
+
+class TestWarmLambdaRuntime_no_watch(TestCase):
+    """Tests that verify --no-watch suppresses observer setup and lifecycle calls."""
+
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.name = "name"
+        self.full_path = "stack/name"
+        self.func_config = FunctionConfig(
+            self.name,
+            self.full_path,
+            "runtime",
+            "handler",
+            None,
+            None,
+            ZIP,
+            "code-path",
+            [],
+            "arm64",
+        )
+        self.func_config.env_vars = Mock()
+        self.func_config.env_vars.resolve.return_value = {}
+
+    @patch("samcli.local.lambdafn.runtime.LambdaFunctionObserver")
+    def test_observer_is_not_created_when_no_watch_is_true(self, LambdaFunctionObserverMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+
+        LambdaFunctionObserverMock.assert_not_called()
+        self.assertIsNone(runtime._observer)
+
+    @patch("samcli.local.lambdafn.runtime.LambdaContainer")
+    def test_create_does_not_call_watch_or_start_when_no_watch_is_true(self, LambdaContainerMock):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._get_code_dir = MagicMock(return_value="code-dir")
+        LambdaContainerMock.return_value = Mock()
+
+        # Should not raise even though _observer is None
+        runtime.create(self.func_config, debug_context=None)
+        # Container is still created and tracked
+        self.assertIn(self.full_path, runtime._containers)
+
+    def test_clean_warm_containers_does_not_call_observer_stop_when_no_watch_is_true(self):
+        runtime = WarmLambdaRuntime(self.manager_mock, self.lambda_image_mock, no_watch=True)
+        runtime._containers = {}
+        # Should be a no-op; should not raise
+        runtime.clean_running_containers_and_related_resources()
 
 
 class TestWarmLambdaRuntime_get_code_dir(TestCase):
@@ -1342,7 +1498,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_not_called()  # Assert we do not chmod the temporary directory
 
@@ -1362,7 +1518,7 @@ class TestUnzipFile(TestCase):
         self.assertEqual(output, realpath)
 
         tempfile_mock.mkdtemp.assert_called_with()
-        unzip_mock.assert_called_with(inputpath, tmpdir)  # unzip files to temporary directory
+        unzip_mock.assert_called_with(inputpath, tmpdir, mount_symlinks=False)  # unzip files to temporary directory
         os_mock.path.realpath(tmpdir)  # Return the real path of temporary directory
         os_mock.chmod.assert_called_with(tmpdir, 0o755)  # Assert we do chmod the temporary directory
 
@@ -2255,3 +2411,37 @@ class TestShouldReloadContainer(TestCase):
 
         result = _should_reload_container(self.base_config, self.different_config, container, debug_context2)
         self.assertTrue(result)
+
+
+class TestLambdaRuntime_clean_runtime_containers(TestCase):
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    def test_clean_runtime_containers_stops_and_deletes_durable_container(self, log_mock):
+        """Test that clean_runtime_containers stops and deletes durable lambda container"""
+        manager_mock = Mock()
+        lambda_image_mock = Mock()
+        runtime = LambdaRuntime(manager_mock, lambda_image_mock)
+
+        container = Mock(spec=DurableLambdaContainer)
+        runtime._container = container
+
+        runtime.clean_runtime_containers()
+
+        container._stop.assert_called_once()
+        container._delete.assert_called_once()
+        self.assertIsNone(runtime._container)
+
+    @patch("samcli.local.lambdafn.runtime.LOG")
+    def test_clean_runtime_containers_stops_emulator_container(self, log_mock):
+        """Test that clean_runtime_containers stops and cleans up emulator container"""
+        manager_mock = Mock()
+        lambda_image_mock = Mock()
+        runtime = LambdaRuntime(manager_mock, lambda_image_mock)
+
+        emulator_container = Mock()
+        runtime._durable_execution_emulator_container = emulator_container
+
+        runtime.clean_runtime_containers()
+
+        emulator_container.stop.assert_called_once()
+        log_mock.debug.assert_called_with("Stopping durable functions emulator container")
+        self.assertIsNone(runtime._durable_execution_emulator_container)
