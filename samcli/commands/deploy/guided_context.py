@@ -168,12 +168,6 @@ class GuidedContext:
         click.secho("\t#Preserves the state of previously provisioned resources when an operation fails")
         disable_rollback = confirm(f"\t{self.start_bold}Disable rollback{self.end_bold}", default=self.disable_rollback)
 
-        if self.parallel_upload:
-            parallel_upload = True
-        else:
-            click.secho("\t#Speed up artifact uploads by running them in parallel")
-            parallel_upload = confirm(f"\t{self.start_bold}Enable parallel uploads{self.end_bold}", default=False)
-
         self.prompt_authorization(stacks)
         self.prompt_code_signing_settings(stacks)
 
@@ -216,7 +210,8 @@ class GuidedContext:
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
-        self.guided_parallel_upload = parallel_upload
+        # Not prompted, so scripted guided deploys keep their answer order; the flag value is saved.
+        self.guided_parallel_upload = self.parallel_upload
         self._capabilities = input_capabilities if input_capabilities else default_capabilities
         self._parameter_overrides = (
             input_parameter_overrides if input_parameter_overrides else self.parameter_overrides_from_cmdline

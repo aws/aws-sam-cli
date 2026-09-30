@@ -73,7 +73,7 @@ class TestGuidedContext(TestCase):
         patched_auth_per_resource.return_value = [
             ("HelloWorldFunction", True),
         ]
-        patched_confirm.side_effect = [True, False, False, False, "", True, True, True]
+        patched_confirm.side_effect = [True, False, False, "", True, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -82,7 +82,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
@@ -104,6 +103,41 @@ class TestGuidedContext(TestCase):
             global_parameter_overrides={"AWS::Region": ANY},
             language_extensions_enabled=False,
         )
+
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_keep_parallel_upload_flag_without_prompting(
+        self,
+        parallel_upload,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        get_resource_full_path_by_id_mock,
+    ):
+        patched_signer_config_per_function.return_value = (None, None)
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        self.gc.parallel_upload = parallel_upload
+
+        self.gc.guided_prompts(parameter_override_keys=None)
+
+        self.assertEqual(parallel_upload, self.gc.guided_parallel_upload)
+        prompted = [confirm_call.args[0] for confirm_call in patched_confirm.call_args_list]
+        self.assertFalse(any("parallel" in text.lower() for text in prompted))
 
     @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
@@ -129,7 +163,7 @@ class TestGuidedContext(TestCase):
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -137,7 +171,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -197,7 +230,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         get_resource_full_path_by_id_mock.return_value = None
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -205,7 +238,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -236,7 +268,6 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
-            call("\t#Speed up artifact uploads by running them in parallel"),
             call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
@@ -277,7 +308,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         get_resource_full_path_by_id_mock.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -286,7 +317,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -315,7 +345,6 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
-            call("\t#Speed up artifact uploads by running them in parallel"),
             call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
@@ -356,7 +385,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         get_resource_full_path_by_id_mock.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, False, False, True]
+        patched_confirm.side_effect = [True, False, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
@@ -402,7 +431,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
 
@@ -412,7 +441,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -441,7 +469,6 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
-            call("\t#Speed up artifact uploads by running them in parallel"),
             call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
@@ -483,7 +510,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, False, False, True]
+        patched_confirm.side_effect = [True, False, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
 
@@ -493,7 +520,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -526,7 +552,6 @@ class TestGuidedContext(TestCase):
             call("\t#Shows you resources changes to be deployed and require a 'Y' to initiate deploy"),
             call("\t#SAM needs permission to be able to create roles to connect to the resources in your template"),
             call("\t#Preserves the state of previously provisioned resources when an operation fails"),
-            call("\t#Speed up artifact uploads by running them in parallel"),
             call("\n\tManaged S3 bucket: managed_s3_stack", bold=True),
         ]
         self.assertEqual(expected_click_secho_calls, patched_click_secho.call_args_list)
@@ -567,7 +592,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, False]
+        patched_confirm.side_effect = [True, False, False, True, False, True, False]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
@@ -610,7 +635,7 @@ class TestGuidedContext(TestCase):
         ]
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, False, True, False, False, True]
+        patched_confirm.side_effect = [True, False, False, True, False, False, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         with self.assertRaises(GuidedDeployFailedError):
@@ -655,14 +680,13 @@ class TestGuidedContext(TestCase):
         patched_get_buildable_stacks.return_value = (Mock(), [])
         self.gc.capabilities = given_capabilities
         # Series of inputs to confirmations so that full range of questions are asked.
-        patched_confirm.side_effect = [True, False, False, False, "", True, True, True]
+        patched_confirm.side_effect = [True, False, False, "", True, True, True]
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
         expected_confirmation_calls = [
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(f"\t{self.gc.start_bold}Save arguments to configuration file{self.gc.end_bold}", default=True),
             call(
                 f"\t {self.gc.start_bold}Delete the unreferenced repositories listed above when deploying?{self.gc.end_bold}",
@@ -704,7 +728,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function.return_value = ({}, {})
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
-        patched_confirm.side_effect = [True, False, False, False, True, True, True, True]
+        patched_confirm.side_effect = [True, False, False, True, True, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         self.gc.guided_prompts(parameter_override_keys=None)
@@ -713,7 +737,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -767,7 +790,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_signer_config_per_function.return_value = ({}, {})
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
@@ -778,7 +801,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -827,7 +849,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, False, True, True]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
         parameter_override_from_template = {"MyTestKey": {"Default": "MyTemplateDefaultVal"}}
@@ -838,7 +860,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,
@@ -901,7 +922,7 @@ class TestGuidedContext(TestCase):
         patched_signer_config_per_function.return_value = given_code_signing_configs
         patched_get_buildable_stacks.return_value = (Mock(), [])
         # Series of inputs to confirmations so that full range of questions are asked.
-        patched_confirm.side_effect = [True, False, False, False, given_sign_packages_flag, "", True, True, True]
+        patched_confirm.side_effect = [True, False, False, given_sign_packages_flag, "", True, True, True]
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
         self.gc.guided_prompts(parameter_override_keys=None)
         # Now to check for all the defaults on confirmations.
@@ -909,7 +930,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}Do you want to sign your code?{self.gc.end_bold}",
                 default=True,
@@ -973,7 +993,7 @@ class TestGuidedContext(TestCase):
         # Series of inputs to confirmations so that full range of questions are asked.
         patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
         patched_get_resource_full_path_by_id.return_value = "RandomFunction"
-        patched_confirm.side_effect = [True, False, False, False, True, True, True, True]
+        patched_confirm.side_effect = [True, False, False, True, True, True, True]
         patched_signer_config_per_function.return_value = ({}, {})
         patched_manage_stack.return_value = "managed_s3_stack"
         patched_get_default_aws_region.return_value = "default_config_region"
@@ -985,7 +1005,6 @@ class TestGuidedContext(TestCase):
             call(f"\t{self.gc.start_bold}Confirm changes before deploy{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Allow SAM CLI IAM role creation{self.gc.end_bold}", default=True),
             call(f"\t{self.gc.start_bold}Disable rollback{self.gc.end_bold}", default=False),
-            call(f"\t{self.gc.start_bold}Enable parallel uploads{self.gc.end_bold}", default=False),
             call(
                 f"\t{self.gc.start_bold}HelloWorldFunction has no authentication. Is this okay?{self.gc.end_bold}",
                 default=False,

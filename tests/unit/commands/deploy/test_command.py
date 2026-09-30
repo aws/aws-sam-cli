@@ -298,7 +298,7 @@ class TestDeployCliCommand(TestCase):
         context_mock = Mock()
         mockauth_per_resource.return_value = [("HelloWorldResource1", False), ("HelloWorldResource2", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, True, False, False, True, False]
+        mock_confirm.side_effect = [True, True, False, True, False]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -399,7 +399,7 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -558,7 +558,7 @@ class TestDeployCliCommand(TestCase):
         mock_sam_function_provider.return_value.get_all.return_value = [function_mock]
         mockauth_per_resource.return_value = [("HelloWorldResource", False)]
         mock_deploy_context.return_value.__enter__.return_value = context_mock
-        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
         mock_prompt.side_effect = [
             "sam-app",
             "us-east-1",
@@ -731,7 +731,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -900,7 +900,7 @@ class TestDeployCliCommand(TestCase):
             "testconfig.toml",
             "test-env",
         ]
-        mock_confirm.side_effect = [True, False, True, False, True, True, True, True]
+        mock_confirm.side_effect = [True, False, True, True, True, True, True]
         mock_get_cmd_names.return_value = ["deploy"]
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
@@ -1048,7 +1048,7 @@ class TestDeployCliCommand(TestCase):
             "us-east-1",
             ("CAPABILITY_IAM",),
         ]
-        mock_confirm.side_effect = [True, True, False, False, True, False, True, True]
+        mock_confirm.side_effect = [True, True, False, True, False, True, True]
 
         mock_managed_stack.return_value = "managed-s3-bucket"
         mock_signer_config_per_function.return_value = ({}, {})
