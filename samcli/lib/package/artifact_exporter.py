@@ -94,6 +94,10 @@ def get_parallel_upload_workers() -> int:
     return workers
 
 
+class _UploadAborted(Exception):
+    """Raised by parallel export work that was skipped because another upload already failed."""
+
+
 class _ThreadSafeUploadCache(MutableMapping[str, str]):
     """
     Thread-safe mapping used to deduplicate uploads across threads.
@@ -332,6 +336,9 @@ class CloudFormationStackResource(ResourceZip):
             temporary_file.flush()
             remote_path = get_uploaded_s3_object_name(file_path=temporary_file.name, extension="template")
             upload_executor = getattr(self, "upload_executor", None)
+            upload_abort = getattr(self, "upload_abort", None)
+            if upload_abort is not None and upload_abort.is_set():
+                raise _UploadAborted()
             if upload_executor is not None:
                 # Keep the rendered child template upload under the shared upload bound; this runs on
                 # a nested-stack coordination thread, which may wait on the upload pool.
@@ -363,6 +370,7 @@ class CloudFormationStackResource(ResourceZip):
             language_extensions_enabled=False,
             parallel_upload=getattr(self, "parallel_upload", False),
             upload_executor=getattr(self, "upload_executor", None),
+            upload_abort=getattr(self, "upload_abort", None),
         ).export()
 
     def _do_export_with_language_extensions(
@@ -459,6 +467,7 @@ class CloudFormationStackResource(ResourceZip):
                 language_extensions_enabled=self.language_extensions_enabled,
                 parallel_upload=getattr(self, "parallel_upload", False),
                 upload_executor=getattr(self, "upload_executor", None),
+                upload_abort=getattr(self, "upload_abort", None),
             )
 
             exported_template = template.export()
@@ -494,6 +503,7 @@ class CloudFormationStackResource(ResourceZip):
                 language_extensions_enabled=self.language_extensions_enabled,
                 parallel_upload=getattr(self, "parallel_upload", False),
                 upload_executor=getattr(self, "upload_executor", None),
+                upload_abort=getattr(self, "upload_abort", None),
             ).export()
 
         return exported_template_dict
@@ -578,6 +588,7 @@ class Template:
         language_extensions_enabled: bool = False,
         parallel_upload: bool = False,
         upload_executor: Optional[ThreadPoolExecutor] = None,
+        upload_abort: Optional[threading.Event] = None,
     ):
         """
         Reads the template and makes it ready for export
@@ -626,6 +637,8 @@ class Template:
         # Shared by the root template and every nested-stack child so that one pool bounds both
         # threads and in-flight uploads for the whole export. Created by the root when None.
         self.upload_executor = upload_executor
+        # Set on the first failure anywhere in the export so descendants stop starting new uploads.
+        self.upload_abort = upload_abort
 
     def _export_global_artifacts(self, template_dict: Dict) -> Dict:
         """See module-level _export_global_artifacts_pass for the canonical
@@ -706,18 +719,23 @@ class Template:
             cache = _ThreadSafeUploadCache(cache, key_by_packaging=cache is None)
 
         if not self.parallel_upload:
-            for _, job in self._collect_export_jobs(cache, None):
+            for _, job in self._collect_export_jobs(cache, None, None):
                 job()
         elif self.upload_executor is not None:
-            self._run_export_jobs(self._collect_export_jobs(cache, self.upload_executor), self.upload_executor)
+            jobs = self._collect_export_jobs(cache, self.upload_executor, self.upload_abort)
+            self._run_export_jobs(jobs, self.upload_executor, self.upload_abort)
         else:
+            abort = threading.Event()
             with ThreadPoolExecutor(max_workers=get_parallel_upload_workers()) as executor:
-                self._run_export_jobs(self._collect_export_jobs(cache, executor), executor)
+                self._run_export_jobs(self._collect_export_jobs(cache, executor, abort), executor, abort)
 
         return self.template_dict
 
     def _collect_export_jobs(
-        self, cache: Optional[MutableMapping[str, str]], executor: Optional[ThreadPoolExecutor]
+        self,
+        cache: Optional[MutableMapping[str, str]],
+        executor: Optional[ThreadPoolExecutor],
+        abort: Optional[threading.Event],
     ) -> List[Tuple[bool, Callable[[], None]]]:
         """Return (is_nested_stack, job) pairs for every resource that has artifacts to export."""
         jobs: List[Tuple[bool, Callable[[], None]]] = []
@@ -736,7 +754,7 @@ class Template:
                 is_nested_stack = isinstance(exporter_class, type) and issubclass(
                     exporter_class, CloudFormationStackResource
                 )
-                job = self._build_export_job(exporter_class, full_path, resource_dict, cache, executor)
+                job = self._build_export_job(exporter_class, full_path, resource_dict, cache, executor, abort)
                 jobs.append((is_nested_stack, job))
         return jobs
 
@@ -747,49 +765,67 @@ class Template:
         resource_dict: Dict,
         cache: Optional[MutableMapping[str, str]],
         executor: Optional[ThreadPoolExecutor] = None,
+        abort: Optional[threading.Event] = None,
     ) -> Callable[[], None]:
         def _job() -> None:
+            if abort is not None and abort.is_set():
+                raise _UploadAborted()
             # Export code resources
             exporter = exporter_class(self.uploaders, self.code_signer, cache)
             exporter.parent_parameter_values = self.parameter_values
             exporter.language_extensions_enabled = self.language_extensions_enabled
             exporter.parallel_upload = self.parallel_upload
             exporter.upload_executor = executor
+            exporter.upload_abort = abort
             exporter.export(resource_full_path, resource_dict, self.template_dir)
 
         return _job
 
     @staticmethod
-    def _run_export_jobs(jobs: List[Tuple[bool, Callable[[], None]]], executor: ThreadPoolExecutor) -> None:
+    def _run_export_jobs(
+        jobs: List[Tuple[bool, Callable[[], None]]],
+        executor: ThreadPoolExecutor,
+        abort: Optional[threading.Event] = None,
+    ) -> None:
         """
         Artifact uploads go to the shared upload executor. Nested-stack exports only coordinate:
         they wait on their children's uploads, so they run on a separate pool with one thread per
         nested stack at this level, never in the upload pool, where waiting could deadlock it.
         Sibling nested stacks therefore proceed concurrently while the shared pool bounds uploads,
-        and a single fail-fast wait covers both.
+        and a single fail-fast wait covers both. ``abort`` is shared by the whole export: once any
+        job fails, work that has not started yet at any level is skipped.
         """
+        if abort is not None and abort.is_set():
+            raise _UploadAborted()
         upload_futures = [executor.submit(job) for is_nested_stack, job in jobs if not is_nested_stack]
         nested_jobs = [job for is_nested_stack, job in jobs if is_nested_stack]
         if not nested_jobs:
-            Template._wait_fail_fast(upload_futures)
+            Template._wait_fail_fast(upload_futures, abort)
             return
         with ThreadPoolExecutor(max_workers=len(nested_jobs)) as coordinator:
             nested_futures = [coordinator.submit(job) for job in nested_jobs]
-            Template._wait_fail_fast(upload_futures + nested_futures)
+            Template._wait_fail_fast(upload_futures + nested_futures, abort)
 
     @staticmethod
-    def _wait_fail_fast(futures: List[Future]) -> None:
-        """Wait for futures; on the first failure cancel the rest, log other failures, re-raise the first."""
+    def _wait_fail_fast(futures: List[Future], abort: Optional[threading.Event] = None) -> None:
+        """
+        Wait for futures. On the first failure, signal the rest of the export to stop, cancel what
+        has not started here, wait for running work, log the other failures and re-raise the first
+        real one (in submission order, so the surfaced error is stable).
+        """
         done, _ = wait(futures, return_when=FIRST_EXCEPTION)
-        # Submission order keeps the surfaced error stable when several jobs have already failed.
-        failed = [future for future in futures if future in done and future.exception() is not None]
-        if not failed:
+        if not any(future.exception() is not None for future in done):
             return
+        if abort is not None:
+            abort.set()
         for future in futures:
             future.cancel()
         wait(futures)
-        Template._log_other_failures(futures, surfaced=failed[0])
-        raise cast(BaseException, failed[0].exception())
+        failed = [future for future in futures if not future.cancelled() and future.exception() is not None]
+        real = [future for future in failed if not isinstance(future.exception(), _UploadAborted)]
+        surfaced = (real or failed)[0]
+        Template._log_other_failures(futures, surfaced=surfaced)
+        raise cast(BaseException, surfaced.exception())
 
     @staticmethod
     def _log_other_failures(futures: List[Future], surfaced: Optional[Future] = None) -> None:
@@ -798,7 +834,7 @@ class Template:
             if future is surfaced or future.cancelled():
                 continue
             error = future.exception()
-            if error is not None:
+            if error is not None and not isinstance(error, _UploadAborted):
                 LOG.error("Parallel artifact upload also failed: %s", error, exc_info=error)
 
     def delete(self, retain_resources: List):

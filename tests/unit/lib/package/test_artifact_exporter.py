@@ -39,6 +39,7 @@ from samcli.lib.package.artifact_exporter import (
     _export_global_artifacts_pass,
     _resolve_nested_stack_parameters,
     _ThreadSafeUploadCache,
+    _UploadAborted,
     get_parallel_upload_workers,
 )
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
@@ -1234,6 +1235,7 @@ class TestArtifactExporter(unittest.TestCase):
                 language_extensions_enabled=True,
                 parallel_upload=False,
                 upload_executor=None,
+                upload_abort=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1419,6 +1421,7 @@ class TestArtifactExporter(unittest.TestCase):
                 language_extensions_enabled=True,
                 parallel_upload=False,
                 upload_executor=None,
+                upload_abort=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1640,9 +1643,10 @@ class TestArtifactExporter(unittest.TestCase):
             template_exporter.export()
 
         run_jobs_mock.assert_called_once()
-        jobs, executor = run_jobs_mock.call_args[0]
+        jobs, executor, abort = run_jobs_mock.call_args[0]
         self.assertEqual([False, False], [is_nested_stack for is_nested_stack, _ in jobs])
         self.assertIsInstance(executor, ThreadPoolExecutor)
+        self.assertIsInstance(abort, threading.Event)
 
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
@@ -1939,6 +1943,59 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertEqual(1, len(upload_threads))
         self.assertTrue(upload_threads[0].startswith("upload"))
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_failure_stops_nested_subtrees_from_starting_new_uploads(self, log_mock):
+        abort = threading.Event()
+        upload_failed = threading.Event()
+        child_upload = Mock()
+
+        def failing_upload():
+            try:
+                raise RuntimeError("bucket is gone")
+            finally:
+                upload_failed.set()
+
+        def nested_stack():
+            # A nested stack that only reaches its own uploads after the root upload has failed.
+            upload_failed.wait(5)
+            abort.wait(5)
+            Template._run_export_jobs([(False, child_upload)], executor, abort)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            with self.assertRaises(RuntimeError):
+                Template._run_export_jobs([(False, failing_upload), (True, nested_stack)], executor, abort)
+
+        child_upload.assert_not_called()
+        self.assertTrue(abort.is_set())
+        logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
+        self.assertFalse(any(isinstance(error, _UploadAborted) for error in logged))
+
+    def test_wait_fail_fast_surfaces_real_failure_over_aborted_work(self):
+        aborted, real = Future(), Future()
+        aborted.set_exception(_UploadAborted())
+        real.set_exception(ValueError("real failure"))
+
+        with self.assertRaises(ValueError):
+            Template._wait_fail_fast([aborted, real], threading.Event())
+
+    def test_export_job_is_skipped_once_export_is_aborted(self):
+        exporter = Mock()
+        template_exporter = Template.__new__(Template)
+        template_exporter.uploaders = Mock()
+        template_exporter.code_signer = Mock()
+        template_exporter.parameter_values = None
+        template_exporter.language_extensions_enabled = False
+        template_exporter.template_dir = "dir"
+        template_exporter.parallel_upload = True
+        abort = threading.Event()
+        abort.set()
+
+        job = template_exporter._build_export_job(Mock(return_value=exporter), "Leaf", {}, None, Mock(), abort)
+
+        with self.assertRaises(_UploadAborted):
+            job()
+        exporter.export.assert_not_called()
 
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()
