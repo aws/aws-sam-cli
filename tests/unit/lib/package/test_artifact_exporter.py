@@ -1997,6 +1997,16 @@ class TestArtifactExporter(unittest.TestCase):
             job()
         exporter.export.assert_not_called()
 
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_other_failures_log_one_line_with_traceback_only_at_debug(self, log_mock):
+        other = Future()
+        other.set_exception(RuntimeError("other failure"))
+
+        Template._log_other_failures([other])
+
+        self.assertNotIn("exc_info", log_mock.error.call_args.kwargs)
+        self.assertIs(other.exception(), log_mock.debug.call_args.kwargs["exc_info"])
+
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()
         self.assertIs(cache.key_lock("a"), cache.key_lock("a"))

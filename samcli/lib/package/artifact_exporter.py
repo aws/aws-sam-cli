@@ -835,7 +835,10 @@ class Template:
                 continue
             error = future.exception()
             if error is not None and not isinstance(error, _UploadAborted):
-                LOG.error("Parallel artifact upload also failed: %s", error, exc_info=error)
+                # One line per extra failure; the surfaced error is reported normally and the full
+                # traceback of the others is only shown with --debug.
+                LOG.error("Parallel artifact upload also failed: %s", error)
+                LOG.debug("Traceback for the parallel upload failure above", exc_info=error)
 
     def delete(self, retain_resources: List):
         """
