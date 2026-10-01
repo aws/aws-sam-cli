@@ -98,6 +98,21 @@ class _UploadAborted(Exception):
     """Raised by parallel export work that was skipped because another upload already failed."""
 
 
+def _is_upload_abort(error: Optional[BaseException]) -> bool:
+    """
+    True if ``error`` is, or wraps, an ``_UploadAborted``. Exporters wrap ``do_export`` failures in
+    ``ExportFailedError(ex=...)``, so a nested stack that was skipped reaches its parent wrapped,
+    once per nesting level.
+    """
+    seen = set()
+    while error is not None and id(error) not in seen:
+        if isinstance(error, _UploadAborted):
+            return True
+        seen.add(id(error))
+        error = getattr(error, "ex", None) or error.__cause__
+    return False
+
+
 class _ThreadSafeUploadCache(MutableMapping[str, str]):
     """
     Thread-safe mapping used to deduplicate uploads across threads.
@@ -822,7 +837,7 @@ class Template:
             future.cancel()
         wait(futures)
         failed = [future for future in futures if not future.cancelled() and future.exception() is not None]
-        real = [future for future in failed if not isinstance(future.exception(), _UploadAborted)]
+        real = [future for future in failed if not _is_upload_abort(future.exception())]
         surfaced = (real or failed)[0]
         Template._log_other_failures(futures, surfaced=surfaced)
         raise cast(BaseException, surfaced.exception())
@@ -834,7 +849,7 @@ class Template:
             if future is surfaced or future.cancelled():
                 continue
             error = future.exception()
-            if error is not None and not isinstance(error, _UploadAborted):
+            if error is not None and not _is_upload_abort(error):
                 # One line per extra failure; the surfaced error is reported normally and the full
                 # traceback of the others is only shown with --debug.
                 LOG.error("Parallel artifact upload also failed: %s", error)

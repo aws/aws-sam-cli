@@ -40,6 +40,7 @@ from samcli.lib.package.artifact_exporter import (
     _resolve_nested_stack_parameters,
     _ThreadSafeUploadCache,
     _UploadAborted,
+    _is_upload_abort,
     get_parallel_upload_workers,
 )
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
@@ -2006,6 +2007,41 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertNotIn("exc_info", log_mock.error.call_args.kwargs)
         self.assertIs(other.exception(), log_mock.debug.call_args.kwargs["exc_info"])
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_wait_fail_fast_ignores_aborts_wrapped_by_nested_stack_exporters(self, log_mock):
+        # Sibling nested stack A was skipped after B failed. ResourceZip.export wraps both in
+        # ExportFailedError, once per nesting level; A comes first in submission order.
+        aborted_a, failed_b = Future(), Future()
+        aborted_a.set_exception(
+            exceptions.ExportFailedError(
+                resource_id="Outer",
+                property_name="TemplateURL",
+                property_value="outer.yaml",
+                ex=exceptions.ExportFailedError(
+                    resource_id="A", property_name="TemplateURL", property_value="a.yaml", ex=_UploadAborted()
+                ),
+            )
+        )
+        real_error = exceptions.ExportFailedError(
+            resource_id="B", property_name="TemplateURL", property_value="b.yaml", ex=RuntimeError("bucket is gone")
+        )
+        failed_b.set_exception(real_error)
+
+        with self.assertRaises(exceptions.ExportFailedError) as raised:
+            Template._wait_fail_fast([aborted_a, failed_b], threading.Event())
+
+        self.assertIs(real_error, raised.exception)
+        log_mock.error.assert_not_called()
+
+    def test_is_upload_abort_follows_wrapping(self):
+        self.assertTrue(_is_upload_abort(_UploadAborted()))
+        wrapped = exceptions.ExportFailedError(
+            resource_id="A", property_name="TemplateURL", property_value="a.yaml", ex=_UploadAborted()
+        )
+        self.assertTrue(_is_upload_abort(wrapped))
+        self.assertFalse(_is_upload_abort(RuntimeError("real")))
+        self.assertFalse(_is_upload_abort(None))
 
     def test_thread_safe_upload_cache_key_lock_is_per_key(self):
         cache = _ThreadSafeUploadCache()
