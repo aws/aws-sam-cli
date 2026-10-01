@@ -80,7 +80,7 @@ dev = [
     "types-pywin32==312.0.0.20260827",
     "types-PyYAML==6.0.12.20260815",
     "types-chevron==0.14.2.20260408",
-    "types-psutil==7.2.2.20260827",
+    "types-psutil==7.2.2.20260906",
     "types-setuptools==84.0.0.20260812",
     "types-Pygments==2.21.0.20260819",
     "types-colorama==0.4.15.20260508",
