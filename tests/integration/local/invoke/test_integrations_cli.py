@@ -10,18 +10,15 @@ from parameterized import parameterized, parameterized_class
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
 import pytest
-import docker
 
 from pathlib import Path
 
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, run_command
+from tests.testing_utils import IS_WINDOWS, run_command
 from samcli.local.docker.utils import get_validated_container_client
 
-# Layers tests require credentials and Appveyor will only add credentials to the env if the PR is from the same repo.
-# This is to restrict layers tests to run outside of Appveyor, when the branch is not master and tests are not run by Canary.
-SKIP_LAYERS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# Layers tests require AWS credentials; they are gated by the requires_credential marker.
 
 TIMEOUT = 300
 
@@ -596,7 +593,6 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertIn("Requested to skip pulling images", process_stderr.decode("utf-8"))
 
     # For Windows, this test must run with administrator privilege
-    @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function(self):
         command_list = InvokeIntegBase.get_command_list(
@@ -617,7 +613,6 @@ class TestSamPythonHelloWorldIntegration(IntegrationCliIntegBase):
         self.assertEqual(process_stdout.decode("utf-8"), '"git init passed"')
 
     # For Windows, this test must run with administrator privilege
-    @skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
     @pytest.mark.requires_credential
     def test_invoke_returns_expected_results_from_git_function_with_parameters(self):
         command_list = InvokeIntegBase.get_command_list(
@@ -900,7 +895,6 @@ class TestLayerVersionBase(InvokeIntegBase):
         (Path("layers", "some-dir", "layer-template-parent.yaml"),),
     ],
 )
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 @pytest.mark.requires_credential
 @pytest.mark.flaky(reruns=3)
 @pytest.mark.xdist_group(name="lambda_layers")
@@ -1124,7 +1118,7 @@ class TestLayerVersion(TestLayerVersionBase):
         self.assertEqual(2, len(cache_contents))
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
 @pytest.mark.xdist_group(name="lambda_layers")
 class TestLocalZipLayerVersion(InvokeIntegBase):
     template = Path("layers", "local-zip-layer-template.yml")
@@ -1144,7 +1138,6 @@ class TestLocalZipLayerVersion(InvokeIntegBase):
         self.assertEqual('"Layer1"', execute.stdout.decode())
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
 @pytest.mark.requires_credential
 @pytest.mark.xdist_group(name="lambda_layers")
 class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
@@ -1213,7 +1206,7 @@ class TestLayerVersionThatDoNotCreateCache(InvokeIntegBase):
         self.assertIn(expected_error_output, error_output)
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
 @pytest.mark.xdist_group(name="lambda_layers")
 class TestBadLayerVersion(InvokeIntegBase):
     template = Path("layers", "layer-bad-template.yaml")

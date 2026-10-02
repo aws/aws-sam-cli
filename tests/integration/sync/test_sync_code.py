@@ -4,7 +4,6 @@ import platform
 import logging
 import json
 import shutil
-import tempfile
 import time
 import uuid
 from pathlib import Path
@@ -14,7 +13,6 @@ from unittest import skipIf
 
 import pytest
 import boto3
-from botocore.exceptions import ClientError
 from parameterized import parameterized_class, parameterized
 
 from samcli.lib.utils.resources import (
@@ -24,12 +22,10 @@ from samcli.lib.utils.resources import (
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
 
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_LMI_TESTS
+from tests.testing_utils import SKIP_LMI_TESTS
 from tests.testing_utils import run_command_with_input
 
-# Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 IS_WINDOWS = platform.system().lower() == "windows"
 # Some wait time for code updates to be reflected on each service
 API_SLEEP = 5
@@ -90,7 +86,7 @@ class TestSyncCodeBase(SyncIntegBase):
         self.assertIn("Stack creation succeeded. Sync infra completed.", str(sync_process_execute.stderr))
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class(
     [
         {"dependency_layer": True, "use_container": True},
@@ -280,7 +276,7 @@ class TestSyncCode(TestSyncCodeBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
     template = "template-dotnet.yaml"
     dependency_layer = False
@@ -320,7 +316,7 @@ class TestSyncCodeDotnetFunctionTemplate(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "hello sam accelerate!!")
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
     template = "template-nodejs.yaml"
@@ -374,7 +370,7 @@ class TestSyncCodeNodejsFunctionTemplate(TestSyncCodeBase):
             self.assertIn("@faker-js", layer_contents)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeNested(TestSyncCodeBase):
     template = "template.yaml"
@@ -552,7 +548,7 @@ class TestSyncCodeNested(TestSyncCodeBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
     template = "template.yaml"
@@ -600,7 +596,7 @@ class TestSyncCodeNestedWithIntrinsics(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "9")
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
     template = "template-esbuild.yaml"
     folder = "code"
@@ -643,7 +639,7 @@ class TestSyncCodeEsbuildFunctionTemplate(TestSyncCodeBase):
                 self.assertEqual(lambda_response.get("message"), "Hello world!")
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class(
     [
         {"dependency_layer": True, "use_container": True},

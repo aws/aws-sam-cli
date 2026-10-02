@@ -10,15 +10,11 @@ from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
-from unittest import TestCase, skip
-from unittest.case import skipIf
+from unittest import TestCase
 
 import pytest
 from parameterized import parameterized
 from tests.testing_utils import (
-    RUN_BY_CANARY,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
     run_command,
     get_sam_command,
 )
@@ -48,9 +44,7 @@ def get_runtime_deprecation_values(runtime):
     return {"code": "E2533", "msg": "Check if Lambda Function Runtimes are updatable"}
 
 
-# Validate tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_VALIDATE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 
 
 class TemplateFileTypes(Enum):
@@ -58,7 +52,7 @@ class TemplateFileTypes(Enum):
     YAML = auto()
 
 
-@skipIf(SKIP_VALIDATE_TESTS, "Skip validate tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):

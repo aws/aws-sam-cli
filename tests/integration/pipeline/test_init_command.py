@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from textwrap import dedent
 from typing import List
-from unittest import skipIf
+import pytest
 
 from parameterized import parameterized
 
@@ -11,7 +11,7 @@ from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_DIR, PIPELINE
 from samcli.commands.pipeline.init.interactive_init_flow import APP_PIPELINE_TEMPLATES_REPO_LOCAL_NAME
 from samcli.cli.global_config import GlobalConfig
 from tests.integration.pipeline.base import InitIntegBase, BootstrapIntegBase
-from tests.integration.pipeline.test_bootstrap_command import SKIP_BOOTSTRAP_TESTS, CREDENTIAL_PROFILE
+from tests.integration.pipeline.test_bootstrap_command import CREDENTIAL_PROFILE
 from tests.testing_utils import run_command_with_inputs, get_sam_command
 
 QUICK_START_JENKINS_INPUTS_WITHOUT_AUTO_FILL = [
@@ -200,7 +200,7 @@ class TestInit(InitIntegBase):
             self.assertEqual(expected.read(), output.read())
 
 
-@skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestInitWithBootstrap(BootstrapIntegBase):
     generated_files: List[Path] = []
 

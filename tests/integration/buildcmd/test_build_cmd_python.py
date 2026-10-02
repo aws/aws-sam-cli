@@ -16,8 +16,6 @@ from tests.testing_utils import (
     CI_OVERRIDE,
     IS_WINDOWS,
     RUN_BY_CANARY,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
     SKIP_DOCKER_TESTS,
@@ -27,7 +25,6 @@ from tests.testing_utils import (
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(

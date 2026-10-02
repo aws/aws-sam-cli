@@ -1,18 +1,17 @@
 import logging
 from typing import Optional, List
-from unittest import TestCase, skipIf
+from unittest import TestCase
 
-from tests.testing_utils import get_sam_command, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+from tests.testing_utils import get_sam_command
+import pytest
 
 RETRY_COUNT = 20  # retry required because of log buffering configuration for each service
 RETRY_SLEEP = 2
 
 LOG = logging.getLogger(__name__)
 
-SKIP_LOGS_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-
-@skipIf(SKIP_LOGS_TESTS, "Skip logs tests in CI/CD only")
+@pytest.mark.requires_credential
 class LogsIntegBase(TestCase):
     @staticmethod
     def get_logs_command_list(

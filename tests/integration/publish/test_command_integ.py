@@ -3,23 +3,19 @@ import time
 import json
 from subprocess import Popen, PIPE, TimeoutExpired
 
-from unittest import skipIf
 
 import pytest
 from parameterized import parameterized
 
 from samcli.commands.publish.command import SEMANTIC_VERSION
 from tests.integration.publish.publish_app_integ_base import PublishAppIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 from tests.testing_utils import run_command
 
-# Publish tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict publish tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
-SKIP_PUBLISH_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 TIMEOUT = 300
 
 
-@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPublishExistingApp(PublishAppIntegBase):
     def setUp(self):
         super().setUp()
@@ -93,7 +89,7 @@ class TestPublishExistingApp(PublishAppIntegBase):
         self.assertIn(expected_msg, result.stderr.decode("utf-8"))
 
 
-@skipIf(SKIP_PUBLISH_TESTS, "Skip publish tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPublishNewApp(PublishAppIntegBase):
     def setUp(self):
         super().setUp()
