@@ -13,6 +13,7 @@ from samcli.lib.utils.architecture import X86_64
 from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
 from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase
+from tests.testing_utils import get_build_command_list, run_command
 
 
 class TestCDKSynthesizedTemplate(InvokeIntegBase):
@@ -139,8 +140,8 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
         # We only need to create these images once
         # We remove them after they are no longer used
         super(TestCDKSynthesizedTemplatesImageFunctions, cls).setUpClass()
-        build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
-        super().run_command(cls, command_list=build_command_list)
+        build_command_list = get_build_command_list(template_path=cls.template_path)
+        run_command(command_list=build_command_list)
 
     def tearDown(self) -> None:
         # Tear down a unique image resource after it is finished being used
