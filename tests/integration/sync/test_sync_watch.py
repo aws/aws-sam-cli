@@ -8,7 +8,7 @@ import logging
 import json
 from pathlib import Path
 from typing import Dict, List
-from unittest import skipIf, SkipTest
+from unittest import skipIf
 
 import pytest
 import boto3
@@ -25,9 +25,6 @@ from tests.integration.sync.sync_integ_base import SyncIntegBase
 from tests.integration.sync.test_sync_code import API_SLEEP, SFN_SLEEP
 
 from tests.testing_utils import (
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
     SKIP_LMI_TESTS,
     kill_process,
     read_until_string,
@@ -35,9 +32,7 @@ from tests.testing_utils import (
     run_command_with_input,
 )
 
-# Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 LOG = logging.getLogger(__name__)
@@ -52,7 +47,7 @@ handler.setFormatter(formatter)
 LOG.addHandler(handler)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncWatchBase(SyncIntegBase):
     template_before = ""
     parameter_overrides: Dict[str, str] = {}
@@ -60,8 +55,7 @@ class TestSyncWatchBase(SyncIntegBase):
 
     @classmethod
     def setUpClass(cls):
-        if not SKIP_SYNC_TESTS:
-            super().setUpClass()
+        super().setUpClass()
 
     def setUp(self):
         # set up clean testing folder
@@ -150,7 +144,7 @@ class TestSyncWatchBase(SyncIntegBase):
         self.assertEqual(self._get_sfn_response(state_machine), '"World 2"')
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncWatchEsbuildBase(TestSyncWatchBase):
     def _setup_verify_infra(self):
         template_path = self.test_data_path.joinpath(self.template_before)
@@ -588,7 +582,7 @@ class TestSyncWatchCodeOnly(TestSyncWatchBase):
         )
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class(
     [{"runtime": "python", "dependency_layer": True}, {"runtime": "python", "dependency_layer": False}]
 )
