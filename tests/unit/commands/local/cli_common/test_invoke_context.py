@@ -4,6 +4,7 @@ Tests the InvokeContext class
 
 import errno
 import os
+import socket
 import tempfile
 
 from parameterized import parameterized
@@ -582,6 +583,159 @@ class TestInvokeContext__enter__(TestCase):
         self.assertFalse(invoke_context._no_watch)
         # And we surface a warning to the user
         self.assertTrue(any("--no-watch" in msg and "warm-containers" in msg for msg in log_ctx.output))
+
+
+class TestInvokeContextContainerNetworkingWarnings(TestCase):
+    LOGGER_NAME = "samcli.commands.local.cli_common.invoke_context"
+
+    @parameterized.expand(
+        [
+            ("127.0.0.1", True),
+            ("127.0.0.53", True),
+            ("::1", True),
+            ("0.0.0.0", False),
+            ("172.17.0.1", False),
+        ]
+    )
+    def test_resolves_to_loopback_for_addresses(self, host, expected):
+        self.assertEqual(InvokeContext._resolves_to_loopback(host), expected)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo")
+    def test_resolves_to_loopback_resolves_hostnames(self, getaddrinfo_mock):
+        getaddrinfo_mock.return_value = [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 0))]
+        self.assertTrue(InvokeContext._resolves_to_loopback("localhost"))
+        getaddrinfo_mock.assert_called_once_with("localhost", None)
+
+    @patch("samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo")
+    def test_resolves_to_loopback_resolves_ipv6_only_hostnames(self, getaddrinfo_mock):
+        # gethostbyname resolves IPv4 only, so an IPv6-only name used to look unresolvable
+        # and get reported as non-loopback.
+        getaddrinfo_mock.return_value = [(socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("::1", 0, 0, 0))]
+        self.assertTrue(InvokeContext._resolves_to_loopback("ip6-localhost"))
+
+    @patch("samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo")
+    def test_resolves_to_loopback_ignores_unparsable_addresses(self, getaddrinfo_mock):
+        getaddrinfo_mock.return_value = [
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("not-an-address", 0, 0, 0)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("fe80::1%eth0", 0, 0, 3)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("127.0.0.1", 0)),
+        ]
+        self.assertTrue(InvokeContext._resolves_to_loopback("mixed.example"))
+
+    @patch("samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo")
+    def test_resolves_to_loopback_is_false_for_routable_hostname(self, getaddrinfo_mock):
+        getaddrinfo_mock.return_value = [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0)),
+            (socket.AF_INET6, socket.SOCK_STREAM, 6, "", ("2001:db8::1", 0, 0, 0)),
+        ]
+        self.assertFalse(InvokeContext._resolves_to_loopback("service.internal"))
+
+    @patch("samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo")
+    def test_resolves_to_loopback_is_false_for_unresolvable_hostname(self, getaddrinfo_mock):
+        getaddrinfo_mock.side_effect = OSError("name or service not known")
+        self.assertFalse(InvokeContext._resolves_to_loopback("host.docker.internal"))
+
+    def test_resolves_to_loopback_is_false_for_unencodable_hostname(self):
+        # getaddrinfo encodes the name with the idna codec first, which raises UnicodeError
+        # (a ValueError, not an OSError) for a label over 63 characters. A malformed flag
+        # value must not escape a check whose only job is to emit a warning.
+        self.assertFalse(InvokeContext._resolves_to_loopback("a" * 64))
+
+    def test_warns_when_container_host_cannot_reach_loopback_bound_port(self):
+        context = InvokeContext(
+            template_file="template",
+            container_host="host.docker.internal",
+            container_host_interface="127.0.0.1",
+        )
+
+        # Patch getaddrinfo around the call only. Constructing InvokeContext resolves the
+        # account id through botocore, which calls socket.getaddrinfo itself (with four
+        # positional arguments) when it probes IMDS, so a patch covering the constructor
+        # breaks depending on whether the machine running the tests has credentials.
+        with patch(
+            "samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo",
+            side_effect=OSError("name or service not known"),
+        ):
+            with self.assertLogs(self.LOGGER_NAME, level="WARNING") as log_ctx:
+                context._warn_on_unusable_container_networking()
+
+        self.assertTrue(
+            any(
+                "--container-host-interface" in message and "host.docker.internal" in message
+                for message in log_ctx.output
+            )
+        )
+
+    @parameterized.expand(
+        [
+            # The default configuration: SAM CLI and the daemon share a loopback interface.
+            ("localhost", "127.0.0.1"),
+            # Already publishing somewhere the given container host can reach.
+            ("host.docker.internal", "0.0.0.0"),
+            # Nothing to check when the flags are not supplied.
+            (None, None),
+        ]
+    )
+    def test_does_not_warn_for_usable_configurations(self, container_host, container_host_interface):
+        context = InvokeContext(
+            template_file="template",
+            container_host=container_host,
+            container_host_interface=container_host_interface,
+        )
+
+        # Both patches cover the call only, never the constructor: InvokeContext resolves the
+        # account id through botocore, which both logs warnings of its own and calls
+        # socket.getaddrinfo (with four positional arguments) when it probes IMDS.
+        def fake_getaddrinfo(host, *_args, **_kwargs):
+            address = "127.0.0.1" if host == "localhost" else "10.0.0.5"
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (address, 0))]
+
+        with patch(
+            "samcli.commands.local.cli_common.invoke_context.socket.getaddrinfo",
+            side_effect=fake_getaddrinfo,
+        ):
+            with patch("samcli.commands.local.cli_common.invoke_context.LOG") as log_mock:
+                context._warn_on_unusable_container_networking()
+
+        log_mock.warning.assert_not_called()
+
+    def test_warns_that_docker_network_host_is_ignored(self):
+        context = InvokeContext(template_file="template", docker_network="host")
+
+        with self.assertLogs(self.LOGGER_NAME, level="WARNING") as log_ctx:
+            context._warn_on_unusable_container_networking()
+
+        self.assertTrue(any("--docker-network host" in message for message in log_ctx.output))
+
+    def test_does_not_warn_for_user_defined_docker_network(self):
+        context = InvokeContext(template_file="template", docker_network="my_compose_network")
+
+        with patch("samcli.commands.local.cli_common.invoke_context.LOG") as log_mock:
+            context._warn_on_unusable_container_networking()
+
+        log_mock.warning.assert_not_called()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
+    @patch("samcli.commands.local.cli_common.invoke_context.SamFunctionProvider")
+    @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext._add_account_id_to_global")
+    def test_warning_is_emitted_from_enter(
+        self, _add_account_id_to_global_mock, SamFunctionProviderMock, ContainerManagerMock
+    ):
+        function_provider = Mock()
+        function_provider.get_all.return_value = []
+        function_provider.functions = {}
+        SamFunctionProviderMock.return_value = function_provider
+
+        invoke_context = InvokeContext(template_file="template_file", docker_network="host")
+        invoke_context._get_stacks = Mock(return_value=[])
+        invoke_context._get_env_vars_value = Mock()
+        invoke_context._setup_log_file = Mock()
+        invoke_context._get_debug_context = Mock()
+
+        with self.assertLogs(self.LOGGER_NAME, level="WARNING") as log_ctx:
+            invoke_context.__enter__()
+
+        self.assertTrue(any("--docker-network host" in message for message in log_ctx.output))
 
 
 class TestInvokeContext__exit__(TestCase):
