@@ -104,6 +104,41 @@ class TestGuidedContext(TestCase):
             language_extensions_enabled=False,
         )
 
+    @parameterized.expand([(True,), (False,)])
+    @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
+    @patch("samcli.commands.deploy.guided_context.prompt")
+    @patch("samcli.commands.deploy.guided_context.confirm")
+    @patch("samcli.commands.deploy.guided_context.manage_stack")
+    @patch("samcli.commands.deploy.guided_context.auth_per_resource")
+    @patch("samcli.commands.deploy.guided_context.SamLocalStackProvider.get_stacks")
+    @patch("samcli.commands.deploy.guided_context.SamFunctionProvider")
+    @patch("samcli.commands.deploy.guided_context.signer_config_per_function")
+    def test_guided_prompts_keep_parallel_upload_flag_without_prompting(
+        self,
+        parallel_upload,
+        patched_signer_config_per_function,
+        patched_sam_function_provider,
+        patched_get_buildable_stacks,
+        patchedauth_per_resource,
+        patched_manage_stack,
+        patched_confirm,
+        patched_prompt,
+        get_resource_full_path_by_id_mock,
+    ):
+        patched_signer_config_per_function.return_value = (None, None)
+        patched_sam_function_provider.return_value.functions = {}
+        patched_get_buildable_stacks.return_value = (Mock(), [])
+        patchedauth_per_resource.return_value = [("HelloWorldFunction", False)]
+        patched_confirm.side_effect = [True, False, False, True, False, True, True]
+        patched_manage_stack.return_value = "managed_s3_stack"
+        self.gc.parallel_upload = parallel_upload
+
+        self.gc.guided_prompts(parameter_override_keys=None)
+
+        self.assertEqual(parallel_upload, self.gc.guided_parallel_upload)
+        prompted = [confirm_call.args[0] for confirm_call in patched_confirm.call_args_list]
+        self.assertFalse(any("parallel" in text.lower() for text in prompted))
+
     @patch("samcli.commands.deploy.guided_context.get_resource_full_path_by_id")
     @patch("samcli.commands.deploy.guided_context.prompt")
     @patch("samcli.commands.deploy.guided_context.confirm")
