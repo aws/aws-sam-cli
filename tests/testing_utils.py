@@ -22,13 +22,8 @@ import packaging.version
 
 from samcli.local.docker.utils import get_validated_container_client
 
-RUNNING_ON_APPVEYOR = os.environ.get("APPVEYOR", False)
 IS_WINDOWS = platform.system().lower() == "windows"
-RUNNING_ON_GITHUB_ACTIONS = os.environ.get("CI", False)
-RUNNING_ON_CI = RUNNING_ON_APPVEYOR or RUNNING_ON_GITHUB_ACTIONS
-RUNNING_TEST_FOR_MASTER_ON_CI = (
-    os.environ.get("APPVEYOR_REPO_BRANCH", os.environ.get("GITHUB_REF_NAME", "master")) != "master"
-)
+RUNNING_ON_CI = os.environ.get("CI", False)
 CI_OVERRIDE = (
     os.environ.get("APPVEYOR_CI_OVERRIDE", False)
     or os.environ.get("CI_OVERRIDE", False)
@@ -36,6 +31,7 @@ CI_OVERRIDE = (
 )
 RUN_BY_CANARY = os.environ.get("BY_CANARY", False)
 USING_FINCH_RUNTIME = os.environ.get("CONTAINER_RUNTIME") == "finch"
+
 
 # Tests require docker suffers from Docker Hub request limit
 FORCE_RUN_DOCKER_TEST = os.environ.get("FORCE_RUN_DOCKER_TEST", False)

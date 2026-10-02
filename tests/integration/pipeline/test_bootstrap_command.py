@@ -1,5 +1,3 @@
-from unittest import skipIf
-
 import pytest
 from parameterized import parameterized
 
@@ -7,9 +5,6 @@ from samcli.commands.pipeline.bootstrap.cli import PIPELINE_CONFIG_FILENAME, PIP
 from samcli.lib.config.samconfig import SamConfig
 from tests.integration.pipeline.base import BootstrapIntegBase
 from tests.testing_utils import (
-    run_command_with_input,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
     run_command,
     run_command_with_inputs,
@@ -17,9 +12,7 @@ from tests.testing_utils import (
 import boto3
 from botocore.exceptions import ClientError
 
-# bootstrap tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_BOOTSTRAP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 
 # In order to run bootstrap integration test locally make sure your test account is configured as `default` account.
 CREDENTIAL_PROFILE = "2" if not RUN_BY_CANARY else "1"
@@ -32,7 +25,7 @@ CFN_OUTPUT_TO_CONFIG_KEY = {
 }
 
 
-@skipIf(SKIP_BOOTSTRAP_TESTS, "Skip bootstrap tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestBootstrap(BootstrapIntegBase):
     @parameterized.expand([("create_image_repository",), (False,)])
     def test_interactive_with_no_resources_provided(self, create_image_repository):

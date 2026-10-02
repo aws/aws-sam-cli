@@ -2,7 +2,6 @@ import itertools
 import time
 from pathlib import Path
 from typing import Any, List
-from unittest import skipIf
 
 import boto3
 import pytest
@@ -12,9 +11,6 @@ from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.integration.traces.traces_integ_base import TracesIntegBase, RETRY_COUNT, RETRY_SLEEP
 from tests.testing_utils import (
     run_command,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
     method_to_stack_name,
     kill_process,
     start_persistent_process,
@@ -26,10 +22,8 @@ from parameterized import parameterized
 
 LOG = logging.getLogger(__name__)
 
-SKIP_TRACES_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-
-@skipIf(SKIP_TRACES_TESTS, "Skip traces tests in CI/CD only")
+@pytest.mark.requires_credential
 # Deprecated in pytest 9.1. Fix before pytest 10.
 @pytest.mark.filterwarnings("ignore::pytest.PytestRemovedIn10Warning")
 @pytest.mark.xdist_group(name="sam_traces")
