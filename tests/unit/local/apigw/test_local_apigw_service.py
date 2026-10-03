@@ -525,6 +525,36 @@ class TestApiGatewayService(TestCase):
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
+    def test_request_handler_applies_gateway_response_headers_on_unhandled_lambda_exception(
+        self, generate_mock, invoke_mock, service_error_responses_patch, request_mock
+    ):
+        # Reproduces https://github.com/aws/aws-sam-cli/issues/9064: an unhandled exception raised by the
+        # Lambda function should still honor headers configured via a DEFAULT_5XX GatewayResponse.
+        self.api.gateway_responses = {"DEFAULT_5XX": {"Access-Control-Allow-Origin": "*"}}
+
+        generate_mock.return_value = {}
+        invoke_mock.side_effect = LambdaResponseParseException()
+
+        body_failure_response_mock = Mock()
+        service_error_responses_patch.lambda_body_failure_response.return_value = body_failure_response_mock
+
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        self.api_service._get_current_route.return_value.authorizer_object = None
+        self.api_service._get_current_route.methods = []
+
+        request_mock.return_value = ("test", "test")
+        response = self.api_service._request_handler()
+
+        self.assertEqual(response, body_failure_response_mock)
+        service_error_responses_patch.lambda_body_failure_response.assert_called_once_with(
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
     @patch("samcli.local.apigw.local_apigw_service.LocalApigwService._generate_lambda_event")
     def test_request_handler_errors_when_parse_lambda_output_raises_keyerror(
         self, generate_mock, service_error_responses_patch, request_mock
@@ -993,6 +1023,56 @@ class TestApiGatewayService(TestCase):
         result = self.api_service._request_handler()
 
         self.assertEqual(result, unauth_mock)
+        service_err_mock.lambda_authorizer_unauthorized.assert_called_once_with(headers={})
+
+    @patch.object(LocalApigwService, "get_request_methods_endpoints")
+    @patch.object(LocalApigwService, "_create_method_arn")
+    @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
+    @patch.object(LocalApigwService, "_valid_identity_sources")
+    @patch.object(LocalApigwService, "_invoke_lambda_function")
+    @patch("samcli.local.apigw.local_apigw_service.ServiceErrorResponses")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v1_event")
+    @patch("samcli.local.apigw.local_apigw_service.construct_v2_event_http")
+    def test_lambda_auth_unauthorized_response_applies_gateway_response_headers(
+        self,
+        v2_event_mock,
+        v1_event_mock,
+        service_err_mock,
+        invoke_mock,
+        validate_id_mock,
+        gen_auth_event_mock,
+        method_arn_mock,
+        request_mock,
+    ):
+        # Reproduces https://github.com/aws/aws-sam-cli/issues/9064: a GatewayResponse configured for
+        # ACCESS_DENIED (Lambda Authorizer explicit deny) should have its headers applied locally too.
+        self.api.gateway_responses = {"ACCESS_DENIED": {"Access-Control-Allow-Origin": "*"}}
+
+        make_response_mock = Mock()
+        validate_id_mock.return_value = True
+
+        auth = LambdaAuthorizer(Mock(), Mock(), "auth_lambda", [], Mock(), Mock(), Mock())
+        auth.is_valid_response = Mock(return_value=False)
+        self.api_gateway_route.authorizer_object = auth
+
+        self.api_service.service_response = make_response_mock
+        self.api_service._get_current_route = MagicMock()
+        self.api_service._get_current_route.return_value = self.api_gateway_route
+        self.api_service._get_current_route.methods = []
+        self.api_service._get_current_route.return_value.payload_format_version = "2.0"
+        v1_event_mock.return_value = {}
+
+        request_mock.return_value = ("test", "test")
+        method_arn_mock.return_value = "arn"
+
+        mock_context = {"key": "value"}
+        invoke_mock.side_effect = [{"context": mock_context}, Mock()]
+
+        self.api_service._request_handler()
+
+        service_err_mock.lambda_authorizer_unauthorized.assert_called_once_with(
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     @patch.object(LocalApigwService, "_invoke_lambda_function")
     @patch.object(LocalApigwService, "_create_method_arn")
@@ -1113,7 +1193,8 @@ class TestApiGatewayService(TestCase):
 
         service_mock.lambda_failure_response.assert_called_once_with(
             "Failed to execute endpoint. Got an invalid function name "
-            "(Unable to get Lambda function because the function identifier is not defined.)"
+            "(Unable to get Lambda function because the function identifier is not defined.)",
+            headers={},
         )
 
     @patch("samcli.local.apigw.local_apigw_service.request")
