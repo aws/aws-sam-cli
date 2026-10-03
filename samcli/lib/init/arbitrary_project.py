@@ -24,7 +24,7 @@ BAD_LOCATION_ERROR_MSG = (
 )
 
 
-def generate_non_cookiecutter_project(location, output_dir):
+def generate_non_cookiecutter_project(location, output_dir, checkout=None):
     """
     Uses Cookiecutter APIs to download a project at given ``location`` to the ``output_dir``.
     This does *not* run cookiecutter on the downloaded project.
@@ -40,6 +40,9 @@ def generate_non_cookiecutter_project(location, output_dir):
 
     output_dir : str
         Directory where the project should be downloaded to
+
+    checkout: Optional[str]
+        Branch, tag or commit to checkout after git clone
 
     Returns
     -------
@@ -69,7 +72,10 @@ def generate_non_cookiecutter_project(location, output_dir):
     # Else, treat it as a git/hg/ssh URL and try to clone
     elif repository.is_repo_url(location):
         LOG.debug("%s location is a source control repository", location)
-        download_fn = functools.partial(repository.clone, repo_url=location, no_input=no_input)
+        clone_kwargs = {"repo_url": location, "no_input": no_input}
+        if checkout:
+            clone_kwargs["checkout"] = checkout
+        download_fn = functools.partial(repository.clone, **clone_kwargs)
 
     else:
         raise ArbitraryProjectDownloadFailed(msg=BAD_LOCATION_ERROR_MSG)
