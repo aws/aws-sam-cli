@@ -51,13 +51,6 @@ class DurableFunctionsEmulatorContainer:
     ENV_STORE_TYPE = "DURABLE_EXECUTIONS_STORE_TYPE"
 
     """
-    Allow overriding the timescale used by the emulator. For example, if you have
-    a context.wait(3 months), you probably don't want to actually wait 3 months in
-    a local development loop. This lets you override that!
-    """
-    ENV_TIME_SCALE = "DURABLE_EXECUTIONS_TIME_SCALE"
-
-    """
     Capture the logs from the emulator on cleanup - this can be useful for debugging
     what happened, since once the container is gone, the logs are too.
     """
@@ -153,10 +146,6 @@ class DurableFunctionsEmulatorContainer:
         LOG.debug(f"Creating durable functions emulator container with store type: {store_type}")
         return store_type
 
-    def _get_emulator_time_scale(self):
-        """Get the execution time scale from environment variable or use default timescale of 1."""
-        return os.environ.get(self.ENV_TIME_SCALE, "1")
-
     def _get_emulator_data_dir(self):
         """Get the path to the emulator data directory."""
         return os.path.join(os.getcwd(), self._EMULATOR_DATA_DIR_NAME)
@@ -181,9 +170,7 @@ class DurableFunctionsEmulatorContainer:
         """
         Get the environment variables for the emulator container.
         """
-        return {
-            "DURABLE_EXECUTION_TIME_SCALE": self._get_emulator_time_scale(),
-        }
+        return {}
 
     @property
     def _docker_client(self) -> docker.DockerClient:
