@@ -37,9 +37,12 @@ from samcli.lib.build.exceptions import (
 from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
+    DEPENDENCY_MANAGER_BUILD_METHODS,
+    UnsupportedBuilderException,
     UnsupportedRuntimeException,
     get_layer_subfolder,
     get_workflow_config,
+    resolve_layer_build_runtime,
     supports_specified_workflow,
 )
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
@@ -538,6 +541,27 @@ class ApplicationBuilder:
         except (docker.errors.APIError, OSError, ContainerArchiveImageLoadFailedException) as ex:
             raise DockerBuildFailed(msg=str(ex)) from ex
 
+    def _check_container_build_supported(self, config: CONFIG, specified_workflow: Optional[str]) -> None:
+        """
+        Rejects workflows that cannot run inside a build container yet.
+
+        SAM build images do not ship uv, and PYTHON_UV_CONFIG carries no manifest to mount, so a uv build
+        inside a container fails deep in LambdaBuildContainer. Fail before invoking Lambda Builders for that
+        resource with an actionable message instead. The message names no command because ApplicationBuilder
+        also serves sam sync.
+
+        Raises
+        ------
+        UnsupportedBuilderException
+            When --use-container is combined with a python-uv build.
+        """
+        if not self._container_manager or config.dependency_manager != "uv":
+            return
+        raise UnsupportedBuilderException(
+            f"Build method '{specified_workflow}' is not supported with --use-container yet, because the SAM build "
+            "images do not include uv. Re-run without --use-container."
+        )
+
     def _build_layer(
         self,
         layer_name: str,
@@ -591,6 +615,7 @@ class ApplicationBuilder:
         code_dir = str(pathlib.Path(self._base_dir, codeuri).resolve())
 
         config = get_workflow_config(None, code_dir, self._base_dir, specified_workflow)
+        self._check_container_build_supported(config, specified_workflow)
         subfolder = get_layer_subfolder(specified_workflow)
         if (
             config.language == "provided"
@@ -620,7 +645,23 @@ class ApplicationBuilder:
                 if self._container_manager
                 else scratch_dir
             )
-            build_runtime = specified_workflow
+            build_runtime = resolve_layer_build_runtime(specified_workflow, compatible_runtimes)
+            if (
+                specified_workflow in DEPENDENCY_MANAGER_BUILD_METHODS
+                and compatible_runtimes
+                and len(compatible_runtimes) > 1
+            ):
+                # Warned here rather than in the resolver: this is the one call site per layer that knows its name
+                # (the --cached manifest pre-check resolves the runtime too), and uv installs ABI-specific wheels.
+                LOG.warning(
+                    "Layer %s declares multiple CompatibleRuntimes %s; building with %s for %s. Dependencies compiled "
+                    "for that Python version may not work on %s.",
+                    layer_name,
+                    compatible_runtimes,
+                    build_runtime,
+                    specified_workflow,
+                    compatible_runtimes[1:],
+                )
             options = ApplicationBuilder._get_build_options(
                 layer_name,
                 config.language,
@@ -757,6 +798,7 @@ class ApplicationBuilder:
             # Determine if there was a build workflow that was specified directly in the template.
             specified_workflow = metadata.get("BuildMethod", None) if metadata else None
             config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_workflow)
+            self._check_container_build_supported(config, specified_workflow)
 
             if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ProjectRootDirectory"):
                 code_dir = str(pathlib.Path(self._base_dir, metadata.get("ProjectRootDirectory", code_dir)).resolve())
