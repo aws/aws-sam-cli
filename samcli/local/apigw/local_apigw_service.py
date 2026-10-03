@@ -3,9 +3,10 @@
 import base64
 import json
 import logging
+import uuid
 from datetime import datetime, timezone
 from io import StringIO
-from time import time
+from time import time_ns
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 from flask import Flask, Request, request
@@ -338,7 +339,13 @@ class LocalApigwService(BaseLocalService):
             }
 
     def _generate_lambda_request_authorizer_event(
-        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+        self,
+        flask_request: Request,
+        route: Route,
+        lambda_authorizer: LambdaAuthorizer,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
     ) -> dict:
         """
         Creates a Lambda authorizer request event
@@ -351,6 +358,12 @@ class LocalApigwService(BaseLocalService):
             Route object representing the endpoint to be invoked later
         lambda_authorizer: LambdaAuthorizer
             The Lambda authorizer the route is using
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -361,14 +374,22 @@ class LocalApigwService(BaseLocalService):
         method, endpoint = self.get_request_methods_endpoints(flask_request)
 
         # generate base lambda event and load it into a dict
-        lambda_event = self._generate_lambda_event(flask_request, route, method, endpoint)
+        lambda_event = self._generate_lambda_event(
+            flask_request,
+            route,
+            method,
+            endpoint,
+            request_id=request_id,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
+        )
         lambda_event.update({"type": LambdaAuthorizer.REQUEST.upper()})
 
         # build context to form identity values
         context = (
-            self._build_v1_context(route)
+            self._build_v1_context(route, request_id, request_time_epoch, request_time)
             if lambda_authorizer.payload_version == LambdaAuthorizer.PAYLOAD_V1
-            else self._build_v2_context(route)
+            else self._build_v2_context(route, request_id, request_time_epoch, request_time)
         )
 
         if route.event_type == Route.API:
@@ -401,7 +422,13 @@ class LocalApigwService(BaseLocalService):
         return lambda_event
 
     def _generate_lambda_authorizer_event(
-        self, flask_request: Request, route: Route, lambda_authorizer: LambdaAuthorizer
+        self,
+        flask_request: Request,
+        route: Route,
+        lambda_authorizer: LambdaAuthorizer,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
     ) -> dict:
         """
         Generate a Lambda authorizer event
@@ -414,6 +441,12 @@ class LocalApigwService(BaseLocalService):
             Route object representing the endpoint to be invoked later
         lambda_authorizer: LambdaAuthorizer
             The Lambda authorizer the route is using
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -431,9 +464,25 @@ class LocalApigwService(BaseLocalService):
             "lambda_authorizer": lambda_authorizer,
         }
 
+        # a token authorizer event carries no request context, so only the request
+        # authorizer event needs the identifiers of the incoming request
+        if lambda_authorizer.type == LambdaAuthorizer.REQUEST:
+            kwargs["request_id"] = request_id
+            kwargs["request_time_epoch"] = request_time_epoch
+            kwargs["request_time"] = request_time
+
         return authorizer_events[lambda_authorizer.type](**kwargs)
 
-    def _generate_lambda_event(self, flask_request: Request, route: Route, method: str, endpoint: str) -> dict:
+    def _generate_lambda_event(
+        self,
+        flask_request: Request,
+        route: Route,
+        method: str,
+        endpoint: str,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
+    ) -> dict:
         """
         Helper function to generate the correct Lambda event
 
@@ -447,6 +496,12 @@ class LocalApigwService(BaseLocalService):
             The method of the request (eg. GET, POST) from the Flask request
         endpoint: str
             The endpoint of the request from the Flask request
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -468,6 +523,9 @@ class LocalApigwService(BaseLocalService):
                 stage_name=self.api.stage_name,
                 stage_variables=self.api.stage_variables,
                 route_key=route_key,
+                request_time_epoch=request_time_epoch,
+                request_time=request_time,
+                request_id=request_id,
             )
 
         # For Http Apis with payload version 1.0, API Gateway never sends the OperationName.
@@ -481,9 +539,18 @@ class LocalApigwService(BaseLocalService):
             stage_variables=self.api.stage_variables,
             operation_name=route_key,
             api_type=route.event_type,
+            request_id=request_id,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
         )
 
-    def _build_v1_context(self, route: Route) -> Dict[str, Any]:
+    def _build_v1_context(
+        self,
+        route: Route,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Helper function to a 1.0 request context
 
@@ -491,6 +558,12 @@ class LocalApigwService(BaseLocalService):
         ----------
         route: Route
             The Route object that was invoked
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -516,11 +589,20 @@ class LocalApigwService(BaseLocalService):
             protocol=protocol,
             domain_name=host,
             operation_name=operation_name,
+            request_id=request_id,
+            request_time_epoch=request_time_epoch,
+            request_time=request_time,
         )
 
         return context.to_dict()
 
-    def _build_v2_context(self, route: Route) -> Dict[str, Any]:
+    def _build_v2_context(
+        self,
+        route: Route,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Helper function to a 2.0 request context
 
@@ -528,6 +610,12 @@ class LocalApigwService(BaseLocalService):
         ----------
         route: Route
             The Route object that was invoked
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -540,8 +628,11 @@ class LocalApigwService(BaseLocalService):
         apigw_endpoint = PathConverter.convert_path_to_api_gateway(endpoint)
         route_key = self._v2_route_key(method, apigw_endpoint, route.is_default_route)
 
-        request_time_epoch = int(time())
-        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
+        # payload format 2.0 reports requestContext.timeEpoch in milliseconds
+        if request_time_epoch is None:
+            request_time_epoch = int(time_ns() // 1_000_000)
+        if request_time is None:
+            request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         context_http = ContextHTTP(method=method, path=request.path, source_ip=request.remote_addr)
         context = RequestContextV2(
@@ -550,11 +641,19 @@ class LocalApigwService(BaseLocalService):
             stage=self.api.stage_name,
             request_time_epoch=request_time_epoch,
             request_time=request_time,
+            request_id=request_id,
         )
 
         return context.to_dict()
 
-    def _valid_identity_sources(self, request: Request, route: Route) -> bool:
+    def _valid_identity_sources(
+        self,
+        request: Request,
+        route: Route,
+        request_id: Optional[str] = None,
+        request_time_epoch: Optional[int] = None,
+        request_time: Optional[str] = None,
+    ) -> bool:
         """
         Validates if the route contains all the valid identity sources defined in the route's Lambda Authorizer
 
@@ -564,6 +663,12 @@ class LocalApigwService(BaseLocalService):
             Flask request object containing incoming request variables
         route: Route
             the Route object that contains the Lambda Authorizer definition
+        request_id: Optional[str]
+            The request id of the incoming request, generated when not given
+        request_time_epoch: Optional[int]
+            The time of the incoming request in epoch milliseconds, read when not given
+        request_time: Optional[str]
+            The formatted time of the incoming request, read when not given
 
         Returns
         -------
@@ -578,9 +683,9 @@ class LocalApigwService(BaseLocalService):
         identity_sources = lambda_auth.identity_sources
 
         context = (
-            self._build_v1_context(route)
+            self._build_v1_context(route, request_id, request_time_epoch, request_time)
             if lambda_auth.payload_version == LambdaAuthorizer.PAYLOAD_V1
-            else self._build_v2_context(route)
+            else self._build_v2_context(route, request_id, request_time_epoch, request_time)
         )
 
         kwargs = {
@@ -676,16 +781,40 @@ class LocalApigwService(BaseLocalService):
             headers = Headers(cors_headers)
             return self.service_response("", headers, 200)
 
+        # API Gateway stamps one request id and one request time on an incoming request and hands the
+        # same values to the authorizer, to the function and to any identity source reading $context.
+        # Resolve them once here so every event built for this request agrees.
+        request_id = str(uuid.uuid4())
+        request_time_epoch = int(time_ns() // 1_000_000)
+        request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
+
         # check for LambdaAuthorizer since that is the only authorizer we currently support
-        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(request, route):
+        if isinstance(lambda_authorizer, LambdaAuthorizer) and not self._valid_identity_sources(
+            request, route, request_id, request_time_epoch, request_time
+        ):
             return ServiceErrorResponses.missing_lambda_auth_identity_sources()
 
         try:
-            route_lambda_event = self._generate_lambda_event(request, route, method, endpoint)
+            route_lambda_event = self._generate_lambda_event(
+                request,
+                route,
+                method,
+                endpoint,
+                request_id=request_id,
+                request_time_epoch=request_time_epoch,
+                request_time=request_time,
+            )
             auth_lambda_event = None
 
             if lambda_authorizer:
-                auth_lambda_event = self._generate_lambda_authorizer_event(request, route, lambda_authorizer)
+                auth_lambda_event = self._generate_lambda_authorizer_event(
+                    request,
+                    route,
+                    lambda_authorizer,
+                    request_id=request_id,
+                    request_time_epoch=request_time_epoch,
+                    request_time=request_time,
+                )
         except UnicodeDecodeError as error:
             LOG.error("UnicodeDecodeError while processing HTTP request: %s", error)
             return ServiceErrorResponses.lambda_failure_response()
