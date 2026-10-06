@@ -20,7 +20,6 @@ from samcli.yamlhelper import yaml_parse
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
     RUN_BY_CANARY,
     CI_OVERRIDE,
     run_command,
@@ -44,7 +43,6 @@ from tests.integration.buildcmd.build_integ_base import (
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @skipIf(SKIP_DOCKER_TESTS, SKIP_DOCKER_MESSAGE)
@@ -2114,7 +2112,6 @@ class TestBuildWithZipFunctionsOrLayers(NestedBuildIntegBase):
         )
 
 
-@skipIf(SKIP_SAR_TESTS, "Skip SAR tests")
 @pytest.mark.requires_credential
 class TestBuildSAR(BuildIntegBase):
     template = "aws-serverless-application-with-application-id-map.yaml"

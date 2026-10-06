@@ -12,7 +12,7 @@ if [ "$python_library_zip_filename" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.15";
+    python_version="3.11.16";
 fi
 
 if [ "$openssl_version" = "" ]; then
@@ -89,7 +89,6 @@ cp -r ../[!.]* ./src
 cp -r ./src/* ./output/aws-sam-cli-src
 
 echo "Removing CI Scripts and other files/directories not needed"
-rm -vf ./output/aws-sam-cli-src/appveyor*.yml
 rm -rf ./output/aws-sam-cli-src/tests
 rm -rf ./output/aws-sam-cli-src/designs
 rm -rf ./output/aws-sam-cli-src/docs

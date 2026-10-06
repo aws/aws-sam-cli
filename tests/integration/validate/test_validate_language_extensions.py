@@ -3,20 +3,16 @@ Integration tests for sam validate with Language Extensions error cases.
 """
 
 from pathlib import Path
-from unittest import TestCase, skipIf
+from unittest import TestCase
 
 from tests.testing_utils import (
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
     run_command,
     get_sam_command,
 )
+import pytest
 
-SKIP_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
-
-@skipIf(SKIP_TESTS, "Skip validate tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestValidateLanguageExtensions(TestCase):
     """Integration tests for validate command with Language Extensions."""
 

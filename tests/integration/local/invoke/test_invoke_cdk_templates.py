@@ -1,7 +1,6 @@
 import json
 import shutil
 from pathlib import Path
-from unittest import skipIf
 
 import pytest
 from docker.errors import APIError
@@ -13,8 +12,8 @@ from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from samcli.lib.utils.architecture import X86_64
 from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase, SKIP_LAYERS_TESTS
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, CI_OVERRIDE
+from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase
+from tests.testing_utils import get_build_command_list, run_command
 
 
 class TestCDKSynthesizedTemplate(InvokeIntegBase):
@@ -141,8 +140,8 @@ class TestCDKSynthesizedTemplatesImageFunctions(InvokeIntegBase):
         # We only need to create these images once
         # We remove them after they are no longer used
         super(TestCDKSynthesizedTemplatesImageFunctions, cls).setUpClass()
-        build_command_list = super().get_build_command_list(cls, template_path=cls.template_path)
-        super().run_command(cls, command_list=build_command_list)
+        build_command_list = get_build_command_list(template_path=cls.template_path)
+        run_command(command_list=build_command_list)
 
     def tearDown(self) -> None:
         # Tear down a unique image resource after it is finished being used
@@ -227,7 +226,7 @@ class TestRuntimeFunctionConstructs(InvokeIntegBase):
         self.assertEqual(response, expected_response)
 
 
-@skipIf(SKIP_LAYERS_TESTS, "Skip layers tests in Appveyor only")
+@pytest.mark.requires_credential
 class TestCDKLayerVersion(TestLayerVersionBase):
     # region = "us-west-2"
     # layer_utils = LayerUtils(region=region)
