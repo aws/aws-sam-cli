@@ -186,29 +186,38 @@ def upload_local_artifacts(
 
     local_path = make_abs_path(parent_dir, local_path)
 
-    if previously_uploaded and local_path in previously_uploaded:
-        result = previously_uploaded[local_path]
-        LOG.debug("Skipping upload of %s since is already uploaded to %s", local_path, result)
-        return cast(str, result)
+    is_lambda_package = resource_type in LAMBDA_LOCAL_RESOURCES
+    zip_method = make_zip_with_lambda_permissions if is_lambda_package else make_zip
+    # A thread-safe cache (parallel uploads) keys results by how the path is packaged and exposes a
+    # per-key lock, so the check-then-upload below is atomic: concurrent jobs sharing a local path
+    # zip and upload it once and the rest reuse the result.
+    key_fn = getattr(previously_uploaded, "cache_key", None)
+    cache_key = key_fn(local_path, "lambda-zip" if is_lambda_package else "zip", extension) if key_fn else local_path
+    key_lock = getattr(previously_uploaded, "key_lock", None)
+    with key_lock(cache_key) if key_lock else contextlib.nullcontext():
+        if previously_uploaded and cache_key in previously_uploaded:
+            result = previously_uploaded[cache_key]
+            LOG.debug("Skipping upload of %s since is already uploaded to %s", local_path, result)
+            return cast(str, result)
 
-    # Or, pointing to a folder. Zip the folder and upload (zip_method is changed based on resource type)
-    if is_local_folder(local_path):
-        result = zip_and_upload(
-            local_path,
-            uploader,
-            extension,
-            zip_method=make_zip_with_lambda_permissions if resource_type in LAMBDA_LOCAL_RESOURCES else make_zip,
-        )
-        if previously_uploaded is not None:
-            previously_uploaded[local_path] = result
-        return result
+        # Or, pointing to a folder. Zip the folder and upload (zip_method is changed based on resource type)
+        if is_local_folder(local_path):
+            result = zip_and_upload(
+                local_path,
+                uploader,
+                extension,
+                zip_method=zip_method,
+            )
+            if previously_uploaded is not None:
+                previously_uploaded[cache_key] = result
+            return result
 
-    # Path could be pointing to a file. Upload the file
-    if is_local_file(local_path):
-        result = uploader.upload_with_dedup(local_path)
-        if previously_uploaded is not None:
-            previously_uploaded[local_path] = result
-        return result
+        # Path could be pointing to a file. Upload the file
+        if is_local_file(local_path):
+            result = uploader.upload_with_dedup(local_path)
+            if previously_uploaded is not None:
+                previously_uploaded[cache_key] = result
+            return result
 
     raise InvalidLocalPathError(resource_id=resource_id, property_name=property_path, local_path=local_path)
 
