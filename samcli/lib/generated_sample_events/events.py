@@ -184,6 +184,11 @@ class Events:
 
         values_to_sub = self.transform(tags, values_to_sub)
 
+        # Templates place substitutions inside JSON strings, including within ARNs and paths.
+        values_to_sub = {
+            tag: json.dumps(value)[1:-1] if isinstance(value, str) else value for tag, value in values_to_sub.items()
+        }
+
         # construct the path to the Events json file
         this_folder = os.path.dirname(os.path.abspath(__file__))
         file_name = self.event_mapping[service_name][event_type]["filename"] + ".json"
