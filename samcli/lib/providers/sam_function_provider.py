@@ -262,7 +262,7 @@ class SamFunctionProvider(SamBaseProvider):
                 if resource_type == AWS_SERVERLESS_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
-                        resource_properties.get("Layers", []),
+                        resource_properties.get("Layers") or [],
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         locate_layer_nested=locate_layer_nested,
@@ -281,7 +281,7 @@ class SamFunctionProvider(SamBaseProvider):
                 elif resource_type == AWS_LAMBDA_FUNCTION:
                     layers = SamFunctionProvider._parse_layer_info(
                         stack,
-                        resource_properties.get("Layers", []),
+                        resource_properties.get("Layers") or [],
                         use_raw_codeuri,
                         ignore_code_extraction_warnings=ignore_code_extraction_warnings,
                         locate_layer_nested=locate_layer_nested,
