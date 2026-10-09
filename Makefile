@@ -29,6 +29,9 @@ test:
 	# Run unit tests (excluding cfn_language_extensions) and fail if coverage falls below 94%
 	@echo "NOTE: Excluding cfn_language_extensions tests. Use 'make test-all' for full coverage."
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit --ignore=tests/unit/lib/cfn_language_extensions --cov-config=.coveragerc_no_lang_ext
+	# Golden-template suite runs as a separate pytest invocation so it
+	# does not enter the samcli coverage calculation above.
+	pytest tests/golden
 
 test-lang-ext:
 	# Run cfn_language_extensions unit tests with coverage
@@ -37,6 +40,9 @@ test-lang-ext:
 test-all:
 	# Run all unit tests including cfn_language_extensions
 	pytest --cov samcli --cov schema --cov-report term-missing --cov-fail-under 94 tests/unit
+	# Golden-template suite runs as a separate pytest invocation so it
+	# does not enter the samcli coverage calculation above.
+	pytest tests/golden
 
 test-cov-report:
 	# Run all unit tests with html coverage report
