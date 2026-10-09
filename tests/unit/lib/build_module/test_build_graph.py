@@ -431,6 +431,30 @@ class TestBuildGraph(TestCase):
                 self.assertEqual(layer_build_definition.compatible_runtimes, [TestBuildGraph.LAYER_RUNTIME])
                 self.assertEqual(layer_build_definition.env_vars, TestBuildGraph.ENV_VARS)
 
+    def test_should_persist_unicode_build_graph_with_non_utf8_locale(self):
+        original_read_text = Path.read_text
+        original_write_text = Path.write_text
+
+        def read_text(path, encoding=None, errors=None):
+            return original_read_text(path, encoding=encoding or "cp1252", errors=errors)
+
+        def write_text(path, data, encoding=None, errors=None, newline=None):
+            return original_write_text(path, data, encoding=encoding or "cp1252", errors=errors, newline=newline)
+
+        with patch.object(Path, "read_text", read_text), patch.object(Path, "write_text", write_text):
+            with osutils.mkdir_temp() as temp_base_dir:
+                build_dir = Path(temp_base_dir, ".aws-sam", "build")
+                build_dir.mkdir(parents=True)
+                codeuri = str(Path(temp_base_dir, "ΕΓΩ", "function"))
+                build_graph = BuildGraph(str(build_dir))
+                build_definition = FunctionBuildDefinition("python3.13", codeuri, None, ZIP, X86_64, {}, "app.handler")
+                build_graph.put_function_build_definition(build_definition, generate_function(codeuri=codeuri))
+
+                build_graph.clean_redundant_definitions_and_update(True)
+
+                persisted_graph = BuildGraph(str(build_dir))
+                self.assertEqual(persisted_graph.get_function_build_definitions()[0].codeuri, codeuri)
+
     def test_functions_should_be_added_existing_build_graph(self):
         with osutils.mkdir_temp() as temp_base_dir:
             build_dir = Path(temp_base_dir, ".aws-sam", "build")
