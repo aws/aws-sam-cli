@@ -5,7 +5,7 @@ Implementation of Local Lambda runner
 import logging
 import os
 import platform
-from typing import Any, Dict, Optional, Tuple, cast
+from typing import Any, Dict, Optional, Set, Tuple, cast
 
 import boto3
 import click
@@ -19,6 +19,7 @@ from samcli.commands.local.lib.exceptions import (
     TenantIdValidationError,
     UnsupportedInlineCodeError,
 )
+from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.providers.provider import Function
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.utils.architecture import validate_architecture_runtime
@@ -98,6 +99,7 @@ class LocalLambdaRunner:
         self.container_host_interface = container_host_interface
         self.extra_hosts = extra_hosts
         self.container_dns = container_dns
+        self._emulation_warned: Set[str] = set()
 
     def get_function(self, function_identifier: str, tenant_id: Optional[str] = None) -> Function:
         """
@@ -159,6 +161,7 @@ class LocalLambdaRunner:
             LOG.info("Invoking Container created from %s", function.imageuri)
 
         validate_architecture_runtime(function)
+        self._warn_if_emulated(function)
 
         # Validate tenant-id for multi-tenant functions
         if function.tenancy_config and isinstance(function.tenancy_config, dict):
@@ -174,6 +177,27 @@ class LocalLambdaRunner:
             )
 
         return function
+
+    def _warn_if_emulated(self, function: Function) -> None:
+        """
+        Warn once per function when its architecture differs from the host's, since the container then runs
+        under CPU emulation (e.g. QEMU on Apple Silicon), which is much slower and not otherwise surfaced.
+        """
+        if function.full_path in self._emulation_warned:
+            return
+        self._emulation_warned.add(function.full_path)
+        host_arch = _get_host_architecture()
+        if function.architecture != host_arch:
+            LOG.warning(
+                "Function '%s' uses %s on an %s host, so its container runs under emulation and will be "
+                "significantly slower. If the function and its dependencies support %s in AWS too, "
+                "set 'Architectures: [%s]' to run natively.",
+                function.name,
+                function.architecture,
+                host_arch,
+                host_arch,
+                host_arch,
+            )
 
     def invoke(
         self,
