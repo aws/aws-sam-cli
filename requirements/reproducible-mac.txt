@@ -18,9 +18,9 @@ aws-lambda-builders==1.67.0 \
     --hash=sha256:5dc24d16433e5d45d2efb1469e9ff50e9a1a322fc7d8ca056304e9067cf679a5 \
     --hash=sha256:822a5ba74ad65369ce1d1ab9b63f833ea7292b9cd8b355fa8ea3fc1c4bcef087
     # via aws-sam-cli (pyproject.toml)
-aws-sam-translator==1.114.0 \
-    --hash=sha256:680b24eae8fbd56ac1e013b8e9baf5a9bfff14cc2f96f5a7d8158b774bb5080b \
-    --hash=sha256:eac35ade93304c7bfac53bef087b252dce9df6c67b960449a2eb307fb81d5e19
+aws-sam-translator==1.115.0 \
+    --hash=sha256:9766852bd212baa94f240b0b98b82ab1ed5857034bcc87cce5bfc782043d9902 \
+    --hash=sha256:9be2d7b04041a64e89ed3fb1186f948377ecc118033a8a7538f271d4bcab0afa
     # via
     #   aws-sam-cli (pyproject.toml)
     #   cfn-lint
