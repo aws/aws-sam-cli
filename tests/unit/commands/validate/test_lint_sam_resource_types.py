@@ -16,13 +16,25 @@ from samtranslator.model import sam_resources
 
 REGION = "us-east-1"
 
+# SAM resource types that we don't validate yet, because the bundled cfn-lint can't lint them.
+# Remove an entry once cfn-lint supports the type.
+NEW_RESOURCES_TO_IGNORE = {
+    # cfn-lint has no schema for AWS::Serverless::WebFunction or the AWS::Lambda::WebFunction* types it
+    # generates (E3006), see aws-cloudformation/resource-provider-enhanced-schemas#50.
+    "AWS::Serverless::WebFunction",
+}
+
 
 def get_sam_resource_types() -> Set[str]:
-    """Every AWS::Serverless resource type the installed SAM translator can expand."""
+    """Every AWS::Serverless resource type the installed SAM translator can expand, except NEW_RESOURCES_TO_IGNORE."""
     resource_types = set()
     for member in vars(sam_resources).values():
         resource_type = getattr(member, "resource_type", None) if inspect.isclass(member) else None
-        if isinstance(resource_type, str) and resource_type.startswith("AWS::Serverless::"):
+        if (
+            isinstance(resource_type, str)
+            and resource_type.startswith("AWS::Serverless::")
+            and resource_type not in NEW_RESOURCES_TO_IGNORE
+        ):
             resource_types.add(resource_type)
     return resource_types
 
