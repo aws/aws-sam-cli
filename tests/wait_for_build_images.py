@@ -13,6 +13,7 @@ Behavior:
   - Fails if the images are not published within --timeout-minutes
 """
 
+import argparse
 import base64
 import json
 import os
@@ -188,8 +189,6 @@ def wait_for_images(
 
 
 def main():
-    import argparse
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--sam-cli-version", help="Defaults to the version of the latest SAM CLI release")
     parser.add_argument("--timeout-minutes", type=int, default=120)
