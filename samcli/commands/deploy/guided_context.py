@@ -23,7 +23,11 @@ from samcli.commands.deploy.code_signer_utils import (
 from samcli.commands.deploy.exceptions import GuidedDeployFailedError
 from samcli.commands.deploy.guided_config import GuidedConfig
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info, template_file_has_web_functions
+from samcli.lib.bootstrap.bootstrap import (
+    manage_stack,
+    print_managed_s3_bucket_info,
+    stacks_need_web_function_code_access,
+)
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import CompanionStackManager, sync_ecr_stack
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -187,7 +191,7 @@ class GuidedContext:
         managed_s3_bucket = manage_stack(
             profile=self.profile,
             region=region,
-            web_function_code_access=template_file_has_web_functions(self.template_file),
+            web_function_code_access=stacks_need_web_function_code_access(stacks),
         )
         print_managed_s3_bucket_info(managed_s3_bucket)
 

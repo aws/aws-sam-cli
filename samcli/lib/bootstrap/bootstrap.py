@@ -4,7 +4,7 @@ Bootstrap's user's development environment by creating cloud resources required 
 
 import json
 import logging
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import boto3
 import click
@@ -65,17 +65,41 @@ def template_has_web_functions(template_dict: Optional[Dict]) -> bool:
     )
 
 
-def template_file_has_web_functions(template_file: Optional[str]) -> bool:
-    """Return True if the template file defines an AWS::Serverless::WebFunction resource."""
+def stacks_need_web_function_code_access(stacks: Any) -> bool:
+    """
+    Return True if the stacks (including nested stacks) define an AWS::Serverless::WebFunction whose code is uploaded
+    from a local path. Returns False if the stacks can't be inspected.
+    """
     # Imported here to avoid a circular import
-    from samcli.commands._utils.template import get_template_data  # pylint: disable=import-outside-toplevel
+    from samcli.lib.package.web_function_code_access import (  # pylint: disable=import-outside-toplevel
+        stacks_have_web_functions,
+    )
+
+    try:
+        return stacks_have_web_functions(stacks, local_code_only=True)
+    except Exception:  # pylint: disable=broad-except
+        LOG.debug("Could not inspect stacks for Web Functions", exc_info=True)
+        return False
+
+
+def template_file_has_web_functions(template_file: Optional[str]) -> bool:
+    """
+    Return True if the template file, or a nested stack it references, defines an AWS::Serverless::WebFunction whose
+    code is uploaded from a local path.
+    """
+    # Imported here to avoid a circular import
+    # pylint: disable=import-outside-toplevel
+    from samcli.lib.package.web_function_code_access import stacks_have_web_functions
+    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 
     if not template_file:
         return False
     try:
-        return template_has_web_functions(get_template_data(template_file))
+        stacks, _ = SamLocalStackProvider.get_stacks(template_file)
+        return stacks_have_web_functions(stacks, local_code_only=True)
     except Exception:  # pylint: disable=broad-except
         # An unreadable template fails later with a clearer error
+        LOG.debug("Could not load stacks from %s to look for Web Functions", template_file, exc_info=True)
         return False
 
 

@@ -12,6 +12,7 @@ from samcli.lib.bootstrap.bootstrap import (
     manage_stack,
     StackOutput,
     get_current_account_id,
+    stacks_need_web_function_code_access,
     template_file_has_web_functions,
     template_has_web_functions,
 )
@@ -74,11 +75,15 @@ class TestBootstrapWebFunctionCodeAccess(TestCase):
         self.assertFalse(template_has_web_functions({}))
         self.assertFalse(template_has_web_functions(None))
 
-    @patch("samcli.commands._utils.template.get_template_data")
-    def test_template_file_has_web_functions(self, get_template_data_mock):
-        get_template_data_mock.return_value = {"Resources": {"Fn": {"Type": "AWS::Serverless::WebFunction"}}}
+    @patch("samcli.lib.providers.sam_stack_provider.SamLocalStackProvider.get_stacks")
+    def test_template_file_has_web_functions(self, get_stacks_mock):
+        root = MagicMock(resources={"App": {"Type": "AWS::Serverless::Application"}})
+        child = MagicMock(resources={"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "web/"}}})
+        get_stacks_mock.return_value = ([root, child], [])
         self.assertTrue(template_file_has_web_functions("template.yaml"))
-        get_template_data_mock.side_effect = Exception("unreadable")
+        get_stacks_mock.return_value = ([root], [])
+        self.assertFalse(template_file_has_web_functions("template.yaml"))
+        get_stacks_mock.side_effect = Exception("unreadable")
         self.assertFalse(template_file_has_web_functions("template.yaml"))
         self.assertFalse(template_file_has_web_functions(None))
 
@@ -129,3 +134,8 @@ class TestBootstrapWebFunctionCodeAccess(TestCase):
         )
         with self.assertRaises(AWSServiceClientError):
             manage_stack("profile", "us-east-1", web_function_code_access=True)
+
+    def test_stacks_need_web_function_code_access(self):
+        stack = MagicMock(resources={"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "web/"}}})
+        self.assertTrue(stacks_need_web_function_code_access([stack]))
+        self.assertFalse(stacks_need_web_function_code_access(MagicMock(__iter__=None)))

@@ -18,7 +18,7 @@ import copy
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import boto3
 import click
@@ -41,6 +41,10 @@ from samcli.lib.package.language_extensions_packaging import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
+from samcli.lib.package.web_function_code_access import (
+    stacks_have_web_functions,
+    warn_if_bucket_cannot_serve_web_function_code,
+)
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
@@ -151,6 +155,8 @@ class PackageContext:
 
         # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
         docker_client = None
+
+        self._warn_if_bucket_cannot_serve_web_function_code(stacks, s3_client, region_name)
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
@@ -287,6 +293,24 @@ class PackageContext:
                 template_dir,
             )
         return output_template
+
+    def _warn_if_bucket_cannot_serve_web_function_code(
+        self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]
+    ) -> None:
+        """Warn if Lambda can't read Web Function code uploaded to the S3 bucket. Never fails packaging."""
+        try:
+            if not self.s3_bucket or not stacks_have_web_functions(stacks, local_code_only=True):
+                return
+            kms_client = (
+                boto3.client("kms", config=get_boto_config_with_user_agent(region_name=region_name))
+                if self.kms_key_id
+                else None
+            )
+            warn_if_bucket_cannot_serve_web_function_code(
+                s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, kms_client
+            )
+        except Exception:  # pylint: disable=broad-except
+            LOG.debug("Could not check the S3 bucket for Lambda Web Function code access", exc_info=True)
 
     def _warn_preview_runtime(self, stacks: List[Stack]) -> None:
         # In JSON mode this warning goes to stderr so it does not corrupt the JSON lines on stdout.

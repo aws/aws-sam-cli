@@ -4606,3 +4606,43 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
         ctx._export("template.yaml", use_json=False)
 
         mock_pre_le_pass.assert_not_called()
+
+
+class TestPackageContextWebFunctionCodeAccess(TestCase):
+    def _context(self, s3_bucket="bucket", kms_key_id=None):
+        return PackageContext(
+            template_file="template-file",
+            s3_bucket=s3_bucket,
+            s3_prefix="prefix",
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=kms_key_id,
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={},
+            region="us-east-1",
+            profile=None,
+        )
+
+    @patch("samcli.commands.package.package_context.warn_if_bucket_cannot_serve_web_function_code")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=True)
+    @patch("samcli.commands.package.package_context.boto3")
+    def test_checks_bucket_when_template_has_web_functions(self, boto3_mock, has_mock, warn_mock):
+        s3_client = Mock()
+        self._context(kms_key_id="key")._warn_if_bucket_cannot_serve_web_function_code(["stack"], s3_client, "r")
+        has_mock.assert_called_once_with(["stack"], local_code_only=True)
+        warn_mock.assert_called_once_with(s3_client, "bucket", "prefix", "key", boto3_mock.client.return_value)
+
+    @patch("samcli.commands.package.package_context.warn_if_bucket_cannot_serve_web_function_code")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=False)
+    def test_skips_check_without_web_functions(self, has_mock, warn_mock):
+        self._context()._warn_if_bucket_cannot_serve_web_function_code(["stack"], Mock(), "r")
+        warn_mock.assert_not_called()
+
+    @patch("samcli.commands.package.package_context.warn_if_bucket_cannot_serve_web_function_code")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=True)
+    def test_check_failure_does_not_fail_packaging(self, has_mock, warn_mock):
+        warn_mock.side_effect = Exception("boom")
+        self._context()._warn_if_bucket_cannot_serve_web_function_code(["stack"], Mock(), "r")
