@@ -50,7 +50,53 @@ env:
   MSYS2_ENV_CONV_EXCL: "AWS_ACCESS_KEY_ID;AWS_SECRET_ACCESS_KEY;AWS_SESSION_TOKEN;TASK_TOKEN;CI_ACCESS_ROLE_AWS_ACCESS_KEY_ID;CI_ACCESS_ROLE_AWS_SECRET_ACCESS_KEY;CI_ACCESS_ROLE_AWS_SESSION_TOKEN"
 
 jobs:
+  # The build images of a release are published while its release tests start. For release tests, wait until
+  # they are published, so the tests run against the build images of this release instead of the previous one.
+  wait-for-build-images:
+    if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
+    name: Wait for build images
+    runs-on: ubuntu-latest
+    env:
+      IS_LATEST_RELEASE_TEST: ${{ inputs.install_mode == 'latest-release' || (github.event.action == 'published' && !github.event.release.prerelease) }}
+    steps:
+      - name: Checkout code
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          python-version: "3.11"
+          cache-python: false
+
+      - name: Install Python
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        shell: bash
+        run: bash tests/setup-python-uv.sh 3.11
+
+      - name: Set up pytest environment
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        shell: bash
+        run: make setup-pytest
+
+      - name: Configure AWS credentials via OIDC
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Wait for build images of the latest release
+        if: env.IS_LATEST_RELEASE_TEST == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: 1
+        run: $SCRIPT_PY tests/wait_for_build_images.py
+
   integration-tests:
+    needs: wait-for-build-images
     # Only run scheduled jobs on the main aws/aws-sam-cli repository, not on forks
     if: github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli'
     name: ${{ matrix.test_suite }}
