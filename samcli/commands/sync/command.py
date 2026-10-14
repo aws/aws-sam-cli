@@ -46,7 +46,7 @@ from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.command import _get_mode_value_from_envvar
 from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
-from samcli.lib.bootstrap.bootstrap import manage_stack
+from samcli.lib.bootstrap.bootstrap import manage_stack, template_file_has_web_functions
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -326,7 +326,9 @@ def do_cli(
     else:
         LOG.info(Colored().color_log(msg=SYNC_INFO_TEXT, color="yellow"), extra=dict(markup=True))
 
-    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
+    s3_bucket_name = s3_bucket or manage_stack(
+        profile=profile, region=region, web_function_code_access=template_file_has_web_functions(template_file)
+    )
 
     if dependency_layer is True:
         dependency_layer = check_enable_dependency_layer(template_file, language_extensions)

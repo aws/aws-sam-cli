@@ -57,6 +57,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_WEBFUNCTION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
@@ -393,6 +394,8 @@ class ApplicationBuilder:
     @staticmethod
     def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
+            resource_properties["CodeUri"] = absolute_path
+        if resource_type == AWS_SERVERLESS_WEBFUNCTION:
             resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["Code"] = absolute_path

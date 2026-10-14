@@ -252,7 +252,10 @@ class BuildContext:
         # when base_dir is provided, codeuri should not be resolved based on template file path.
         # we will refactor to make all path resolution inside providers intead of in multiple places
         self._function_provider = SamFunctionProvider(
-            self.stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested
+            self.stacks,
+            self._use_raw_codeuri,
+            locate_layer_nested=self._locate_layer_nested,
+            include_web_functions=True,
         )
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 

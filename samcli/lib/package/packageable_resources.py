@@ -47,6 +47,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
+    AWS_SERVERLESS_WEBFUNCTION,
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
     METADATA_WITH_LOCAL_PATHS,
@@ -398,6 +399,12 @@ class ServerlessFunctionResource(ResourceZip):
     FORCE_ZIP = True
 
 
+class ServerlessWebFunctionResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_WEBFUNCTION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    FORCE_ZIP = True
+
+
 class ServerlessFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_SERVERLESS_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
@@ -692,6 +699,7 @@ class GraphQLApiCodeResource(ResourceZip):
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
+    ServerlessWebFunctionResource,
     ServerlessApiResource,
     ServerlessHttpApiResource,
     ServerlessStateMachineResource,

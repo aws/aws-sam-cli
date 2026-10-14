@@ -1224,7 +1224,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False, False, None)
+        extract_mock.assert_called_with([stack], False, False, False, None, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -1239,7 +1239,9 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack])
 
-        extract_mock.assert_called_with([stack], False, False, False, None)  # Empty Resources value must be passed
+        extract_mock.assert_called_with(
+            [stack], False, False, False, None, False
+        )  # Empty Resources value must be passed
         self.assertEqual(provider.functions, extract_result)
 
     @patch.object(SamFunctionProvider, "_extract_functions")
@@ -1253,7 +1255,7 @@ class TestSamFunctionProvider_init(TestCase):
         stack = make_root_stack(template, self.parameter_overrides)
         provider = SamFunctionProvider([stack], locate_layer_nested=True)
 
-        extract_mock.assert_called_with([stack], False, False, True, None)
+        extract_mock.assert_called_with([stack], False, False, True, None, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 
@@ -1484,6 +1486,46 @@ class TestSamFunctionProvider_extract_functions(TestCase):
             stacks=None,
             function_id=None,
         )
+
+
+class TestSamFunctionProvider_web_functions(TestCase):
+    def _stack(self, properties, metadata=None):
+        resource = {"Type": "AWS::Serverless::WebFunction", "Properties": properties}
+        if metadata:
+            resource["Metadata"] = metadata
+        return make_root_stack({"Resources": {"WebFn": resource}})
+
+    def test_web_functions_are_excluded_by_default(self):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "./web", "AuthType": "IamAuth"})
+        self.assertEqual(SamFunctionProvider._extract_functions([stack]), {})
+
+    def test_web_function_is_extracted_for_builds(self):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "./web", "AuthType": "IamAuth"})
+        functions = SamFunctionProvider._extract_functions([stack], include_web_functions=True)
+        function = functions["WebFn"]
+        self.assertEqual(function.runtime, "nodejs24.x")
+        self.assertEqual(function.handler, "index.js")
+        self.assertEqual(function.packagetype, ZIP)
+        self.assertEqual(function.function_build_info, FunctionBuildInfo.BuildableZip)
+        self.assertTrue(function.codeuri.endswith("web"))
+
+    def test_web_function_entry_point_is_used_as_handler(self):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "./web", "EntryPoint": "server.js"})
+        functions = SamFunctionProvider._extract_functions([stack], include_web_functions=True)
+        self.assertEqual(functions["WebFn"].handler, "server.js")
+
+    def test_web_function_build_method_metadata_is_kept(self):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "./web"}, {"BuildMethod": "esbuild"})
+        functions = SamFunctionProvider._extract_functions([stack], include_web_functions=True)
+        self.assertEqual(functions["WebFn"].metadata["BuildMethod"], "esbuild")
+
+    @parameterized.expand([("s3://bucket/key.zip",), ({"Bucket": "bucket", "Key": "key.zip"},)])
+    def test_web_function_with_s3_code_is_not_built(self, code_uri):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": code_uri})
+        functions = SamFunctionProvider._extract_functions(
+            [stack], ignore_code_extraction_warnings=True, include_web_functions=True
+        )
+        self.assertEqual(functions, {})
 
 
 class TestSamFunctionProvider_get_function_id(TestCase):
@@ -2262,7 +2304,7 @@ class TestRefreshableSamFunctionProvider(TestCase):
             [stack, stack2], self.parameter_overrides, self.global_parameter_overrides
         )
 
-        extract_mock.assert_called_with([stack, stack2], False, False, False, None)
+        extract_mock.assert_called_with([stack, stack2], False, False, False, None, False)
         get_template_mock.assert_called_with(template, self.parameter_overrides)
         self.assertEqual(provider.functions, extract_result)
 

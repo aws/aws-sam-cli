@@ -1542,6 +1542,15 @@ class TestApplicationBuilder_update_template(TestCase):
         self.assertEqual(actual, self.template_dict)
 
 
+class TestApplicationBuilder_update_built_web_function(TestCase):
+    def test_updates_web_function_code_uri(self):
+        properties = {"CodeUri": "web", "Runtime": "nodejs24.x"}
+        ApplicationBuilder._update_built_resource(
+            "/build/WebFn", properties, "AWS::Serverless::WebFunction", "build/WebFn"
+        )
+        self.assertEqual(properties["CodeUri"], "build/WebFn")
+
+
 class TestApplicationBuilder_update_template_windows(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     def setUp(self, mock_get_validated_container_client):

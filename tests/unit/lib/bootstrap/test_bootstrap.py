@@ -2,7 +2,19 @@ from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from samcli.commands.exceptions import UserException, AWSServiceClientError
-from samcli.lib.bootstrap.bootstrap import manage_stack, StackOutput, get_current_account_id
+import json
+
+from botocore.exceptions import ClientError
+
+from samcli.lib.bootstrap.bootstrap import (
+    WEB_FUNCTION_CODE_ACCESS_SID,
+    _get_stack_template,
+    manage_stack,
+    StackOutput,
+    get_current_account_id,
+    template_file_has_web_functions,
+    template_has_web_functions,
+)
 
 
 class TestBootstrapManagedStack(TestCase):
@@ -43,3 +55,77 @@ class TestBootstrapManagedStack(TestCase):
         session_mock.client.return_value = sts_mock
         with self.assertRaises(AWSServiceClientError):
             get_current_account_id()
+
+
+class TestBootstrapWebFunctionCodeAccess(TestCase):
+    def test_stack_template_allows_lambda_to_read_web_function_code(self):
+        statements = json.loads(_get_stack_template())["Resources"]["SamCliSourceBucketBucketPolicy"]["Properties"][
+            "PolicyDocument"
+        ]["Statement"]
+        statement = next(s for s in statements if s.get("Sid") == WEB_FUNCTION_CODE_ACCESS_SID)
+        self.assertEqual(statement["Principal"], {"Service": "lambda.amazonaws.com"})
+        self.assertEqual(statement["Action"], ["s3:GetObject", "s3:GetObjectVersion"])
+        self.assertEqual(statement["Condition"]["StringEquals"], {"aws:SourceAccount": {"Ref": "AWS::AccountId"}})
+        self.assertIn("web-function/*/revision/*", statement["Condition"]["ArnLike"]["aws:SourceArn"]["Fn::Sub"])
+
+    def test_template_has_web_functions(self):
+        self.assertTrue(template_has_web_functions({"Resources": {"Fn": {"Type": "AWS::Serverless::WebFunction"}}}))
+        self.assertFalse(template_has_web_functions({"Resources": {"Fn": {"Type": "AWS::Serverless::Function"}}}))
+        self.assertFalse(template_has_web_functions({}))
+        self.assertFalse(template_has_web_functions(None))
+
+    @patch("samcli.commands._utils.template.get_template_data")
+    def test_template_file_has_web_functions(self, get_template_data_mock):
+        get_template_data_mock.return_value = {"Resources": {"Fn": {"Type": "AWS::Serverless::WebFunction"}}}
+        self.assertTrue(template_file_has_web_functions("template.yaml"))
+        get_template_data_mock.side_effect = Exception("unreadable")
+        self.assertFalse(template_file_has_web_functions("template.yaml"))
+        self.assertFalse(template_file_has_web_functions(None))
+
+    @patch("samcli.lib.bootstrap.bootstrap.update_cloudformation_stack")
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    @patch("samcli.lib.bootstrap.bootstrap.manage_cloudformation_stack")
+    def test_updates_managed_stack_without_web_function_code_access(self, manage_mock, boto3_mock, update_mock):
+        manage_mock.return_value = StackOutput(stack_output=[{"OutputKey": "SourceBucket", "OutputValue": "bucket"}])
+        boto3_mock.client.return_value.get_template.return_value = {"TemplateBody": '{"Resources": {}}'}
+        self.assertEqual(manage_stack("profile", "us-east-1", web_function_code_access=True), "bucket")
+        update_mock.assert_called_once()
+        self.assertIn(WEB_FUNCTION_CODE_ACCESS_SID, update_mock.call_args.kwargs["template_body"])
+
+    @patch("samcli.lib.bootstrap.bootstrap.update_cloudformation_stack")
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    @patch("samcli.lib.bootstrap.bootstrap.manage_cloudformation_stack")
+    def test_skips_update_when_managed_stack_has_web_function_code_access(self, manage_mock, boto3_mock, update_mock):
+        manage_mock.return_value = StackOutput(stack_output=[{"OutputKey": "SourceBucket", "OutputValue": "bucket"}])
+        boto3_mock.client.return_value.get_template.return_value = {"TemplateBody": _get_stack_template()}
+        manage_stack("profile", "us-east-1", web_function_code_access=True)
+        update_mock.assert_not_called()
+
+    @patch("samcli.lib.bootstrap.bootstrap.update_cloudformation_stack")
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    @patch("samcli.lib.bootstrap.bootstrap.manage_cloudformation_stack")
+    def test_skips_check_without_web_functions(self, manage_mock, boto3_mock, update_mock):
+        manage_mock.return_value = StackOutput(stack_output=[{"OutputKey": "SourceBucket", "OutputValue": "bucket"}])
+        manage_stack("profile", "us-east-1")
+        boto3_mock.client.assert_not_called()
+        update_mock.assert_not_called()
+
+    @patch("samcli.lib.bootstrap.bootstrap.update_cloudformation_stack")
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    @patch("samcli.lib.bootstrap.bootstrap.manage_cloudformation_stack")
+    def test_update_failure_raises_user_exception(self, manage_mock, boto3_mock, update_mock):
+        manage_mock.return_value = StackOutput(stack_output=[{"OutputKey": "SourceBucket", "OutputValue": "bucket"}])
+        boto3_mock.client.return_value.get_template.return_value = {"TemplateBody": '{"Resources": {}}'}
+        update_mock.side_effect = Exception("AccessDenied")
+        with self.assertRaises(UserException):
+            manage_stack("profile", "us-east-1", web_function_code_access=True)
+
+    @patch("samcli.lib.bootstrap.bootstrap.boto3")
+    @patch("samcli.lib.bootstrap.bootstrap.manage_cloudformation_stack")
+    def test_get_template_failure_raises(self, manage_mock, boto3_mock):
+        manage_mock.return_value = StackOutput(stack_output=[{"OutputKey": "SourceBucket", "OutputValue": "bucket"}])
+        boto3_mock.client.return_value.get_template.side_effect = ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "denied"}}, "GetTemplate"
+        )
+        with self.assertRaises(AWSServiceClientError):
+            manage_stack("profile", "us-east-1", web_function_code_access=True)

@@ -27,9 +27,13 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_WEBFUNCTION,
 )
 
 LOG = logging.getLogger(__name__)
+
+# The file the Web Function runtime runs when EntryPoint isn't set
+WEB_FUNCTION_DEFAULT_ENTRY_POINT = "index.js"
 
 
 class SamFunctionProvider(SamBaseProvider):
@@ -47,6 +51,7 @@ class SamFunctionProvider(SamBaseProvider):
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        include_web_functions: bool = False,
     ) -> None:
         """
         Initialize the class with SAM template data. The SAM template passed to this provider is assumed
@@ -64,17 +69,25 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: Ignores Log warnings
         :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
         :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
+        :param bool include_web_functions: Also extract AWS::Serverless::WebFunction resources. Only builds use
+            this; Web Functions can't be invoked locally.
         """
 
         self._stacks = stacks
         self._function_logical_ids = function_logical_ids
+        self._include_web_functions = include_web_functions
 
         for stack in stacks:
             LOG.debug("%d resources found in the stack %s", len(stack.resources), stack.stack_path)
 
         # Store a map of function full_path to function information for quick reference
         self.functions = SamFunctionProvider._extract_functions(
-            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested, function_logical_ids
+            self._stacks,
+            use_raw_codeuri,
+            ignore_code_extraction_warnings,
+            locate_layer_nested,
+            function_logical_ids,
+            include_web_functions,
         )
 
         self._colored = Colored()
@@ -107,7 +120,12 @@ class SamFunctionProvider(SamBaseProvider):
         """
         self._stacks = stacks
         self.functions = SamFunctionProvider._extract_functions(
-            self._stacks, use_raw_codeuri, ignore_code_extraction_warnings, locate_layer_nested, function_logical_ids
+            self._stacks,
+            use_raw_codeuri,
+            ignore_code_extraction_warnings,
+            locate_layer_nested,
+            function_logical_ids,
+            getattr(self, "_include_web_functions", False),
         )
 
     def get(self, name: str) -> Optional[Function]:
@@ -209,6 +227,7 @@ class SamFunctionProvider(SamBaseProvider):
         ignore_code_extraction_warnings: bool = False,
         locate_layer_nested: bool = False,
         function_logical_ids: Optional[Tuple[str, ...]] = None,
+        include_web_functions: bool = False,
     ) -> Dict[str, Function]:
         """
         Extracts and returns function information from the given dictionary of SAM/CloudFormation resources. This
@@ -219,6 +238,7 @@ class SamFunctionProvider(SamBaseProvider):
         :param bool ignore_code_extraction_warnings: suppress log statements on code extraction from resources.
         :param bool locate_layer_nested: resolved nested layer reference to their actual location in the nested stack
         :param tuple function_logical_ids: Optional tuple of function logical IDs to filter by
+        :param bool include_web_functions: Also extract AWS::Serverless::WebFunction resources
         :return dict(string : samcli.commands.local.lib.provider.Function): Dictionary of function full_path to the
             Function configuration object
         """
@@ -293,6 +313,17 @@ class SamFunctionProvider(SamBaseProvider):
                     )
                     result[function.full_path] = function
 
+                elif resource_type == AWS_SERVERLESS_WEBFUNCTION and include_web_functions:
+                    if SamBaseProvider._is_s3_location(resource_properties.get("CodeUri")):
+                        # Code that is already in S3 isn't built
+                        if not ignore_code_extraction_warnings:
+                            SamFunctionProvider._warn_code_extraction(resource_type, name, "CodeUri")
+                        continue
+                    function = SamFunctionProvider._convert_sam_web_function_resource(
+                        stack, name, resource_properties, use_raw_codeuri
+                    )
+                    result[function.full_path] = function
+
                 # We don't care about other resource types. Just ignore them
 
         # Apply filtering if function_logical_ids provided
@@ -353,6 +384,34 @@ class SamFunctionProvider(SamBaseProvider):
 
         return SamFunctionProvider._build_function_configuration(
             stack, function_id, name, codeuri, resource_properties, layers, inlinecode, imageuri, use_raw_codeuri
+        )
+
+    @staticmethod
+    def _convert_sam_web_function_resource(
+        stack: Stack,
+        name: str,
+        resource_properties: Dict,
+        use_raw_codeuri: bool = False,
+    ) -> Function:
+        """
+        Converts a AWS::Serverless::WebFunction resource to a Function configuration that can be built.
+
+        A Web Function has no handler; its entry file (EntryPoint, default index.js) takes the handler's place, which
+        the Node.js builders use to locate the entry point.
+        """
+        function_id = SamFunctionProvider._get_function_id(resource_properties, name)
+        codeuri = SamBaseProvider._extract_codeuri(resource_properties, "CodeUri")
+        LOG.debug("Found Serverless web function with name='%s' and CodeUri='%s'", name, codeuri)
+        build_properties = {
+            "Handler": resource_properties.get("EntryPoint") or WEB_FUNCTION_DEFAULT_ENTRY_POINT,
+            "Runtime": resource_properties.get("Runtime"),
+            "Timeout": resource_properties.get("Timeout"),
+            "FunctionName": resource_properties.get("FunctionName", name),
+        }
+        if "Metadata" in resource_properties:
+            build_properties["Metadata"] = resource_properties["Metadata"]
+        return SamFunctionProvider._build_function_configuration(
+            stack, function_id, name, codeuri, build_properties, [], None, None, use_raw_codeuri
         )
 
     @staticmethod
