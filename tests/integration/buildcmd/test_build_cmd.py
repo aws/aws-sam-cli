@@ -522,6 +522,64 @@ class TestBuildCommand_SingleFunctionBuilds(BuildIntegBase):
     ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
     "Skip build tests on windows when running in CI unless overridden",
 )
+class TestBuildCommand_BuildDirGuard(BuildIntegBase):
+    # --build-dir is removed before building, so it must not hold the project or SAM CLI's own state
+    template = "template.yaml"
+    overrides = {"Runtime": "python3.11", "CodeUri": "PreBuiltPython", "Handler": "main.handler"}
+    warning = "will not be supported in a future release"
+
+    @parameterized.expand(["..", os.path.join("..", "..")])
+    def test_build_dir_parent_of_cwd_is_refused(self, build_dir):
+        project = Path(self.working_dir, "project")
+        project.mkdir()
+        sibling = Path(self.working_dir, "sibling.txt")
+        sibling.write_text("unrelated")
+
+        cmdlist = self.get_command_list(build_dir=build_dir, parameter_overrides=self.overrides)
+        command_result = run_command(cmdlist, cwd=str(project))
+
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("is or contains the current working directory", command_result.stderr.decode("utf-8"))
+        self.assertTrue(project.is_dir())
+        self.assertTrue(sibling.exists())
+
+    def test_build_dir_containing_template_dir_is_refused(self):
+        # sam build -t proj/template.yaml --build-dir proj, run from proj's parent
+        project = Path(self.working_dir, "proj")
+        shutil.copytree(Path(self.test_data_path, "PreBuiltPython"), project / "PreBuiltPython")
+        shutil.copy(self.template_path, project / "template.yaml")
+
+        cmdlist = [self.cmd, "build", "-t", os.path.join("proj", "template.yaml"), "--build-dir", "proj"]
+        cmdlist += ["--parameter-overrides", self._make_parameter_override_arg(self.overrides)]
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 1)
+        self.assertIn("the template's directory", command_result.stderr.decode("utf-8"))
+        self.assertTrue(Path(project, "template.yaml").exists())
+        self.assertTrue(Path(project, "PreBuiltPython", "main.py").exists())
+
+    @parameterized.expand([(".aws-sam",), (os.path.join(".aws-sam", "cache"),)])
+    def test_build_dir_containing_sam_state_warns_and_builds(self, build_dir):
+        cmdlist = self.get_command_list(build_dir=build_dir, parameter_overrides=self.overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertIn(self.warning, command_result.stderr.decode("utf-8"))
+        self.assertTrue(Path(self.working_dir, build_dir, "template.yaml").exists())
+
+    def test_default_build_dir_does_not_warn(self):
+        cmdlist = self.get_command_list(parameter_overrides=self.overrides)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0)
+        self.assertNotIn(self.warning, command_result.stderr.decode("utf-8"))
+        self.assertTrue(self.built_template.exists())
+
+
+@skipIf(
+    ((IS_WINDOWS and RUNNING_ON_CI) and not CI_OVERRIDE),
+    "Skip build tests on windows when running in CI unless overridden",
+)
 class TestBuildCommand_ExcludeResources(BuildIntegBase):
     template = "many-more-functions-template.yaml"
 

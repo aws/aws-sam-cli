@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
-from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR, DEFAULT_SAM_DIR
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled, prompt_experimental
 from samcli.commands._utils.template import (
     FOREACH_REQUIRED_ELEMENTS,
@@ -66,6 +66,7 @@ from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.lib.utils.path_utils import is_same_or_ancestor
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
@@ -256,11 +257,14 @@ class BuildContext:
         )
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
+        template_dir = str(pathlib.Path(self._template_file).resolve().parent)
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
-            self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
+            self._base_dir = template_dir
 
-        self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
+        self._build_dir = self._setup_build_dir(
+            self._build_dir, self._clean, self._cache_dir, [template_dir, self._base_dir]
+        )
 
         if self._cached:
             cache_path = pathlib.Path(self._cache_dir)
@@ -1261,17 +1265,40 @@ Commands you can use next
         return msg
 
     @staticmethod
-    def _setup_build_dir(build_dir: str, clean: bool) -> str:
+    def _setup_build_dir(
+        build_dir: str, clean: bool, cache_dir: Optional[str] = None, project_dirs: Optional[List[str]] = None
+    ) -> str:
         build_path = pathlib.Path(build_dir)
+        build_abs = os.path.abspath(str(build_path))
+        cwd = os.path.abspath(str(pathlib.Path.cwd()))
 
-        if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
+        # The build dir is removed before building, so it must not be or contain the current working
+        # directory, the template's directory or the base dir: '--build-dir ..', or
+        # '-t proj/template.yaml --build-dir proj', would otherwise delete the project.
+        protected_project_dirs = [cwd] + [os.path.abspath(d) for d in project_dirs or []]
+        if any(is_same_or_ancestor(build_abs, protected) for protected in protected_project_dirs):
             exception_message = (
-                "Failing build: Running a build with build-dir as current working directory "
-                "is extremely dangerous since the build-dir contents is first removed. "
-                "This is no longer supported, please remove the '--build-dir' option from the command "
-                "to allow the build artifacts to be placed in the directory your template is in."
+                f"Failing build: build-dir '{build_dir}' is or contains the current working directory, "
+                "the template's directory or the base directory, and the build-dir contents is first removed, "
+                "which would delete them. This is not supported, please remove the '--build-dir' option from the "
+                "command to allow the build artifacts to be placed in the directory your template is in, "
+                "or choose a directory outside the project."
             )
             raise InvalidBuildDirException(exception_message)
+
+        # Nor should it contain the state SAM CLI keeps across builds. This still builds, since some
+        # users pass '--build-dir .aws-sam' today, but the state is lost on every build.
+        protected_dirs = [DEFAULT_SAM_DIR, DEFAULT_DEPENDENCIES_DIR] + ([cache_dir] if cache_dir else [])
+        if clean and any(is_same_or_ancestor(build_abs, os.path.join(cwd, protected)) for protected in protected_dirs):
+            LOG.warning(
+                "Warning: build-dir '%s' is or contains SAM CLI's own '%s' directory, its build cache or dependencies, "
+                "and the build-dir contents is first removed, so these are deleted on every build. "
+                "This will not be supported in a future release. Remove the '--build-dir' option to place "
+                "the build artifacts in '%s', or choose a directory that does not contain these.",
+                build_dir,
+                DEFAULT_SAM_DIR,
+                DEFAULT_BUILD_DIR,
+            )
 
         try:
             if build_path.exists() and os.listdir(build_dir) and clean:
