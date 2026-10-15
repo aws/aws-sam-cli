@@ -145,3 +145,23 @@ class TestStacksHaveWebFunctions(TestCase):
         stack = _stack({"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": code_uri}}})
         self.assertTrue(stacks_have_web_functions([stack]))
         self.assertFalse(stacks_have_web_functions([stack], local_code_only=True))
+
+
+class TestWebFunctionUploaderRouting(TestCase):
+    def test_web_function_code_uses_its_own_uploader(self):
+        from samcli.lib.package.packageable_resources import ServerlessWebFunctionResource
+        from samcli.lib.package.uploaders import Destination, Uploaders
+
+        s3_uploader, ecr_uploader, web_uploader = MagicMock(), MagicMock(), MagicMock()
+        self.assertIs(Uploaders(s3_uploader, ecr_uploader, web_uploader).get(Destination.WEB_FUNCTION_S3), web_uploader)
+        self.assertIs(Uploaders(s3_uploader, ecr_uploader).get(Destination.WEB_FUNCTION_S3), s3_uploader)
+        self.assertEqual(ServerlessWebFunctionResource.EXPORT_DESTINATION, Destination.WEB_FUNCTION_S3)
+
+    def test_web_function_code_is_not_deleted_ahead_of_the_stack(self):
+        from samcli.lib.package.packageable_resources import ServerlessWebFunctionResource
+        from samcli.lib.package.uploaders import Uploaders
+
+        s3_uploader = MagicMock()
+        resource = ServerlessWebFunctionResource(Uploaders(s3_uploader, MagicMock()), None)
+        resource.delete("Fn", {"CodeUri": "s3://bucket/key"})
+        s3_uploader.delete_artifact.assert_not_called()

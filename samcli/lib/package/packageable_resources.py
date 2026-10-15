@@ -403,6 +403,12 @@ class ServerlessWebFunctionResource(ResourceZip):
     RESOURCE_TYPE = AWS_SERVERLESS_WEBFUNCTION
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     FORCE_ZIP = True
+    EXPORT_DESTINATION = Destination.WEB_FUNCTION_S3
+
+    def delete(self, resource_id, resource_dict):
+        # Revisions read their code from S3 for as long as they exist, so the code isn't deleted ahead of the
+        # stack. sam delete removes the stack's Web Function code bucket after the stack itself is deleted.
+        pass
 
 
 class ServerlessFunctionImageResource(ResourceImage):

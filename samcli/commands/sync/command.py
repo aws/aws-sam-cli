@@ -46,7 +46,7 @@ from samcli.commands.build.click_container import ContainerOptions
 from samcli.commands.build.command import _get_mode_value_from_envvar
 from samcli.commands.sync.core.command import SyncCommand
 from samcli.commands.sync.sync_context import SyncContext
-from samcli.lib.bootstrap.bootstrap import manage_stack, template_file_has_web_functions
+from samcli.lib.bootstrap.bootstrap import manage_stack
 from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -326,9 +326,7 @@ def do_cli(
     else:
         LOG.info(Colored().color_log(msg=SYNC_INFO_TEXT, color="yellow"), extra=dict(markup=True))
 
-    s3_bucket_name = s3_bucket or manage_stack(
-        profile=profile, region=region, web_function_code_access=template_file_has_web_functions(template_file)
-    )
+    s3_bucket_name = s3_bucket or manage_stack(profile=profile, region=region)
 
     if dependency_layer is True:
         dependency_layer = check_enable_dependency_layer(template_file, language_extensions)
@@ -384,6 +382,8 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
                 language_extensions=language_extensions,
+                # With the managed bucket, Web Function code goes to a code bucket owned by this stack instead
+                web_function_stack_name=stack_name if not s3_bucket else None,
             ) as package_context:
                 # 500ms of sleep time between stack checks and describe stack events.
                 DEFAULT_POLL_DELAY = 0.5

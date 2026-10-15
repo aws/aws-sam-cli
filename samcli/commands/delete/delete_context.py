@@ -12,6 +12,7 @@ from click import confirm, prompt
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+from samcli.lib.bootstrap.web_function_code_bucket import delete_web_function_code_bucket
 from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -101,6 +102,8 @@ class DeleteContext:
         self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
         self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfnUtils(cloudformation_client)
+        self.cloudformation_client = cloudformation_client
+        self.s3_client = s3_client
 
         # Set region, this is purely for logging purposes
         # the cloudformation client is able to read from
@@ -302,6 +305,9 @@ class DeleteContext:
                 deployment_config=self._deployment_config,
             )
             self.cf_utils.wait_for_delete(self.stack_name)
+
+        # Delete the Web Function code bucket only now: the stack's revisions read their code from it
+        delete_web_function_code_bucket(self.stack_name, self.cloudformation_client, self.s3_client)
 
         # Warn the user that s3 information is missing and to use --s3 options
         if not self.s3_bucket:

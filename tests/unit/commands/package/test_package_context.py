@@ -4646,3 +4646,30 @@ class TestPackageContextWebFunctionCodeAccess(TestCase):
     def test_check_failure_does_not_fail_packaging(self, has_mock, warn_mock):
         warn_mock.side_effect = Exception("boom")
         self._context()._warn_if_bucket_cannot_serve_web_function_code(["stack"], Mock(), "r")
+
+
+class TestPackageContextWebFunctionCodeBucket(TestCase):
+    @patch("samcli.commands.package.package_context.manage_web_function_code_bucket", return_value="code-bucket")
+    def test_uploader_targets_the_stack_code_bucket(self, manage_mock):
+        context = PackageContext(
+            template_file="template-file",
+            s3_bucket="managed-bucket",
+            s3_prefix="prefix",
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id="kms-key",
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={"k": "v"},
+            region="us-east-1",
+            profile="profile",
+            web_function_stack_name="my-app",
+        )
+        uploader = context._web_function_code_uploader(Mock(), "us-east-1")
+        manage_mock.assert_called_once_with("my-app", "us-east-1", "profile")
+        self.assertEqual(uploader.bucket_name, "code-bucket")
+        self.assertIsNone(uploader.prefix)
+        self.assertIsNone(uploader.kms_key_id)
+        self.assertEqual(uploader.artifact_metadata, {"k": "v"})

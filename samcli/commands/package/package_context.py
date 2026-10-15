@@ -14,6 +14,7 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import contextlib
 import copy
 import json
 import logging
@@ -26,6 +27,7 @@ import click
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.bootstrap.web_function_code_bucket import manage_web_function_code_bucket
 from samcli.lib.cfn_language_extensions.sam_integration import (
     expand_language_extensions,
     resolve_language_extensions_enabled,
@@ -90,6 +92,7 @@ class PackageContext:
         resolve_image_repos=False,
         language_extensions=None,
         output="text",
+        web_function_stack_name=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -112,6 +115,9 @@ class PackageContext:
         self._language_extensions_enabled: bool = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
         self._output_mode = OutputOption(output)
+        # Name of the stack being deployed. When set, Web Function code goes to that stack's own code bucket
+        # instead of s3_bucket.
+        self.web_function_stack_name = web_function_stack_name
 
     def __enter__(self):
         return self
@@ -156,7 +162,11 @@ class PackageContext:
         # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
         docker_client = None
 
-        self._warn_if_bucket_cannot_serve_web_function_code(stacks, s3_client, region_name)
+        web_function_s3_uploader = None
+        if self.web_function_stack_name and stacks_have_web_functions(stacks, local_code_only=True):
+            web_function_s3_uploader = self._web_function_code_uploader(s3_client, region_name)
+        else:
+            self._warn_if_bucket_cannot_serve_web_function_code(stacks, s3_client, region_name)
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
@@ -167,7 +177,7 @@ class PackageContext:
             docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
         )
 
-        self.uploaders = Uploaders(s3_uploader, ecr_uploader)
+        self.uploaders = Uploaders(s3_uploader, ecr_uploader, web_function_s3_uploader)
 
         code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
@@ -293,6 +303,19 @@ class PackageContext:
                 template_dir,
             )
         return output_template
+
+    def _web_function_code_uploader(self, s3_client: Any, region_name: Optional[str]) -> S3Uploader:
+        """Get or create the deployed stack's Web Function code bucket and return an uploader for it."""
+        if self._output_mode is OutputOption.json:
+            # Progress messages would corrupt the JSON output stream
+            with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                bucket = manage_web_function_code_bucket(self.web_function_stack_name, region_name, self.profile)
+        else:
+            bucket = manage_web_function_code_bucket(self.web_function_stack_name, region_name, self.profile)
+        # The bucket encrypts with SSE-S3 by default; Lambda can't use --kms-key-id unless the key grants it access
+        uploader = S3Uploader(s3_client, bucket, None, None, self.force_upload, self.no_progressbar)
+        uploader.artifact_metadata = self.metadata
+        return uploader
 
     def _warn_if_bucket_cannot_serve_web_function_code(
         self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]

@@ -506,9 +506,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 disable_rollback=True,
             )
-            mock_managed_stack.assert_called_with(
-                profile=self.profile, region="us-east-1", web_function_code_access=False
-            )
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
@@ -659,9 +657,7 @@ class TestDeployCliCommand(TestCase):
                 signing_profiles=self.signing_profiles,
                 disable_rollback=True,
             )
-            mock_managed_stack.assert_called_with(
-                profile=self.profile, region="us-east-1", web_function_code_access=False
-            )
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
@@ -801,7 +797,7 @@ class TestDeployCliCommand(TestCase):
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", web_function_code_access=False)
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 10)
@@ -964,7 +960,7 @@ class TestDeployCliCommand(TestCase):
         )
 
         context_mock.run.assert_called_with()
-        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1", web_function_code_access=False)
+        mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
         self.assertEqual(context_mock.run.call_count, 1)
 
         self.assertEqual(MOCK_SAM_CONFIG.put.call_count, 10)
@@ -1111,9 +1107,7 @@ class TestDeployCliCommand(TestCase):
 
             context_mock.run.assert_called_with()
             self.assertEqual(mock_save_config.call_count, 0)
-            mock_managed_stack.assert_called_with(
-                profile=self.profile, region="us-east-1", web_function_code_access=False
-            )
+            mock_managed_stack.assert_called_with(profile=self.profile, region="us-east-1")
             self.assertEqual(context_mock.run.call_count, 1)
 
     @patch("samcli.commands.package.command.click")
@@ -1421,6 +1415,7 @@ class TestDeployCliCommand(TestCase):
             parameter_overrides=self.parameter_overrides,
             language_extensions=None,
             output="text",
+            web_function_stack_name=None,
         )
 
         context_mock.run.assert_called_with()

@@ -194,6 +194,7 @@ class TestDoCli(TestCase):
             use_json=False,
             force_upload=True,
             language_extensions=None,
+            web_function_stack_name=ANY,
         )
 
         DeployContextMock.assert_called_with(
@@ -363,6 +364,7 @@ class TestDoCli(TestCase):
             use_json=False,
             force_upload=True,
             language_extensions=None,
+            web_function_stack_name=ANY,
         )
 
         DeployContextMock.assert_called_with(

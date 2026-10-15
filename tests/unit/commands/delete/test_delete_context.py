@@ -596,3 +596,29 @@ class TestDeleteContext(TestCase):
             ):
                 get_boto_client_provider_mock.assert_called_once_with(region=None, profile="profile_without_region")
                 self.assertIn("Unable to resolve a region", ex)
+
+
+class TestDeleteContextWebFunctionCodeBucket(TestCase):
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=True))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
+    @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket")
+    @patch.object(CfnUtils, "wait_for_delete")
+    @patch.object(CfnUtils, "delete_stack")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_code_bucket_is_deleted_after_the_stack(
+        self, client_provider_mock, _, __, delete_stack_mock, wait_mock, delete_bucket_mock
+    ):
+        order = MagicMock()
+        order.attach_mock(delete_stack_mock, "delete_stack")
+        order.attach_mock(wait_mock, "wait_for_delete")
+        order.attach_mock(delete_bucket_mock, "delete_web_function_code_bucket")
+        with DeleteContext(
+            stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket="b", s3_prefix="p"
+        ) as delete_context:
+            delete_context.run()
+        names = [c[0] for c in order.mock_calls]
+        self.assertGreater(names.index("delete_web_function_code_bucket"), names.index("wait_for_delete"))
+        self.assertEqual(delete_bucket_mock.call_args.args[0], "my-app")

@@ -40,7 +40,7 @@ from samcli.commands._utils.options import (
 )
 from samcli.commands.deploy.core.command import DeployCommand
 from samcli.commands.deploy.utils import sanitize_parameter_overrides
-from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info, template_file_has_web_functions
+from samcli.lib.bootstrap.bootstrap import manage_stack, print_managed_s3_bucket_info
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
 from samcli.lib.cfn_language_extensions.sam_integration import resolve_language_extensions_enabled
 from samcli.lib.cli_validation.image_repository_validation import image_repository_validation
@@ -352,18 +352,10 @@ def do_cli(
                     # JSON stream. Then surface the resolved bucket as a JSON info line, since
                     # print_managed_s3_bucket_info (the only place it appears in text mode) is skipped.
                     with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
-                        s3_bucket = manage_stack(
-                            profile=profile,
-                            region=region,
-                            web_function_code_access=template_file_has_web_functions(template_file),
-                        )
+                        s3_bucket = manage_stack(profile=profile, region=region)
                     click.echo(json.dumps({"type": "info", "managed_s3_bucket": s3_bucket}))
                 else:
-                    s3_bucket = manage_stack(
-                        profile=profile,
-                        region=region,
-                        web_function_code_access=template_file_has_web_functions(template_file),
-                    )
+                    s3_bucket = manage_stack(profile=profile, region=region)
                     print_managed_s3_bucket_info(s3_bucket)
 
             # TODO Refactor resolve-s3 and resolve-image-repos into one place
@@ -396,6 +388,8 @@ def do_cli(
                 parameter_overrides=context_param_overrides,
                 language_extensions=language_extensions,
                 output=output,
+                # With the managed bucket, Web Function code goes to a code bucket owned by this stack instead
+                web_function_stack_name=stack_name if (guided or resolve_s3) else None,
             ) as package_context:
                 package_context.run()
 
