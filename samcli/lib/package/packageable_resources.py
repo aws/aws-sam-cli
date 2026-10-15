@@ -46,6 +46,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
@@ -404,6 +405,15 @@ class ServerlessFunctionImageResource(ResourceImage):
     FORCE_ZIP = False
 
 
+class ServerlessMicrovmImageResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    FORCE_ZIP = True
+    # Unlike Function.CodeUri, this property is required. Never upload the
+    # template directory implicitly when it is absent.
+    PACKAGE_NULL_PROPERTY = False
+
+
 class ServerlessApiResource(ResourceZip):
     RESOURCE_TYPE = AWS_SERVERLESS_API
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
@@ -692,6 +702,7 @@ class GraphQLApiCodeResource(ResourceZip):
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
+    ServerlessMicrovmImageResource,
     ServerlessApiResource,
     ServerlessHttpApiResource,
     ServerlessStateMachineResource,

@@ -73,6 +73,7 @@ class TestPackageZip(PackageIntegBase):
         [
             "cdk_v1_synthesized_template_zip_functions.json",
             "aws-serverless-function.yaml",
+            "aws-serverless-microvmimage.yaml",
             "aws-serverless-api.yaml",
             "aws-serverless-httpapi.yaml",
             "aws-appsync-graphqlschema.yaml",
