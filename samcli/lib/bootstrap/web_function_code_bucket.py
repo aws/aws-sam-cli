@@ -9,7 +9,7 @@ deletes after the deployed stack is deleted.
 
 import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import click
 from botocore.exceptions import ClientError
@@ -31,10 +31,14 @@ class WebFunctionCodeBucketStack:
         self.parent_stack_name = parent_stack_name
         # 128 character stack name limit: 100 + 1 + 8 + 16
         self.stack_name = f"{parent_stack_name[:100]}-{str_checksum(parent_stack_name)[:8]}-WebFunctionCode"
+        # Unique per account and Region because the stack name is. Packaged templates import it, so CloudFormation
+        # won't delete the code bucket stack while a stack that reads code from it exists.
+        self.export_name = f"{self.stack_name}-Bucket"
 
 
 def get_code_bucket_template(parent_stack_name: str) -> str:
     """Return the template of the code bucket stack."""
+    export_name = WebFunctionCodeBucketStack(parent_stack_name).export_name
     bucket_arn = {"Fn::GetAtt": ["CodeBucket", "Arn"]}
     objects_arn = {"Fn::Sub": "${CodeBucket.Arn}/*"}
     template: Dict[str, Any] = {
@@ -95,14 +99,17 @@ def get_code_bucket_template(parent_stack_name: str) -> str:
                 },
             },
         },
-        "Outputs": {CODE_BUCKET_OUTPUT_KEY: {"Value": {"Ref": "CodeBucket"}}},
+        "Outputs": {CODE_BUCKET_OUTPUT_KEY: {"Value": {"Ref": "CodeBucket"}, "Export": {"Name": export_name}}},
     }
     return json.dumps(template)
 
 
-def manage_web_function_code_bucket(parent_stack_name: str, region: Optional[str], profile: Optional[str]) -> str:
+def manage_web_function_code_bucket(
+    parent_stack_name: str, region: Optional[str], profile: Optional[str]
+) -> Tuple[str, str]:
     """
-    Get or create the code bucket stack of a deployed stack, and return the bucket name.
+    Get or create the code bucket stack of a deployed stack, and return the bucket name and the name of the export
+    that holds it.
     """
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     click.echo(f"\n\tLooking for the Lambda Web Function code bucket of stack {parent_stack_name}")
@@ -119,7 +126,7 @@ def manage_web_function_code_bucket(parent_stack_name: str, region: Optional[str
             "created by the AWS SAM CLI."
         )
     click.echo(f"\tLambda Web Function code bucket: {bucket_name}")
-    return bucket_name
+    return bucket_name, code_stack.export_name
 
 
 def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_client: Any, s3_client: Any) -> bool:

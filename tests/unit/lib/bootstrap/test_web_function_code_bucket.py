@@ -25,7 +25,12 @@ class TestWebFunctionCodeBucketStack(TestCase):
         self.assertTrue(WebFunctionCodeBucketStack("my-app").stack_name.startswith("my-app-"))
 
     def test_template_bucket_meets_web_function_requirements(self):
-        resources = json.loads(get_code_bucket_template("my-app"))["Resources"]
+        template = json.loads(get_code_bucket_template("my-app"))
+        self.assertEqual(
+            template["Outputs"][CODE_BUCKET_OUTPUT_KEY]["Export"],
+            {"Name": WebFunctionCodeBucketStack("my-app").export_name},
+        )
+        resources = template["Resources"]
         bucket = resources["CodeBucket"]["Properties"]
         self.assertEqual(bucket["VersioningConfiguration"], {"Status": "Enabled"})
         encryption = bucket["BucketEncryption"]["ServerSideEncryptionConfiguration"][0]
@@ -45,7 +50,10 @@ class TestManageWebFunctionCodeBucket(TestCase):
     @patch("samcli.lib.bootstrap.web_function_code_bucket.manage_stack")
     def test_returns_the_bucket_name(self, manage_stack_mock, click_mock):
         manage_stack_mock.return_value = StackOutput([{"OutputKey": CODE_BUCKET_OUTPUT_KEY, "OutputValue": "bkt"}])
-        self.assertEqual(manage_web_function_code_bucket("my-app", "us-east-1", "profile"), "bkt")
+        self.assertEqual(
+            manage_web_function_code_bucket("my-app", "us-east-1", "profile"),
+            ("bkt", WebFunctionCodeBucketStack("my-app").export_name),
+        )
         kwargs = manage_stack_mock.call_args.kwargs
         self.assertEqual(kwargs["stack_name"], WebFunctionCodeBucketStack("my-app").stack_name)
         self.assertEqual(kwargs["region"], "us-east-1")

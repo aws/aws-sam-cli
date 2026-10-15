@@ -19,7 +19,7 @@ import copy
 import json
 import logging
 import os
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import boto3
 import click
@@ -163,8 +163,11 @@ class PackageContext:
         docker_client = None
 
         web_function_s3_uploader = None
+        web_function_bucket_export = None
         if self.web_function_stack_name and stacks_have_web_functions(stacks, local_code_only=True):
-            web_function_s3_uploader = self._web_function_code_uploader(s3_client, region_name)
+            web_function_s3_uploader, web_function_bucket_export = self._web_function_code_uploader(
+                s3_client, region_name
+            )
         else:
             self._warn_if_bucket_cannot_serve_web_function_code(stacks, s3_client, region_name)
 
@@ -177,7 +180,7 @@ class PackageContext:
             docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
         )
 
-        self.uploaders = Uploaders(s3_uploader, ecr_uploader, web_function_s3_uploader)
+        self.uploaders = Uploaders(s3_uploader, ecr_uploader, web_function_s3_uploader, web_function_bucket_export)
 
         code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
@@ -304,18 +307,25 @@ class PackageContext:
             )
         return output_template
 
-    def _web_function_code_uploader(self, s3_client: Any, region_name: Optional[str]) -> S3Uploader:
-        """Get or create the deployed stack's Web Function code bucket and return an uploader for it."""
+    def _web_function_code_uploader(self, s3_client: Any, region_name: Optional[str]) -> Tuple[S3Uploader, str]:
+        """
+        Get or create the deployed stack's Web Function code bucket, and return an uploader for it and the name of
+        the export that holds the bucket name.
+        """
         if self._output_mode is OutputOption.json:
             # Progress messages would corrupt the JSON output stream
             with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
-                bucket = manage_web_function_code_bucket(self.web_function_stack_name, region_name, self.profile)
+                bucket, export_name = manage_web_function_code_bucket(
+                    self.web_function_stack_name, region_name, self.profile
+                )
         else:
-            bucket = manage_web_function_code_bucket(self.web_function_stack_name, region_name, self.profile)
+            bucket, export_name = manage_web_function_code_bucket(
+                self.web_function_stack_name, region_name, self.profile
+            )
         # The bucket encrypts with SSE-S3 by default; Lambda can't use --kms-key-id unless the key grants it access
         uploader = S3Uploader(s3_client, bucket, None, None, self.force_upload, self.no_progressbar)
         uploader.artifact_metadata = self.metadata
-        return uploader
+        return uploader, export_name
 
     def _warn_if_bucket_cannot_serve_web_function_code(
         self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]

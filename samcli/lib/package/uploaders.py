@@ -24,16 +24,20 @@ class Uploaders:
     _s3_uploader: S3Uploader
     _ecr_uploader: ECRUploader
     _web_function_s3_uploader: Optional[S3Uploader]
+    # CloudFormation export holding the name of the bucket that web_function_s3_uploader uploads to
+    web_function_bucket_export: Optional[str]
 
     def __init__(
         self,
         s3_uploader: S3Uploader,
         ecr_uploader: ECRUploader,
         web_function_s3_uploader: Optional[S3Uploader] = None,
+        web_function_bucket_export: Optional[str] = None,
     ):
         self._s3_uploader = s3_uploader
         self._ecr_uploader = ecr_uploader
         self._web_function_s3_uploader = web_function_s3_uploader
+        self.web_function_bucket_export = web_function_bucket_export
 
     def get(self, destination: Destination) -> Union[S3Uploader, ECRUploader]:
         if destination == Destination.S3:

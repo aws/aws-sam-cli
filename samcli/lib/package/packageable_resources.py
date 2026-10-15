@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Type, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Type, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -404,6 +404,28 @@ class ServerlessWebFunctionResource(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     FORCE_ZIP = True
     EXPORT_DESTINATION = Destination.WEB_FUNCTION_S3
+
+    def do_export(
+        self,
+        resource_id,
+        resource_dict,
+        parent_dir,
+        property_path: Optional[str] = None,
+        local_path: Optional[str] = None,
+    ):
+        super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
+        export_name = getattr(self.uploaders, "web_function_bucket_export", None)
+        property_path = property_path or self.PROPERTY_NAME
+        uploaded_url = jmespath.search(property_path, resource_dict)
+        if not isinstance(export_name, str) or not export_name or not isinstance(uploaded_url, str):
+            return
+        # Import the code bucket's name instead of writing it, so CloudFormation won't delete the code bucket stack
+        # while this stack reads code from it
+        location = parse_s3_url(uploaded_url, version_property="Version")
+        code_uri: Dict[str, Any] = {"Bucket": {"Fn::ImportValue": export_name}, "Key": location["Key"]}
+        if location.get("Version"):
+            code_uri["Version"] = location["Version"]
+        set_value_from_jmespath(resource_dict, property_path, code_uri)
 
     def delete(self, resource_id, resource_dict):
         # Revisions read their code from S3 for as long as they exist, so the code isn't deleted ahead of the

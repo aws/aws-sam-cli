@@ -4649,7 +4649,10 @@ class TestPackageContextWebFunctionCodeAccess(TestCase):
 
 
 class TestPackageContextWebFunctionCodeBucket(TestCase):
-    @patch("samcli.commands.package.package_context.manage_web_function_code_bucket", return_value="code-bucket")
+    @patch(
+        "samcli.commands.package.package_context.manage_web_function_code_bucket",
+        return_value=("code-bucket", "my-app-export"),
+    )
     def test_uploader_targets_the_stack_code_bucket(self, manage_mock):
         context = PackageContext(
             template_file="template-file",
@@ -4667,7 +4670,8 @@ class TestPackageContextWebFunctionCodeBucket(TestCase):
             profile="profile",
             web_function_stack_name="my-app",
         )
-        uploader = context._web_function_code_uploader(Mock(), "us-east-1")
+        uploader, export_name = context._web_function_code_uploader(Mock(), "us-east-1")
+        self.assertEqual(export_name, "my-app-export")
         manage_mock.assert_called_once_with("my-app", "us-east-1", "profile")
         self.assertEqual(uploader.bucket_name, "code-bucket")
         self.assertIsNone(uploader.prefix)

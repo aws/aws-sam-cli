@@ -165,3 +165,36 @@ class TestWebFunctionUploaderRouting(TestCase):
         resource = ServerlessWebFunctionResource(Uploaders(s3_uploader, MagicMock()), None)
         resource.delete("Fn", {"CodeUri": "s3://bucket/key"})
         s3_uploader.delete_artifact.assert_not_called()
+
+
+class TestWebFunctionCodeUriImport(TestCase):
+    def _resource(self, export_name):
+        from samcli.lib.package.packageable_resources import ServerlessWebFunctionResource
+        from samcli.lib.package.uploaders import Uploaders
+
+        code_signer = MagicMock()
+        code_signer.should_sign_package.return_value = False
+        return ServerlessWebFunctionResource(
+            Uploaders(MagicMock(), MagicMock(), MagicMock(), web_function_bucket_export=export_name), code_signer
+        )
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
+    def test_code_uri_imports_the_code_bucket(self, upload_mock):
+        upload_mock.return_value = "s3://code-bucket/abc123"
+        resource_dict = {"CodeUri": "web/"}
+        self._resource("my-app-export").do_export("Fn", resource_dict, "/dir")
+        self.assertEqual(resource_dict["CodeUri"], {"Bucket": {"Fn::ImportValue": "my-app-export"}, "Key": "abc123"})
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
+    def test_code_uri_keeps_the_object_version(self, upload_mock):
+        upload_mock.return_value = "s3://code-bucket/abc123?versionId=v1"
+        resource_dict = {"CodeUri": "web/"}
+        self._resource("my-app-export").do_export("Fn", resource_dict, "/dir")
+        self.assertEqual(resource_dict["CodeUri"]["Version"], "v1")
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
+    def test_code_uri_is_a_url_without_a_code_bucket(self, upload_mock):
+        upload_mock.return_value = "s3://my-bucket/abc123"
+        resource_dict = {"CodeUri": "web/"}
+        self._resource(None).do_export("Fn", resource_dict, "/dir")
+        self.assertEqual(resource_dict["CodeUri"], "s3://my-bucket/abc123")
