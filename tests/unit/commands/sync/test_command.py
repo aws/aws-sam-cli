@@ -900,3 +900,69 @@ class TestDisableADL(TestCase):
             "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
             invoke_result.output,
         )
+
+
+class TestSyncWatchWebFunctions(TestCase):
+    def _do_cli(self, watch):
+        do_cli(
+            "template.yaml",
+            False,
+            watch,
+            None,
+            None,
+            False,
+            False,
+            "stack",
+            "us-east-1",
+            None,
+            None,
+            {},
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            {},
+            {},
+            False,
+            None,
+            None,
+            "samconfig.toml",
+            "default",
+            build_in_source=False,
+            watch_exclude={},
+            language_extensions=None,
+        )
+
+    @patch("samcli.cli.global_config.GlobalConfig")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
+    def test_watch_with_web_functions_fails(self, has_mock, global_config_mock):
+        from samcli.lib.package.web_function_code_access import WebFunctionSyncWatchError
+
+        with self.assertRaises(WebFunctionSyncWatchError) as ctx:
+            self._do_cli(watch=True)
+        self.assertIn("sam sync --watch", ctx.exception.message)
+        has_mock.assert_called_once_with("template.yaml", False)
+        global_config_mock.assert_not_called()
+
+    @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
+    @patch("samcli.cli.global_config.GlobalConfig")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
+    def test_sync_without_watch_is_allowed(self, has_mock, global_config_mock, _):
+        global_config_mock.return_value.is_accelerate_opt_in_stack.return_value = True
+        with self.assertRaises(RuntimeError):
+            self._do_cli(watch=False)
+        has_mock.assert_not_called()
+
+    @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
+    @patch("samcli.cli.global_config.GlobalConfig")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=False)
+    def test_watch_without_web_functions_is_allowed(self, has_mock, global_config_mock, _):
+        global_config_mock.return_value.is_accelerate_opt_in_stack.return_value = True
+        with self.assertRaises(RuntimeError):
+            self._do_cli(watch=True)
+        has_mock.assert_called_once()

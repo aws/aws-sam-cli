@@ -316,7 +316,16 @@ def do_cli(
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.package.web_function_code_access import (
+        WebFunctionSyncWatchError,
+        template_file_has_local_web_functions,
+    )
     from samcli.lib.utils import osutils
+
+    if watch and template_file_has_local_web_functions(
+        template_file, resolve_language_extensions_enabled(language_extensions)
+    ):
+        raise WebFunctionSyncWatchError()
 
     global_config = GlobalConfig()
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):

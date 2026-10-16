@@ -107,7 +107,19 @@ def stacks_have_web_functions(stacks: Iterable[Stack], local_code_only: bool = F
     return False
 
 
-def template_file_has_local_web_functions(template_file: str) -> bool:
+class WebFunctionSyncWatchError(UserException):
+    """sam sync --watch doesn't support AWS::Serverless::WebFunction resources."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            message=(
+                "AWS::Serverless::WebFunction isn't supported with 'sam sync --watch', because every code change "
+                "creates a new revision. Use 'sam sync' without --watch, or 'sam deploy'."
+            )
+        )
+
+
+def template_file_has_local_web_functions(template_file: str, language_extensions_enabled: bool = False) -> bool:
     """
     Return True if the template file, or a nested stack it references, defines an AWS::Serverless::WebFunction with
     local code. Returns False if the template can't be read, which fails later with a clearer error.
@@ -116,7 +128,9 @@ def template_file_has_local_web_functions(template_file: str) -> bool:
     from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider  # pylint: disable=import-outside-toplevel
 
     try:
-        stacks, _ = SamLocalStackProvider.get_stacks(template_file)
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            template_file, language_extensions_enabled=language_extensions_enabled
+        )
         return stacks_have_web_functions(stacks, local_code_only=True)
     except Exception:  # pylint: disable=broad-except
         LOG.debug("Could not load stacks from %s to look for Web Functions", template_file, exc_info=True)
