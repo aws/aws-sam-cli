@@ -20,6 +20,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import (
     Container,
     ContainerContext,
+    ContainerNotStartableException,
     ContainerResponseException,
     ContainerConnectionTimeoutException,
     PortAlreadyInUse,
@@ -754,6 +755,76 @@ class TestContainer_start(TestCase):
 
         with self.assertRaises(PortAlreadyInUse):
             self.container.start()
+
+    @parameterized.expand(
+        [
+            # Docker Desktop.
+            ("500 Server Error: Ports are not available: exposing port TCP 127.0.0.1:3093", "desktop detail"),
+            # Linux daemon, port held by another container: moby's port allocator refuses it.
+            # Verified against Docker 25; the raw APIError used to escape here, and no command
+            # handler converts it into a UserException.
+            (
+                "500 Server Error: driver failed programming external connectivity on endpoint x: "
+                "Bind for 127.0.0.1:3093 failed: port is already allocated",
+                "allocator detail",
+            ),
+            # Linux daemon, port held by an ordinary process: the failure comes from the
+            # userland proxy's bind instead, with different wording. This is the likely shape
+            # on a remote daemon, where the holder is usually not a container.
+            (
+                "500 Server Error: driver failed programming external connectivity on endpoint x: "
+                "Error starting userland proxy: listen tcp4 127.0.0.1:3093: bind: address already in use",
+                "proxy detail",
+            ),
+        ]
+    )
+    def test_docker_raises_port_inuse_error_for_every_daemon_wording(self, error_message, explanation):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError(error_message, explanation=explanation)
+
+        with self.assertRaises(PortAlreadyInUse) as raised:
+            self.container.start()
+
+        self.assertEqual(str(raised.exception), explanation)
+
+    def test_docker_raises_not_startable_when_host_interface_does_not_exist(self):
+        # A stale or mistyped --container-host-interface: the address does not exist on the
+        # machine running the daemon. Verified against Docker 25. Not a port conflict, so it
+        # must not be reported as one - but it must still be a UserException rather than a
+        # traceback, and it should name the flag that caused it.
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError(
+            "500 Server Error: driver failed programming external connectivity on endpoint x: "
+            "Error starting userland proxy: listen tcp4 192.168.99.99:3093: bind: cannot assign requested address",
+            explanation="listen tcp4 192.168.99.99:3093: bind: cannot assign requested address",
+        )
+
+        with self.assertRaises(ContainerNotStartableException) as raised:
+            self.container.start()
+
+        self.assertIn("192.168.99.99", str(raised.exception))
+        self.assertIn("--container-host-interface", str(raised.exception))
+
+    def test_docker_raises_port_inuse_error_with_bytes_explanation(self):
+        # docker-py hands back a str today; older versions used bytes.
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError(
+            "500 Server Error: port is already allocated", explanation=b"bytes detail"
+        )
+
+        with self.assertRaises(PortAlreadyInUse) as raised:
+            self.container.start()
+
+        self.assertEqual(str(raised.exception), "bytes detail")
 
     def test_docker_raises_api_error(self):
         self.container.is_created.return_value = True
