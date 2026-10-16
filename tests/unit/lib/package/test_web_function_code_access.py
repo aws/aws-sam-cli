@@ -208,6 +208,14 @@ class TestWebFunctionCodeUriImport(TestCase):
         self.assertEqual(resource_dict["CodeUri"]["Version"], "v1")
 
     @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
+    def test_remote_code_uri_keeps_its_own_bucket(self, upload_mock):
+        # upload_local_artifacts returns an s3:// CodeUri unchanged; it must not be pointed at the code bucket
+        upload_mock.side_effect = lambda *args, **kwargs: "s3://users-bucket/app.zip"
+        resource_dict = {"CodeUri": "s3://users-bucket/app.zip"}
+        self._resource("my-app-export").do_export("Fn", resource_dict, "/dir")
+        self.assertEqual(resource_dict["CodeUri"], "s3://users-bucket/app.zip")
+
+    @patch("samcli.lib.package.packageable_resources.upload_local_artifacts")
     def test_code_uri_is_a_url_without_a_code_bucket(self, upload_mock):
         upload_mock.return_value = "s3://my-bucket/abc123"
         resource_dict = {"CodeUri": "web/"}

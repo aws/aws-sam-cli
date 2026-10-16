@@ -413,9 +413,13 @@ class ServerlessWebFunctionResource(ResourceZip):
         property_path: Optional[str] = None,
         local_path: Optional[str] = None,
     ):
-        super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
-        export_name = getattr(self.uploaders, "web_function_bucket_export", None)
         property_path = property_path or self.PROPERTY_NAME
+        original_value = jmespath.search(property_path, resource_dict)
+        super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
+        if isinstance(original_value, str) and is_s3_protocol_url(original_value):
+            # Code that's already in S3 isn't uploaded to the code bucket, so it keeps its own location
+            return
+        export_name = getattr(self.uploaders, "web_function_bucket_export", None)
         uploaded_url = jmespath.search(property_path, resource_dict)
         if not isinstance(export_name, str) or not export_name or not isinstance(uploaded_url, str):
             return
