@@ -174,10 +174,15 @@ def do_cli(
     Implementation of the ``cli`` method
     """
 
-    from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError
+    from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError, PackageResolveS3WebFunctionError
     from samcli.commands.package.package_context import PackageContext
+    from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
 
     if resolve_s3:
+        # Web Function code can't go to the shared managed bucket, and sam package has no stack to create a code
+        # bucket for
+        if template_file_has_local_web_functions(template_file):
+            raise PackageResolveS3WebFunctionError()
         s3_bucket = manage_stack(profile=profile, region=region)
         print_managed_s3_bucket_info(s3_bucket)
 

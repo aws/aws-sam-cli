@@ -50,6 +50,22 @@ def stacks_have_web_functions(stacks: Iterable[Stack], local_code_only: bool = F
     return False
 
 
+def template_file_has_local_web_functions(template_file: str) -> bool:
+    """
+    Return True if the template file, or a nested stack it references, defines an AWS::Serverless::WebFunction with
+    local code. Returns False if the template can't be read, which fails later with a clearer error.
+    """
+    # Imported here to avoid a circular import
+    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider  # pylint: disable=import-outside-toplevel
+
+    try:
+        stacks, _ = SamLocalStackProvider.get_stacks(template_file)
+        return stacks_have_web_functions(stacks, local_code_only=True)
+    except Exception:  # pylint: disable=broad-except
+        LOG.debug("Could not load stacks from %s to look for Web Functions", template_file, exc_info=True)
+        return False
+
+
 def warn_if_bucket_cannot_serve_web_function_code(
     s3_client: Any,
     bucket: str,

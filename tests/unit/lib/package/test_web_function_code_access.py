@@ -198,3 +198,18 @@ class TestWebFunctionCodeUriImport(TestCase):
         resource_dict = {"CodeUri": "web/"}
         self._resource(None).do_export("Fn", resource_dict, "/dir")
         self.assertEqual(resource_dict["CodeUri"], "s3://my-bucket/abc123")
+
+
+class TestTemplateFileHasLocalWebFunctions(TestCase):
+    @patch("samcli.lib.providers.sam_stack_provider.SamLocalStackProvider.get_stacks")
+    def test_detects_local_web_functions_in_nested_stacks(self, get_stacks_mock):
+        from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
+
+        root = MagicMock(resources={"App": {"Type": "AWS::Serverless::Application"}})
+        child = MagicMock(resources={"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "web/"}}})
+        get_stacks_mock.return_value = ([root, child], [])
+        self.assertTrue(template_file_has_local_web_functions("template.yaml"))
+        get_stacks_mock.return_value = ([root], [])
+        self.assertFalse(template_file_has_local_web_functions("template.yaml"))
+        get_stacks_mock.side_effect = Exception("unreadable")
+        self.assertFalse(template_file_has_local_web_functions("template.yaml"))
