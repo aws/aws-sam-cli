@@ -57,6 +57,7 @@ class TestPackageCommand(TestCase):
             profile=None,
         )
 
+    @patch("samcli.commands.package.package_context.check_no_web_functions_in_foreach", MagicMock())
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(SamLocalStackProvider, "get_stacks")
     @patch.object(Template, "export", MagicMock(sideeffect=OSError))
@@ -153,6 +154,7 @@ class TestPackageCommand(TestCase):
             )
             package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.check_no_web_functions_in_foreach", MagicMock())
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.package.package_context.PackageContext._warn_preview_runtime")
     @patch("samcli.commands.package.package_context.get_resource_full_path_by_id")

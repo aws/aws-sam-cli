@@ -59,6 +59,7 @@ from samcli.lib.package.language_extensions_packaging import (
     _resolve_property_paths,
     _set_prop_value,
 )
+from samcli.lib.package.web_function_code_access import check_no_web_functions_in_foreach
 from samcli.lib.providers.provider import (
     BuildableFunction,
     LayerVersion,
@@ -263,6 +264,7 @@ class BuildContext:
         self._function_provider = SamFunctionProvider(
             self.stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested
         )
+        check_no_web_functions_in_foreach(self.stacks)
         self._web_function_provider = SamWebFunctionProvider(self.stacks, self._use_raw_codeuri)
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 

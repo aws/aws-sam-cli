@@ -45,6 +45,7 @@ from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.web_function_code_access import (
     WebFunctionCodeBucketError,
+    check_no_web_functions_in_foreach,
     check_web_function_code_bucket,
     stacks_have_web_functions,
 )
@@ -145,6 +146,7 @@ class PackageContext:
             language_extensions_enabled=self._language_extensions_enabled,
         )
         self._warn_preview_runtime(stacks)
+        check_no_web_functions_in_foreach(stacks)
         self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
         updated_repo = {}
         for image_repo_func_id, image_repo_uri in self.image_repositories.items():

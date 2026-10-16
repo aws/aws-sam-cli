@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from samcli.commands.build.build_context import BuildContext
 from samcli.local.lambdafn.exceptions import ResourceNotFound
@@ -68,3 +68,35 @@ class TestBuildContextWebFunctions(TestCase):
     def test_resolves_web_function_full_path(self):
         context = self._context([_web_function("WebFn")])
         self.assertEqual(context._resolve_resource_full_paths("WebFn"), ["WebFn"])
+
+
+class TestBuildContextWebFunctionsInForEach(TestCase):
+    @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
+    def test_enter_rejects_web_functions_in_foreach(self, get_stacks_mock):
+        from samcli.lib.package.web_function_code_access import WebFunctionInForEachError
+        from samcli.lib.providers.provider import Stack
+
+        original = {
+            "Resources": {
+                "Fn::ForEach::Sites": [
+                    "Name",
+                    ["a"],
+                    {"WebFn${Name}": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "${Name}/"}}},
+                ]
+            }
+        }
+        expanded = {"Resources": {"WebFna": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "a/"}}}}
+        stack = Stack("", "", "template.yaml", {}, expanded, original_template_dict=original)
+        get_stacks_mock.return_value = ([stack], [])
+        context = BuildContext(
+            resource_identifier=None,
+            template_file="template.yaml",
+            base_dir=None,
+            build_dir="build",
+            cache_dir="cache",
+            cached=False,
+            parallel=False,
+            mode=None,
+        )
+        with self.assertRaises(WebFunctionInForEachError):
+            context.__enter__()
