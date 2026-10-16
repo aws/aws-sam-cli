@@ -125,7 +125,7 @@ class SamFunctionProvider(SamBaseProvider):
             ignore_code_extraction_warnings,
             locate_layer_nested,
             function_logical_ids,
-            getattr(self, "_include_web_functions", False),
+            self._include_web_functions,
         )
 
     def get(self, name: str) -> Optional[Function]:
