@@ -75,6 +75,8 @@ def warn_if_bucket_cannot_serve_web_function_code(
 ) -> List[str]:
     """
     Print a warning for each reason the bucket can't serve Web Function code, and return the warnings.
+
+    Warnings go to stderr so they don't corrupt --output json or a packaged template written to stdout.
     """
     warnings: List[str] = []
     warnings.extend(_check_versioning(s3_client, bucket))
@@ -82,7 +84,7 @@ def warn_if_bucket_cannot_serve_web_function_code(
     if kms_key_id and kms_client is not None:
         warnings.extend(_check_kms_key(kms_client, kms_key_id))
     for warning in warnings:
-        click.secho(f"\n\tWarning: {warning}", fg="yellow")
+        click.secho(f"\n\tWarning: {warning}", fg="yellow", err=True)
     return warnings
 
 

@@ -91,6 +91,7 @@ class TestBucketChecks(TestCase):
         self.assertEqual(len(warnings), 1)
         self.assertIn("versioning", warnings[0])
         click_mock.secho.assert_called_once()
+        self.assertTrue(click_mock.secho.call_args.kwargs["err"])
 
     def test_warns_when_versioning_cannot_be_read(self, click_mock):
         s3_client = _s3_client([LAMBDA_READ_STATEMENT])
