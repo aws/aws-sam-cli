@@ -17,7 +17,7 @@ from tomlkit.toml_document import TOMLDocument
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.exceptions import InvalidBuildGraphException
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import BuildableFunction, LayerVersion, get_build_entry_point
 from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_IS_NORMALIZED,
     SAM_RESOURCE_ID_KEY,
@@ -238,7 +238,7 @@ class BuildGraph:
         return None
 
     def put_function_build_definition(
-        self, function_build_definition: "FunctionBuildDefinition", function: Function
+        self, function_build_definition: "FunctionBuildDefinition", function: BuildableFunction
     ) -> None:
         """
         Puts the newly read function build definition into existing build graph.
@@ -251,7 +251,7 @@ class BuildGraph:
         ----------
         function_build_definition: FunctionBuildDefinition
             function build definition which is newly read from template.yaml file
-        function: Function
+        function: BuildableFunction
             function details for this function build definition
         """
         if function_build_definition in self._function_build_definitions:
@@ -607,9 +607,9 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         metadata_copied.pop(SAM_IS_NORMALIZED, "")
         self.metadata = metadata_copied
 
-        self.functions: List[Function] = []
+        self.functions: List[BuildableFunction] = []
 
-    def add_function(self, function: Function) -> None:
+    def add_function(self, function: BuildableFunction) -> None:
         self.functions.append(function)
 
     def get_function_name(self) -> str:
@@ -618,7 +618,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def get_handler_name(self) -> Optional[str]:
         self._validate_functions()
-        return self.functions[0].handler
+        return get_build_entry_point(self.functions[0])
 
     def get_full_path(self) -> str:
         """

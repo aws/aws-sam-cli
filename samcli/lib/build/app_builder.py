@@ -43,7 +43,13 @@ from samcli.lib.build.workflow_config import (
     supports_specified_workflow,
 )
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import (
+    ResourcesToBuildCollector,
+    Stack,
+    WebFunction,
+    get_build_entry_point,
+    get_full_path,
+)
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored, Colors
@@ -289,11 +295,12 @@ class ApplicationBuilder:
             function_build_details = FunctionBuildDefinition(
                 function.runtime,
                 function.codeuri,
-                function.imageuri,
+                # Web Functions only have .zip code
+                None if isinstance(function, WebFunction) else function.imageuri,
                 function.packagetype,
                 function.architecture,
                 function.metadata,
-                function.handler,
+                get_build_entry_point(function),
                 env_vars=container_env_vars,
             )
             build_graph.put_function_build_definition(function_build_details, function)

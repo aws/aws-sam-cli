@@ -228,3 +228,35 @@ class TestTemplateFileHasLocalWebFunctions(TestCase):
         self.assertFalse(template_file_has_local_web_functions("template.yaml"))
         get_stacks_mock.side_effect = Exception("unreadable")
         self.assertFalse(template_file_has_local_web_functions("template.yaml"))
+
+
+@patch("samcli.lib.package.web_function_code_access.click")
+class TestPolicyMatchingEdges(TestCase):
+    @parameterized.expand(
+        [
+            ("single statement object", {"Statement": LAMBDA_READ_STATEMENT}, []),
+            ("wildcard resource", {"Statement": [{**LAMBDA_READ_STATEMENT, "Resource": "*"}]}, []),
+            ("AWS wildcard principal", {"Statement": [{**LAMBDA_READ_STATEMENT, "Principal": {"AWS": "*"}}]}, []),
+            ("non-S3 resource", {"Statement": [{**LAMBDA_READ_STATEMENT, "Resource": "arn:aws:sqs:::q"}]}, None),
+            ("other principal type", {"Statement": [{**LAMBDA_READ_STATEMENT, "Principal": ["x"]}]}, None),
+            ("statement that isn't an object", {"Statement": ["text", LAMBDA_READ_STATEMENT]}, []),
+        ]
+    )
+    def test_policy_forms(self, click_mock, _, policy, expected):
+        s3_client = MagicMock()
+        s3_client.get_bucket_versioning.return_value = {"Status": "Enabled"}
+        s3_client.get_bucket_policy.return_value = {"Policy": json.dumps(policy)}
+        warnings = check_web_function_code_bucket(s3_client, "bucket")
+        if expected is None:
+            self.assertEqual(len(warnings), 1)
+        else:
+            self.assertEqual(warnings, expected)
+
+    def test_unreadable_key_policy_warns(self, click_mock):
+        kms_client = MagicMock()
+        kms_client.describe_key.return_value = {"KeyMetadata": {"KeyId": "key-id", "KeyManager": "CUSTOMER"}}
+        kms_client.get_key_policy.side_effect = _client_error("AccessDenied")
+        warnings = check_web_function_code_bucket(
+            _s3_client([LAMBDA_READ_STATEMENT]), "bucket", kms_key_id="key-id", kms_client=kms_client
+        )
+        self.assertIn("Couldn't read the policy of KMS key", warnings[0])

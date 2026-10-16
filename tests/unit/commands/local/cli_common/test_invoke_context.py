@@ -520,7 +520,7 @@ class TestInvokeContext__enter__(TestCase):
 
         invoke_context.__enter__()
 
-        extract_func_mock.assert_called_with([], expected, False, False, None, False)
+        extract_func_mock.assert_called_with([], expected, False, False, None)
 
     @patch("samcli.commands.local.cli_common.invoke_context.ContainerManager")
     @patch("samcli.commands.local.cli_common.invoke_context.RefreshableSamFunctionProvider")

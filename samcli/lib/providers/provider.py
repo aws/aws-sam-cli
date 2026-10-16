@@ -25,7 +25,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     ResourceMetadataNormalizer,
 )
 from samcli.lib.utils.architecture import X86_64
-from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.path_utils import check_path_valid_type
 from samcli.local.apigw.route import Route
 
@@ -226,15 +226,87 @@ class Function(NamedTuple):
         return f"Function({copy})"
 
 
+class WebFunction(NamedTuple):
+    """
+    An AWS::Serverless::WebFunction whose code SAM CLI can build.
+
+    Web Functions serve HTTP requests through an endpoint instead of being invoked, so SAM CLI only builds them; they
+    can't be invoked locally. Their code is always a .zip package, and the runtime runs entry_point instead of a
+    handler.
+    """
+
+    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
+    function_id: str
+    # Function's logical ID (used as Function name below if function name is not specified)
+    name: str
+    # Function name (used in place of logical ID)
+    functionname: str
+    # Runtime/language
+    runtime: Optional[str]
+    # Path to the code
+    codeuri: Optional[str]
+    # File the runtime runs, relative to the root of the code
+    entry_point: str
+    # Metadata, such as BuildMethod
+    metadata: Optional[dict]
+    # Information about whether this function can be built
+    function_build_info: "FunctionBuildInfo"
+    # The path of the stack relative to the root stack, it is empty for functions in root stack
+    stack_path: str = ""
+
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this Web Function. If it is in root stack, full_path = name.
+        This path is guaranteed to be unique in a multi-stack situation.
+        """
+        return get_full_path(self.stack_path, self.function_id)
+
+    @property
+    def packagetype(self) -> str:
+        """Web Function code is always a .zip package"""
+        return ZIP
+
+    @property
+    def architecture(self) -> str:
+        """Web Functions don't set an architecture, so the code is built for the default one"""
+        return X86_64
+
+    @property
+    def skip_build(self) -> bool:
+        """Check if the metadata contains the SkipBuild property"""
+        return get_skip_build(self.metadata)
+
+    def get_build_dir(self, build_root_dir: str) -> str:
+        """
+        Return the artifact directory based on the build root dir
+        """
+        return _get_build_dir(self, build_root_dir)
+
+
+# A resource whose code is built like a Lambda function's
+BuildableFunction = Union[Function, WebFunction]
+
+
+def get_build_entry_point(function: BuildableFunction) -> Optional[str]:
+    """
+    Return the value the builders use to find a function's entry point: the handler of a Lambda function, or the entry
+    point of a Web Function.
+    """
+    if isinstance(function, WebFunction):
+        return function.entry_point
+    return function.handler
+
+
 class ResourcesToBuildCollector:
     def __init__(self) -> None:
-        self._functions: List[Function] = []
+        self._functions: List[BuildableFunction] = []
         self._layers: List["LayerVersion"] = []
 
-    def add_function(self, function: Function) -> None:
+    def add_function(self, function: BuildableFunction) -> None:
         self._functions.append(function)
 
-    def add_functions(self, functions: List[Function]) -> None:
+    def add_functions(self, functions: List[BuildableFunction]) -> None:
         self._functions.extend(functions)
 
     def add_layer(self, layer: "LayerVersion") -> None:
@@ -244,7 +316,7 @@ class ResourcesToBuildCollector:
         self._layers.extend(layers)
 
     @property
-    def functions(self) -> List[Function]:
+    def functions(self) -> List[BuildableFunction]:
         return self._functions
 
     @property
@@ -1055,7 +1127,7 @@ def get_function_build_info(
     return FunctionBuildInfo.BuildableZip
 
 
-def _get_build_dir(resource: Union[Function, LayerVersion], build_root: str) -> str:
+def _get_build_dir(resource: Union[Function, "WebFunction", LayerVersion], build_root: str) -> str:
     """
     Return the build directory to place build artifact
     """

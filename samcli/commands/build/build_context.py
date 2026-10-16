@@ -59,11 +59,19 @@ from samcli.lib.package.language_extensions_packaging import (
     _resolve_property_paths,
     _set_prop_value,
 )
-from samcli.lib.providers.provider import Function, LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import (
+    BuildableFunction,
+    LayerVersion,
+    ResourcesToBuildCollector,
+    Stack,
+    WebFunction,
+    get_full_path,
+)
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager
@@ -214,6 +222,7 @@ class BuildContext:
         self._print_success_message = print_success_message
 
         self._function_provider: Optional[SamFunctionProvider] = None
+        self._web_function_provider: Optional[SamWebFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
@@ -252,11 +261,9 @@ class BuildContext:
         # when base_dir is provided, codeuri should not be resolved based on template file path.
         # we will refactor to make all path resolution inside providers intead of in multiple places
         self._function_provider = SamFunctionProvider(
-            self.stacks,
-            self._use_raw_codeuri,
-            locate_layer_nested=self._locate_layer_nested,
-            include_web_functions=True,
+            self.stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested
         )
+        self._web_function_provider = SamWebFunctionProvider(self.stacks, self._use_raw_codeuri)
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
         if not self._base_dir:
@@ -429,6 +436,8 @@ class BuildContext:
             for stack in self.stacks:
                 stacks.append(EsbuildBundlerManager(stack).set_sourcemap_metadata_from_env())
             self.function_provider.update(stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested)
+            if self._web_function_provider:
+                self._web_function_provider.update(stacks, self._use_raw_codeuri)
         return stacks if stacks else self.stacks
 
     def _handle_build_post_processing(self, builder: ApplicationBuilder, build_result: ApplicationBuildResult) -> None:
@@ -1122,13 +1131,16 @@ class BuildContext:
         function = self.function_provider.get(resource_identifier) if self.function_provider else None
         if function:
             return [function.full_path]
+        web_function = self._web_function_provider.get(resource_identifier) if self._web_function_provider else None
+        if web_function:
+            return [web_function.full_path]
         layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
         if layer:
             return [layer.full_path]
         return [resource_identifier]
 
     @staticmethod
-    def _function_to_json(function: Function) -> Dict[str, Any]:
+    def _function_to_json(function: BuildableFunction) -> Dict[str, Any]:
         """
         Serialize a built function for the JSON success document. Includes a package_type
         discriminator so Image functions (which have runtime: None) are distinguishable from
@@ -1394,11 +1406,14 @@ Commands you can use next
         result = ResourcesToBuildCollector()
         # Get the functions and its layer. Skips if it's inline.
         self._collect_single_function_and_dependent_layers(resource_identifier, result)
+        if not result.functions:
+            self._collect_single_web_function(resource_identifier, result)
         self._collect_single_buildable_layer(resource_identifier, result)
 
         if not result.functions and not result.layers:
             # Collect all functions and layers that are not inline
             all_resources = [func.name for func in self.function_provider.get_all() if not func.inlinecode]
+            all_resources.extend([web_function.name for web_function in self._get_web_functions()])
             all_resources.extend([layer.name for layer in self.layer_provider.get_all()])
 
             available_resource_message = (
@@ -1423,6 +1438,13 @@ Commands you can use next
                 func
                 for func in self.function_provider.get_all()
                 if (func.name not in excludes) and func.function_build_info.is_buildable()
+            ]
+        )
+        result.add_functions(
+            [
+                web_function
+                for web_function in self._get_web_functions()
+                if (web_function.name not in excludes) and web_function.function_build_info.is_buildable()
             ]
         )
         result.add_layers(
@@ -1461,6 +1483,20 @@ Commands you can use next
 
         resource_collector.add_function(function)
         resource_collector.add_layers([layer for layer in function.layers if BuildContext.is_layer_buildable(layer)])
+
+    def _collect_single_web_function(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
+        """
+        Populate resource_collector with the Web Function with the provided identifier, if any. Web Functions have no
+        layers.
+        """
+        web_function = self._web_function_provider.get(resource_identifier) if self._web_function_provider else None
+        if web_function:
+            resource_collector.add_function(web_function)
+
+    def _get_web_functions(self) -> List[WebFunction]:
+        return list(self._web_function_provider.get_all()) if self._web_function_provider else []
 
     def _collect_single_buildable_layer(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector

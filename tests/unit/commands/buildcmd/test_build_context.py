@@ -28,6 +28,21 @@ from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
+_web_function_provider_patcher = None
+
+
+def setUpModule():
+    # These tests use Mock stacks; the Web Function provider has its own tests
+    global _web_function_provider_patcher
+    _web_function_provider_patcher = patch("samcli.commands.build.build_context.SamWebFunctionProvider")
+    provider_class_mock = _web_function_provider_patcher.start()
+    provider_class_mock.return_value.get.return_value = None
+    provider_class_mock.return_value.get_all.return_value = []
+
+
+def tearDownModule():
+    _web_function_provider_patcher.stop()
+
 
 class DeepWrap(Exception):
     pass
@@ -170,9 +185,7 @@ class TestBuildContext__enter__(TestCase):
             global_parameter_overrides={"AWS::Region": "any_aws_region"},
             language_extensions_enabled=False,
         )
-        SamFunctionProviderMock.assert_called_once_with(
-            [stack], False, locate_layer_nested=False, include_web_functions=True
-        )
+        SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
@@ -511,9 +524,7 @@ class TestBuildContext__enter__(TestCase):
             global_parameter_overrides=None,
             language_extensions_enabled=False,
         )
-        SamFunctionProviderMock.assert_called_once_with(
-            [stack], False, locate_layer_nested=False, include_web_functions=True
-        )
+        SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
         setup_build_dir_mock.assert_called_with("build_dir", True)
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)

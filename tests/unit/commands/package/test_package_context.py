@@ -4689,3 +4689,38 @@ class TestPackageContextWebFunctionCodeBucket(TestCase):
         self.assertIsNone(uploader.prefix)
         self.assertIsNone(uploader.kms_key_id)
         self.assertEqual(uploader.artifact_metadata, {"k": "v"})
+
+
+class TestPackageContextWebFunctionCodeBucketJsonOutput(TestCase):
+    @patch("samcli.commands.package.package_context.manage_web_function_code_bucket")
+    def test_progress_is_kept_out_of_json_output(self, manage_mock):
+        import io
+        from contextlib import redirect_stdout
+
+        def manage(*_):
+            print("progress message")
+            return "code-bucket", "export"
+
+        manage_mock.side_effect = manage
+        context = PackageContext(
+            template_file="template-file",
+            s3_bucket="managed-bucket",
+            s3_prefix=None,
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=None,
+            output_template_file=None,
+            use_json=True,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={},
+            region="us-east-1",
+            profile=None,
+            output="json",
+            web_function_stack_name="my-app",
+        )
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            uploader, export_name = context._web_function_code_uploader(Mock(), "us-east-1")
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual((uploader.bucket_name, export_name), ("code-bucket", "export"))

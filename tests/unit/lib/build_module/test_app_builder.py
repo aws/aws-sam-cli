@@ -1542,6 +1542,36 @@ class TestApplicationBuilder_update_template(TestCase):
         self.assertEqual(actual, self.template_dict)
 
 
+class TestApplicationBuilder_web_function_build_graph(TestCase):
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    def test_web_function_build_definition_uses_entry_point(self, _):
+        from samcli.lib.providers.provider import FunctionBuildInfo, ResourcesToBuildCollector, WebFunction
+
+        web_function = WebFunction(
+            function_id="WebFn",
+            name="WebFn",
+            functionname="WebFn",
+            runtime="nodejs24.x",
+            codeuri="web",
+            entry_point="server.js",
+            metadata=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+        resources = ResourcesToBuildCollector()
+        resources.add_function(web_function)
+        builder = ApplicationBuilder(
+            resources, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+        with patch("samcli.lib.build.app_builder.BuildGraph") as build_graph_mock:
+            builder._get_build_graph()
+        definition, function = build_graph_mock.return_value.put_function_build_definition.call_args.args
+        self.assertIs(function, web_function)
+        self.assertEqual(definition.handler, "server.js")
+        self.assertIsNone(definition.imageuri)
+        self.assertEqual(definition.packagetype, "Zip")
+        self.assertEqual(definition.architecture, "x86_64")
+
+
 class TestApplicationBuilder_update_built_web_function(TestCase):
     def test_updates_web_function_code_uri(self):
         properties = {"CodeUri": "web", "Runtime": "nodejs24.x"}

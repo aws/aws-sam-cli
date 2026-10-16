@@ -130,3 +130,13 @@ class TestDeleteWebFunctionCodeBucket(TestCase):
         )
         self.assertTrue(delete_web_function_code_bucket("my-app", cfn, s3))
         cfn.delete_stack.assert_called_once()
+
+    def test_other_errors_while_emptying_are_raised(self, click_mock):
+        cfn = self._cfn()
+        s3 = MagicMock()
+        s3.get_paginator.return_value.paginate.side_effect = ClientError(
+            {"Error": {"Code": "AccessDenied"}}, "ListObjectVersions"
+        )
+        with self.assertRaises(ClientError):
+            delete_web_function_code_bucket("my-app", cfn, s3)
+        cfn.delete_stack.assert_not_called()

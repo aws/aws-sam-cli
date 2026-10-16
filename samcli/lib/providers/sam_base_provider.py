@@ -17,7 +17,6 @@ from samcli.lib.utils.resources import (
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
-    AWS_SERVERLESS_WEBFUNCTION,
 )
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +34,6 @@ class SamBaseProvider:
         AWS_SERVERLESS_FUNCTION: "CodeUri",
         AWS_LAMBDA_LAYERVERSION: "Content",
         AWS_SERVERLESS_LAYERVERSION: "ContentUri",
-        AWS_SERVERLESS_WEBFUNCTION: "CodeUri",
     }
 
     IMAGE_PROPERTY_KEYS = {
