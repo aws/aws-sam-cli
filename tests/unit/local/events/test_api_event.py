@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from time import time
 from datetime import datetime, timezone
@@ -227,6 +227,26 @@ class TestRequestContext(TestCase):
         request_context_dict["requestId"] = ""
         self.assertEqual(request_context_dict, expected)
 
+    def test_default_request_id_is_generated_for_every_instance(self):
+        first_request_context = RequestContext()
+        second_request_context = RequestContext()
+
+        self.assertNotEqual(first_request_context.request_id, second_request_context.request_id)
+
+    @patch("samcli.local.events.api_event.time_ns")
+    @patch("samcli.local.events.api_event.datetime")
+    def test_default_request_time_is_read_for_every_instance(self, datetime_mock, time_ns_mock):
+        datetime_mock.now.return_value.strftime.side_effect = ["first_request_time", "second_request_time"]
+        time_ns_mock.side_effect = [1_600_000_000_123_456_789, 1_600_000_001_987_654_321]
+
+        first_request_context = RequestContext()
+        second_request_context = RequestContext()
+
+        self.assertEqual(first_request_context.request_time, "first_request_time")
+        self.assertEqual(second_request_context.request_time, "second_request_time")
+        self.assertEqual(first_request_context.request_time_epoch, 1600000000123)
+        self.assertEqual(second_request_context.request_time_epoch, 1600000001987)
+
 
 class TestRequestContextV2(TestCase):
     def test_class_initialized(self):
@@ -286,6 +306,12 @@ class TestRequestContextV2(TestCase):
         self.assertEqual(len(request_context_dict["requestId"]), 36)
         request_context_dict["requestId"] = ""
         self.assertEqual(request_context_dict, expected)
+
+    def test_default_request_id_is_generated_for_every_instance(self):
+        first_request_context = RequestContextV2()
+        second_request_context = RequestContextV2()
+
+        self.assertNotEqual(first_request_context.request_id, second_request_context.request_id)
 
 
 class TestApiGatewayLambdaEvent(TestCase):

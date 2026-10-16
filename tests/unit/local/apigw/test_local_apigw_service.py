@@ -127,6 +127,9 @@ class TestApiGatewayService(TestCase):
             stage_variables=ANY,
             operation_name="getRestApi",
             api_type=Route.API,
+            request_id=ANY,
+            request_time_epoch=ANY,
+            request_time=ANY,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -157,7 +160,15 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v2_event_mock.assert_called_with(
-            flask_request=ANY, port=ANY, binary_types=ANY, stage_name=ANY, stage_variables=ANY, route_key="test test"
+            flask_request=ANY,
+            port=ANY,
+            binary_types=ANY,
+            stage_name=ANY,
+            stage_variables=ANY,
+            route_key="test test",
+            request_time_epoch=ANY,
+            request_time=ANY,
+            request_id=ANY,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -195,6 +206,9 @@ class TestApiGatewayService(TestCase):
             stage_variables=ANY,
             operation_name=None,
             api_type=Route.HTTP,
+            request_id=ANY,
+            request_time_epoch=ANY,
+            request_time=ANY,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -225,7 +239,15 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(result, make_response_mock)
         self.lambda_runner.invoke.assert_called_with(ANY, ANY, stdout=ANY, stderr=self.stderr, tenant_id=None)
         v2_event_mock.assert_called_with(
-            flask_request=ANY, port=ANY, binary_types=ANY, stage_name=ANY, stage_variables=ANY, route_key="test test"
+            flask_request=ANY,
+            port=ANY,
+            binary_types=ANY,
+            stage_name=ANY,
+            stage_variables=ANY,
+            route_key="test test",
+            request_time_epoch=ANY,
+            request_time=ANY,
+            request_id=ANY,
         )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
@@ -832,6 +854,66 @@ class TestApiGatewayService(TestCase):
         self.api_service._generate_lambda_authorizer_event(Mock(), Mock(), request_auth)
         token_mock.assert_not_called()
         request_mock.assert_called()
+
+    def _handle_one_request_with_request_authorizer(self, invoke_authorizer_mock):
+        """
+        Runs _request_handler once against an HTTP route guarded by a REQUEST authorizer whose
+        identity source is $context.requestId, and returns the authorizer event and the function
+        event that were built for that single request
+        """
+        route = self.http_v1_payload_route
+        route.authorizer_object = LambdaAuthorizer(
+            authorizer_name="auth",
+            type=LambdaAuthorizer.REQUEST,
+            lambda_name="auth_lambda",
+            identity_sources=["$context.requestId"],
+            payload_version=LambdaAuthorizer.PAYLOAD_V1,
+        )
+
+        self.http_service._get_current_route = MagicMock(return_value=route)
+        self.http_service._parse_v1_payload_format_lambda_output = Mock(
+            return_value=("status_code", Headers({"headers": "headers"}), "body")
+        )
+        self.http_service.service_response = Mock(return_value=Mock())
+
+        app = flask.Flask("test_app")
+        app.add_url_rule("/v1", endpoint="/v1", view_func=lambda: "")
+
+        with app.test_request_context("/v1"):
+            self.http_service._request_handler()
+
+        auth_lambda_event = invoke_authorizer_mock.call_args[0][1]
+        route_lambda_event = invoke_authorizer_mock.call_args[0][2]
+
+        return auth_lambda_event, route_lambda_event
+
+    @patch.object(EventTracker, "track_event")
+    @patch.object(LocalApigwService, "_invoke_parse_lambda_authorizer")
+    def test_one_request_shares_one_request_id_and_time(self, invoke_authorizer_mock, track_mock):
+        auth_lambda_event, route_lambda_event = self._handle_one_request_with_request_authorizer(invoke_authorizer_mock)
+
+        request_id = route_lambda_event["requestContext"]["requestId"]
+        request_context = route_lambda_event["requestContext"]
+
+        # the authorizer sees the same request as the function it authorizes
+        self.assertEqual(auth_lambda_event["requestContext"]["requestId"], request_id)
+        self.assertEqual(auth_lambda_event["requestContext"]["requestTimeEpoch"], request_context["requestTimeEpoch"])
+        self.assertEqual(auth_lambda_event["requestContext"]["requestTime"], request_context["requestTime"])
+
+        # a $context.requestId identity source resolves to that same id
+        self.assertEqual(auth_lambda_event["identitySource"], request_id)
+        self.assertEqual(auth_lambda_event["authorizationToken"], request_id)
+
+    @patch.object(EventTracker, "track_event")
+    @patch.object(LocalApigwService, "_invoke_parse_lambda_authorizer")
+    def test_two_requests_get_different_request_ids(self, invoke_authorizer_mock, track_mock):
+        _, first_route_lambda_event = self._handle_one_request_with_request_authorizer(invoke_authorizer_mock)
+        _, second_route_lambda_event = self._handle_one_request_with_request_authorizer(invoke_authorizer_mock)
+
+        self.assertNotEqual(
+            first_route_lambda_event["requestContext"]["requestId"],
+            second_route_lambda_event["requestContext"]["requestId"],
+        )
 
     @patch.object(LocalApigwService, "get_request_methods_endpoints")
     @patch.object(LocalApigwService, "_generate_lambda_authorizer_event")
