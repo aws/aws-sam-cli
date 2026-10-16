@@ -516,3 +516,61 @@ jobs:
         env:
           TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
         run: $SCRIPT_PY tests/reset_testing_resources.py ${{ matrix.test_suite }}
+
+  # Failed jobs that did not upload a test report are not seen by the test report processing, e.g. jobs that failed
+  # during setup. Upload a report listing the failed jobs, so that the test report processing notifies the failed run.
+  report-failed-jobs:
+    needs: integration-tests
+    if: ${{ failure() && (github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli') }}
+    name: Report failed jobs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      # Same as "Determine test type" of the integration-tests job
+      - name: Determine test type
+        shell: bash
+        run: |
+          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
+             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> "$GITHUB_ENV"
+          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
+               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
+            echo "TEST_TYPE=latest-release" >> "$GITHUB_ENV"
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> "$GITHUB_ENV"
+          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> "$GITHUB_ENV"
+          else
+            echo "TEST_TYPE=other" >> "$GITHUB_ENV"
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Assume test reporting role
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+        with:
+          role-to-assume: ${{ secrets.TESTREPORTING_ARN }}
+          aws-region: us-east-1
+          role-chaining: true
+
+      - name: Upload failed jobs report
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTREPORTING_S3: ${{ secrets.TESTREPORTING_S3 }}
+        run: |
+          FAILED_JOBS=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.conclusion == "failure") | .name] | join(", ")')
+          jq -n --arg failed_jobs "$FAILED_JOBS" --argjson created "$(date +%s)" \
+            '{created: $created, duration: 0, exitcode: 1, environment: {FailedJobs: $failed_jobs},
+              summary: {passed: 0, failed: 0, total: 0, collected: 0}, tests: []}' > TEST_REPORT-workflow.json
+          cat TEST_REPORT-workflow.json
+          aws s3 cp TEST_REPORT-workflow.json \
+            "s3://$TESTREPORTING_S3/github/$TEST_TYPE/$(date -u +%Y-%m-%d)/$GITHUB_RUN_ID/TEST_REPORT-workflow.json"
