@@ -6,8 +6,9 @@ from botocore.exceptions import ClientError
 from parameterized import parameterized
 
 from samcli.lib.package.web_function_code_access import (
+    WebFunctionCodeBucketError,
     stacks_have_web_functions,
-    warn_if_bucket_cannot_serve_web_function_code,
+    check_web_function_code_bucket,
 )
 from samcli.lib.providers.provider import Stack
 
@@ -40,7 +41,7 @@ def _stack(resources, stack_path=""):
 @patch("samcli.lib.package.web_function_code_access.click")
 class TestBucketChecks(TestCase):
     def test_no_warnings_for_a_compliant_bucket(self, click_mock):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(_s3_client([LAMBDA_READ_STATEMENT]), "bucket")
+        warnings = check_web_function_code_bucket(_s3_client([LAMBDA_READ_STATEMENT]), "bucket")
         self.assertEqual(warnings, [])
         click_mock.secho.assert_not_called()
 
@@ -53,7 +54,7 @@ class TestBucketChecks(TestCase):
         ]
     )
     def test_accepts_equivalent_statements(self, click_mock, _, statement):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(_s3_client([statement]), "bucket", prefix="app")
+        warnings = check_web_function_code_bucket(_s3_client([statement]), "bucket", prefix="app")
         self.assertEqual(warnings, [])
 
     @parameterized.expand(
@@ -69,34 +70,35 @@ class TestBucketChecks(TestCase):
         ]
     )
     def test_warns_when_policy_does_not_allow_lambda_reads(self, click_mock, _, statement):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(_s3_client([statement]), "bucket", prefix="app")
+        warnings = check_web_function_code_bucket(_s3_client([statement]), "bucket", prefix="app")
         self.assertEqual(len(warnings), 1)
         self.assertIn("doesn't allow lambda.amazonaws.com", warnings[0])
 
     def test_warns_when_bucket_has_no_policy(self, click_mock):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(
-            _s3_client(policy_error="NoSuchBucketPolicy"), "bucket"
-        )
+        warnings = check_web_function_code_bucket(_s3_client(policy_error="NoSuchBucketPolicy"), "bucket")
         self.assertIn("doesn't allow lambda.amazonaws.com", warnings[0])
 
     def test_warns_when_policy_cannot_be_read(self, click_mock):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(_s3_client(policy_error="AccessDenied"), "bucket")
+        warnings = check_web_function_code_bucket(_s3_client(policy_error="AccessDenied"), "bucket")
         self.assertIn("Couldn't read the policy", warnings[0])
 
     @parameterized.expand([("Suspended",), (None,)])
-    def test_warns_when_versioning_is_not_enabled(self, click_mock, status):
-        warnings = warn_if_bucket_cannot_serve_web_function_code(
-            _s3_client([LAMBDA_READ_STATEMENT], versioning=status), "bucket"
-        )
-        self.assertEqual(len(warnings), 1)
-        self.assertIn("versioning", warnings[0])
+    def test_fails_when_versioning_is_not_enabled(self, click_mock, status):
+        with self.assertRaises(WebFunctionCodeBucketError) as ctx:
+            check_web_function_code_bucket(_s3_client([LAMBDA_READ_STATEMENT], versioning=status), "bucket")
+        self.assertIn("doesn't have versioning enabled", ctx.exception.message)
+
+    def test_failure_still_prints_warnings_first(self, click_mock):
+        with self.assertRaises(WebFunctionCodeBucketError):
+            check_web_function_code_bucket(_s3_client(policy_error="NoSuchBucketPolicy", versioning=None), "bucket")
         click_mock.secho.assert_called_once()
+        self.assertIn("doesn't allow lambda.amazonaws.com", click_mock.secho.call_args.args[0])
         self.assertTrue(click_mock.secho.call_args.kwargs["err"])
 
     def test_warns_when_versioning_cannot_be_read(self, click_mock):
         s3_client = _s3_client([LAMBDA_READ_STATEMENT])
         s3_client.get_bucket_versioning.side_effect = _client_error("AccessDenied")
-        warnings = warn_if_bucket_cannot_serve_web_function_code(s3_client, "bucket")
+        warnings = check_web_function_code_bucket(s3_client, "bucket")
         self.assertIn("Couldn't check", warnings[0])
 
 
@@ -109,7 +111,7 @@ class TestKmsKeyChecks(TestCase):
         return kms_client
 
     def _run(self, kms_client):
-        return warn_if_bucket_cannot_serve_web_function_code(
+        return check_web_function_code_bucket(
             _s3_client([LAMBDA_READ_STATEMENT]), "bucket", kms_key_id="key-id", kms_client=kms_client
         )
 
@@ -117,9 +119,21 @@ class TestKmsKeyChecks(TestCase):
         statement = {"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "kms:Decrypt"}
         self.assertEqual(self._run(self._kms_client(statements=[statement])), [])
 
-    def test_aws_managed_key(self, click_mock):
-        warnings = self._run(self._kms_client(key_manager="AWS"))
-        self.assertIn("AWS managed key", warnings[0])
+    def test_aws_managed_key_fails(self, click_mock):
+        with self.assertRaises(WebFunctionCodeBucketError) as ctx:
+            self._run(self._kms_client(key_manager="AWS"))
+        self.assertIn("AWS managed key", ctx.exception.message)
+
+    def test_unversioned_bucket_and_aws_managed_key_are_both_reported(self, click_mock):
+        with self.assertRaises(WebFunctionCodeBucketError) as ctx:
+            check_web_function_code_bucket(
+                _s3_client([LAMBDA_READ_STATEMENT], versioning=None),
+                "bucket",
+                kms_key_id="key-id",
+                kms_client=self._kms_client(key_manager="AWS"),
+            )
+        self.assertIn("versioning", ctx.exception.message)
+        self.assertIn("AWS managed key", ctx.exception.message)
 
     def test_customer_managed_key_without_decrypt_grant(self, click_mock):
         root = {"Effect": "Allow", "Principal": {"AWS": "arn:aws:iam::123456789012:root"}, "Action": "kms:*"}

@@ -3,18 +3,22 @@ Checks that an S3 bucket can hold AWS::Serverless::WebFunction code.
 
 Lambda reads Web Function code from S3 with the lambda.amazonaws.com service principal, so the bucket must be
 versioned, its policy must let that principal read the objects, and an SSE-KMS key must be a customer managed key
-whose policy lets the principal decrypt. Problems are reported as warnings: policy conditions and other access paths
-can't be fully evaluated here, and Lambda rejects the revision with a clear error if access is missing.
+whose policy lets the principal decrypt.
+
+An unversioned bucket and an AWS managed key always make Lambda reject the revision, so they fail packaging. Other
+problems are warnings: policy conditions and other access paths can't be fully evaluated here, and Lambda rejects the
+revision with a clear error if access is missing.
 """
 
 import fnmatch
 import json
 import logging
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import click
 from botocore.exceptions import ClientError
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.providers.provider import Stack
 from samcli.lib.utils.resources import AWS_SERVERLESS_WEBFUNCTION
 
@@ -66,7 +70,15 @@ def template_file_has_local_web_functions(template_file: str) -> bool:
         return False
 
 
-def warn_if_bucket_cannot_serve_web_function_code(
+class WebFunctionCodeBucketError(UserException):
+    """The bucket or KMS key can't serve Web Function code, so Lambda would reject the revision."""
+
+    def __init__(self, problems: List[str]):
+        problem_lines = "\n".join(f"- {problem}" for problem in problems)
+        super().__init__(message=f"Lambda Web Functions can't read code uploaded with these settings:\n{problem_lines}")
+
+
+def check_web_function_code_bucket(
     s3_client: Any,
     bucket: str,
     prefix: Optional[str] = None,
@@ -74,34 +86,47 @@ def warn_if_bucket_cannot_serve_web_function_code(
     kms_client: Optional[Any] = None,
 ) -> List[str]:
     """
-    Print a warning for each reason the bucket can't serve Web Function code, and return the warnings.
+    Check that the bucket can serve Web Function code.
 
-    Warnings go to stderr so they don't corrupt --output json or a packaged template written to stdout.
+    Raises WebFunctionCodeBucketError if the bucket isn't versioned or the KMS key is an AWS managed key. Prints a
+    warning for each other problem, to stderr so it doesn't corrupt --output json or a packaged template written to
+    stdout, and returns the warnings.
     """
+    errors: List[str] = []
     warnings: List[str] = []
-    warnings.extend(_check_versioning(s3_client, bucket))
-    warnings.extend(_check_bucket_policy(s3_client, bucket, prefix))
-    if kms_key_id and kms_client is not None:
-        warnings.extend(_check_kms_key(kms_client, kms_key_id))
+    for check_errors, check_warnings in (
+        _check_versioning(s3_client, bucket),
+        _check_bucket_policy(s3_client, bucket, prefix),
+        _check_kms_key(kms_client, kms_key_id) if kms_key_id and kms_client is not None else ([], []),
+    ):
+        errors.extend(check_errors)
+        warnings.extend(check_warnings)
     for warning in warnings:
         click.secho(f"\n\tWarning: {warning}", fg="yellow", err=True)
+    if errors:
+        raise WebFunctionCodeBucketError(errors)
     return warnings
 
 
-def _check_versioning(s3_client: Any, bucket: str) -> List[str]:
+def _check_versioning(s3_client: Any, bucket: str) -> Tuple[List[str], List[str]]:
+    """Return (errors, warnings)."""
     try:
         status = s3_client.get_bucket_versioning(Bucket=bucket).get("Status")
     except ClientError as ex:
         LOG.debug("Could not read versioning for bucket %s", bucket, exc_info=ex)
-        return [f"Couldn't check that S3 bucket {bucket} has versioning enabled, which Lambda Web Functions require."]
+        return [], [
+            f"Couldn't check that S3 bucket {bucket} has versioning enabled, which Lambda Web Functions require."
+        ]
     if status != "Enabled":
         return [
-            f"S3 bucket {bucket} doesn't have versioning enabled. Lambda Web Functions require a versioned code bucket."
-        ]
-    return []
+            f"S3 bucket {bucket} doesn't have versioning enabled. Lambda Web Functions require a versioned code "
+            "bucket; enable versioning on it or use another bucket."
+        ], []
+    return [], []
 
 
-def _check_bucket_policy(s3_client: Any, bucket: str, prefix: Optional[str]) -> List[str]:
+def _check_bucket_policy(s3_client: Any, bucket: str, prefix: Optional[str]) -> Tuple[List[str], List[str]]:
+    """Return (errors, warnings). Policy problems are only warnings because the check is a heuristic."""
     missing_message = (
         f"The policy of S3 bucket {bucket} doesn't allow {LAMBDA_SERVICE_PRINCIPAL} to call "
         f"{' and '.join(REQUIRED_S3_ACTIONS)} on the uploaded code, so Lambda Web Functions can't read it. "
@@ -111,40 +136,43 @@ def _check_bucket_policy(s3_client: Any, bucket: str, prefix: Optional[str]) -> 
         policy = json.loads(s3_client.get_bucket_policy(Bucket=bucket)["Policy"])
     except ClientError as ex:
         if ex.response.get("Error", {}).get("Code") == "NoSuchBucketPolicy":
-            return [missing_message]
+            return [], [missing_message]
         LOG.debug("Could not read the policy of bucket %s", bucket, exc_info=ex)
-        return [
+        return [], [
             f"Couldn't read the policy of S3 bucket {bucket} to check that {LAMBDA_SERVICE_PRINCIPAL} can read "
             "Lambda Web Function code."
         ]
     key = f"{prefix.strip('/')}/code" if prefix else "code"
     if all(_policy_allows(policy, action, bucket, key) for action in REQUIRED_S3_ACTIONS):
-        return []
-    return [missing_message]
+        return [], []
+    return [], [missing_message]
 
 
-def _check_kms_key(kms_client: Any, kms_key_id: str) -> List[str]:
+def _check_kms_key(kms_client: Any, kms_key_id: str) -> Tuple[List[str], List[str]]:
+    """Return (errors, warnings). An AWS managed key is an error; key policy problems are warnings."""
     try:
         metadata = kms_client.describe_key(KeyId=kms_key_id)["KeyMetadata"]
     except ClientError as ex:
         LOG.debug("Could not describe KMS key %s", kms_key_id, exc_info=ex)
-        return [f"Couldn't check KMS key {kms_key_id}, which Lambda must be able to use to decrypt Web Function code."]
+        return [], [
+            f"Couldn't check KMS key {kms_key_id}, which Lambda must be able to use to decrypt Web Function code."
+        ]
     if metadata.get("KeyManager") == "AWS":
         return [
             f"KMS key {kms_key_id} is an AWS managed key. Lambda Web Functions can't read code encrypted with it; use "
             f"a customer managed key whose key policy allows {LAMBDA_SERVICE_PRINCIPAL} to call kms:Decrypt."
-        ]
+        ], []
     try:
         policy = json.loads(kms_client.get_key_policy(KeyId=metadata["KeyId"], PolicyName="default")["Policy"])
     except ClientError as ex:
         LOG.debug("Could not read the policy of KMS key %s", kms_key_id, exc_info=ex)
-        return [f"Couldn't read the policy of KMS key {kms_key_id} to check that Lambda can decrypt with it."]
+        return [], [f"Couldn't read the policy of KMS key {kms_key_id} to check that Lambda can decrypt with it."]
     if not _policy_allows(policy, "kms:Decrypt"):
-        return [
+        return [], [
             f"The policy of KMS key {kms_key_id} doesn't allow {LAMBDA_SERVICE_PRINCIPAL} to call kms:Decrypt, so "
             "Lambda Web Functions can't read code encrypted with it."
         ]
-    return []
+    return [], []
 
 
 def _policy_allows(policy: Dict[str, Any], action: str, bucket: Optional[str] = None, key: str = "") -> bool:

@@ -44,8 +44,9 @@ from samcli.lib.package.language_extensions_packaging import (
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
 from samcli.lib.package.web_function_code_access import (
+    WebFunctionCodeBucketError,
+    check_web_function_code_bucket,
     stacks_have_web_functions,
-    warn_if_bucket_cannot_serve_web_function_code,
 )
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
@@ -169,7 +170,7 @@ class PackageContext:
                 s3_client, region_name
             )
         else:
-            self._warn_if_bucket_cannot_serve_web_function_code(stacks, s3_client, region_name)
+            self._check_web_function_code_bucket(stacks, s3_client, region_name)
 
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
@@ -327,10 +328,13 @@ class PackageContext:
         uploader.artifact_metadata = self.metadata
         return uploader, export_name
 
-    def _warn_if_bucket_cannot_serve_web_function_code(
-        self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]
-    ) -> None:
-        """Warn if Lambda can't read Web Function code uploaded to the S3 bucket. Never fails packaging."""
+    def _check_web_function_code_bucket(self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]) -> None:
+        """
+        Check that Lambda can read Web Function code uploaded to the S3 bucket.
+
+        Fails packaging, before anything is uploaded, only when the bucket can't serve the code; any problem running
+        the checks themselves is logged and ignored.
+        """
         try:
             if not self.s3_bucket or not stacks_have_web_functions(stacks, local_code_only=True):
                 return
@@ -339,9 +343,9 @@ class PackageContext:
                 if self.kms_key_id
                 else None
             )
-            warn_if_bucket_cannot_serve_web_function_code(
-                s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, kms_client
-            )
+            check_web_function_code_bucket(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, kms_client)
+        except WebFunctionCodeBucketError:
+            raise
         except Exception:  # pylint: disable=broad-except
             LOG.debug("Could not check the S3 bucket for Lambda Web Function code access", exc_info=True)
 
