@@ -8,14 +8,18 @@ import random
 import shutil
 import string
 import tempfile
+import threading
+import time
 import unittest
 import zipfile
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager, closing
 from pathlib import Path
 from typing import Optional, Dict
 from unittest import mock
 from unittest.mock import call, patch, Mock, MagicMock
 
+from parameterized import parameterized
 from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ExportFailedError
@@ -34,6 +38,10 @@ from samcli.lib.package.artifact_exporter import (
     _build_child_parameter_values,
     _export_global_artifacts_pass,
     _resolve_nested_stack_parameters,
+    _ThreadSafeUploadCache,
+    _UploadAborted,
+    _is_upload_abort,
+    get_parallel_upload_workers,
 )
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
@@ -1226,6 +1234,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
                 language_extensions_enabled=True,
+                parallel_upload=False,
+                upload_executor=None,
+                upload_abort=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1409,6 +1420,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
                 language_extensions_enabled=True,
+                parallel_upload=False,
+                upload_executor=None,
+                upload_abort=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1587,6 +1601,452 @@ class TestArtifactExporter(unittest.TestCase):
             resource_type1_instance.export.assert_called_once_with("Resource1", mock.ANY, template_dir)
             resource_type2_class.assert_called_once_with(self.uploaders_mock, self.code_signer_mock, None)
             resource_type2_instance.export.assert_called_once_with("Resource2", mock.ANY, template_dir)
+
+    @patch.object(Template, "_run_export_jobs")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_invokes_executor(self, yaml_parse_mock, run_jobs_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type1_class = Mock()
+        resource_type1_class.RESOURCE_TYPE = "resource_type1"
+        resource_type1_class.ARTIFACT_TYPE = ZIP
+        resource_type1_class.EXPORT_DESTINATION = Destination.S3
+        resource_type1_class.return_value = Mock()
+
+        resource_type2_class = Mock()
+        resource_type2_class.RESOURCE_TYPE = "resource_type2"
+        resource_type2_class.ARTIFACT_TYPE = ZIP
+        resource_type2_class.EXPORT_DESTINATION = Destination.S3
+        resource_type2_class.return_value = Mock()
+
+        resources_to_export = [resource_type1_class, resource_type2_class]
+        properties = {"foo": "bar"}
+        template_dict = {
+            "Resources": {
+                "Resource1": {"Type": "resource_type1", "Properties": properties},
+                "Resource2": {"Type": "resource_type2", "Properties": properties},
+            }
+        }
+
+        yaml_parse_mock.return_value = template_dict
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                resources_to_export,
+                parallel_upload=True,
+            )
+            template_exporter.export()
+
+        run_jobs_mock.assert_called_once()
+        jobs, executor, abort = run_jobs_mock.call_args[0]
+        self.assertEqual([False, False], [is_nested_stack for is_nested_stack, _ in jobs])
+        self.assertIsInstance(executor, ThreadPoolExecutor)
+        self.assertIsInstance(abort, threading.Event)
+
+    @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_wraps_cache(self, yaml_parse_mock, is_experimental_enabled_mock):
+        is_experimental_enabled_mock.side_effect = lambda *args: {
+            (ExperimentalFlag.PackagePerformance,): True,
+        }.get(args, False)
+
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        resource_type_instance = Mock()
+        resource_type_class.return_value = resource_type_instance
+
+        captured_cache = {}
+
+        def capture_cache(uploaders, code_signer, cache):
+            nonlocal captured_cache
+            captured_cache = cache
+            return resource_type_instance
+
+        resource_type_class.side_effect = capture_cache
+
+        properties = {"foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+
+        yaml_parse_mock.return_value = template_dict
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path,
+                parent_dir,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                [resource_type_class],
+                parallel_upload=True,
+            )
+            template_exporter.export()
+
+        self.assertIsInstance(captured_cache, _ThreadSafeUploadCache)
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+
+        # Same resource type, but template says Image package type -> should be skipped
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.export()
+
+        resource_type_class.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_delete_skips_mismatched_package_type(self, yaml_parse_mock):
+        parent_dir = os.path.sep
+        template_dir = os.path.join(parent_dir, "foo", "bar")
+        template_path = os.path.join(template_dir, "path")
+        template_str = self.example_yaml_template()
+
+        resource_type_class = Mock()
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        resource_type_instance = Mock()
+        resource_type_class.return_value = resource_type_instance
+
+        properties = {"PackageType": IMAGE, "foo": "bar"}
+        template_dict = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": properties}}}
+        yaml_parse_mock.return_value = template_dict
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data=template_str)):
+            template_exporter = Template(
+                template_path, parent_dir, self.uploaders_mock, self.code_signer_mock, [resource_type_class]
+            )
+            template_exporter.delete(retain_resources=[])
+
+        resource_type_class.assert_not_called()
+
+    def test_run_export_jobs_runs_nested_stacks_outside_the_upload_pool(self):
+        ran_on = {}
+
+        def record(name):
+            return lambda: ran_on.setdefault(name, threading.current_thread().name)
+
+        jobs = [(False, record("upload1")), (True, record("nested")), (False, record("upload2"))]
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="upload") as executor:
+            Template._run_export_jobs(jobs, executor)
+
+        self.assertTrue(ran_on["upload1"].startswith("upload"))
+        self.assertTrue(ran_on["upload2"].startswith("upload"))
+        self.assertFalse(ran_on["nested"].startswith("upload"))
+
+    def test_run_export_jobs_runs_sibling_nested_stacks_concurrently(self):
+        # Each nested stack waits for the other; this only completes if they run at the same time.
+        barrier = threading.Barrier(2, timeout=5)
+        jobs = [(True, barrier.wait), (True, barrier.wait)]
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            Template._run_export_jobs(jobs, executor)
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_run_export_jobs_fails_fast_and_reports_all_failures(self, log_mock):
+        slow_started = threading.Event()
+        queued_runs = []
+
+        def fail_first():
+            slow_started.wait(5)
+            raise ValueError("first failure")
+
+        def fail_slow():
+            slow_started.set()
+            time.sleep(0.2)
+            raise RuntimeError("second failure")
+
+        def queued():
+            queued_runs.append(1)
+            time.sleep(0.05)
+
+        jobs = [(False, fail_first), (False, fail_slow)] + [(False, queued)] * 20
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            with self.assertRaises(ValueError):
+                Template._run_export_jobs(jobs, executor)
+
+        # Queued jobs are cancelled on the first failure; only jobs a free worker had already
+        # picked up can still run.
+        self.assertLess(len(queued_runs), 20)
+        logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
+        self.assertTrue(any(isinstance(error, RuntimeError) for error in logged))
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_wait_fail_fast_surfaces_first_failure_in_submission_order(self, log_mock):
+        first, second = Future(), Future()
+        second.set_exception(RuntimeError("submitted second"))
+        first.set_exception(ValueError("submitted first"))
+
+        with self.assertRaises(ValueError):
+            Template._wait_fail_fast([first, second])
+        log_mock.error.assert_called_once()
+
+    def test_run_export_jobs_cancels_uploads_when_nested_stack_fails(self):
+        release = threading.Event()
+        blocker_started = threading.Event()
+
+        def blocker():
+            blocker_started.set()
+            release.wait(5)
+
+        queued = Mock()
+
+        def failing_nested_stack():
+            blocker_started.wait(5)
+            raise ValueError("nested failure")
+
+        jobs = [(False, blocker), (False, queued), (True, failing_nested_stack)]
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            with self.assertRaises(ValueError):
+                threading.Timer(0.2, release.set).start()
+                Template._run_export_jobs(jobs, executor)
+
+        queued.assert_not_called()
+
+    def test_export_job_passes_shared_executor_to_nested_stacks(self):
+        captured = {}
+
+        class _NestedStack(CloudFormationStackResource):
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def export(self, *args, **kwargs):
+                captured["executor"] = self.upload_executor
+
+        template_exporter = Template.__new__(Template)
+        template_exporter.uploaders = Mock()
+        template_exporter.code_signer = Mock()
+        template_exporter.parameter_values = None
+        template_exporter.language_extensions_enabled = False
+        template_exporter.template_dir = "dir"
+        template_exporter.parallel_upload = True
+        shared_executor = Mock()
+
+        template_exporter._build_export_job(_NestedStack, "Nested", {}, None, shared_executor)()
+
+        self.assertIs(shared_executor, captured["executor"])
+
+    def test_packaging_keyed_upload_cache_separates_packaging(self):
+        cache = _ThreadSafeUploadCache(key_by_packaging=True)
+        function_key = cache.cache_key("/code", "lambda-zip", None)
+        layer_key = cache.cache_key("/code", "zip", None)
+        self.assertNotEqual(function_key, layer_key)
+        self.assertNotEqual(function_key, cache.cache_key("/code", "lambda-zip", "jar"))
+        self.assertEqual("/code", _ThreadSafeUploadCache().cache_key("/code", "zip", None))
+
+    @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled", return_value=False)
+    @patch("samcli.lib.package.artifact_exporter.yaml_parse")
+    def test_template_export_parallel_without_experimental_cache_uses_packaging_keyed_cache(
+        self, yaml_parse_mock, is_experimental_enabled_mock
+    ):
+        captured = {}
+
+        def capture_cache(uploaders, code_signer, cache):
+            captured["cache"] = cache
+            return Mock()
+
+        resource_type_class = Mock(side_effect=capture_cache)
+        resource_type_class.RESOURCE_TYPE = "resource_type1"
+        resource_type_class.ARTIFACT_TYPE = ZIP
+        resource_type_class.EXPORT_DESTINATION = Destination.S3
+        yaml_parse_mock.return_value = {"Resources": {"Resource1": {"Type": "resource_type1", "Properties": {}}}}
+
+        with patch("samcli.lib.package.artifact_exporter.open", mock.mock_open(read_data="")):
+            Template(
+                os.path.join(os.path.sep, "foo", "path"),
+                os.path.sep,
+                self.uploaders_mock,
+                self.code_signer_mock,
+                [resource_type_class],
+                parallel_upload=True,
+            ).export()
+
+        self.assertIsInstance(captured["cache"], _ThreadSafeUploadCache)
+        self.assertNotEqual("/code", captured["cache"].cache_key("/code", "zip", None))
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_run_export_jobs_reports_nested_stack_and_upload_failures(self, log_mock):
+        upload_failed = threading.Event()
+
+        def failing_upload():
+            try:
+                raise RuntimeError("upload failure")
+            finally:
+                upload_failed.set()
+
+        def failing_nested_stack():
+            upload_failed.wait(5)
+            raise ValueError("nested failure")
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            with self.assertRaises(RuntimeError):
+                Template._run_export_jobs([(False, failing_upload), (True, failing_nested_stack)], executor)
+
+        logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
+        self.assertTrue(any(isinstance(error, ValueError) for error in logged))
+
+    @parameterized.expand([(None, 8), ("3", 3), ("0", 8), ("-2", 8), ("abc", 8)])
+    def test_parallel_upload_workers_from_environment(self, value, expected):
+        env = {} if value is None else {"SAM_CLI_PARALLEL_UPLOAD_WORKERS": value}
+        with patch.dict(os.environ, env, clear=False):
+            if value is None:
+                os.environ.pop("SAM_CLI_PARALLEL_UPLOAD_WORKERS", None)
+            self.assertEqual(expected, get_parallel_upload_workers())
+
+    @patch("samcli.lib.package.artifact_exporter.Template")
+    @patch("samcli.lib.package.artifact_exporter.yaml_dump", return_value="template")
+    def test_nested_stack_template_upload_goes_through_shared_upload_pool(self, yaml_dump_mock, template_mock):
+        template_mock.return_value.export.return_value = {}
+        uploader = Mock()
+        uploader.upload.return_value = "s3://bucket/child.template"
+        uploader.to_path_style_s3_url.return_value = "https://s3.amazonaws.com/bucket/child.template"
+        uploaders = Mock()
+        uploaders.get.return_value = uploader
+        stack_resource = CloudFormationStackResource(uploaders, Mock())
+        stack_resource.language_extensions_enabled = False
+        stack_resource.parallel_upload = True
+
+        with (
+            tempfile.TemporaryDirectory() as parent_dir,
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix="upload") as executor,
+        ):
+            open(os.path.join(parent_dir, "child.yaml"), "w").close()
+            stack_resource.upload_executor = executor
+            upload_threads = []
+            uploader.upload.side_effect = lambda *args: (
+                upload_threads.append(threading.current_thread().name) or "s3://bucket/child.template"
+            )
+            stack_resource.do_export("Child", {"TemplateURL": "child.yaml"}, parent_dir)
+
+        self.assertEqual(1, len(upload_threads))
+        self.assertTrue(upload_threads[0].startswith("upload"))
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_failure_stops_nested_subtrees_from_starting_new_uploads(self, log_mock):
+        abort = threading.Event()
+        upload_failed = threading.Event()
+        child_upload = Mock()
+
+        def failing_upload():
+            try:
+                raise RuntimeError("bucket is gone")
+            finally:
+                upload_failed.set()
+
+        def nested_stack():
+            # A nested stack that only reaches its own uploads after the root upload has failed.
+            upload_failed.wait(5)
+            abort.wait(5)
+            Template._run_export_jobs([(False, child_upload)], executor, abort)
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            with self.assertRaises(RuntimeError):
+                Template._run_export_jobs([(False, failing_upload), (True, nested_stack)], executor, abort)
+
+        child_upload.assert_not_called()
+        self.assertTrue(abort.is_set())
+        logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
+        self.assertFalse(any(isinstance(error, _UploadAborted) for error in logged))
+
+    def test_wait_fail_fast_surfaces_real_failure_over_aborted_work(self):
+        aborted, real = Future(), Future()
+        aborted.set_exception(_UploadAborted())
+        real.set_exception(ValueError("real failure"))
+
+        with self.assertRaises(ValueError):
+            Template._wait_fail_fast([aborted, real], threading.Event())
+
+    def test_export_job_is_skipped_once_export_is_aborted(self):
+        exporter = Mock()
+        template_exporter = Template.__new__(Template)
+        template_exporter.uploaders = Mock()
+        template_exporter.code_signer = Mock()
+        template_exporter.parameter_values = None
+        template_exporter.language_extensions_enabled = False
+        template_exporter.template_dir = "dir"
+        template_exporter.parallel_upload = True
+        abort = threading.Event()
+        abort.set()
+
+        job = template_exporter._build_export_job(Mock(return_value=exporter), "Leaf", {}, None, Mock(), abort)
+
+        with self.assertRaises(_UploadAborted):
+            job()
+        exporter.export.assert_not_called()
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_other_failures_log_one_line_with_traceback_only_at_debug(self, log_mock):
+        other = Future()
+        other.set_exception(RuntimeError("other failure"))
+
+        Template._log_other_failures([other])
+
+        self.assertNotIn("exc_info", log_mock.error.call_args.kwargs)
+        self.assertIs(other.exception(), log_mock.debug.call_args.kwargs["exc_info"])
+
+    @patch("samcli.lib.package.artifact_exporter.LOG")
+    def test_wait_fail_fast_ignores_aborts_wrapped_by_nested_stack_exporters(self, log_mock):
+        # Sibling nested stack A was skipped after B failed. ResourceZip.export wraps both in
+        # ExportFailedError, once per nesting level; A comes first in submission order.
+        aborted_a, failed_b = Future(), Future()
+        aborted_a.set_exception(
+            exceptions.ExportFailedError(
+                resource_id="Outer",
+                property_name="TemplateURL",
+                property_value="outer.yaml",
+                ex=exceptions.ExportFailedError(
+                    resource_id="A", property_name="TemplateURL", property_value="a.yaml", ex=_UploadAborted()
+                ),
+            )
+        )
+        real_error = exceptions.ExportFailedError(
+            resource_id="B", property_name="TemplateURL", property_value="b.yaml", ex=RuntimeError("bucket is gone")
+        )
+        failed_b.set_exception(real_error)
+
+        with self.assertRaises(exceptions.ExportFailedError) as raised:
+            Template._wait_fail_fast([aborted_a, failed_b], threading.Event())
+
+        self.assertIs(real_error, raised.exception)
+        log_mock.error.assert_not_called()
+
+    def test_is_upload_abort_follows_wrapping(self):
+        self.assertTrue(_is_upload_abort(_UploadAborted()))
+        wrapped = exceptions.ExportFailedError(
+            resource_id="A", property_name="TemplateURL", property_value="a.yaml", ex=_UploadAborted()
+        )
+        self.assertTrue(_is_upload_abort(wrapped))
+        self.assertFalse(_is_upload_abort(RuntimeError("real")))
+        self.assertFalse(_is_upload_abort(None))
+
+    def test_thread_safe_upload_cache_key_lock_is_per_key(self):
+        cache = _ThreadSafeUploadCache()
+        self.assertIs(cache.key_lock("a"), cache.key_lock("a"))
+        self.assertIsNot(cache.key_lock("a"), cache.key_lock("b"))
 
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")

@@ -99,6 +99,33 @@ class TestPackageCommand(TestCase):
                 )
                 package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.ECRUploader")
+    @patch("samcli.commands.package.package_context.S3Uploader")
+    @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
+    @patch.object(Template, "export", MagicMock(return_value={}))
+    @patch("boto3.client")
+    def test_parallel_upload_disables_progress_bars(self, patched_boto, s3_uploader_mock, ecr_uploader_mock):
+        with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_template_file:
+            PackageContext(
+                template_file=temp_template_file.name,
+                s3_bucket="s3-bucket",
+                s3_prefix="s3-prefix",
+                image_repository="image-repo",
+                image_repositories=None,
+                kms_key_id="kms-key-id",
+                output_template_file=None,
+                use_json=True,
+                force_upload=True,
+                no_progressbar=False,
+                metadata={},
+                region="us-east-2",
+                profile=None,
+                parallel_upload=True,
+            ).run()
+
+        self.assertTrue(s3_uploader_mock.call_args.args[5])
+        self.assertTrue(ecr_uploader_mock.call_args.args[4])
+
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
     @patch.object(Template, "export", MagicMock(return_value={}))
@@ -4513,6 +4540,7 @@ class TestPackageContextBuriedAWSInclude(TestCase):
         # Bypass PackageContext.__init__ — wire only the attributes _export reads.
         self.ctx = PackageContext.__new__(PackageContext)
         self.ctx.template_file = self.template_path
+        self.ctx.parallel_upload = False
         self.ctx.uploaders = self.uploaders
         self.ctx.code_signer = MagicMock()
         self.ctx.parameter_overrides = {}
@@ -4552,6 +4580,7 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
         """Build a PackageContext with LE disabled and the attributes _export reads."""
         ctx = PackageContext.__new__(PackageContext)
         ctx.template_file = "template.yaml"
+        ctx.parallel_upload = False
         ctx.uploaders = MagicMock()
         ctx.code_signer = MagicMock()
         ctx.parameter_overrides = {}
