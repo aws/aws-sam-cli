@@ -5,7 +5,7 @@ import shutil
 import threading
 import time
 from pathlib import Path
-from subprocess import DEVNULL, Popen, PIPE, STDOUT, TimeoutExpired
+from subprocess import Popen, PIPE, STDOUT, TimeoutExpired
 from typing import Dict, Any, Optional, List
 from unittest import TestCase
 
@@ -135,7 +135,7 @@ class DurableIntegBase(TestCase):
             tuple: (process, output_lines, thread) where output_lines is a list that gets populated as output arrives
         """
         process = Popen(
-            command_list, stdout=PIPE, stderr=STDOUT, stdin=DEVNULL, text=True, encoding="utf-8", env=env, cwd=cwd
+            command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd
         )
         # Stop the command if the test fails before it exits, so that it does not run into the rerun
         self.addCleanup(self._kill_if_running, process)
