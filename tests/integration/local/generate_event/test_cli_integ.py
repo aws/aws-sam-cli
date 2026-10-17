@@ -9,6 +9,18 @@ from tests.testing_utils import get_sam_command
 
 
 class Test_EventGeneration_Integ(TestCase):
+    def test_generate_sqs_event_with_special_characters(self) -> None:
+        body = 'This message is "plain text".\nIt contains a backslash: \\ and a tab:\tend'
+        process = Popen(
+            [get_sam_command(), "local", "generate-event", "sqs", "receive-message", "--body", body],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        stdout, stderr = process.communicate()
+
+        self.assertEqual(process.returncode, 0, stderr.decode("utf-8"))
+        self.assertEqual(json.loads(stdout)["Records"][0]["body"], body)
+
     @pytest.mark.tier1
     def test_generate_event_substitution(self):
         process = Popen([get_sam_command(), "local", "generate-event", "s3", "put"])
