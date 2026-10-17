@@ -139,7 +139,11 @@ def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_clien
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     try:
         stack = cloudformation_client.describe_stacks(StackName=code_stack.stack_name)["Stacks"][0]
-    except ClientError:
+    except ClientError as ex:
+        # Only a missing stack means there's nothing to delete; access, throttling and credential errors are raised
+        # so the bucket isn't left behind silently
+        if "does not exist" not in str(ex):
+            raise
         LOG.debug("No Lambda Web Function code bucket stack found for %s", parent_stack_name)
         return False
     outputs = {o["OutputKey"]: o["OutputValue"] for o in stack.get("Outputs", [])}

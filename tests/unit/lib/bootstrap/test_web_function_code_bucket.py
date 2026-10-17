@@ -87,8 +87,20 @@ class TestDeleteWebFunctionCodeBucket(TestCase):
 
     def test_no_code_bucket_stack(self, click_mock):
         cfn = MagicMock()
-        cfn.describe_stacks.side_effect = ClientError({"Error": {"Code": "ValidationError"}}, "DescribeStacks")
+        cfn.describe_stacks.side_effect = ClientError(
+            {"Error": {"Code": "ValidationError", "Message": "Stack with id my-app-WebFunctionCode does not exist"}},
+            "DescribeStacks",
+        )
         self.assertFalse(delete_web_function_code_bucket("my-app", cfn, MagicMock()))
+        cfn.delete_stack.assert_not_called()
+
+    def test_other_describe_errors_are_raised(self, click_mock):
+        cfn = MagicMock()
+        cfn.describe_stacks.side_effect = ClientError(
+            {"Error": {"Code": "AccessDenied", "Message": "not authorized"}}, "DescribeStacks"
+        )
+        with self.assertRaises(ClientError):
+            delete_web_function_code_bucket("my-app", cfn, MagicMock())
         cfn.delete_stack.assert_not_called()
 
     def test_skips_stacks_not_created_by_sam_cli(self, click_mock):

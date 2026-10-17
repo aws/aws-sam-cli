@@ -61,6 +61,7 @@ class TestDeleteContext(TestCase):
         ) as delete_context:
             self.assertEqual(delete_context.init_clients.call_count, 1)
 
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", MagicMock(return_value=False))
     @patch.object(
         ConfigProvider,
         "__call__",
@@ -622,3 +623,35 @@ class TestDeleteContextWebFunctionCodeBucket(TestCase):
         names = [c[0] for c in order.mock_calls]
         self.assertGreater(names.index("delete_web_function_code_bucket"), names.index("wait_for_delete"))
         self.assertEqual(delete_bucket_mock.call_args.args[0], "my-app")
+
+
+class TestDeleteContextLeftoverWebFunctionCodeBucket(TestCase):
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=False))
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_rerun_deletes_a_leftover_code_bucket_stack(self, _, click_mock, __, delete_bucket_mock):
+        delete_bucket_mock.return_value = True
+        with DeleteContext(
+            stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket=None, s3_prefix=None
+        ) as delete_context:
+            delete_context.run()
+        delete_bucket_mock.assert_called_once()
+        self.assertEqual(delete_bucket_mock.call_args.args[0], "my-app")
+        messages = " ".join(str(c) for c in click_mock.echo.call_args_list)
+        self.assertIn("left by an earlier delete", messages)
+        self.assertNotIn("does not exist", messages)
+
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=False))
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", return_value=False)
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_missing_stack_without_leftovers_still_reports_the_error(self, _, click_mock, __, ___):
+        with DeleteContext(
+            stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket=None, s3_prefix=None
+        ) as delete_context:
+            delete_context.run()
+        messages = " ".join(str(c) for c in click_mock.echo.call_args_list)
+        self.assertIn("does not exist", messages)

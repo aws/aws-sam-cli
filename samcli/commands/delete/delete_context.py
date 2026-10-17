@@ -348,6 +348,10 @@ class DeleteContext:
                     )
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
+                # A code bucket stack can be left behind if an earlier sam delete failed after deleting the stack
+                if delete_web_function_code_bucket(self.stack_name, self.cloudformation_client, self.s3_client):
+                    click.echo("\nDeleted the Lambda Web Function code bucket stack left by an earlier delete")
+                    return
                 click.echo(
                     f"Error: The input stack {self.stack_name} does"
                     f" not exist on Cloudformation in the region {self.region}"
