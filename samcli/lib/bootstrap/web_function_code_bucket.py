@@ -9,7 +9,7 @@ deletes after the deployed stack is deleted.
 
 import json
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 from botocore.exceptions import ClientError
@@ -129,12 +129,63 @@ def manage_web_function_code_bucket(
     return bucket_name, code_stack.export_name
 
 
-def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_client: Any, s3_client: Any) -> bool:
+def retained_web_functions(template_dict: Optional[Dict], retain_resources: Optional[list] = None) -> List[str]:
     """
-    Empty and delete the code bucket stack of a deployed stack, if it exists. Call this only after the deployed
-    stack is deleted, because its revisions read code from the bucket.
+    Return the logical IDs of the template's AWS::Serverless::WebFunction resources that outlive the stack, because
+    their DeletionPolicy retains them or they're in retain_resources. Their revisions keep reading code from the code
+    bucket, so it must not be deleted.
+    """
+    resources = template_dict.get("Resources") if isinstance(template_dict, dict) else None
+    if not isinstance(resources, dict):
+        return []
+    retain = set(retain_resources or [])
+    retained: List[str] = []
+    for logical_id, resource in resources.items():
+        if not isinstance(resource, dict) or resource.get("Type") != "AWS::Serverless::WebFunction":
+            continue
+        generated_ids = {logical_id, f"{logical_id}Revision", f"{logical_id}Endpoint"}
+        if resource.get("DeletionPolicy") in ("Retain", "RetainExceptOnCreate") or generated_ids & retain:
+            retained.append(logical_id)
+    return retained
 
-    Returns True if a code bucket stack was deleted.
+
+# Results of delete_web_function_code_bucket
+CODE_BUCKET_DELETED = "deleted"
+CODE_BUCKET_NOT_FOUND = "not_found"
+CODE_BUCKET_PROTECTED = "protected"
+
+
+def keep_web_function_code_bucket(parent_stack_name: str, retained: List[str], cloudformation_client: Any) -> None:
+    """
+    Keep the code bucket stack of a deleted stack whose Web Functions are retained, and turn on termination protection
+    so a later sam delete, or a direct CloudFormation delete, leaves it in place.
+    """
+    code_stack = WebFunctionCodeBucketStack(parent_stack_name)
+    try:
+        cloudformation_client.update_termination_protection(
+            EnableTerminationProtection=True, StackName=code_stack.stack_name
+        )
+        protection = "Turned on termination protection for it. "
+    except ClientError as ex:
+        if "does not exist" in str(ex):
+            return
+        LOG.debug("Could not turn on termination protection for %s", code_stack.stack_name, exc_info=ex)
+        protection = "Couldn't turn on termination protection for it, so don't delete it while they're in use. "
+    click.secho(
+        f"\n\tKept Lambda Web Function code bucket stack {code_stack.stack_name}, because these Web Functions are "
+        f"retained and still read their code from it: {', '.join(retained)}. {protection}When you no longer need "
+        "them, turn off its termination protection, empty its bucket and delete the stack.",
+        fg="yellow",
+    )
+
+
+def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_client: Any, s3_client: Any) -> str:
+    """
+    Empty and delete the code bucket stack of a deployed stack, if it exists and isn't protected. Call this only
+    after the deployed stack is deleted, because its revisions read code from the bucket.
+
+    Returns CODE_BUCKET_DELETED, CODE_BUCKET_NOT_FOUND, or CODE_BUCKET_PROTECTED if termination protection is on,
+    which sam delete turns on when it keeps the bucket for retained Web Functions.
     """
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     try:
@@ -145,12 +196,20 @@ def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_clien
         if "does not exist" not in str(ex):
             raise
         LOG.debug("No Lambda Web Function code bucket stack found for %s", parent_stack_name)
-        return False
+        return CODE_BUCKET_NOT_FOUND
     outputs = {o["OutputKey"]: o["OutputValue"] for o in stack.get("Outputs", [])}
     tags = {t["Key"]: t["Value"] for t in stack.get("Tags", [])}
     if tags.get("ManagedStackSource") != "AwsSamCli":
         LOG.debug("Stack %s was not created by the AWS SAM CLI, not deleting it", code_stack.stack_name)
-        return False
+        return CODE_BUCKET_NOT_FOUND
+    if stack.get("EnableTerminationProtection"):
+        click.secho(
+            f"\n\tKept Lambda Web Function code bucket stack {code_stack.stack_name}, because termination protection "
+            "is on: retained Web Functions may still read their code from it. When you no longer need them, turn off "
+            "its termination protection, empty its bucket and delete the stack.",
+            fg="yellow",
+        )
+        return CODE_BUCKET_PROTECTED
 
     click.echo(f"\t- Deleting Lambda Web Function code bucket stack {code_stack.stack_name}")
     bucket_name = outputs.get(CODE_BUCKET_OUTPUT_KEY)
@@ -160,7 +219,7 @@ def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_clien
     cloudformation_client.get_waiter("stack_delete_complete").wait(
         StackName=code_stack.stack_name, WaiterConfig={"Delay": 5, "MaxAttempts": 120}
     )
-    return True
+    return CODE_BUCKET_DELETED
 
 
 def _empty_versioned_bucket(s3_client: Any, bucket_name: str) -> None:

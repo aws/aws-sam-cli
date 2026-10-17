@@ -632,7 +632,7 @@ class TestDeleteContextLeftoverWebFunctionCodeBucket(TestCase):
     @patch("samcli.commands.delete.delete_context.click")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
     def test_rerun_deletes_a_leftover_code_bucket_stack(self, _, click_mock, __, delete_bucket_mock):
-        delete_bucket_mock.return_value = True
+        delete_bucket_mock.return_value = "deleted"
         with DeleteContext(
             stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket=None, s3_prefix=None
         ) as delete_context:
@@ -644,7 +644,7 @@ class TestDeleteContextLeftoverWebFunctionCodeBucket(TestCase):
         self.assertNotIn("does not exist", messages)
 
     @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=False))
-    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", return_value=False)
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", return_value="not_found")
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.delete.delete_context.click")
     @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
@@ -655,3 +655,43 @@ class TestDeleteContextLeftoverWebFunctionCodeBucket(TestCase):
             delete_context.run()
         messages = " ".join(str(c) for c in click_mock.echo.call_args_list)
         self.assertIn("does not exist", messages)
+
+
+class TestDeleteContextRetainedWebFunctions(TestCase):
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=True))
+    @patch.object(CfnUtils, "delete_stack", MagicMock())
+    @patch.object(CfnUtils, "wait_for_delete", MagicMock())
+    @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch("samcli.commands.delete.delete_context.keep_web_function_code_bucket")
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_code_bucket_is_kept_for_retained_web_functions(self, _, click_mock, __, delete_bucket_mock, keep_mock):
+        template = (
+            '{"Resources": {"WebFn": {"Type": "AWS::Serverless::WebFunction", "DeletionPolicy": "Retain", '
+            '"Properties": {"CodeUri": {"Bucket": "b", "Key": "k"}}}}}'
+        )
+        with patch.object(CfnUtils, "get_stack_template", MagicMock(return_value=template)):
+            with DeleteContext(
+                stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket="b", s3_prefix="p"
+            ) as delete_context:
+                delete_context.run()
+        delete_bucket_mock.assert_not_called()
+        self.assertEqual(keep_mock.call_args.args[:2], ("my-app", ["WebFn"]))
+
+
+class TestDeleteContextProtectedLeftover(TestCase):
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=False))
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", return_value="protected")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_rerun_keeps_a_protected_code_bucket_stack(self, _, click_mock, __, ___):
+        with DeleteContext(
+            stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket=None, s3_prefix=None
+        ) as delete_context:
+            delete_context.run()
+        messages = " ".join(str(c) for c in click_mock.echo.call_args_list)
+        self.assertNotIn("does not exist", messages)
+        self.assertNotIn("left by an earlier delete", messages)
