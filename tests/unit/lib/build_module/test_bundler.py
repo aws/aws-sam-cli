@@ -288,6 +288,20 @@ class EsbuildBundlerWebFunctions(TestCase):
         processed = EsbuildBundlerManager(stack, template, "build").handle_template_post_processing()
         self.assertEqual(processed["Resources"]["WebFn"]["Properties"]["EntryPoint"], "server.js")
 
+    @parameterized.expand(
+        [
+            ("./server.ts", "server.js"),
+            ("src/v1.2/server.ts", "server.js"),
+            ("server.config.ts", "server.config.js"),
+        ]
+    )
+    @patch("samcli.lib.build.bundler.Path.is_file", return_value=False)
+    def test_dotted_entry_point_points_at_the_bundled_file(self, entry_point, expected, _):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "web", "EntryPoint": entry_point})
+        template = {"Resources": {"WebFn": {"Properties": {"EntryPoint": entry_point}}}}
+        processed = EsbuildBundlerManager(stack, template, "build").handle_template_post_processing()
+        self.assertEqual(processed["Resources"]["WebFn"]["Properties"]["EntryPoint"], expected)
+
     @patch("samcli.lib.build.bundler.Path.is_file", return_value=True)
     def test_entry_point_that_exists_in_the_artifact_is_kept(self, _):
         stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "web", "EntryPoint": "server.js"})

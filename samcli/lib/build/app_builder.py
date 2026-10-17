@@ -807,6 +807,7 @@ class ApplicationBuilder:
                     metadata,
                     source_code_path=code_dir,
                     scratch_dir=scratch_dir_path,
+                    is_web_function=self._is_web_function(function_name),
                 )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
@@ -856,6 +857,7 @@ class ApplicationBuilder:
         metadata: Optional[dict] = None,
         source_code_path: Optional[str] = None,
         scratch_dir: Optional[str] = None,
+        is_web_function: bool = False,
     ) -> Optional[Dict]:
         """
         Parameters
@@ -876,6 +878,8 @@ class ApplicationBuilder:
             The lambda function source code path that will be used to calculate the working directory
         scratch_dir str
             The temporary directory path where the lambda function code will be copied to.
+        is_web_function bool
+            True when handler is a Web Function's EntryPoint, which is a file path rather than a Lambda handler
         Returns
         -------
         dict
@@ -890,7 +894,9 @@ class ApplicationBuilder:
             # as a required argument. This corresponds to the lambda function handler.
             normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
             if handler and not build_props.get("EntryPoints"):
-                entry_points = [handler.split(".")[0]]
+                # A Web Function's EntryPoint is already a file path (e.g. src/v1.2/server.config.ts), so pass it
+                # through unchanged. Lambda Builders adds a .ts or .js extension if it's missing.
+                entry_points = [handler if is_web_function else handler.split(".")[0]]
                 normalized_build_props["entry_points"] = entry_points
             return normalized_build_props
 

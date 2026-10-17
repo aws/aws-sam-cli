@@ -2312,6 +2312,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(code_dir),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2395,6 +2396,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2480,6 +2482,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2563,6 +2566,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=code_dir,
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2645,6 +2649,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2725,6 +2730,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=code_dir,
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -3578,6 +3584,22 @@ class TestApplicationBuilder_get_build_options(TestCase):
             "Function", "Node.js", "base_dir", "src/handlers/post.handler", "npm-esbuild", metadata
         )
         self.assertEqual(options, expected_properties)
+
+    @parameterized.expand(
+        [
+            ("server.ts", "server.ts"),
+            ("./server.ts", "./server.ts"),
+            ("src/v1.2/server.ts", "src/v1.2/server.ts"),
+            ("server.config.ts", "server.config.ts"),
+            ("src/server", "src/server"),
+        ]
+    )
+    def test_get_options_uses_web_function_entry_point_as_file_path(self, entry_point, expected_entry_point):
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": {"Minify": False}}
+        options = ApplicationBuilder._get_build_options(
+            "WebFunction", "Node.js", "base_dir", entry_point, "npm-esbuild", metadata, is_web_function=True
+        )
+        self.assertEqual(options, {"minify": False, "entry_points": [expected_entry_point]})
 
     @parameterized.expand([(None, None), ({}, None)])
     def test_invalid_metadata_cases(self, metadata, expected_output):
