@@ -938,31 +938,17 @@ class TestSyncWatchWebFunctions(TestCase):
             language_extensions=None,
         )
 
-    @patch("samcli.cli.global_config.GlobalConfig")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
-    def test_watch_with_web_functions_fails(self, has_mock, global_config_mock):
-        from samcli.lib.package.web_function_code_access import WebFunctionSyncWatchError
-
-        with self.assertRaises(WebFunctionSyncWatchError) as ctx:
-            self._do_cli(watch=True)
-        self.assertIn("sam sync --watch", ctx.exception.message)
-        has_mock.assert_called_once_with("template.yaml", False)
-        global_config_mock.assert_not_called()
-
+    @parameterized.expand([(True, True, True), (True, False, False), (False, True, False)])
     @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
     @patch("samcli.cli.global_config.GlobalConfig")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
-    def test_sync_without_watch_is_allowed(self, has_mock, global_config_mock, _):
-        global_config_mock.return_value.is_accelerate_opt_in_stack.return_value = True
-        with self.assertRaises(RuntimeError):
-            self._do_cli(watch=False)
-        has_mock.assert_not_called()
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions")
+    def test_watch_note_for_web_functions(self, watch, has_web_functions, expect_note, has_mock, global_config_mock, _):
+        from samcli.commands.sync.command import WEB_FUNCTION_WATCH_NOTE
 
-    @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
-    @patch("samcli.cli.global_config.GlobalConfig")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=False)
-    def test_watch_without_web_functions_is_allowed(self, has_mock, global_config_mock, _):
+        has_mock.return_value = has_web_functions
         global_config_mock.return_value.is_accelerate_opt_in_stack.return_value = True
-        with self.assertRaises(RuntimeError):
-            self._do_cli(watch=True)
-        has_mock.assert_called_once()
+        with patch("samcli.commands.sync.command.LOG") as log_mock:
+            with self.assertRaises(RuntimeError):
+                self._do_cli(watch=watch)
+        logged = " ".join(str(c) for c in log_mock.info.call_args_list)
+        self.assertEqual(WEB_FUNCTION_WATCH_NOTE in logged, expect_note)

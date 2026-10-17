@@ -107,18 +107,6 @@ def stacks_have_web_functions(stacks: Iterable[Stack], local_code_only: bool = F
     return False
 
 
-class WebFunctionSyncWatchError(UserException):
-    """sam sync --watch doesn't support AWS::Serverless::WebFunction resources."""
-
-    def __init__(self) -> None:
-        super().__init__(
-            message=(
-                "AWS::Serverless::WebFunction isn't supported with 'sam sync --watch', because every code change "
-                "creates a new revision. Use 'sam sync' without --watch, or 'sam deploy'."
-            )
-        )
-
-
 def template_file_has_local_web_functions(template_file: str, language_extensions_enabled: bool = False) -> bool:
     """
     Return True if the template file, or a nested stack it references, defines an AWS::Serverless::WebFunction with

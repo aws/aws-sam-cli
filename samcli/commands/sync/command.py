@@ -103,6 +103,10 @@ Confirm that you are synchronizing a development stack.
 Enter Y to proceed with the command, or enter N to cancel:
 """
 
+WEB_FUNCTION_WATCH_NOTE = (
+    "Web Function code isn't watched; code changes are deployed with the next infrastructure sync."
+)
+
 
 SHORT_HELP = "Sync an AWS SAM project to AWS."
 
@@ -316,16 +320,17 @@ def do_cli(
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.lib.package.web_function_code_access import (
-        WebFunctionSyncWatchError,
-        template_file_has_local_web_functions,
-    )
+    from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
     from samcli.lib.utils import osutils
 
     if watch and template_file_has_local_web_functions(
         template_file, resolve_language_extensions_enabled(language_extensions)
     ):
-        raise WebFunctionSyncWatchError()
+        # Every Web Function code change creates a new revision, so their code isn't watched
+        LOG.info(
+            Colored().color_log(msg=WEB_FUNCTION_WATCH_NOTE, color="yellow"),
+            extra=dict(markup=True),
+        )
 
     global_config = GlobalConfig()
     if not global_config.is_accelerate_opt_in_stack(template_file, stack_name):
