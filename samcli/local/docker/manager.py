@@ -114,9 +114,14 @@ class ContainerManager:
 
         :param samcli.local.docker.container.Container container: Container to stop
         """
-        if self.do_shutdown_event:
-            container.stop()
-        container.delete()
+        # container.delete() is what actually removes the container; it must run even if
+        # container.stop() raises (e.g. a docker.errors.APIError), otherwise a failed stop()
+        # leaves the container running/orphaned with no further cleanup attempt.
+        try:
+            if self.do_shutdown_event:
+                container.stop()
+        finally:
+            container.delete()
 
     def pull_image(self, image_name, tag=None, stream=None):
         """
