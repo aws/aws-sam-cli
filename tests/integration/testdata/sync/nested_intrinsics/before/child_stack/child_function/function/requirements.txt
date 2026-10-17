@@ -1,2 +1,2 @@
 numpy<=2.2.6
-requests
+requests==2.33.0
