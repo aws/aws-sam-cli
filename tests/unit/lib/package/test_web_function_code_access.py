@@ -328,3 +328,19 @@ class TestCheckNoWebFunctionsInForEach(TestCase):
         from samcli.lib.package.web_function_code_access import check_no_web_functions_in_foreach
 
         check_no_web_functions_in_foreach([MagicMock(stack_path="", original_template_dict=None)])
+
+
+class TestWebFunctionZipPermissions(TestCase):
+    def test_web_function_code_is_zipped_with_lambda_permissions(self):
+        from samcli.lib.package.utils import make_zip_with_lambda_permissions, upload_local_artifacts
+
+        uploader = MagicMock()
+        with (
+            patch("samcli.lib.package.utils.zip_and_upload") as zip_and_upload_mock,
+            patch("samcli.lib.package.utils.is_local_folder", return_value=True),
+        ):
+            zip_and_upload_mock.return_value = "s3://bucket/key"
+            upload_local_artifacts(
+                "AWS::Serverless::WebFunction", "WebFn", {"CodeUri": "web"}, "CodeUri", "/dir", uploader
+            )
+        self.assertIs(zip_and_upload_mock.call_args.kwargs["zip_method"], make_zip_with_lambda_permissions)
