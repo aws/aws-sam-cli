@@ -308,6 +308,21 @@ class TestCheckNoWebFunctionsInForEach(TestCase):
                 {"Fn::ForEach::F": ["N", ["a"], {"Fn${N}": {"Type": "AWS::Serverless::Function"}}]},
             ),
             (
+                "Fn::Sub S3 code in ForEach",
+                {
+                    "Fn::ForEach::F": [
+                        "N",
+                        ["a"],
+                        {
+                            "WebFn${N}": {
+                                "Type": "AWS::Serverless::WebFunction",
+                                "Properties": {"CodeUri": {"Fn::Sub": "s3://bucket/${N}.zip"}},
+                            }
+                        },
+                    ]
+                },
+            ),
+            (
                 "S3 code in ForEach",
                 {
                     "Fn::ForEach::F": [

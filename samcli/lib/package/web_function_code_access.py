@@ -79,9 +79,15 @@ def _web_functions_in_foreach(resources: Dict[str, Any], inside_foreach: bool = 
 
 
 def _has_local_code(code_uri: Any) -> bool:
+    """
+    Whether packaging uploads this CodeUri from a local path. Like Resource.export, a dict (an S3 object or an
+    intrinsic such as Fn::Sub) is never uploaded; a missing CodeUri defaults to the template's directory.
+    """
+    if code_uri is None:
+        return True
     if isinstance(code_uri, str):
         return not code_uri.startswith("s3://")
-    return not (isinstance(code_uri, dict) and "Bucket" in code_uri)
+    return False
 
 
 def stacks_have_web_functions(stacks: Iterable[Stack], local_code_only: bool = False) -> bool:
@@ -102,7 +108,7 @@ def stacks_have_web_functions(stacks: Iterable[Stack], local_code_only: bool = F
             if not local_code_only:
                 return True
             code_uri = (resource.get("Properties") or {}).get("CodeUri")
-            if not isinstance(code_uri, dict) and _has_local_code(code_uri):
+            if _has_local_code(code_uri):
                 return True
     return False
 
