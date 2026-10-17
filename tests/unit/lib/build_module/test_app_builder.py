@@ -1572,6 +1572,48 @@ class TestApplicationBuilder_web_function_build_graph(TestCase):
         self.assertEqual(definition.architecture, "x86_64")
 
 
+class TestApplicationBuilder_web_function_dependencies(TestCase):
+    @parameterized.expand([("WebFn", True), ("Fn", False)])
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_web_functions_always_combine_dependencies(
+        self, function_name, expected_combine, osutils_mock, get_workflow_config_mock, _
+    ):
+        from samcli.lib.providers.provider import FunctionBuildInfo, ResourcesToBuildCollector, WebFunction
+
+        resources = ResourcesToBuildCollector()
+        resources.add_function(
+            WebFunction(
+                function_id="WebFn",
+                name="WebFn",
+                functionname="WebFn",
+                runtime="nodejs24.x",
+                codeuri="web",
+                entry_point="index.js",
+                metadata=None,
+                function_build_info=FunctionBuildInfo.BuildableZip,
+            )
+        )
+        # combine_dependencies=False is what sam sync uses with an auto dependency layer
+        builder = ApplicationBuilder(
+            resources,
+            "/build/dir",
+            "/base/dir",
+            "cachedir",
+            stream_writer=StreamWriter(sys.stderr),
+            combine_dependencies=False,
+        )
+        get_workflow_config_mock.return_value = Mock(manifest_name="package.json")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        builder._build_function_in_process = Mock()
+
+        builder._build_function(function_name, "web", None, ZIP, "nodejs24.x", X86_64, "index.js", "/artifacts")
+
+        self.assertEqual(builder._build_function_in_process.call_args.args[-1], expected_combine)
+
+
 class TestApplicationBuilder_update_built_web_function(TestCase):
     def test_updates_web_function_code_uri(self):
         properties = {"CodeUri": "web", "Runtime": "nodejs24.x"}

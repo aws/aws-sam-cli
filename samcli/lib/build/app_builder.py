@@ -415,6 +415,17 @@ class ApplicationBuilder:
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
             resource_properties["ImageUri"] = path
 
+    def _is_web_function(self, function_name: str) -> bool:
+        """
+        Whether the function being built is a Web Function. Web Functions can't use layers, so their dependencies
+        always stay in the build artifact, even when other functions' dependencies are kept apart for an auto
+        dependency layer.
+        """
+        functions = getattr(self._resources_to_build, "functions", None)
+        if not isinstance(functions, list):
+            return False
+        return any(isinstance(function, WebFunction) and function.name == function_name for function in functions)
+
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
         Build an Lambda image
@@ -828,7 +839,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
-                    self._combine_dependencies,
+                    self._combine_dependencies or self._is_web_function(function_name),
                 )
 
         # pylint: disable=fixme
