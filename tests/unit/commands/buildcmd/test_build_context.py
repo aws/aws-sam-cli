@@ -30,6 +30,21 @@ from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
 
+_web_function_provider_patcher = None
+
+
+def setUpModule():
+    # These tests use Mock stacks; the Web Function provider has its own tests
+    global _web_function_provider_patcher
+    _web_function_provider_patcher = patch("samcli.commands.build.build_context.SamWebFunctionProvider")
+    provider_class_mock = _web_function_provider_patcher.start()
+    provider_class_mock.return_value.get.return_value = None
+    provider_class_mock.return_value.get_all.return_value = []
+
+
+def tearDownModule():
+    _web_function_provider_patcher.stop()
+
 
 class DeepWrap(Exception):
     pass

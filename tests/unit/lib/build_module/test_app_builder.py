@@ -1542,6 +1542,87 @@ class TestApplicationBuilder_update_template(TestCase):
         self.assertEqual(actual, self.template_dict)
 
 
+class TestApplicationBuilder_web_function_build_graph(TestCase):
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    def test_web_function_build_definition_uses_entry_point(self, _):
+        from samcli.lib.providers.provider import FunctionBuildInfo, ResourcesToBuildCollector, WebFunction
+
+        web_function = WebFunction(
+            function_id="WebFn",
+            name="WebFn",
+            functionname="WebFn",
+            runtime="nodejs24.x",
+            codeuri="web",
+            entry_point="server.js",
+            metadata=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+        resources = ResourcesToBuildCollector()
+        resources.add_function(web_function)
+        builder = ApplicationBuilder(
+            resources, "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+        with patch("samcli.lib.build.app_builder.BuildGraph") as build_graph_mock:
+            builder._get_build_graph()
+        definition, function = build_graph_mock.return_value.put_function_build_definition.call_args.args
+        self.assertIs(function, web_function)
+        self.assertEqual(definition.handler, "server.js")
+        self.assertIsNone(definition.imageuri)
+        self.assertEqual(definition.packagetype, "Zip")
+        self.assertEqual(definition.architecture, "x86_64")
+
+
+class TestApplicationBuilder_web_function_dependencies(TestCase):
+    @parameterized.expand([("WebFn", True), ("Fn", False)])
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_web_functions_always_combine_dependencies(
+        self, function_name, expected_combine, osutils_mock, get_workflow_config_mock, _
+    ):
+        from samcli.lib.providers.provider import FunctionBuildInfo, ResourcesToBuildCollector, WebFunction
+
+        resources = ResourcesToBuildCollector()
+        resources.add_function(
+            WebFunction(
+                function_id="WebFn",
+                name="WebFn",
+                functionname="WebFn",
+                runtime="nodejs24.x",
+                codeuri="web",
+                entry_point="index.js",
+                metadata=None,
+                function_build_info=FunctionBuildInfo.BuildableZip,
+            )
+        )
+        # combine_dependencies=False is what sam sync uses with an auto dependency layer
+        builder = ApplicationBuilder(
+            resources,
+            "/build/dir",
+            "/base/dir",
+            "cachedir",
+            stream_writer=StreamWriter(sys.stderr),
+            combine_dependencies=False,
+        )
+        get_workflow_config_mock.return_value = Mock(manifest_name="package.json")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        builder._build_function_in_process = Mock()
+
+        builder._build_function(function_name, "web", None, ZIP, "nodejs24.x", X86_64, "index.js", "/artifacts")
+
+        self.assertEqual(builder._build_function_in_process.call_args.args[-1], expected_combine)
+
+
+class TestApplicationBuilder_update_built_web_function(TestCase):
+    def test_updates_web_function_code_uri(self):
+        properties = {"CodeUri": "web", "Runtime": "nodejs24.x"}
+        ApplicationBuilder._update_built_resource(
+            "/build/WebFn", properties, "AWS::Serverless::WebFunction", "build/WebFn"
+        )
+        self.assertEqual(properties["CodeUri"], "build/WebFn")
+
+
 class TestApplicationBuilder_update_template_windows(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     def setUp(self, mock_get_validated_container_client):
@@ -2231,6 +2312,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(code_dir),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2314,6 +2396,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2399,6 +2482,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2482,6 +2566,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=code_dir,
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2564,6 +2649,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
@@ -2644,6 +2730,7 @@ class TestApplicationBuilder_build_function(TestCase):
             metadata,
             source_code_path=code_dir,
             scratch_dir="scratch",
+            is_web_function=False,
         )
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
@@ -3497,6 +3584,22 @@ class TestApplicationBuilder_get_build_options(TestCase):
             "Function", "Node.js", "base_dir", "src/handlers/post.handler", "npm-esbuild", metadata
         )
         self.assertEqual(options, expected_properties)
+
+    @parameterized.expand(
+        [
+            ("server.ts", "server.ts"),
+            ("./server.ts", "./server.ts"),
+            ("src/v1.2/server.ts", "src/v1.2/server.ts"),
+            ("server.config.ts", "server.config.ts"),
+            ("src/server", "src/server"),
+        ]
+    )
+    def test_get_options_uses_web_function_entry_point_as_file_path(self, entry_point, expected_entry_point):
+        metadata = {"BuildMethod": "esbuild", "BuildProperties": {"Minify": False}}
+        options = ApplicationBuilder._get_build_options(
+            "WebFunction", "Node.js", "base_dir", entry_point, "npm-esbuild", metadata, is_web_function=True
+        )
+        self.assertEqual(options, {"minify": False, "entry_points": [expected_entry_point]})
 
     @parameterized.expand([(None, None), ({}, None)])
     def test_invalid_metadata_cases(self, metadata, expected_output):

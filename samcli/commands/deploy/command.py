@@ -388,6 +388,11 @@ def do_cli(
                 parameter_overrides=context_param_overrides,
                 language_extensions=language_extensions,
                 output=output,
+                # With the managed bucket, Web Function code goes to a code bucket owned by the deployed stack
+                # instead. In guided mode that's the stack name from the prompt, not --stack-name.
+                web_function_stack_name=(
+                    guided_context.guided_stack_name if guided else (stack_name if resolve_s3 else None)
+                ),
             ) as package_context:
                 package_context.run()
 

@@ -202,6 +202,58 @@ class TestPackageCliCommand(TestCase):
         self.assertTrue(len(help_string) > 0)
 
 
+class TestPackageResolveS3WebFunctions(TestCase):
+    def _do_cli(self, resolve_s3=True, s3_bucket=None):
+        do_cli(
+            template_file="template.yaml",
+            s3_bucket=s3_bucket,
+            s3_prefix=None,
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=None,
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={},
+            region="us-east-1",
+            profile=None,
+            resolve_s3=resolve_s3,
+            resolve_image_repos=False,
+            language_extensions=None,
+            signing_profiles=None,
+        )
+
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.package.command.manage_stack")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
+    def test_resolve_s3_with_local_web_function_code_fails(self, _, manage_stack_mock, package_context_mock):
+        from samcli.commands.package.exceptions import PackageResolveS3WebFunctionError
+
+        with self.assertRaises(PackageResolveS3WebFunctionError) as ctx:
+            self._do_cli()
+        self.assertIn("sam deploy", ctx.exception.message)
+        self.assertIn("--s3-bucket", ctx.exception.message)
+        manage_stack_mock.assert_not_called()
+        package_context_mock.assert_not_called()
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.commands.package.command.manage_stack", return_value="managed-bucket")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=False)
+    def test_resolve_s3_without_web_functions_still_works(self, _, manage_stack_mock, package_context_mock, __):
+        self._do_cli()
+        manage_stack_mock.assert_called_once()
+        package_context_mock.assert_called_once()
+
+    @patch("samcli.commands.package.package_context.PackageContext")
+    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions")
+    def test_s3_bucket_with_web_functions_is_allowed(self, has_mock, package_context_mock):
+        self._do_cli(resolve_s3=False, s3_bucket="my-bucket")
+        has_mock.assert_not_called()
+        package_context_mock.assert_called_once()
+
+
 class TestPackageContextLanguageExtensions:
     def _ctx(self, **kwargs):
         from samcli.commands.package.package_context import PackageContext
