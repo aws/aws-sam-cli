@@ -190,12 +190,9 @@ class LocalLambdaRunner:
         if function.architecture != host_arch:
             LOG.warning(
                 "Function '%s' uses %s on an %s host, so its container runs under emulation and will be "
-                "significantly slower. If the function and its dependencies support %s in AWS too, "
-                "set 'Architectures: [%s]' to run natively.",
+                "significantly slower.",
                 function.name,
                 function.architecture,
-                host_arch,
-                host_arch,
                 host_arch,
             )
 
