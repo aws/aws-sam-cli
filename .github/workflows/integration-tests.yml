@@ -96,55 +96,21 @@ jobs:
       ${{ !cancelled()
       && (needs.wait-for-build-images.result == 'success' || needs.wait-for-build-images.result == 'skipped')
       && (github.event_name != 'schedule' || github.repository == 'aws/aws-sam-cli') }}
-    name: ${{ matrix.test_suite }}
+    name: ${{ matrix.test_suite }}-${{ matrix.copy }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        test_suite:
-          # Build jobs (no-container mode — requires language toolchains)
-          - build-x86-1
-          - build-x86-2
-          - build-arm64
-          # Build jobs (docker container mode)
-          - build-x86-container-1
-          - build-x86-container-2
-          - build-arm64-container-1
-          - build-arm64-container-2
-          # Docker-only test suites
-          - terraform-build
-          - terraform-start-api
-          - terraform-invoke-start-lambda
-          - package
-          - deploy
-          - sync-code
-          - sync-watch
-          - local-invoke
-          - local-start-api
-          - local-start-lambda
-          - other-and-e2e
-          # Runs only credential-requiring tests from build and local
-          - cloud-based-tests
-          # Tier 1: Cross-platform smoke tests with Finch runtime
-          - tier1-finch
-        include:
-          # Tier 1: Cross-platform smoke tests on Windows (Docker via WSL2)
-          # Split into 3 to balance load and avoid out-of-storage
-          - test_suite: tier1-windows-build-1
-            os: windows-latest
-          - test_suite: tier1-windows-build-2
-            os: windows-latest
-          - test_suite: tier1-windows-build-3
-            os: windows-latest
-          - test_suite: tier1-windows-other
-            os: windows-latest
+        test_suite: [tier1-finch]
+        copy: [1, 2, 3]
 
     steps:
       - name: Determine test type
         shell: bash
         run: |
           echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
+          echo "SAM_DIAG_EMULATOR_PULL_LOG=$RUNNER_TEMP/emulator-pull-diag.log" >> $GITHUB_ENV
           if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
              [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
             echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
@@ -488,11 +454,35 @@ jobs:
               ;;
           esac
 
+      - name: DIAG finch emulator pull
+        if: always() && matrix.test_suite == 'tier1-finch'
+        shell: bash
+        run: |
+          echo "=== SAM CLI emulator pull log ==="
+          cat "$SAM_DIAG_EMULATOR_PULL_LOG" || true
+          echo "=== finch images ==="
+          sudo finch images -a || true
+          echo "=== finch-daemon log, image related ==="
+          sudo journalctl -u finch --no-pager | grep -iE 'emulator|durable|images/create|Create Image|pull|resolv|error|fail' | tail -n 400 || true
+          mkdir -p "$RUNNER_TEMP/diag"
+          cp "$SAM_DIAG_EMULATOR_PULL_LOG" "$RUNNER_TEMP/diag/" || true
+          sudo journalctl -u finch --no-pager > "$RUNNER_TEMP/diag/finch-daemon.log" || true
+          sudo journalctl -u containerd --no-pager > "$RUNNER_TEMP/diag/containerd.log" || true
+          sudo finch images -a > "$RUNNER_TEMP/diag/finch-images.txt" 2>&1 || true
+          sudo chmod -R a+r "$RUNNER_TEMP/diag" || true
+
+      - name: DIAG upload
+        if: always() && matrix.test_suite == 'tier1-finch'
+        uses: actions/upload-artifact@v7
+        with:
+          name: diag-${{ matrix.test_suite }}-${{ matrix.copy }}
+          path: ${{ runner.temp }}/diag
+
       - name: Upload test results
         if: always() && env.SCRIPT_PY != ''
         uses: actions/upload-artifact@v7
         with:
-          name: test-results-${{ matrix.test_suite }}
+          name: test-results-${{ matrix.test_suite }}-${{ matrix.copy }}
           path: TEST_REPORT-*.json
 
       - name: Re-authenticate with OIDC for cleanup

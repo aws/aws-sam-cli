@@ -24,6 +24,14 @@ from samcli.local.docker.utils import (
 LOG = logging.getLogger(__name__)
 
 
+def _diag(message):
+    """DIAG: append to the file named by SAM_DIAG_EMULATOR_PULL_LOG, if set."""
+    path = os.environ.get("SAM_DIAG_EMULATOR_PULL_LOG")
+    if path:
+        with open(path, "a") as f:
+            f.write(f"{time.strftime('%H:%M:%S')} pid={os.getpid()} {message}\n")
+
+
 class DurableFunctionsEmulatorContainer:
     """
     Manages the durable functions emulator container.
@@ -212,14 +220,38 @@ class DurableFunctionsEmulatorContainer:
                 return
 
             LOG.debug("Local image is out of date and will be updated to the latest version")
-        except docker.errors.ImageNotFound:
+        except docker.errors.ImageNotFound as e:
+            _diag(f"initial get: {e!r}")
             LOG.debug(f"Pulling emulator image {self._get_emulator_image()}...")
 
         try:
             if self._skip_pull_image and local_image_exists:
                 LOG.debug("Skipping pulling new emulator image")
                 return
-            self._docker_client.images.pull(self._get_emulator_image())
+            image = self._get_emulator_image()
+            repository, tag = image.rsplit(":", 1)
+            _diag(f"pull start: {repository} tag={tag} client={self._docker_client.api.base_url}")
+            try:
+                for line in self._docker_client.api.pull(repository, tag=tag, stream=True, decode=True):
+                    _diag(f"pull stream: {line}")
+            except Exception as pull_error:
+                _diag(f"pull raised: {pull_error!r}")
+                raise
+            _diag("pull stream ended")
+            try:
+                matching = [(i.id, i.tags) for i in self._docker_client.images.list(name=repository)]
+                _diag(f"images.list(name={repository}): {matching}")
+                _diag(f"all image tags: {[i.tags for i in self._docker_client.images.list()]}")
+                raw = self._docker_client.api._get(self._docker_client.api._url("/images/json"))
+                _diag(f"raw /images/json: {raw.status_code} {raw.text[:4000]}")
+            except Exception as list_error:
+                _diag(f"list failed: {list_error!r}")
+            try:
+                self._docker_client.images.get(image)
+                _diag("get after pull: found")
+            except Exception as get_error:
+                _diag(f"get after pull: {get_error!r}")
+                raise
             LOG.info(f"Successfully pulled image {self._get_emulator_image()}")
         except Exception as e:
             if local_image_exists:

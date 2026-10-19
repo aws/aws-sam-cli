@@ -25,6 +25,13 @@ echo 'deb [signed-by=/usr/share/keyrings/runfinch-finch-archive-keyring.gpg arch
 sudo apt update
 sudo apt install -y runfinch-finch
 
+echo "=== DIAG: run finch-daemon with debug logging ==="
+grep ExecStart /usr/lib/systemd/system/finch.service /lib/systemd/system/finch.service 2>/dev/null || true
+sudo mkdir -p /etc/systemd/system/finch.service.d
+printf '[Service]\nExecStart=\nExecStart=/bin/sh -c "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/libexec/finch exec /usr/libexec/finch/finch-daemon --socket-addr fd:// --debug"\n' \
+  | sudo tee /etc/systemd/system/finch.service.d/debug.conf
+sudo systemctl daemon-reload
+
 echo "=== Starting Finch services ==="
 sudo systemctl enable --now finch
 sudo systemctl enable --now finch-buildkit
