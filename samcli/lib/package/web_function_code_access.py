@@ -21,6 +21,7 @@ from botocore.exceptions import ClientError
 from samcli.commands.exceptions import UserException
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.resources import AWS_SERVERLESS_WEBFUNCTION
 
 LOG = logging.getLogger(__name__)
@@ -118,9 +119,6 @@ def template_file_has_local_web_functions(template_file: str, language_extension
     Return True if the template file, or a nested stack it references, defines an AWS::Serverless::WebFunction with
     local code. Returns False if the template can't be read, which fails later with a clearer error.
     """
-    # Imported here to avoid a circular import
-    from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider  # pylint: disable=import-outside-toplevel
-
     try:
         stacks, _ = SamLocalStackProvider.get_stacks(
             template_file, language_extensions_enabled=language_extensions_enabled
