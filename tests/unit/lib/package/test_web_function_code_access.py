@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -221,6 +223,40 @@ class TestWebFunctionCodeUriImport(TestCase):
         resource_dict = {"CodeUri": "web/"}
         self._resource(None).do_export("Fn", resource_dict, "/dir")
         self.assertEqual(resource_dict["CodeUri"], "s3://my-bucket/abc123")
+
+    @parameterized.expand([("lambda_first", False), ("web_function_first", True)])
+    def test_shared_upload_cache_does_not_mix_buckets(self, _, web_function_first):
+        from samcli.lib.package.packageable_resources import ServerlessFunctionResource, ServerlessWebFunctionResource
+        from samcli.lib.package.uploaders import Uploaders
+
+        managed_uploader, web_uploader = MagicMock(bucket_name="managed-bucket"), MagicMock(bucket_name="code-bucket")
+        managed_uploader.prefix = web_uploader.prefix = None
+        uploaders = Uploaders(managed_uploader, MagicMock(), web_uploader, web_function_bucket_export="my-app-export")
+        code_signer = MagicMock()
+        code_signer.should_sign_package.return_value = False
+        cache: dict = {}
+        lambda_dict, web_dict = {"CodeUri": "src"}, {"CodeUri": "src"}
+        exports = [
+            (ServerlessFunctionResource(uploaders, code_signer, cache), "Fn", lambda_dict),
+            (ServerlessWebFunctionResource(uploaders, code_signer, cache), "WebFn", web_dict),
+        ]
+        if web_function_first:
+            exports.reverse()
+
+        with (
+            tempfile.TemporaryDirectory() as parent_dir,
+            patch(
+                "samcli.lib.package.utils.zip_and_upload",
+                side_effect=lambda path, uploader, *args, **kwargs: f"s3://{uploader.bucket_name}/abc123",
+            ) as zip_and_upload_mock,
+        ):
+            os.mkdir(os.path.join(parent_dir, "src"))
+            for resource, resource_id, resource_dict in exports:
+                resource.export(resource_id, resource_dict, parent_dir)
+
+        self.assertEqual(zip_and_upload_mock.call_count, 2)
+        self.assertEqual(lambda_dict["CodeUri"], "s3://managed-bucket/abc123")
+        self.assertEqual(web_dict["CodeUri"], {"Bucket": {"Fn::ImportValue": "my-app-export"}, "Key": "abc123"})
 
 
 class TestTemplateFileHasLocalWebFunctions(TestCase):
