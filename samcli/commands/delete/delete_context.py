@@ -312,8 +312,7 @@ class DeleteContext:
             )
             self.cf_utils.wait_for_delete(self.stack_name)
 
-        # Delete the Web Function code bucket only now: the stack's revisions read their code from it. Keep it if a
-        # Web Function outlives the stack, because its revisions still do.
+        # Delete the code bucket after the stack (revisions read from it), unless a Web Function is retained
         retained = retained_web_functions(template.template_dict, retain_resources)
         if retained:
             keep_web_function_code_bucket(self.stack_name, retained, self.cloudformation_client)
@@ -359,7 +358,7 @@ class DeleteContext:
                     )
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
-                # A code bucket stack can be left behind if an earlier sam delete failed after deleting the stack
+                # Clean up a code bucket stack left by an earlier failed sam delete
                 result = delete_web_function_code_bucket(self.stack_name, self.cloudformation_client, self.s3_client)
                 if result == CODE_BUCKET_DELETED:
                     click.echo("\nDeleted the Lambda Web Function code bucket stack left by an earlier delete")

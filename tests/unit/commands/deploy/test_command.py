@@ -638,7 +638,7 @@ class TestDeployCliCommand(TestCase):
             )
 
             context_mock.run.assert_called_with()
-            # The Web Function code bucket is named after the stack from the prompt, not --stack-name
+            # The code bucket uses the prompted stack name, not --stack-name
             self.assertEqual(mock_package_context.call_args.kwargs["web_function_stack_name"], "sam-app")
             mock_save_config.assert_called_with(
                 {

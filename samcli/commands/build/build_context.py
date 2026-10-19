@@ -1489,10 +1489,7 @@ Commands you can use next
     def _collect_single_web_function(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
     ) -> None:
-        """
-        Populate resource_collector with the Web Function with the provided identifier, if any. Web Functions have no
-        layers.
-        """
+        """Add the Web Function with the given identifier, if any, to resource_collector"""
         web_function = self._web_function_provider.get(resource_identifier) if self._web_function_provider else None
         if web_function:
             resource_collector.add_function(web_function)

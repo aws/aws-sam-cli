@@ -419,11 +419,7 @@ class ApplicationBuilder:
             resource_properties["ImageUri"] = path
 
     def _is_web_function(self, function_name: str) -> bool:
-        """
-        Whether the function being built is a Web Function. Web Functions can't use layers, so their dependencies
-        always stay in the build artifact, even when other functions' dependencies are kept apart for an auto
-        dependency layer.
-        """
+        """Whether function_name is a Web Function, which can't use layers and so keeps its dependencies"""
         functions = getattr(self._resources_to_build, "functions", None)
         if not isinstance(functions, list):
             return False
@@ -897,8 +893,7 @@ class ApplicationBuilder:
             # as a required argument. This corresponds to the lambda function handler.
             normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
             if handler and not build_props.get("EntryPoints"):
-                # A Web Function's EntryPoint is already a file path (e.g. src/v1.2/server.config.ts), so pass it
-                # through unchanged. Lambda Builders adds a .ts or .js extension if it's missing.
+                # A Web Function's EntryPoint is a file path; Lambda Builders adds .ts/.js if it's missing
                 entry_points = [handler if is_web_function else handler.split(".")[0]]
                 normalized_build_props["entry_points"] = entry_points
             return normalized_build_props

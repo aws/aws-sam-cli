@@ -1,6 +1,4 @@
-"""
-Class that provides the AWS::Serverless::WebFunction resources of a SAM template, so they can be built
-"""
+"""Provides the AWS::Serverless::WebFunction resources of SAM templates to build"""
 
 import logging
 from typing import Dict, Iterator, List, Optional
@@ -14,16 +12,14 @@ from samcli.lib.utils.resources import AWS_SERVERLESS_WEBFUNCTION
 
 LOG = logging.getLogger(__name__)
 
-# The file the Web Function runtime runs when EntryPoint isn't set
+# Used when EntryPoint isn't set
 DEFAULT_ENTRY_POINT = "index.js"
 
 
 class SamWebFunctionProvider(SamBaseProvider):
     """
-    Fetches the AWS::Serverless::WebFunction resources of SAM templates. Like SamFunctionProvider, it assumes the
-    templates are valid and normalized.
-
-    Web Functions with code that is already in S3 aren't returned, because there's nothing to build.
+    Fetches the buildable AWS::Serverless::WebFunction resources of valid, normalized SAM templates. Web Functions with
+    code already in S3 are skipped.
     """
 
     def __init__(
@@ -56,10 +52,7 @@ class SamWebFunctionProvider(SamBaseProvider):
         )
 
     def get(self, name: str) -> Optional[WebFunction]:
-        """
-        Return the Web Function with the given full path, logical ID, function ID, or function name, or None.
-        If several Web Functions match, the one with the first full path is returned.
-        """
+        """Return the Web Function matching a full path, logical ID, function ID or name (first wins), or None"""
         if not name:
             raise MissingFunctionNameException()
         if name in self.web_functions:

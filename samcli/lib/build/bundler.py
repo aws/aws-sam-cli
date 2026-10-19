@@ -202,12 +202,7 @@ class EsbuildBundlerManager:
         return template
 
     def _update_web_function_entry_point(self, template: Dict) -> Dict:
-        """
-        Updates a Web Function's EntryPoint to point at the bundled file, the same way _update_function_handler
-        updates a Lambda function's handler.
-
-        E.g. an EntryPoint of src/server.ts is bundled by esbuild into .aws-sam/WebFunctionName/server.js
-        """
+        """Point a Web Function's EntryPoint at the bundled file, e.g. src/server.ts becomes server.js"""
         for name, resource in self._stack.resources.items():
             if resource.get("Type") != AWS_SERVERLESS_WEBFUNCTION:
                 continue

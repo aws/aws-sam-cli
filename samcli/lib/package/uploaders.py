@@ -12,7 +12,7 @@ from samcli.lib.package.s3_uploader import S3Uploader
 class Destination(Enum):
     S3 = "s3"  # pylint: disable=invalid-name
     ECR = "ecr"
-    # Lambda Web Function code, which can go to a different bucket than other S3 artifacts
+    # Web Function code, which can use a different bucket
     WEB_FUNCTION_S3 = "web_function_s3"
 
 
@@ -24,7 +24,7 @@ class Uploaders:
     _s3_uploader: S3Uploader
     _ecr_uploader: ECRUploader
     _web_function_s3_uploader: Optional[S3Uploader]
-    # CloudFormation export holding the name of the bucket that web_function_s3_uploader uploads to
+    # Export holding web_function_s3_uploader's bucket name
     web_function_bucket_export: Optional[str]
 
     def __init__(

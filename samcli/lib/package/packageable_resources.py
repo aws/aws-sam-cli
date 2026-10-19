@@ -417,14 +417,13 @@ class ServerlessWebFunctionResource(ResourceZip):
         original_value = jmespath.search(property_path, resource_dict)
         super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
         if isinstance(original_value, str) and is_s3_protocol_url(original_value):
-            # Code that's already in S3 isn't uploaded to the code bucket, so it keeps its own location
+            # Code already in S3 keeps its location
             return
         export_name = getattr(self.uploaders, "web_function_bucket_export", None)
         uploaded_url = jmespath.search(property_path, resource_dict)
         if not isinstance(export_name, str) or not export_name or not isinstance(uploaded_url, str):
             return
-        # Import the code bucket's name instead of writing it, so CloudFormation won't delete the code bucket stack
-        # while this stack reads code from it
+        # Importing the bucket name stops CloudFormation deleting the code bucket stack while this stack uses it
         location = parse_s3_url(uploaded_url, version_property="Version")
         code_uri: Dict[str, Any] = {"Bucket": {"Fn::ImportValue": export_name}, "Key": location["Key"]}
         if location.get("Version"):
@@ -432,8 +431,7 @@ class ServerlessWebFunctionResource(ResourceZip):
         set_value_from_jmespath(resource_dict, property_path, code_uri)
 
     def delete(self, resource_id, resource_dict):
-        # Revisions read their code from S3 for as long as they exist, so the code isn't deleted ahead of the
-        # stack. sam delete removes the stack's Web Function code bucket after the stack itself is deleted.
+        # Revisions keep reading this code; sam delete removes the code bucket after the stack
         pass
 
 

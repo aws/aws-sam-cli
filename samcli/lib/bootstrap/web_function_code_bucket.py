@@ -1,10 +1,8 @@
 """
 Per-stack S3 bucket for AWS::Serverless::WebFunction code.
 
-Lambda Web Functions read their code from S3 for as long as a revision exists, so the code can't live in the shared
-managed bucket, which users can empty or delete without affecting Event Functions. Each deployed stack that has a
-Web Function with local code gets its own bucket, in a stack that SAM CLI creates the first time it's needed and
-deletes after the deployed stack is deleted.
+Revisions read their code from S3 for as long as they exist, so it can't go in the shared managed bucket. SAM CLI
+creates the bucket's stack when it's first needed and deletes it after the deployed stack.
 """
 
 import json
@@ -20,7 +18,7 @@ from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_st
 LOG = logging.getLogger(__name__)
 
 CODE_BUCKET_OUTPUT_KEY = "WebFunctionCodeBucket"
-# Revisions of any Web Function in this account. Lambda reads a revision's code on its behalf.
+# Any Web Function revision in this account
 WEB_FUNCTION_REVISION_SOURCE_ARN = "arn:${AWS::Partition}:lambda:*:${AWS::AccountId}:web-function/*/revision/*"
 
 
@@ -31,13 +29,12 @@ class WebFunctionCodeBucketStack:
         self.parent_stack_name = parent_stack_name
         # 128 character stack name limit: 100 + 1 + 8 + 16
         self.stack_name = f"{parent_stack_name[:100]}-{str_checksum(parent_stack_name)[:8]}-WebFunctionCode"
-        # Unique per account and Region because the stack name is. Packaged templates import it, so CloudFormation
-        # won't delete the code bucket stack while a stack that reads code from it exists.
+        # Unique per account and Region. Importing it stops CloudFormation deleting this stack while it's in use
         self.export_name = f"{self.stack_name}-Bucket"
 
 
 def get_code_bucket_template(parent_stack_name: str) -> str:
-    """Return the template of the code bucket stack."""
+    """Return the code bucket stack's template."""
     export_name = WebFunctionCodeBucketStack(parent_stack_name).export_name
     bucket_arn = {"Fn::GetAtt": ["CodeBucket", "Arn"]}
     objects_arn = {"Fn::Sub": "${CodeBucket.Arn}/*"}
@@ -48,9 +45,9 @@ def get_code_bucket_template(parent_stack_name: str) -> str:
             "CodeBucket": {
                 "Type": "AWS::S3::Bucket",
                 "Properties": {
-                    # Each revision pins one object version for as long as it exists
+                    # Each revision pins an object version
                     "VersioningConfiguration": {"Status": "Enabled"},
-                    # Lambda can't read objects encrypted with the AWS managed key (aws/s3)
+                    # Lambda can't decrypt with the aws/s3 key
                     "BucketEncryption": {
                         "ServerSideEncryptionConfiguration": [
                             {"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}
@@ -107,10 +104,7 @@ def get_code_bucket_template(parent_stack_name: str) -> str:
 def manage_web_function_code_bucket(
     parent_stack_name: str, region: Optional[str], profile: Optional[str]
 ) -> Tuple[str, str]:
-    """
-    Get or create the code bucket stack of a deployed stack, and return the bucket name and the name of the export
-    that holds it.
-    """
+    """Get or create a stack's code bucket stack; return the bucket name and its export name."""
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     click.echo(f"\n\tLooking for the Lambda Web Function code bucket of stack {parent_stack_name}")
     outputs: StackOutput = manage_stack(
@@ -131,9 +125,8 @@ def manage_web_function_code_bucket(
 
 def retained_web_functions(template_dict: Optional[Dict], retain_resources: Optional[list] = None) -> List[str]:
     """
-    Return the logical IDs of the template's AWS::Serverless::WebFunction resources that outlive the stack, because
-    their DeletionPolicy retains them or they're in retain_resources. Their revisions keep reading code from the code
-    bucket, so it must not be deleted.
+    Logical IDs of Web Functions that outlive the stack (DeletionPolicy: Retain, or in retain_resources). Their
+    revisions still read from the code bucket.
     """
     resources = template_dict.get("Resources") if isinstance(template_dict, dict) else None
     if not isinstance(resources, dict):
@@ -156,10 +149,7 @@ CODE_BUCKET_PROTECTED = "protected"
 
 
 def keep_web_function_code_bucket(parent_stack_name: str, retained: List[str], cloudformation_client: Any) -> None:
-    """
-    Keep the code bucket stack of a deleted stack whose Web Functions are retained, and turn on termination protection
-    so a later sam delete, or a direct CloudFormation delete, leaves it in place.
-    """
+    """Keep the code bucket stack for retained Web Functions, with termination protection on."""
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     try:
         cloudformation_client.update_termination_protection(
@@ -181,18 +171,15 @@ def keep_web_function_code_bucket(parent_stack_name: str, retained: List[str], c
 
 def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_client: Any, s3_client: Any) -> str:
     """
-    Empty and delete the code bucket stack of a deployed stack, if it exists and isn't protected. Call this only
-    after the deployed stack is deleted, because its revisions read code from the bucket.
+    Empty and delete a stack's code bucket stack. Call only after the deployed stack is deleted.
 
-    Returns CODE_BUCKET_DELETED, CODE_BUCKET_NOT_FOUND, or CODE_BUCKET_PROTECTED if termination protection is on,
-    which sam delete turns on when it keeps the bucket for retained Web Functions.
+    Returns CODE_BUCKET_DELETED, CODE_BUCKET_NOT_FOUND, or CODE_BUCKET_PROTECTED (termination protection is on).
     """
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     try:
         stack = cloudformation_client.describe_stacks(StackName=code_stack.stack_name)["Stacks"][0]
     except ClientError as ex:
-        # Only a missing stack means there's nothing to delete; access, throttling and credential errors are raised
-        # so the bucket isn't left behind silently
+        # Raise anything but a missing stack, so the bucket isn't silently left behind
         if "does not exist" not in str(ex):
             raise
         LOG.debug("No Lambda Web Function code bucket stack found for %s", parent_stack_name)
@@ -231,7 +218,7 @@ def _empty_versioned_bucket(s3_client: Any, bucket_name: str) -> None:
                 {"Key": item["Key"], "VersionId": item["VersionId"]}
                 for item in page.get("Versions", []) + page.get("DeleteMarkers", [])
             ]
-            # delete_objects accepts at most 1000 keys, which is also the page size
+            # delete_objects takes at most 1000 keys
             if objects:
                 s3_client.delete_objects(Bucket=bucket_name, Delete={"Objects": objects, "Quiet": True})
     except ClientError as ex:

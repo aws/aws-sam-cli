@@ -1627,7 +1627,7 @@ class TestApplicationBuilder_web_function_dependencies(TestCase):
                 function_build_info=FunctionBuildInfo.BuildableZip,
             )
         )
-        # combine_dependencies=False is what sam sync uses with an auto dependency layer
+        # What sam sync uses with an auto dependency layer
         builder = ApplicationBuilder(
             resources,
             "/build/dir",

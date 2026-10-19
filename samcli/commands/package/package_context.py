@@ -117,8 +117,7 @@ class PackageContext:
         self._language_extensions_enabled: bool = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
         self._output_mode = OutputOption(output)
-        # Name of the stack being deployed. When set, Web Function code goes to that stack's own code bucket
-        # instead of s3_bucket.
+        # When set, Web Function code goes to this stack's code bucket instead of s3_bucket
         self.web_function_stack_name = web_function_stack_name
 
     def __enter__(self):
@@ -311,12 +310,9 @@ class PackageContext:
         return output_template
 
     def _web_function_code_uploader(self, s3_client: Any, region_name: Optional[str]) -> Tuple[S3Uploader, str]:
-        """
-        Get or create the deployed stack's Web Function code bucket, and return an uploader for it and the name of
-        the export that holds the bucket name.
-        """
+        """Return an uploader for the stack's code bucket, and the export holding the bucket name"""
         if self._output_mode is OutputOption.json:
-            # Progress messages would corrupt the JSON output stream
+            # Keep progress messages out of the JSON output
             with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
                 bucket, export_name = manage_web_function_code_bucket(
                     self.web_function_stack_name, region_name, self.profile
@@ -325,18 +321,13 @@ class PackageContext:
             bucket, export_name = manage_web_function_code_bucket(
                 self.web_function_stack_name, region_name, self.profile
             )
-        # The bucket encrypts with SSE-S3 by default; Lambda can't use --kms-key-id unless the key grants it access
+        # The bucket uses SSE-S3 by default; a --kms-key-id key must grant Lambda access
         uploader = S3Uploader(s3_client, bucket, None, None, self.force_upload, self.no_progressbar)
         uploader.artifact_metadata = self.metadata
         return uploader, export_name
 
     def _check_web_function_code_bucket(self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]) -> None:
-        """
-        Check that Lambda can read Web Function code uploaded to the S3 bucket.
-
-        Fails packaging, before anything is uploaded, only when the bucket can't serve the code; any problem running
-        the checks themselves is logged and ignored.
-        """
+        """Fail before uploading if Lambda can't read Web Function code from the bucket. Check errors are logged."""
         try:
             if not self.s3_bucket or not stacks_have_web_functions(stacks, local_code_only=True):
                 return

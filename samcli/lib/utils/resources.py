@@ -108,7 +108,7 @@ NESTED_STACKS_RESOURCES = {
     AWS_CLOUDFORMATION_STACK: "TemplateURL",
 }
 
-# Resources whose local code is zipped with the permissions Lambda needs to read it
+# Resources zipped with the file permissions Lambda needs
 LAMBDA_LOCAL_RESOURCES = [
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,

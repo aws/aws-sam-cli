@@ -133,7 +133,7 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
 
 
 def upload_cache_key(uploader: S3Uploader, local_path: str) -> Tuple[Optional[str], Optional[str], str]:
-    """Key for an upload in the shared upload cache: the destination bucket and prefix, and the local path"""
+    """Upload cache key: bucket, prefix and local path"""
     return uploader.bucket_name, uploader.prefix, local_path
 
 
@@ -191,8 +191,7 @@ def upload_local_artifacts(
 
     local_path = make_abs_path(parent_dir, local_path)
 
-    # The cache is shared by every exporter, and they can upload to different buckets (for example a Web Function's
-    # code bucket and the managed bucket), so an upload is only reused for the same bucket and prefix
+    # Exporters share the cache but can use different buckets, so the key includes the bucket and prefix
     cache_key = upload_cache_key(uploader, local_path)
     if previously_uploaded and cache_key in previously_uploaded:
         result = previously_uploaded[cache_key]

@@ -326,7 +326,7 @@ def do_cli(
     if watch and template_file_has_local_web_functions(
         template_file, resolve_language_extensions_enabled(language_extensions)
     ):
-        # Every Web Function code change creates a new revision, so their code isn't watched
+        # Each Web Function code change creates a revision, so it isn't watched
         LOG.info(
             Colored().color_log(msg=WEB_FUNCTION_WATCH_NOTE, color="yellow"),
             extra=dict(markup=True),
@@ -396,7 +396,7 @@ def do_cli(
                 use_json=False,
                 force_upload=True,
                 language_extensions=language_extensions,
-                # With the managed bucket, Web Function code goes to a code bucket owned by this stack instead
+                # Web Function code goes to this stack's code bucket
                 web_function_stack_name=stack_name if not s3_bucket else None,
             ) as package_context:
                 # 500ms of sleep time between stack checks and describe stack events.

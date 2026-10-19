@@ -228,38 +228,32 @@ class Function(NamedTuple):
 
 class WebFunction(NamedTuple):
     """
-    An AWS::Serverless::WebFunction whose code SAM CLI can build.
-
-    Web Functions serve HTTP requests through an endpoint instead of being invoked, so SAM CLI only builds them; they
-    can't be invoked locally. Their code is always a .zip package, and the runtime runs entry_point instead of a
-    handler.
+    A buildable AWS::Serverless::WebFunction. SAM CLI only builds Web Functions (no local invoke). Code is always .zip,
+    and the runtime runs entry_point instead of a handler.
     """
 
-    # Function id, can be Logical ID or any function identifier to define a function in specific IaC
+    # Function ID (logical ID or other IaC identifier)
     function_id: str
-    # Function's logical ID (used as Function name below if function name is not specified)
+    # Logical ID
     name: str
-    # Function name (used in place of logical ID)
+    # Function name
     functionname: str
     # Runtime/language
     runtime: Optional[str]
     # Path to the code
     codeuri: Optional[str]
-    # File the runtime runs, relative to the root of the code
+    # File the runtime runs, relative to the code root
     entry_point: str
     # Metadata, such as BuildMethod
     metadata: Optional[dict]
-    # Information about whether this function can be built
+    # Whether it can be built
     function_build_info: "FunctionBuildInfo"
-    # The path of the stack relative to the root stack, it is empty for functions in root stack
+    # Stack path from the root stack (empty in the root stack)
     stack_path: str = ""
 
     @property
     def full_path(self) -> str:
-        """
-        Return the path-like identifier of this Web Function. If it is in root stack, full_path = name.
-        This path is guaranteed to be unique in a multi-stack situation.
-        """
+        """Path-like identifier, unique across stacks (the name, in the root stack)"""
         return get_full_path(self.stack_path, self.function_id)
 
     @property
@@ -269,7 +263,7 @@ class WebFunction(NamedTuple):
 
     @property
     def architecture(self) -> str:
-        """Web Functions don't set an architecture, so the code is built for the default one"""
+        """Web Functions always build for x86_64"""
         return X86_64
 
     @property
@@ -278,21 +272,16 @@ class WebFunction(NamedTuple):
         return get_skip_build(self.metadata)
 
     def get_build_dir(self, build_root_dir: str) -> str:
-        """
-        Return the artifact directory based on the build root dir
-        """
+        """Return the artifact directory based on the build root dir"""
         return _get_build_dir(self, build_root_dir)
 
 
-# A resource whose code is built like a Lambda function's
+# A function SAM CLI can build
 BuildableFunction = Union[Function, WebFunction]
 
 
 def get_build_entry_point(function: BuildableFunction) -> Optional[str]:
-    """
-    Return the value the builders use to find a function's entry point: the handler of a Lambda function, or the entry
-    point of a Web Function.
-    """
+    """Entry point for the builders: a Lambda function's handler or a Web Function's entry_point"""
     if isinstance(function, WebFunction):
         return function.entry_point
     return function.handler

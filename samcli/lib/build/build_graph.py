@@ -86,7 +86,7 @@ def _function_build_definition_to_toml_table(
         toml_table[METADATA_FIELD] = function_build_definition.metadata
     if function_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
-    # Only written for non Lambda functions (Web Functions), so existing build.toml files don't change
+    # Only written for Web Functions, so existing build.toml files don't change
     if function_build_definition.resource_type != AWS_SERVERLESS_FUNCTION:
         toml_table[RESOURCE_TYPE_FIELD] = function_build_definition.resource_type
 
@@ -607,8 +607,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.imageuri = imageuri
         self.packagetype = packagetype
         self.handler = handler
-        # Web Functions are built differently from Lambda functions (for example, their dependencies always stay in
-        # the artifact because they can't use layers), so they never share a build with a Lambda function
+        # Web Functions keep their dependencies (no layers), so they never share a build with Lambda functions
         self.resource_type = resource_type
 
         # Skip SAM Added metadata properties

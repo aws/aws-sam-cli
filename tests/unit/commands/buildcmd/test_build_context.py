@@ -32,7 +32,7 @@ _web_function_provider_patcher = None
 
 
 def setUpModule():
-    # These tests use Mock stacks; the Web Function provider has its own tests
+    # These tests use Mock stacks; SamWebFunctionProvider is tested separately
     global _web_function_provider_patcher
     _web_function_provider_patcher = patch("samcli.commands.build.build_context.SamWebFunctionProvider")
     provider_class_mock = _web_function_provider_patcher.start()
