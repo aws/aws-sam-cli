@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test_suite: [tier1-finch]
-        copy: [1, 2, 3]
+        copy: [1, 2, 3, 4, 5, 6]
 
     steps:
       - name: Determine test type
@@ -408,9 +408,10 @@ jobs:
               ;;
             "tier1-finch")
               export CONTAINER_RUNTIME=finch
-              pytest -vv --reruns 3 -m "tier1 or tier1_extra" -n 2\
-                tests/integration \
-                tests/regression \
+              pytest -vv --reruns 1 -m "tier1 or tier1_extra" \
+                tests/integration/local/execution/test_execution.py \
+                tests/integration/local/invoke/test_invoke_durable.py \
+                tests/integration/local/callback/test_callback.py \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;
             "tier1-windows-build-1")
@@ -462,6 +463,13 @@ jobs:
           cat "$SAM_DIAG_EMULATOR_PULL_LOG" || true
           echo "=== finch images ==="
           sudo finch images -a || true
+          echo "=== finch-daemon environment ==="
+          sudo cat "/proc/$(pgrep -f 'finch-daemon --socket-addr' | head -1)/environ" | tr '\0' '\n' | grep -E '^(HOME|DOCKER_CONFIG|USER|XDG_CONFIG_HOME)=' || echo "(none of HOME, DOCKER_CONFIG, USER, XDG_CONFIG_HOME set)"
+          echo "=== root docker config registries ==="
+          sudo jq -r '.auths | keys[]' /root/.docker/config.json || true
+          bash tests/diag_ecr_public.sh || true
+          echo "=== sudo finch pull ==="
+          sudo finch pull public.ecr.aws/durable-functions/aws-durable-execution-emulator:latest 2>&1 | tail -n 3 || true
           echo "=== finch-daemon log, image related ==="
           sudo journalctl -u finch --no-pager | grep -iE 'emulator|durable|images/create|Create Image|pull|resolv|error|fail' | tail -n 400 || true
           mkdir -p "$RUNNER_TEMP/diag"
