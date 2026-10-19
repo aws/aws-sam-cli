@@ -9,6 +9,7 @@ Behavior:
   - If test suite does NOT require credentials: clears credentials and sets SKIP_ACCOUNT_RESET
 """
 
+import base64
 import json
 import os
 import platform
@@ -90,6 +91,27 @@ def get_ecr_public_password() -> str:
     return token_result.stdout.strip()
 
 
+def save_docker_config_auth(registry: str, username: str, password: str):
+    """
+    Save registry credentials to the current user's Docker config.
+
+    `sudo finch login` saves them for root, which finch-daemon doesn't read. finch-daemon only uses the
+    credentials that the client sends, which docker-py reads from this config, so without this SAM CLI
+    pulls anonymously, and Public ECR limits anonymous pulls.
+    """
+    config_dir = os.environ.get("DOCKER_CONFIG") or os.path.expanduser("~/.docker")
+    config_path = os.path.join(config_dir, "config.json")
+    config = {}
+    if os.path.exists(config_path):
+        with open(config_path) as f:
+            config = json.load(f)
+    auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+    config.setdefault("auths", {})[registry] = {"auth": auth}
+    os.makedirs(config_dir, exist_ok=True)
+    with open(os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w") as f:
+        json.dump(config, f)
+
+
 def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
     """Log in to Public ECR with retry logic."""
     for attempt in range(1, retries + 1):
@@ -102,6 +124,8 @@ def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
                 login_cmd = ["docker", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
 
             subprocess.run(login_cmd, input=token, text=True, check=True)
+            if container_runtime == "finch":
+                save_docker_config_auth("public.ecr.aws", "AWS", token)
             print(f"Successfully logged in to Public ECR via {container_runtime}.")
             return
         except subprocess.CalledProcessError as e:

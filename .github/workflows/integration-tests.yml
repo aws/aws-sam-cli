@@ -468,6 +468,8 @@ jobs:
           echo "=== root docker config registries ==="
           sudo jq -r '.auths | keys[]' /root/.docker/config.json || true
           bash tests/diag_ecr_public.sh || true
+          echo "=== runner docker config registries ==="
+          jq -r '.auths | keys[]' ~/.docker/config.json || true
           echo "=== sudo finch pull ==="
           sudo finch pull public.ecr.aws/durable-functions/aws-durable-execution-emulator:latest 2>&1 | tail -n 3 || true
           echo "=== finch-daemon log, image related ==="
