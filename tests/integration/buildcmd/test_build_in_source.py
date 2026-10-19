@@ -235,7 +235,8 @@ class TestBuildCommand_BuildInSource_NodejsWorkspaces(NpmCallLogMixin, BuildInte
             cwd=str(Path(self.default_build_dir, logical_id)),
         )
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
-        return json.loads(result.stdout.decode("utf-8").strip())
+        body: dict = json.loads(result.stdout.decode("utf-8").strip())
+        return body
 
     def build_workspace(self, parallel=False, beta_features=True):
         # the grouping is behind SAM_CLI_BETA_NODEJS_MONOREPO, which --beta-features turns on
@@ -374,7 +375,8 @@ class TestBuildCommand_BuildInSource_NodejsWorkspacesEsbuild(NpmCallLogMixin, Bu
             cwd=str(self.artifact_dir(logical_id)),
         )
         self.assertEqual(result.process.returncode, 0, result.stderr.decode("utf-8"))
-        return json.loads(result.stdout.decode("utf-8").strip())
+        body: dict = json.loads(result.stdout.decode("utf-8").strip())
+        return body
 
     @pytest.mark.flaky(reruns=3)
     def test_installs_once_then_bundles_each_function(self):
