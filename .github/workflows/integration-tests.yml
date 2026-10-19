@@ -103,7 +103,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         test_suite: [tier1-finch]
-        copy: [1, 2, 3, 4, 5, 6]
+        copy: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 
     steps:
       - name: Determine test type
