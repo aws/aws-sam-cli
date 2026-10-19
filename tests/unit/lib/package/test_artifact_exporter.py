@@ -49,6 +49,7 @@ from samcli.lib.package.packageable_resources import (
     ResourceWithS3UrlDict,
     ServerlessApiResource,
     ServerlessFunctionResource,
+    ServerlessMicrovmImageResource,
     GraphQLSchemaResource,
     LambdaFunctionResource,
     ApiGatewayRestApiResource,
@@ -125,6 +126,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         setup = [
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
+            {"class": ServerlessMicrovmImageResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},

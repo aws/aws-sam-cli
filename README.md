@@ -43,6 +43,7 @@ environment that lets you locally build, test, debug, and deploy [AWS serverless
 
 * [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
 * [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-hello-world.html)
+* [Package local MicroVM image code](docs/microvm-image-packaging.md)
 * [Install AWS Toolkit](https://builder.aws.com/build/tools) to use SAM with your favorite IDEs
 * [Tutorials and Workshops](https://serverlessland.com/learn)
 * **Powertools for AWS Lambda** is a developer toolkit to implement Serverless best practices and increase developer velocity. Available for [Python](https://docs.aws.amazon.com/powertools/python/latest/), [Java](https://github.com/aws-powertools/powertools-lambda-java), [TypeScript](https://github.com/aws-powertools/powertools-lambda-typescript) and [.NET](https://github.com/aws-powertools/powertools-lambda-dotnet).

@@ -1,0 +1,9 @@
+Transform: AWS::Serverless-2016-10-31
+Resources:
+  Image:
+    Type: AWS::Serverless::MicrovmImage
+    Properties:
+      Name: test-image
+      BaseImageArn: !Sub arn:${AWS::Partition}:lambda:${AWS::Region}:aws:microvm-image:al2023-1
+      BaseImageVersion: '0'
+      CodeUri: source
