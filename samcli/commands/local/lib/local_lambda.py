@@ -189,8 +189,8 @@ class LocalLambdaRunner:
         host_arch = _get_host_architecture()
         if function.architecture != host_arch:
             LOG.warning(
-                "Function '%s' uses %s on an %s host, so its container runs under emulation and will be "
-                "significantly slower.",
+                "Function '%s' uses %s on an %s host, so its container runs under emulation and may be "
+                "noticeably slower.",
                 function.name,
                 function.architecture,
                 host_arch,
