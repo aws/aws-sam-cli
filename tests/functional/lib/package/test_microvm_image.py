@@ -67,13 +67,16 @@ def template(code_uri):
 
 
 @pytest.mark.parametrize("absolute", [False, True])
-def test_local_directory_uses_template_directory_and_content_hash(package, tmp_path, monkeypatch, absolute):
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"], ids=["lf", "crlf"])
+def test_local_directory_uses_template_directory_and_content_hash(package, tmp_path, monkeypatch, absolute, newline):
     export, objects, transfer = package
     source = tmp_path / "source"
     source.mkdir()
-    (source / "Dockerfile").write_text("FROM scratch\nCOPY app.py /app.py\n", encoding="utf-8")
+    dockerfile = b"FROM scratch" + newline + b"COPY app.py /app.py" + newline
+    (source / "Dockerfile").write_bytes(dockerfile)
     app = source / "app.py"
-    app.write_text("print('first')\n", encoding="utf-8")
+    original_bytes = b"print('first')" + newline
+    app.write_bytes(original_bytes)
     unrelated = tmp_path / "unrelated"
     unrelated.mkdir()
     monkeypatch.chdir(unrelated)
@@ -84,11 +87,12 @@ def test_local_directory_uses_template_directory_and_content_hash(package, tmp_p
     key = first.removeprefix("s3://test-bucket/")
     with zipfile.ZipFile(io.BytesIO(objects[key])) as archive:
         assert set(archive.namelist()) == {"Dockerfile", "app.py"}
-        assert archive.read("app.py") == b"print('first')\n"
+        assert archive.read("Dockerfile") == dockerfile
+        assert archive.read("app.py") == original_bytes
     assert export(original)["Resources"]["Image"]["Properties"]["CodeUri"] == first
     assert transfer.upload.call_count == 1
 
-    app.write_text("print('changed')\n", encoding="utf-8")
+    app.write_bytes(b"print('changed')" + newline)
     changed = export(original)["Resources"]["Image"]["Properties"]["CodeUri"]
     assert changed != first
     assert transfer.upload.call_args.args[2] == changed.removeprefix("s3://test-bucket/")
