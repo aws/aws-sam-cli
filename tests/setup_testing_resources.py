@@ -79,17 +79,22 @@ def write_env(name, value):
         f.write(f"{name}={value}\n")
 
 
+def get_ecr_public_password() -> str:
+    """Get a Public ECR login password with the current AWS credentials."""
+    token_result = subprocess.run(
+        ["aws", "ecr-public", "get-login-password", "--region", "us-east-1"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return token_result.stdout.strip()
+
+
 def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
     """Log in to Public ECR with retry logic."""
     for attempt in range(1, retries + 1):
         try:
-            token_result = subprocess.run(
-                ["aws", "ecr-public", "get-login-password", "--region", "us-east-1"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            token = token_result.stdout.strip()
+            token = get_ecr_public_password()
 
             if container_runtime == "finch":
                 login_cmd = ["sudo", "finch", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
