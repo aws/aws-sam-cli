@@ -926,7 +926,7 @@ class WorkspaceAwareBuildStrategyTest(TestCase):
         self.delegate._build_functions.assert_called_once_with(build_graph)
         self.assertEqual(result, self.delegate._build_functions.return_value)
 
-    def test_a_failed_shared_install_leaves_per_function_installs(self, _read, _write):
+    def test_a_failed_shared_preparation_leaves_per_function_installs(self, _read, _write):
         definition = self._definition()
         build_graph = self._graph(definition)
         self.resolver.return_value = "/base/mono"

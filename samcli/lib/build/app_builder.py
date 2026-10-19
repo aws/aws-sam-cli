@@ -284,7 +284,7 @@ class ApplicationBuilder:
                 build_strategy,
                 self._base_dir,
                 self._resolve_npm_project_root,
-                self._install_workspace_shared_dependencies,
+                self._prepare_workspace_shared_project,
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
@@ -729,15 +729,14 @@ class ApplicationBuilder:
             LOG.debug("Could not resolve the npm project root of %s: %s", code_dir, ex)
             return None
 
-    def _install_workspace_shared_dependencies(
-        self, project_root: str, build_definition: "FunctionBuildDefinition"
-    ) -> bool:
+    def _prepare_workspace_shared_project(self, project_root: str, build_definition: "FunctionBuildDefinition") -> bool:
         """
-        Install, once, the dependency tree shared by every workspace function under project_root.
+        Do once, at project_root, the work every workspace function under it shares.
 
-        The build definition supplies the workflow (npm or npm-esbuild) whose builder runs the
-        install; both funnel into the same npm project tree. Returns False on any failure so the
-        caller leaves the grouped functions on per-function installs.
+        For the npm workflows that is installing the hoisted dependency tree. The build definition
+        supplies the workflow (npm or npm-esbuild) whose builder does it; both funnel into the same
+        npm project tree. Returns False on any failure so the caller leaves the grouped functions on
+        per-function installs.
         """
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
         specified_workflow = build_definition.metadata.get("BuildMethod") if build_definition.metadata else None
@@ -750,16 +749,18 @@ class ApplicationBuilder:
                 dependency_manager=config.dependency_manager,
                 application_framework=config.application_framework,
             )
-            installer = getattr(builder, "install_shared_dependencies", None)
-            if installer is None:
-                LOG.debug("Installed aws-lambda-builders has no shared dependency install; skipping grouping")
+            prepare = getattr(builder, "prepare_shared_project", None)
+            if prepare is None:
+                LOG.debug("Installed aws-lambda-builders has no shared-project hook; skipping grouping")
                 return False
-            installer(project_root)
+            # The same flags the per-function build() calls get: the builders hook refuses without
+            # experimentalNodejsMonorepo, because the per-function artifacts link is gated on it too
+            # and preparing the root without it would ship artifacts carrying no dependencies.
+            prepare(project_root, experimental_flags=get_enabled_experimental_flags())
             return True
         except (UnsupportedRuntimeException, LambdaBuilderError) as ex:
             LOG.warning(
-                "Installing shared dependencies for workspace root %s failed (%s); "
-                "falling back to per-function installs",
+                "Preparing the shared project root %s failed (%s); falling back to per-function installs",
                 project_root,
                 ex,
             )

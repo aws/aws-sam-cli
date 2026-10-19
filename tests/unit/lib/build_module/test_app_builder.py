@@ -490,7 +490,7 @@ class TestApplicationBuilder_build(TestCase):
             mock_default_build_strategy,
             "basedir",
             builder._resolve_npm_project_root,
-            builder._install_workspace_shared_dependencies,
+            builder._prepare_workspace_shared_project,
         )
         mock_workspace_aware_build_strategy.build.assert_called_once()
         self.assertEqual(result, mock_workspace_aware_build_strategy.build())
@@ -805,6 +805,68 @@ class TestApplicationBuilder_build(TestCase):
             None,
             True,
         )
+
+
+class TestApplicationBuilder_prepare_workspace_shared_project(TestCase):
+    """
+    What this hands to aws-lambda-builders, which nothing else pins. The builders hook refuses
+    without experimentalNodejsMonorepo, and a caller that forgets the flag gets a caught
+    LambdaBuilderError and a silent fall back to per-function installs - correct artifacts by the
+    slow path, so no test downstream of here can see the mistake.
+    """
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    def setUp(self, _mock_client):
+        self.builder = ApplicationBuilder(
+            MagicMock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+        self.definition = Mock(codeuri="functions/orders", runtime="nodejs22.x", metadata={})
+
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags", return_value=["experimentalNodejsMonorepo"])
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    def test_passes_the_enabled_experimental_flags_to_the_builders_hook(self, _config, mock_builder_class, _flags):
+        builder_instance = mock_builder_class.return_value
+
+        self.assertTrue(self.builder._prepare_workspace_shared_project("/base/mono", self.definition))
+
+        builder_instance.prepare_shared_project.assert_called_once_with(
+            "/base/mono", experimental_flags=["experimentalNodejsMonorepo"]
+        )
+
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags", return_value=[])
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    def test_forwards_an_empty_flag_list_rather_than_omitting_the_argument(self, _config, mock_builder_class, _flags):
+        # the builders hook decides what an absent flag means, so the argument must always reach it
+        builder_instance = mock_builder_class.return_value
+
+        self.builder._prepare_workspace_shared_project("/base/mono", self.definition)
+
+        builder_instance.prepare_shared_project.assert_called_once_with("/base/mono", experimental_flags=[])
+
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags", return_value=[])
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    def test_declines_an_aws_lambda_builders_without_the_hook(self, _config, mock_builder_class, _flags):
+        # the pinned aws-lambda-builders predates the hook, so grouping must not engage
+        builder_instance = mock_builder_class.return_value
+        del builder_instance.prepare_shared_project
+
+        self.assertFalse(self.builder._prepare_workspace_shared_project("/base/mono", self.definition))
+
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags", return_value=[])
+    @patch("samcli.lib.build.app_builder.LambdaBuilder")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    def test_a_refused_or_failed_preparation_leaves_per_function_installs(self, _config, mock_builder_class, _flags):
+        mock_builder_class.return_value.prepare_shared_project.side_effect = LambdaBuilderError()
+
+        self.assertFalse(self.builder._prepare_workspace_shared_project("/base/mono", self.definition))
+
+    @patch("samcli.lib.build.app_builder.get_enabled_experimental_flags", return_value=[])
+    @patch("samcli.lib.build.app_builder.get_workflow_config", side_effect=UnsupportedRuntimeException())
+    def test_an_unsupported_runtime_leaves_per_function_installs(self, _config, _flags):
+        self.assertFalse(self.builder._prepare_workspace_shared_project("/base/mono", self.definition))
 
 
 class PathValidator:

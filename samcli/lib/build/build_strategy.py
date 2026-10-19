@@ -727,7 +727,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
         delegate_build_strategy: BuildStrategy,
         base_dir: str,
         project_root_resolver: Callable[[str], Optional[str]],
-        shared_install_function: Callable[[str, FunctionBuildDefinition], bool],
+        prepare_shared_project_function: Callable[[str, FunctionBuildDefinition], bool],
     ) -> None:
         """
         Parameters
@@ -735,7 +735,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
         project_root_resolver:
             Given a function's resolved code directory, returns npm's project root for it, or None
             when it cannot be resolved (npm missing, too-old aws-lambda-builders, non-npm project).
-        shared_install_function:
+        prepare_shared_project_function:
             Runs the shared install for (project_root, one grouped build definition); returns True
             on success. Failures must be handled inside and reported with False.
         """
@@ -743,7 +743,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
         self._delegate_build_strategy = delegate_build_strategy
         self._base_dir = base_dir
         self._project_root_resolver = project_root_resolver
-        self._shared_install_function = shared_install_function
+        self._prepare_shared_project_function = prepare_shared_project_function
 
     def build(self) -> Dict[str, str]:
         with self._delegate_build_strategy:
@@ -753,7 +753,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
         return self._delegate_build_strategy._build_layers(build_graph)
 
     def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
-        self._install_shared_dependencies_for_workspace_groups(build_graph)
+        self._prepare_shared_project_for_workspace_groups(build_graph)
         return self._delegate_build_strategy._build_functions(build_graph)
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
@@ -762,7 +762,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 
-    def _install_shared_dependencies_for_workspace_groups(self, build_graph: BuildGraph) -> None:
+    def _prepare_shared_project_for_workspace_groups(self, build_graph: BuildGraph) -> None:
         groups: Dict[str, List[FunctionBuildDefinition]] = {}
         for build_definition in build_graph.get_function_build_definitions():
             project_root = self._workspace_root_for(build_definition)
@@ -775,7 +775,7 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
                 project_root,
                 ", ".join(definition.get_resource_full_paths() for definition in build_definitions),
             )
-            if self._shared_install_function(project_root, build_definitions[0]):
+            if self._prepare_shared_project_function(project_root, build_definitions[0]):
                 for build_definition in build_definitions:
                     build_definition.download_dependencies = False
 
