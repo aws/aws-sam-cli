@@ -2,6 +2,7 @@ import json
 import os
 import posixpath
 import sys
+import tempfile
 from collections import OrderedDict
 from pathlib import Path, WindowsPath
 from unittest import TestCase
@@ -1570,6 +1571,37 @@ class TestApplicationBuilder_web_function_build_graph(TestCase):
         self.assertIsNone(definition.imageuri)
         self.assertEqual(definition.packagetype, "Zip")
         self.assertEqual(definition.architecture, "x86_64")
+
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    def test_web_function_does_not_share_a_build_with_a_lambda_function(self, _):
+        from samcli.lib.providers.provider import FunctionBuildInfo, ResourcesToBuildCollector, WebFunction
+        from tests.unit.lib.build_module.test_build_graph import generate_function
+
+        lambda_function = generate_function(
+            name="Fn", runtime="nodejs24.x", codeuri="src", handler="index.js", imageuri=None, environment=None
+        )
+        web_function = WebFunction(
+            function_id="WebFn",
+            name="WebFn",
+            functionname="WebFn",
+            runtime="nodejs24.x",
+            codeuri="src",
+            entry_point="index.js",
+            metadata=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+        )
+        resources = ResourcesToBuildCollector()
+        resources.add_functions([lambda_function, web_function])
+        with tempfile.TemporaryDirectory() as build_dir:
+            builder = ApplicationBuilder(
+                resources, build_dir, "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+            )
+            definitions = builder._get_build_graph().get_function_build_definitions()
+
+        self.assertEqual([[f.name for f in d.functions] for d in definitions], [["Fn"], ["WebFn"]])
+        self.assertEqual(
+            [d.resource_type for d in definitions], ["AWS::Serverless::Function", "AWS::Serverless::WebFunction"]
+        )
 
 
 class TestApplicationBuilder_web_function_dependencies(TestCase):

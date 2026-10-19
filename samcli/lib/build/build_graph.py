@@ -24,6 +24,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
 )
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
+RESOURCE_TYPE_FIELD = "resource_type"
 SHARED_CODEURI_SUFFIX = "Shared"
 
 # Compiled runtimes that we need to compare handlers for
@@ -84,6 +86,9 @@ def _function_build_definition_to_toml_table(
         toml_table[METADATA_FIELD] = function_build_definition.metadata
     if function_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
+    # Only written for non Lambda functions (Web Functions), so existing build.toml files don't change
+    if function_build_definition.resource_type != AWS_SERVERLESS_FUNCTION:
+        toml_table[RESOURCE_TYPE_FIELD] = function_build_definition.resource_type
 
     return toml_table
 
@@ -115,6 +120,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
+        toml_table.get(RESOURCE_TYPE_FIELD, AWS_SERVERLESS_FUNCTION),
     )
     function_build_definition.uuid = uuid
     return function_build_definition
@@ -593,6 +599,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
+        resource_type: str = AWS_SERVERLESS_FUNCTION,
     ) -> None:
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.runtime = runtime
@@ -600,6 +607,9 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.imageuri = imageuri
         self.packagetype = packagetype
         self.handler = handler
+        # Web Functions are built differently from Lambda functions (for example, their dependencies always stay in
+        # the artifact because they can't use layers), so they never share a build with a Lambda function
+        self.resource_type = resource_type
 
         # Skip SAM Added metadata properties
         metadata_copied = deepcopy(metadata) if metadata else {}
@@ -700,4 +710,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
             and self.architecture == other.architecture
+            and self.resource_type == other.resource_type
         )

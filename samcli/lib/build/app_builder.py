@@ -302,6 +302,9 @@ class ApplicationBuilder:
                 function.metadata,
                 get_build_entry_point(function),
                 env_vars=container_env_vars,
+                resource_type=(
+                    AWS_SERVERLESS_WEBFUNCTION if isinstance(function, WebFunction) else AWS_SERVERLESS_FUNCTION
+                ),
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
