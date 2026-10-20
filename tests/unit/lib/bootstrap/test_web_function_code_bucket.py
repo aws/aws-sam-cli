@@ -173,6 +173,74 @@ class TestRetainedWebFunctions(TestCase):
         self.assertEqual(retained_web_functions(template, ["KeptRevision"]), ["Retained", "RetainedOnCreate", "Kept"])
         self.assertEqual(retained_web_functions(template), ["Retained", "RetainedOnCreate"])
 
+    def _cfn(self, stacks):
+        # stacks: {stack_name: {logical_id: (child_stack_name, child_template)}}
+        cfn = MagicMock()
+
+        def describe_stack_resource(StackName, LogicalResourceId):
+            child = stacks[StackName][LogicalResourceId]
+            if child is None:
+                raise ClientError({"Error": {"Code": "ValidationError", "Message": "does not exist"}}, "Describe")
+            return {"StackResourceDetail": {"PhysicalResourceId": child[0]}}
+
+        def get_template(StackName, TemplateStage):
+            template = next(c[1] for s in stacks.values() for c in s.values() if c and c[0] == StackName)
+            if isinstance(template, Exception):
+                raise template
+            return {"TemplateBody": template}
+
+        cfn.describe_stack_resource.side_effect = describe_stack_resource
+        cfn.get_template.side_effect = get_template
+        return cfn
+
+    def test_finds_retained_web_functions_in_nested_stacks(self):
+        web_function = {"WebFn": {"Type": "AWS::Serverless::WebFunction"}}
+        retained_web_function = {"WebFn": {"Type": "AWS::Serverless::WebFunction", "DeletionPolicy": "Retain"}}
+        template = {
+            "Resources": {
+                "Child": {"Type": "AWS::Serverless::Application"},
+                "RetainedChild": {"Type": "AWS::CloudFormation::Stack", "DeletionPolicy": "Retain"},
+                "KeptChild": {"Type": "AWS::CloudFormation::Stack"},
+                "DeletedChild": {"Type": "AWS::CloudFormation::Stack"},
+                "NotCreated": {"Type": "AWS::CloudFormation::Stack"},
+            }
+        }
+        cfn = self._cfn(
+            {
+                "root": {
+                    "Child": (
+                        "child",
+                        "Resources:\n  WebFn:\n    Type: AWS::Serverless::WebFunction\n" "    DeletionPolicy: Retain\n",
+                    ),
+                    "RetainedChild": (
+                        "retained",
+                        {"Resources": {"Grandchild": {"Type": "AWS::CloudFormation::Stack"}}},
+                    ),
+                    "KeptChild": ("kept", {"Resources": web_function}),
+                    "DeletedChild": ("deleted", {"Resources": web_function}),
+                    "NotCreated": None,
+                },
+                "retained": {"Grandchild": ("grandchild", {"Resources": web_function})},
+                "child": {},
+                "kept": {},
+                "deleted": {},
+                "grandchild": {},
+            }
+        )
+        self.assertEqual(
+            retained_web_functions(template, ["KeptChild"], cfn, "root"),
+            ["Child/WebFn", "RetainedChild/Grandchild/WebFn", "KeptChild/WebFn"],
+        )
+        self.assertEqual(retained_web_functions({"Resources": {"Child": template["Resources"]["Child"]}}), [])
+        self.assertEqual(retained_web_functions({"Resources": retained_web_function}, [], cfn, "root"), ["WebFn"])
+
+    def test_unreadable_nested_stack_keeps_the_code_bucket(self):
+        template = {"Resources": {"Child": {"Type": "AWS::CloudFormation::Stack"}}}
+        denied = ClientError({"Error": {"Code": "AccessDenied", "Message": "denied"}}, "GetTemplate")
+        self.assertEqual(
+            retained_web_functions(template, None, self._cfn({"root": {"Child": ("c", denied)}}), "root"), ["Child"]
+        )
+
     def test_unreadable_templates(self):
         self.assertEqual(retained_web_functions("Hello World"), [])
         self.assertEqual(retained_web_functions(None), [])
@@ -205,6 +273,25 @@ class TestKeepWebFunctionCodeBucket(TestCase):
         )
         keep_web_function_code_bucket("my-app", ["WebFn"], cfn)
         self.assertIn("Couldn't turn on termination protection", click_mock.secho.call_args.args[0])
+
+    def test_imported_code_bucket_is_kept(self, click_mock):
+        cfn = MagicMock()
+        cfn.describe_stacks.return_value = {
+            "Stacks": [
+                {
+                    "Tags": [{"Key": "ManagedStackSource", "Value": "AwsSamCli"}],
+                    "Outputs": [{"OutputKey": CODE_BUCKET_OUTPUT_KEY, "OutputValue": "bkt"}],
+                }
+            ]
+        }
+        cfn.list_imports.return_value = {"Imports": ["my-app-RetainedChild-ABC"]}
+        s3 = MagicMock()
+        self.assertEqual(delete_web_function_code_bucket("my-app", cfn, s3), CODE_BUCKET_PROTECTED)
+        cfn.list_imports.assert_called_once_with(ExportName=WebFunctionCodeBucketStack("my-app").export_name)
+        s3.get_paginator.assert_not_called()
+        cfn.delete_stack.assert_not_called()
+        cfn.update_termination_protection.assert_called_once()
+        self.assertIn("my-app-RetainedChild-ABC", click_mock.secho.call_args.args[0])
 
     def test_protected_code_bucket_stack_is_not_deleted(self, click_mock):
         cfn = MagicMock()

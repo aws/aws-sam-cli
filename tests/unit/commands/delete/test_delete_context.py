@@ -624,6 +624,31 @@ class TestDeleteContextWebFunctionCodeBucket(TestCase):
         self.assertGreater(names.index("delete_web_function_code_bucket"), names.index("wait_for_delete"))
         self.assertEqual(delete_bucket_mock.call_args.args[0], "my-app")
 
+    @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=True))
+    @patch.object(CfnUtils, "get_stack_template", MagicMock(return_value="Hello World"))
+    @patch.object(S3Uploader, "delete_prefix_artifacts", MagicMock())
+    @patch.object(CfnUtils, "wait_for_delete", MagicMock())
+    @patch("samcli.commands.delete.delete_context.delete_web_function_code_bucket", MagicMock())
+    @patch("samcli.commands.delete.delete_context.retained_web_functions", return_value=[])
+    @patch.object(CfnUtils, "delete_stack")
+    @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
+    @patch("samcli.commands.delete.delete_context.click.get_current_context")
+    @patch("samcli.commands.delete.delete_context.get_boto_client_provider_with_config")
+    def test_retained_web_functions_are_found_before_the_stack_is_deleted(
+        self, client_provider_mock, _, __, delete_stack_mock, retained_mock
+    ):
+        # Nested stacks can only be read before the stack is deleted
+        order = MagicMock()
+        order.attach_mock(delete_stack_mock, "delete_stack")
+        order.attach_mock(retained_mock, "retained_web_functions")
+        with DeleteContext(
+            stack_name="my-app", region=None, profile=None, no_prompts=True, s3_bucket="b", s3_prefix="p"
+        ) as delete_context:
+            delete_context.run()
+        calls = [(c[0], c[2].get("stack_name")) for c in order.mock_calls]
+        self.assertLess(calls.index(("retained_web_functions", None)), calls.index(("delete_stack", "my-app")))
+        self.assertEqual(retained_mock.call_args.args[3], "my-app")
+
 
 class TestDeleteContextLeftoverWebFunctionCodeBucket(TestCase):
     @patch.object(CfnUtils, "can_delete_stack", MagicMock(return_value=False))

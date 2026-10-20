@@ -14,6 +14,7 @@ from botocore.exceptions import ClientError
 
 from samcli.lib.utils.hash import str_checksum
 from samcli.lib.utils.managed_cloudformation_stack import StackOutput, manage_stack
+from samcli.yamlhelper import yaml_parse
 
 LOG = logging.getLogger(__name__)
 
@@ -123,10 +124,22 @@ def manage_web_function_code_bucket(
     return bucket_name, code_stack.export_name
 
 
-def retained_web_functions(template_dict: Optional[Dict], retain_resources: Optional[list] = None) -> List[str]:
+RETAIN_POLICIES = ("Retain", "RetainExceptOnCreate")
+NESTED_STACK_TYPES = ("AWS::CloudFormation::Stack", "AWS::Serverless::Application")
+
+
+def retained_web_functions(
+    template_dict: Optional[Dict],
+    retain_resources: Optional[list] = None,
+    cloudformation_client: Any = None,
+    stack_name: Optional[str] = None,
+    _all_retained: bool = False,
+    _prefix: str = "",
+) -> List[str]:
     """
-    Logical IDs of Web Functions that outlive the stack (DeletionPolicy: Retain, or in retain_resources). Their
-    revisions still read from the code bucket.
+    Paths of Web Functions that outlive the stack (DeletionPolicy: Retain, or in retain_resources), including those
+    in nested stacks when cloudformation_client and stack_name are given. Their revisions still read from the code
+    bucket. Call before the stack is deleted, while its nested stacks can still be read.
     """
     resources = template_dict.get("Resources") if isinstance(template_dict, dict) else None
     if not isinstance(resources, dict):
@@ -134,12 +147,56 @@ def retained_web_functions(template_dict: Optional[Dict], retain_resources: Opti
     retain = set(retain_resources or [])
     retained: List[str] = []
     for logical_id, resource in resources.items():
-        if not isinstance(resource, dict) or resource.get("Type") != "AWS::Serverless::WebFunction":
+        if not isinstance(resource, dict):
             continue
-        generated_ids = {logical_id, f"{logical_id}Revision", f"{logical_id}Endpoint"}
-        if resource.get("DeletionPolicy") in ("Retain", "RetainExceptOnCreate") or generated_ids & retain:
-            retained.append(logical_id)
+        is_retained = _all_retained or resource.get("DeletionPolicy") in RETAIN_POLICIES
+        if resource.get("Type") == "AWS::Serverless::WebFunction":
+            if is_retained or {logical_id, f"{logical_id}Revision", f"{logical_id}Endpoint"} & retain:
+                retained.append(f"{_prefix}{logical_id}")
+        elif resource.get("Type") in NESTED_STACK_TYPES and cloudformation_client and stack_name:
+            child_stack, child_template = _nested_stack(cloudformation_client, stack_name, logical_id)
+            if child_template is None:
+                # Can't tell whether it has Web Functions, so keep the code bucket to be safe
+                retained.append(f"{_prefix}{logical_id}")
+            elif child_stack:
+                retained.extend(
+                    retained_web_functions(
+                        child_template,
+                        cloudformation_client=cloudformation_client,
+                        stack_name=child_stack,
+                        _all_retained=is_retained or logical_id in retain,
+                        _prefix=f"{_prefix}{logical_id}/",
+                    )
+                )
     return retained
+
+
+def _nested_stack(cloudformation_client: Any, stack_name: str, logical_id: str) -> Tuple[Optional[str], Optional[Dict]]:
+    """Return a nested stack's ID and original template: ("", {}) if it wasn't created, (None, None) if unreadable"""
+    try:
+        detail = cloudformation_client.describe_stack_resource(StackName=stack_name, LogicalResourceId=logical_id)
+        child_stack = detail["StackResourceDetail"].get("PhysicalResourceId")
+        if not child_stack:
+            return "", {}
+        body = cloudformation_client.get_template(StackName=child_stack, TemplateStage="Original")["TemplateBody"]
+        return child_stack, body if isinstance(body, dict) else yaml_parse(body)
+    except ClientError as ex:
+        if "does not exist" in str(ex):
+            return "", {}
+        LOG.debug("Could not read nested stack %s of %s", logical_id, stack_name, exc_info=ex)
+    except Exception as ex:  # pylint: disable=broad-except
+        LOG.debug("Could not read nested stack %s of %s", logical_id, stack_name, exc_info=ex)
+    return None, None
+
+
+def _export_importers(cloudformation_client: Any, export_name: str) -> List[str]:
+    """Stacks that import the export"""
+    try:
+        return list(cloudformation_client.list_imports(ExportName=export_name).get("Imports", []))
+    except ClientError as ex:
+        if "is not imported" in str(ex):
+            return []
+        raise
 
 
 # Results of delete_web_function_code_bucket
@@ -148,7 +205,9 @@ CODE_BUCKET_NOT_FOUND = "not_found"
 CODE_BUCKET_PROTECTED = "protected"
 
 
-def keep_web_function_code_bucket(parent_stack_name: str, retained: List[str], cloudformation_client: Any) -> None:
+def keep_web_function_code_bucket(
+    parent_stack_name: str, retained: List[str], cloudformation_client: Any, reason: str = "Web Functions"
+) -> None:
     """Keep the code bucket stack for retained Web Functions, with termination protection on."""
     code_stack = WebFunctionCodeBucketStack(parent_stack_name)
     try:
@@ -162,7 +221,7 @@ def keep_web_function_code_bucket(parent_stack_name: str, retained: List[str], c
         LOG.debug("Could not turn on termination protection for %s", code_stack.stack_name, exc_info=ex)
         protection = "Couldn't turn on termination protection for it, so don't delete it while they're in use. "
     click.secho(
-        f"\n\tKept Lambda Web Function code bucket stack {code_stack.stack_name}, because these Web Functions are "
+        f"\n\tKept Lambda Web Function code bucket stack {code_stack.stack_name}, because these {reason} are "
         f"retained and still read their code from it: {', '.join(retained)}. {protection}When you no longer need "
         "them, turn off its termination protection, empty its bucket and delete the stack.",
         fg="yellow",
@@ -196,6 +255,12 @@ def delete_web_function_code_bucket(parent_stack_name: str, cloudformation_clien
             "its termination protection, empty its bucket and delete the stack.",
             fg="yellow",
         )
+        return CODE_BUCKET_PROTECTED
+
+    # A stack that outlives the deleted one, like a retained nested stack, still reads code from the bucket
+    importers = _export_importers(cloudformation_client, code_stack.export_name)
+    if importers:
+        keep_web_function_code_bucket(parent_stack_name, importers, cloudformation_client, reason="importing stacks")
         return CODE_BUCKET_PROTECTED
 
     click.echo(f"\t- Deleting Lambda Web Function code bucket stack {code_stack.stack_name}")

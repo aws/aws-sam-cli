@@ -296,6 +296,11 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
+        # Find retained Web Functions now, while nested stacks still exist
+        retained = retained_web_functions(
+            template.template_dict, retain_resources, self.cloudformation_client, self.stack_name
+        )
+
         # Delete the primary input stack
         try:
             click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
@@ -313,7 +318,6 @@ class DeleteContext:
             self.cf_utils.wait_for_delete(self.stack_name)
 
         # Delete the code bucket after the stack (revisions read from it), unless a Web Function is retained
-        retained = retained_web_functions(template.template_dict, retain_resources)
         if retained:
             keep_web_function_code_bucket(self.stack_name, retained, self.cloudformation_client)
         else:
