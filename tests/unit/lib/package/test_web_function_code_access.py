@@ -9,7 +9,6 @@ from parameterized import parameterized
 
 from samcli.lib.package.web_function_code_access import (
     WebFunctionCodeBucketError,
-    stacks_have_web_functions,
     check_web_function_code_bucket,
 )
 from samcli.lib.providers.provider import Stack
@@ -148,22 +147,6 @@ class TestKmsKeyChecks(TestCase):
         self.assertIn("Couldn't check KMS key", self._run(kms_client)[0])
 
 
-class TestStacksHaveWebFunctions(TestCase):
-    def test_finds_web_functions_in_nested_stacks(self):
-        root = _stack({"App": {"Type": "AWS::Serverless::Application", "Properties": {"Location": "child.yaml"}}})
-        child = _stack(
-            {"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "web/"}}}, stack_path="App"
-        )
-        self.assertFalse(stacks_have_web_functions([root]))
-        self.assertTrue(stacks_have_web_functions([root, child], local_code_only=True))
-
-    @parameterized.expand([("s3://bucket/key.zip",), ({"Bucket": "bucket", "Key": "key.zip"},)])
-    def test_local_code_only_skips_s3_code(self, code_uri):
-        stack = _stack({"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": code_uri}}})
-        self.assertTrue(stacks_have_web_functions([stack]))
-        self.assertFalse(stacks_have_web_functions([stack], local_code_only=True))
-
-
 class TestWebFunctionUploaderRouting(TestCase):
     def test_web_function_code_uses_its_own_uploader(self):
         from samcli.lib.package.packageable_resources import ServerlessWebFunctionResource
@@ -259,21 +242,6 @@ class TestWebFunctionCodeUriImport(TestCase):
         self.assertEqual(web_dict["CodeUri"], {"Bucket": {"Fn::ImportValue": "my-app-export"}, "Key": "abc123"})
 
 
-class TestTemplateFileHasLocalWebFunctions(TestCase):
-    @patch("samcli.lib.providers.sam_stack_provider.SamLocalStackProvider.get_stacks")
-    def test_detects_local_web_functions_in_nested_stacks(self, get_stacks_mock):
-        from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
-
-        root = MagicMock(resources={"App": {"Type": "AWS::Serverless::Application"}})
-        child = MagicMock(resources={"Fn": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "web/"}}})
-        get_stacks_mock.return_value = ([root, child], [])
-        self.assertTrue(template_file_has_local_web_functions("template.yaml"))
-        get_stacks_mock.return_value = ([root], [])
-        self.assertFalse(template_file_has_local_web_functions("template.yaml"))
-        get_stacks_mock.side_effect = Exception("unreadable")
-        self.assertFalse(template_file_has_local_web_functions("template.yaml"))
-
-
 @patch("samcli.lib.package.web_function_code_access.click")
 class TestPolicyMatchingEdges(TestCase):
     @parameterized.expand(
@@ -304,81 +272,6 @@ class TestPolicyMatchingEdges(TestCase):
             _s3_client([LAMBDA_READ_STATEMENT]), "bucket", kms_key_id="key-id", kms_client=kms_client
         )
         self.assertIn("Couldn't read the policy of KMS key", warnings[0])
-
-
-class TestCheckNoWebFunctionsInForEach(TestCase):
-    def _stack(self, original_resources, stack_path=""):
-        return MagicMock(stack_path=stack_path, original_template_dict={"Resources": original_resources})
-
-    def _web_function(self, code_uri="${Name}/"):
-        return {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": code_uri}}
-
-    def test_rejects_web_functions_with_local_code_in_foreach(self):
-        from samcli.lib.package.web_function_code_access import (
-            WebFunctionInForEachError,
-            check_no_web_functions_in_foreach,
-        )
-
-        stack = self._stack({"Fn::ForEach::Sites": ["Name", ["a", "b"], {"WebFn${Name}": self._web_function()}]})
-        with self.assertRaises(WebFunctionInForEachError) as ctx:
-            check_no_web_functions_in_foreach([stack])
-        self.assertIn("WebFn${Name}", ctx.exception.message)
-
-    def test_rejects_nested_foreach_and_includes_the_stack_path(self):
-        from samcli.lib.package.web_function_code_access import (
-            WebFunctionInForEachError,
-            check_no_web_functions_in_foreach,
-        )
-
-        inner = {"Fn::ForEach::Inner": ["Env", ["dev"], {"WebFn${Name}${Env}": self._web_function()}]}
-        stack = self._stack({"Fn::ForEach::Outer": ["Name", ["a"], inner]}, stack_path="Child")
-        with self.assertRaises(WebFunctionInForEachError) as ctx:
-            check_no_web_functions_in_foreach([stack])
-        self.assertIn("Child/WebFn${Name}${Env}", ctx.exception.message)
-
-    @parameterized.expand(
-        [
-            ("web function outside ForEach", {"WebFn": {"Type": "AWS::Serverless::WebFunction", "Properties": {}}}),
-            (
-                "Lambda function in ForEach",
-                {"Fn::ForEach::F": ["N", ["a"], {"Fn${N}": {"Type": "AWS::Serverless::Function"}}]},
-            ),
-            (
-                "Fn::Sub S3 code in ForEach",
-                {
-                    "Fn::ForEach::F": [
-                        "N",
-                        ["a"],
-                        {
-                            "WebFn${N}": {
-                                "Type": "AWS::Serverless::WebFunction",
-                                "Properties": {"CodeUri": {"Fn::Sub": "s3://bucket/${N}.zip"}},
-                            }
-                        },
-                    ]
-                },
-            ),
-            (
-                "S3 code in ForEach",
-                {
-                    "Fn::ForEach::F": [
-                        "N",
-                        ["a"],
-                        {"WebFn${N}": {"Type": "AWS::Serverless::WebFunction", "Properties": {"CodeUri": "s3://b/k"}}},
-                    ]
-                },
-            ),
-        ]
-    )
-    def test_allows_other_templates(self, _, resources):
-        from samcli.lib.package.web_function_code_access import check_no_web_functions_in_foreach
-
-        check_no_web_functions_in_foreach([self._stack(resources)])
-
-    def test_ignores_stacks_without_an_original_template(self):
-        from samcli.lib.package.web_function_code_access import check_no_web_functions_in_foreach
-
-        check_no_web_functions_in_foreach([MagicMock(stack_path="", original_template_dict=None)])
 
 
 class TestWebFunctionZipPermissions(TestCase):

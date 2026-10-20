@@ -59,7 +59,6 @@ from samcli.lib.package.language_extensions_packaging import (
     _resolve_property_paths,
     _set_prop_value,
 )
-from samcli.lib.package.web_function_code_access import check_no_web_functions_in_foreach
 from samcli.lib.providers.provider import (
     BuildableFunction,
     LayerVersion,
@@ -72,7 +71,7 @@ from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider
+from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider, check_no_web_functions_in_foreach
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.local.docker.manager import ContainerManager

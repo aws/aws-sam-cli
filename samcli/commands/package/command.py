@@ -176,7 +176,7 @@ def do_cli(
 
     from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError, PackageResolveS3WebFunctionError
     from samcli.commands.package.package_context import PackageContext
-    from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
+    from samcli.lib.providers.sam_web_function_provider import template_file_has_local_web_functions
 
     if resolve_s3:
         # sam package has no stack to create a Web Function code bucket for

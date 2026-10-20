@@ -73,7 +73,7 @@ class TestBuildContextWebFunctions(TestCase):
 class TestBuildContextWebFunctionsInForEach(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     def test_enter_rejects_web_functions_in_foreach(self, get_stacks_mock):
-        from samcli.lib.package.web_function_code_access import WebFunctionInForEachError
+        from samcli.lib.providers.sam_web_function_provider import WebFunctionInForEachError
         from samcli.lib.providers.provider import Stack
 
         original = {

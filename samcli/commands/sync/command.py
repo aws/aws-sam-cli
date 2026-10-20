@@ -320,7 +320,7 @@ def do_cli(
     from samcli.commands.build.build_context import BuildContext
     from samcli.commands.deploy.deploy_context import DeployContext
     from samcli.commands.package.package_context import PackageContext
-    from samcli.lib.package.web_function_code_access import template_file_has_local_web_functions
+    from samcli.lib.providers.sam_web_function_provider import template_file_has_local_web_functions
     from samcli.lib.utils import osutils
 
     if watch and template_file_has_local_web_functions(

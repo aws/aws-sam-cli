@@ -941,7 +941,7 @@ class TestSyncWatchWebFunctions(TestCase):
     @parameterized.expand([(True, True, True), (True, False, False), (False, True, False)])
     @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
     @patch("samcli.cli.global_config.GlobalConfig")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions")
+    @patch("samcli.lib.providers.sam_web_function_provider.template_file_has_local_web_functions")
     def test_watch_note_for_web_functions(self, watch, has_web_functions, expect_note, has_mock, global_config_mock, _):
         from samcli.commands.sync.command import WEB_FUNCTION_WATCH_NOTE
 

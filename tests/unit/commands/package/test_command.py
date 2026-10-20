@@ -226,7 +226,7 @@ class TestPackageResolveS3WebFunctions(TestCase):
 
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.package.command.manage_stack")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=True)
+    @patch("samcli.lib.providers.sam_web_function_provider.template_file_has_local_web_functions", return_value=True)
     def test_resolve_s3_with_local_web_function_code_fails(self, _, manage_stack_mock, package_context_mock):
         from samcli.commands.package.exceptions import PackageResolveS3WebFunctionError
 
@@ -240,14 +240,14 @@ class TestPackageResolveS3WebFunctions(TestCase):
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
     @patch("samcli.commands.package.command.manage_stack", return_value="managed-bucket")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions", return_value=False)
+    @patch("samcli.lib.providers.sam_web_function_provider.template_file_has_local_web_functions", return_value=False)
     def test_resolve_s3_without_web_functions_still_works(self, _, manage_stack_mock, package_context_mock, __):
         self._do_cli()
         manage_stack_mock.assert_called_once()
         package_context_mock.assert_called_once()
 
     @patch("samcli.commands.package.package_context.PackageContext")
-    @patch("samcli.lib.package.web_function_code_access.template_file_has_local_web_functions")
+    @patch("samcli.lib.providers.sam_web_function_provider.template_file_has_local_web_functions")
     def test_s3_bucket_with_web_functions_is_allowed(self, has_mock, package_context_mock):
         self._do_cli(resolve_s3=False, s3_bucket="my-bucket")
         has_mock.assert_not_called()

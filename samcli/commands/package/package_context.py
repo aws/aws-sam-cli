@@ -43,14 +43,10 @@ from samcli.lib.package.language_extensions_packaging import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
-from samcli.lib.package.web_function_code_access import (
-    WebFunctionCodeBucketError,
-    check_no_web_functions_in_foreach,
-    check_web_function_code_bucket,
-    stacks_have_web_functions,
-)
+from samcli.lib.package.web_function_code_access import WebFunctionCodeBucketError, check_web_function_code_bucket
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_web_function_provider import check_no_web_functions_in_foreach, stacks_have_web_functions
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.lib.utils.preview_runtimes import PREVIEW_RUNTIMES
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
