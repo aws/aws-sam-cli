@@ -1065,7 +1065,11 @@ class LocalApigwService(BaseLocalService):
 
         """
         best_match_mimetype = flask_request.accept_mimetypes.best_match(lamba_response_headers.get_all("Content-Type"))
-        is_best_match_in_binary_types = best_match_mimetype in binary_types or "*/*" in binary_types
+        is_best_match_in_binary_types = (
+            best_match_mimetype in binary_types
+            or "*/*" in binary_types
+            or (isinstance(best_match_mimetype, str) and f"{best_match_mimetype.split('/', 1)[0]}/*" in binary_types)
+        )
 
         return best_match_mimetype and is_best_match_in_binary_types and is_base_64_encoded
 
