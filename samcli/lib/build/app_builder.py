@@ -39,7 +39,7 @@ from samcli.lib.build.exceptions import (
     DockerfileOutSideOfContext,
     UnsupportedBuilderLibraryVersionError,
 )
-from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
+from samcli.lib.build.utils import _get_host_architecture, _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
     UnsupportedRuntimeException,
@@ -1048,6 +1048,19 @@ class ApplicationBuilder:
         if not dockerfile_path.exists():
             raise DockerBuildFailed(
                 f"Dockerfile not found in CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}'."
+            )
+
+        # The image is built for the target platform, but RUN steps execute on the host CPU.
+        host_architecture = _get_host_architecture()
+        if host_architecture != architecture:
+            LOG.warning(
+                "Building MicrovmImage '%s' for %s on a %s host. Dockerfile RUN steps execute %s binaries "
+                "and need emulation (for example QEMU via binfmt_misc); without it the build fails with "
+                "'exec format error'.",
+                full_path,
+                architecture,
+                host_architecture,
+                architecture,
             )
 
         docker_tag = f"{full_path.replace('/', '-').lower()}:latest"

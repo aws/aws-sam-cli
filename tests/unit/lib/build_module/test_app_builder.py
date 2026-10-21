@@ -3900,6 +3900,25 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         tag = builder._build_microvm_image("MyMicroVMApp", "./app", "arm64")
         self.assertEqual(tag, "mymicrovmapp:latest")
 
+    @parameterized.expand(
+        [
+            ("x86_64_host", "x86_64", True),
+            ("arm64_host", "arm64", False),
+        ]
+    )
+    @patch("samcli.lib.build.app_builder.LOG")
+    @patch("samcli.lib.build.app_builder._get_host_architecture")
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_warns_on_cross_architecture_host(self, _name, host_arch, expect_warning, mock_exists, mock_host, mock_log):
+        mock_host.return_value = host_arch
+        builder = self._make_builder()
+
+        builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+
+        warned = any("exec format error" in c.args[0] for c in mock_log.warning.call_args_list)
+        self.assertEqual(warned, expect_warning)
+        builder._image_build_client.build_image.assert_called_once()
+
 
 class TestApplicationBuilder_update_built_resource_skips_microvm(TestCase):
     def test_skip_serverless_microvm_image(self):
