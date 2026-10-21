@@ -19,7 +19,12 @@ from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
 from samcli.commands._utils.experimental import get_enabled_experimental_flags
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
+)
 from samcli.lib.build.build_strategy import (
     BuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
@@ -60,9 +65,11 @@ from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_WEBFUNCTION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -235,7 +242,12 @@ class ApplicationBuilder:
             warn_cross_architecture_build(functions, container_runtime)
 
         build_strategy: BuildStrategy = DefaultBuildStrategy(
-            build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
+            build_graph,
+            self._build_dir,
+            self._build_function,
+            self._build_layer,
+            self._build_microvm_image,
+            self._cached,
         )
 
         if self._parallel:
@@ -267,7 +279,9 @@ class ApplicationBuilder:
                 bool(self._container_manager),
             )
 
-        return ApplicationBuildResult(build_graph, build_strategy.build())
+        result = ApplicationBuildResult(build_graph, build_strategy.build())
+
+        return result
 
     def _get_build_graph(
         self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None
@@ -280,6 +294,7 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
+        microvm_images = self._resources_to_build.microvm_images
         file_env_vars = {}
         if env_vars_file:
             try:
@@ -320,6 +335,14 @@ class ApplicationBuilder:
                 env_vars=container_env_vars,
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
+
+        for microvm_image in microvm_images:
+            microvm_build_details = MicrovmImageBuildDefinition(
+                microvm_image.full_path,
+                microvm_image.code_uri,
+                cast(str, microvm_image.architecture),
+            )
+            build_graph.put_microvm_image_build_definition(microvm_build_details, microvm_image)
 
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
@@ -388,6 +411,17 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
+                # For MicrovmImage: if CodeUri is an intrinsic, replace it with the resolved literal
+                # from stack.resources so that move_template can correctly rebase the path.
+                if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
+                    code_prop = "CodeUri" if resource_type == AWS_SERVERLESS_MICROVMIMAGE else "CodeArtifact"
+                    code_value = properties.get(code_prop)
+                    if code_value and not isinstance(code_value, str):
+                        resolved_props = normalized_resources.get(logical_id, {}).get("Properties", {})
+                        resolved_code = resolved_props.get(code_prop)
+                        if isinstance(resolved_code, str):
+                            properties[code_prop] = resolved_code
+
                 ApplicationBuilder._update_built_resource(
                     built_artifacts[full_path], properties, resource_type or "", store_path
                 )
@@ -403,6 +437,11 @@ class ApplicationBuilder:
 
     @staticmethod
     def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+        # MicrovmImage: Docker image is local-only for testing, built template is not updated.
+        # Deployment artifact is the zip of source directory (handled by sam package), not the Docker image.
+        # Intrinsic CodeUri is resolved to a literal in update_template before reaching here.
+        if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
+            return
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_SERVERLESS_WEBFUNCTION:
@@ -972,6 +1011,88 @@ class ApplicationBuilder:
                     working_directory = os.path.normpath(os.path.join(scratch_dir, working_directory))
 
         return working_directory
+
+    def _build_microvm_image(self, full_path: str, code_uri: str, architecture: str) -> str:
+        """
+        Build a Docker image for a MicrovmImage resource.
+
+        Uses CodeUri as the Docker build context. Dockerfile must be in that directory.
+        Tags the image as <full-path-with-slashes-replaced-by-dashes-lowercase>:latest, so that
+        MicrovmImage resources with the same logical ID in different nested stacks don't collide
+        on the same local Docker tag.
+        Does NOT update the built template.
+
+        Parameters
+        ----------
+        full_path : str
+            Stack-path-qualified unique identifier of the MicrovmImage resource (see
+            MicrovmImage.full_path), e.g. "MyImage" or "ChildStack/MyImage"
+        code_uri : str
+            Local path to the source directory containing the Dockerfile
+        architecture : str
+            CPU architecture for the Docker build platform
+
+        Returns
+        -------
+        str
+            The Docker image tag that was built
+        """
+        LOG.info("Building MicrovmImage %s", full_path)
+
+        docker_context_dir = pathlib.Path(self._base_dir, code_uri).resolve()
+        dockerfile_path = docker_context_dir / "Dockerfile"
+
+        if not dockerfile_path.exists():
+            raise DockerBuildFailed(
+                f"Dockerfile not found in CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}'."
+            )
+
+        docker_tag = f"{full_path.replace('/', '-').lower()}:latest"
+
+        build_args = {
+            "path": str(docker_context_dir),
+            "dockerfile": "Dockerfile",
+            "tag": docker_tag,
+            "buildargs": {},
+            "platform": get_docker_platform(architecture),
+            "rm": True,
+        }
+
+        try:
+            if not self._image_build_client:
+                if self._use_buildkit:
+                    container_client = self._container_client
+                    engine_type = container_client.get_runtime_type()
+
+                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
+                    if not is_available:
+                        raise BuildkitNotAvailableException(error_msg)
+
+                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
+                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
+                else:
+                    self._image_build_client = SDKBuildClient(self._container_client)
+                    LOG.debug("Using SDKBuildClient")
+
+            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            LOG.debug("MicrovmImage built for %s", full_path)
+        except docker.errors.BuildError as ex:
+            LOG.error("Failed building MicrovmImage %s", full_path)
+            self._stream_lambda_image_build_logs(ex.build_log, full_path, False)
+            raise DockerBuildFailed(str(ex)) from ex
+        except docker.errors.APIError as e:
+            if self._container_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+            raise
+
+        try:
+            self._stream_lambda_image_build_logs(build_logs, full_path)  # type: ignore[arg-type]
+        except docker.errors.APIError as e:
+            if self._container_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+            raise
+
+        return docker_tag
 
     def _build_function_in_process(
         self,

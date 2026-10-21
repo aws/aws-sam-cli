@@ -306,7 +306,7 @@
         },
         "build": {
           "title": "Build command",
-          "description": "Build AWS serverless function code.",
+          "description": "Build AWS serverless function code and MicroVM images.",
           "properties": {
             "parameters": {
               "title": "Parameters for the build command",

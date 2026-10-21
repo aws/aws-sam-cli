@@ -62,6 +62,7 @@ from samcli.lib.package.language_extensions_packaging import (
 from samcli.lib.providers.provider import (
     BuildableFunction,
     LayerVersion,
+    MicrovmImage,
     ResourcesToBuildCollector,
     Stack,
     WebFunction,
@@ -70,6 +71,7 @@ from samcli.lib.providers.provider import (
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
+from samcli.lib.providers.sam_microvm_image_provider import SamMicrovmImageProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider, check_no_web_functions_in_foreach
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
@@ -225,6 +227,7 @@ class BuildContext:
         self._function_provider: Optional[SamFunctionProvider] = None
         self._web_function_provider: Optional[SamWebFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
+        self._microvm_image_provider: Optional[SamMicrovmImageProvider] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
         self._locate_layer_nested = locate_layer_nested
@@ -267,6 +270,7 @@ class BuildContext:
         check_no_web_functions_in_foreach(self.stacks)
         self._web_function_provider = SamWebFunctionProvider(self.stacks, self._use_raw_codeuri)
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
+        self._microvm_image_provider = SamMicrovmImageProvider(self.stacks, self._use_raw_codeuri)
 
         template_dir = str(pathlib.Path(self._template_file).resolve().parent)
         if not self._base_dir:
@@ -1142,6 +1146,9 @@ class BuildContext:
         layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
         if layer:
             return [layer.full_path]
+        image = self.microvm_image_provider.get(resource_identifier) if self.microvm_image_provider else None
+        if image:
+            return [image.full_path]
         return [resource_identifier]
 
     @staticmethod
@@ -1177,16 +1184,25 @@ class BuildContext:
         if self._output is OutputOption.json:
             # Emit absolute paths so a machine consumer never has to guess the process cwd. The
             # relpath transform below is only a human-readability affordance for the text banner.
-            resources: List[Dict[str, Any]] = [
-                self._function_to_json(function) for function in resources_to_build.functions
-            ] + [
-                {
-                    "resource_id": layer.full_path,
-                    "type": "layer",
-                    "compatible_runtimes": layer.compatible_runtimes,
-                }
-                for layer in resources_to_build.layers
-            ]
+            resources: List[Dict[str, Any]] = (
+                [self._function_to_json(function) for function in resources_to_build.functions]
+                + [
+                    {
+                        "resource_id": layer.full_path,
+                        "type": "layer",
+                        "compatible_runtimes": layer.compatible_runtimes,
+                    }
+                    for layer in resources_to_build.layers
+                ]
+                + [
+                    {
+                        "resource_id": image.full_path,
+                        "type": "microvm_image",
+                        "architecture": image.architecture,
+                    }
+                    for image in resources_to_build.microvm_images
+                ]
+            )
             click.echo(
                 json.dumps(
                     {
@@ -1346,6 +1362,11 @@ Commands you can use next
         return self._layer_provider  # type: ignore
 
     @property
+    def microvm_image_provider(self) -> SamMicrovmImageProvider:
+        # same as function_provider()
+        return self._microvm_image_provider  # type: ignore
+
+    @property
     def build_dir(self) -> str:
         return self._build_dir
 
@@ -1393,7 +1414,7 @@ Commands you can use next
     def resources_to_build(self) -> ResourcesToBuildCollector:
         """
         Function return resources that should be build by current build command. This function considers
-        Lambda Functions and Layers with build method as buildable resources.
+        Lambda Functions, Layers, and MicroVM Images as buildable resources.
         Returns
         -------
         ResourcesToBuildCollector
@@ -1437,22 +1458,26 @@ Commands you can use next
         if not result.functions:
             self._collect_single_web_function(resource_identifier, result)
         self._collect_single_buildable_layer(resource_identifier, result)
+        self._collect_single_microvm_image(resource_identifier, result)
 
-        if not result.functions and not result.layers:
-            # Collect all functions and layers that are not inline
+        if not result.functions and not result.layers and not result.microvm_images:
+            # Collect all functions, layers, and microvm images that are buildable
             all_resources = [func.name for func in self.function_provider.get_all() if not func.inlinecode]
             all_resources.extend([web_function.name for web_function in self._get_web_functions()])
             all_resources.extend([layer.name for layer in self.layer_provider.get_all()])
+            all_resources.extend([image.name for image in self.microvm_image_provider.get_all()])
 
             available_resource_message = (
                 f"{resource_identifier} not found. Possible options in your " f"template: {all_resources}"
             )
             LOG.info(available_resource_message)
-            raise ResourceNotFound(f"Unable to find a function or layer with name '{resource_identifier}'")
+            raise ResourceNotFound(
+                f"Unable to find a function, layer, or MicroVM image with name '{resource_identifier}'"
+            )
         return result
 
     def collect_all_build_resources(self) -> ResourcesToBuildCollector:
-        """Collect all buildable resources. Including Lambda functions and layers.
+        """Collect all buildable resources. Including Lambda functions, layers, and MicroVM images.
 
         Returns
         -------
@@ -1482,6 +1507,16 @@ Commands you can use next
                 if (layer.name not in excludes) and BuildContext.is_layer_buildable(layer)
             ]
         )
+        buildable_images = []
+        for image in self.microvm_image_provider.get_all():
+            if image.name in excludes:
+                continue
+            buildable, non_buildable_reason = BuildContext.is_microvm_image_buildable(image)
+            if not buildable:
+                LOG.warning("Skipping MicrovmImage %s: %s", image.full_path, non_buildable_reason)
+                continue
+            buildable_images.append(image)
+        result.add_microvm_images(buildable_images)
         return result
 
     @property
@@ -1547,6 +1582,33 @@ Commands you can use next
 
         resource_collector.add_layer(layer)
 
+    def _collect_single_microvm_image(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
+        """
+        Populate resource_collector with MicrovmImage with provided identifier.
+
+        Parameters
+        ----------
+        resource_identifier : str
+            Resource identifier for the MicrovmImage to be built
+        resource_collector : ResourcesToBuildCollector
+            Collector to add the MicrovmImage to
+        """
+        image = self.microvm_image_provider.get(resource_identifier)
+        if not image:
+            return
+        # Hard fail only for truly unbuildable cases (unsupported architecture)
+        if image.architecture is None:
+            raise BuildError(
+                wrapped_from="UnsupportedArchitectureError",
+                msg=f"MicrovmImage '{resource_identifier}' is not buildable: "
+                "unsupported architecture; only ARM_64 is supported by the MicroVM service.",
+            )
+        # For explicitly targeted resources, add unconditionally (matching function/layer behavior).
+        # SkipBuild and .zip filtering only applies on the build-all path (collect_all_build_resources).
+        resource_collector.add_microvm_image(image)
+
     @staticmethod
     def is_layer_buildable(layer: LayerVersion):
         # if build method is not specified, it is not buildable
@@ -1562,6 +1624,16 @@ Commands you can use next
             LOG.debug("Skip building pre-built layer: %s", layer.full_path)
             return False
         return True
+
+    @staticmethod
+    def is_microvm_image_buildable(image: MicrovmImage):
+        if isinstance(image.code_uri, str) and image.code_uri.endswith(".zip"):
+            return False, "CodeUri points to a .zip file, not a buildable source directory."
+        if image.metadata and image.metadata.get("SkipBuild"):
+            return False, "Metadata.SkipBuild is set."
+        if image.architecture is None:
+            return False, "unsupported architecture; only ARM_64 is supported by the MicroVM service."
+        return True, ""
 
     _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\nBuilding anyways..."
 

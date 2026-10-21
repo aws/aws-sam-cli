@@ -24,7 +24,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.exceptions import DockerConnectionError
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.providers.provider import Function, FunctionBuildInfo, ResourcesToBuildCollector
+from samcli.lib.providers.provider import Function, FunctionBuildInfo, MicrovmImage, ResourcesToBuildCollector
 from samcli.lib.telemetry.event import EventTracker
 from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -3800,3 +3800,90 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
 
         working_dir = ApplicationBuilder._get_working_directory_path("base_dir", metadata, "source_dir", "scratch_dir")
         self.assertEqual(working_dir, PathValidator(str(os.path.join("source_dir", "working", "dir"))))
+
+
+class TestApplicationBuilder_build_microvm_image(TestCase):
+    def _make_builder(self, microvm_images=None, base_dir="/project"):
+        resources = ResourcesToBuildCollector()
+        if microvm_images:
+            resources.add_microvm_images(microvm_images)
+
+        builder = ApplicationBuilder.__new__(ApplicationBuilder)
+        builder._resources_to_build = resources
+        builder._base_dir = base_dir
+        builder._image_build_client = MagicMock()
+        builder._image_build_client.build_image.return_value = []
+        builder._validated_container_client = MagicMock()
+        builder._stream_writer = MagicMock()
+        return builder
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_build_microvm_image_calls_docker_build(self, mock_exists):
+        image = MicrovmImage(name="MyMicroVM", code_uri="./app", architecture="arm64", microvm_image_name="MyMicroVM")
+        builder = self._make_builder(microvm_images=[image])
+
+        tag = builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+
+        self.assertEqual(tag, "mymicrovm:latest")
+        builder._image_build_client.build_image.assert_called_once()
+        call_kwargs = builder._image_build_client.build_image.call_args[1]
+        self.assertEqual(call_kwargs["tag"], "mymicrovm:latest")
+        self.assertEqual(call_kwargs["dockerfile"], "Dockerfile")
+        self.assertEqual(call_kwargs["platform"], "linux/arm64")
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_build_microvm_image_calls_docker_build_nested_stack(self, mock_exists):
+        # Two MicrovmImage resources sharing the same logical ID but in different nested
+        # stacks must produce different Docker tags.
+        image = MicrovmImage(
+            name="MyMicroVM",
+            code_uri="./app",
+            architecture="arm64",
+            microvm_image_name="MyMicroVM",
+            stack_path="ChildStackA",
+        )
+        builder = self._make_builder(microvm_images=[image])
+
+        tag = builder._build_microvm_image(image.full_path, "./app", "arm64")
+
+        self.assertEqual(image.full_path, "ChildStackA/MyMicroVM")
+        self.assertEqual(tag, "childstacka-mymicrovm:latest")
+        call_kwargs = builder._image_build_client.build_image.call_args[1]
+        self.assertEqual(call_kwargs["tag"], "childstacka-mymicrovm:latest")
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=False)
+    def test_build_microvm_image_raises_when_no_dockerfile(self, mock_exists):
+        image = MicrovmImage(name="MyMicroVM", code_uri="./app", architecture="arm64", microvm_image_name="MyMicroVM")
+        builder = self._make_builder(microvm_images=[image])
+
+        with self.assertRaisesRegex(DockerBuildFailed, "Dockerfile not found"):
+            builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_tag_is_lowercase(self, mock_exists):
+        builder = self._make_builder()
+        tag = builder._build_microvm_image("MyMicroVMApp", "./app", "arm64")
+        self.assertEqual(tag, "mymicrovmapp:latest")
+
+
+class TestApplicationBuilder_update_built_resource_skips_microvm(TestCase):
+    def test_skip_serverless_microvm_image(self):
+        properties = {"CodeUri": "./app"}
+        ApplicationBuilder._update_built_resource(
+            "mymicrovm:latest", properties, "AWS::Serverless::MicrovmImage", "/abs/path"
+        )
+        self.assertEqual(properties, {"CodeUri": "./app"})
+
+    def test_skip_lambda_microvm_image(self):
+        properties = {"CodeArtifact": {"Uri": "s3://bucket/app.zip"}}
+        ApplicationBuilder._update_built_resource(
+            "mymicrovm:latest", properties, "AWS::Lambda::MicrovmImage", "/abs/path"
+        )
+        self.assertEqual(properties, {"CodeArtifact": {"Uri": "s3://bucket/app.zip"}})
+
+    def test_still_updates_zip_function(self):
+        properties = {"CodeUri": "./src", "PackageType": "Zip"}
+        ApplicationBuilder._update_built_resource(
+            ".aws-sam/build/MyFunc", properties, "AWS::Serverless::Function", ".aws-sam/build/MyFunc"
+        )
+        self.assertEqual(properties["CodeUri"], ".aws-sam/build/MyFunc")

@@ -43,7 +43,7 @@ from samcli.lib.utils.version_checker import check_newer_version
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-    Build AWS serverless function code.
+    Build AWS serverless function code and MicroVM images.
 """
 
 DESCRIPTION = """
@@ -56,6 +56,8 @@ DESCRIPTION = """
   2. AWS::Lambda::Function\n
   3. AWS::Serverless::LayerVersion\n
   4. AWS::Lambda::LayerVersion\n
+  5. AWS::Serverless::MicrovmImage\n
+  6. AWS::Lambda::MicrovmImage\n
   \b
   Supported Runtimes
   ------------------
