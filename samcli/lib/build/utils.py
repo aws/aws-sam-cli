@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Union
 
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError
 from samcli.lib.build.build_graph import LayerBuildDefinition
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import BuildableFunction, LayerVersion, WebFunction
 from samcli.lib.utils.architecture import ARM64, X86_64
 
 LOG = logging.getLogger(__name__)
@@ -33,26 +33,28 @@ def _get_host_architecture() -> str:
     return X86_64
 
 
-def _get_function_architecture(function: Function) -> str:
+def _get_function_architecture(function: BuildableFunction) -> str:
     """
     Get function architecture, defaulting to x86_64.
 
     Parameters
     ----------
-    function : Function
-        Lambda function object
+    function : BuildableFunction
+        Lambda function or Web Function object
 
     Returns
     -------
     str
         Function architecture (ARM64 or X86_64)
     """
+    if isinstance(function, WebFunction):
+        return function.architecture
     if function.architectures:
         return function.architectures[0]
     return X86_64
 
 
-def warn_cross_architecture_build(functions: List[Function], container_runtime: str) -> None:
+def warn_cross_architecture_build(functions: List[BuildableFunction], container_runtime: str) -> None:
     """
     Log warning for cross-architecture builds that may fail.
 
@@ -61,7 +63,7 @@ def warn_cross_architecture_build(functions: List[Function], container_runtime: 
 
     Parameters
     ----------
-    functions : List[Function]
+    functions : List[BuildableFunction]
         List of Lambda functions to check
     container_runtime : str
         Container runtime being used (docker/finch)
@@ -102,7 +104,7 @@ def warn_on_invalid_architecture(layer_definition: LayerBuildDefinition) -> None
 
 
 def _make_env_vars(
-    resource: Union[Function, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
+    resource: Union[BuildableFunction, LayerVersion], file_env_vars: Dict, inline_env_vars: Optional[Dict]
 ) -> Dict:
     """Returns the environment variables configuration for this function
 

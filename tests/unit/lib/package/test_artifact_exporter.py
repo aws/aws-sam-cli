@@ -49,6 +49,7 @@ from samcli.lib.package.packageable_resources import (
     ResourceWithS3UrlDict,
     ServerlessApiResource,
     ServerlessFunctionResource,
+    ServerlessWebFunctionResource,
     GraphQLSchemaResource,
     LambdaFunctionResource,
     ApiGatewayRestApiResource,
@@ -82,7 +83,13 @@ from samcli.lib.package.permissions import (
     AdditiveDirPermissionPermissionMapper,
 )
 from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
+from samcli.lib.package.utils import (
+    zip_folder,
+    make_zip,
+    make_zip_with_lambda_permissions,
+    make_zip_with_permissions,
+    upload_cache_key,
+)
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
 from samcli.yamlhelper import yaml_dump
@@ -125,6 +132,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         setup = [
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
+            {"class": ServerlessWebFunctionResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},
@@ -380,8 +388,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir,
                 self.s3_uploader_mock,
                 previously_uploaded={
-                    absolute_artifact_path: expected_s3_url,
-                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -437,8 +446,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir,
                 self.s3_uploader_mock,
                 previously_uploaded={
-                    artifact_path: expected_s3_url,
-                    artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -492,10 +502,11 @@ class TestArtifactExporter(unittest.TestCase):
                 resource_dict,
                 property_name,
                 parent_dir,
-                Mock(),
+                self.s3_uploader_mock,
                 previously_uploaded={
-                    absolute_artifact_path: expected_s3_url,
-                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -556,10 +567,11 @@ class TestArtifactExporter(unittest.TestCase):
                     resource_dict,
                     property_name,
                     parent_dir,
-                    Mock(),
+                    self.s3_uploader_mock,
                     previously_uploaded={
-                        absolute_artifact_path: expected_s3_url,
-                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                        + "wrong url",
                     },
                 )
                 self.assertEqual(result, expected_s3_url)
@@ -620,10 +632,11 @@ class TestArtifactExporter(unittest.TestCase):
                     resource_dict,
                     property_name,
                     parent_dir,
-                    Mock(),
+                    self.s3_uploader_mock,
                     previously_uploaded={
-                        absolute_artifact_path: expected_s3_url,
-                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                        + "wrong url",
                     },
                 )
                 self.assertEqual(result, expected_s3_url)
@@ -668,7 +681,10 @@ class TestArtifactExporter(unittest.TestCase):
             property_name,
             parent_dir,
             self.s3_uploader_mock,
-            previously_uploaded={parent_dir: expected_s3_url, parent_dir + "wrong path": expected_s3_url + "wrong url"},
+            previously_uploaded={
+                upload_cache_key(self.s3_uploader_mock, parent_dir): expected_s3_url,
+                upload_cache_key(self.s3_uploader_mock, parent_dir + "wrong path"): expected_s3_url + "wrong url",
+            },
         )
         self.assertEqual(result, expected_s3_url)
 
