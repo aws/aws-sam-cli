@@ -1182,6 +1182,7 @@ class BuildContext:
             The functions and layers that were built
         """
         if self._output is OutputOption.json:
+            built_artifacts = self._build_result.artifacts if self._build_result else {}
             # Emit absolute paths so a machine consumer never has to guess the process cwd. The
             # relpath transform below is only a human-readability affordance for the text banner.
             resources: List[Dict[str, Any]] = (
@@ -1199,6 +1200,9 @@ class BuildContext:
                         "resource_id": image.full_path,
                         "type": "microvm_image",
                         "architecture": image.architecture,
+                        # The built template keeps the source directory, so this is the only place the
+                        # local image's tag is reported
+                        "image_tag": built_artifacts.get(image.full_path),
                     }
                     for image in resources_to_build.microvm_images
                 ]

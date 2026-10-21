@@ -24,7 +24,7 @@ from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.exceptions import InvalidBuildGraphException
 from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.observability.util import OutputOption
-from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
+from samcli.lib.providers.provider import Function, MicrovmImage, ResourcesToBuildCollector, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
@@ -1791,6 +1791,30 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(result["resources"][1]["type"], "layer")
         self.assertEqual(result["resources"][1]["resource_id"], "Lyr")
         self.assertEqual(result["resources"][1]["compatible_runtimes"], ["python3.12", "python3.11"])
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_reports_the_microvm_image_tag(self, echo_mock, secho_mock):
+        collector = self._collector()
+        collector.add_microvm_image(MicrovmImage("MyImage", "src", "arm64", stack_path="Child"))
+        self.build_context._build_result = ApplicationBuildResult(
+            build_graph=Mock(), artifacts={"Child/MyImage": "child-myimage:latest"}
+        )
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(
+            result["resources"],
+            [
+                {
+                    "resource_id": "Child/MyImage",
+                    "type": "microvm_image",
+                    "architecture": "arm64",
+                    "image_tag": "child-myimage:latest",
+                }
+            ],
+        )
 
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
