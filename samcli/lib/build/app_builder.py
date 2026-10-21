@@ -413,13 +413,16 @@ class ApplicationBuilder:
             if has_build_artifact:
                 # For MicrovmImage: if CodeUri is an intrinsic, replace it with the resolved literal
                 # from stack.resources so that move_template can correctly rebase the path.
+                # CodeArtifact may also be the {"Uri": ...} structure, whose Uri is the path.
                 if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
                     code_prop = "CodeUri" if resource_type == AWS_SERVERLESS_MICROVMIMAGE else "CodeArtifact"
                     code_value = properties.get(code_prop)
                     if code_value and not isinstance(code_value, str):
                         resolved_props = normalized_resources.get(logical_id, {}).get("Properties", {})
                         resolved_code = resolved_props.get(code_prop)
-                        if isinstance(resolved_code, str):
+                        if isinstance(resolved_code, str) or (
+                            isinstance(resolved_code, dict) and isinstance(resolved_code.get("Uri"), str)
+                        ):
                             properties[code_prop] = resolved_code
 
                 ApplicationBuilder._update_built_resource(

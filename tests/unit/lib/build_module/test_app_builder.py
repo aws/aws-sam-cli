@@ -1655,6 +1655,41 @@ class TestApplicationBuilder_update_built_web_function(TestCase):
         self.assertEqual(properties["CodeUri"], "build/WebFn")
 
 
+class TestApplicationBuilder_update_template_resolves_microvm_intrinsic_code(TestCase):
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    def setUp(self, mock_get_validated_container_client):
+        mock_get_validated_container_client.return_value = Mock()
+        self.builder = ApplicationBuilder(
+            Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
+        )
+
+    @parameterized.expand(
+        [
+            ("serverless_code_uri", "AWS::Serverless::MicrovmImage", "CodeUri", {"Ref": "Src"}, "./app"),
+            ("lambda_code_artifact_string", "AWS::Lambda::MicrovmImage", "CodeArtifact", {"Ref": "Src"}, "./app"),
+            (
+                "lambda_code_artifact_uri",
+                "AWS::Lambda::MicrovmImage",
+                "CodeArtifact",
+                {"Uri": {"Ref": "Src"}},
+                {"Uri": "./app"},
+            ),
+        ]
+    )
+    def test_intrinsic_code_path_is_replaced_with_resolved_literal(
+        self, _name, resource_type, code_prop, raw_value, resolved_value
+    ):
+        template_dict = {"Resources": {"MyImage": {"Type": resource_type, "Properties": {code_prop: raw_value}}}}
+        resolved_resources = {"MyImage": {"Type": resource_type, "Properties": {code_prop: resolved_value}}}
+        stack = Mock(
+            stack_path="", template_dict=template_dict, resources=resolved_resources, location="/proj/template.yaml"
+        )
+
+        actual = self.builder.update_template(stack, {"MyImage": "myimage:latest"}, {})
+
+        self.assertEqual(actual["Resources"]["MyImage"]["Properties"][code_prop], resolved_value)
+
+
 class TestApplicationBuilder_update_template_windows(TestCase):
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     def setUp(self, mock_get_validated_container_client):
