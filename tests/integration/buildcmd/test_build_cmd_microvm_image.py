@@ -92,6 +92,14 @@ class TestBuildMicrovmImage(BuildIntegBase):
         build_dir_files = os.listdir(str(self.default_build_dir))
         self.assertNotIn("MyMicrovmImage", build_dir_files)
 
+    def test_build_microvm_image_with_run_step_succeeds(self):
+        """A Dockerfile RUN step executes arm64 code, so on an x86 host this exercises emulation."""
+        overrides = {"CodeUri": "./MicrovmImageWithRun"}
+        cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, command_result.stderr.decode())
+
     def test_build_fails_when_dockerfile_not_found(self):
         """sam build should fail when CodeUri directory doesn't contain a Dockerfile."""
         overrides = {"CodeUri": "./NonExistentDirectory"}
