@@ -34,7 +34,7 @@ if [ "$openssl_version" = "" ]; then
 fi
 
 if [ "$python_version" = "" ]; then
-    python_version="3.11.16";
+    python_version="3.11.17";
 fi
 
 if ! [ "$build_binary_name" = "" ]; then

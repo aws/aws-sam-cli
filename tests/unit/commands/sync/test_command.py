@@ -194,6 +194,7 @@ class TestDoCli(TestCase):
             use_json=False,
             force_upload=True,
             language_extensions=None,
+            web_function_stack_name=ANY,
         )
 
         DeployContextMock.assert_called_with(
@@ -363,6 +364,7 @@ class TestDoCli(TestCase):
             use_json=False,
             force_upload=True,
             language_extensions=None,
+            web_function_stack_name=ANY,
         )
 
         DeployContextMock.assert_called_with(
@@ -898,3 +900,55 @@ class TestDisableADL(TestCase):
             "Error: Invalid value for '--resource': 'AWS::Serverless::InvalidResource' is not one of",
             invoke_result.output,
         )
+
+
+class TestSyncWatchWebFunctions(TestCase):
+    def _do_cli(self, watch):
+        do_cli(
+            "template.yaml",
+            False,
+            watch,
+            None,
+            None,
+            False,
+            False,
+            "stack",
+            "us-east-1",
+            None,
+            None,
+            {},
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            {},
+            {},
+            False,
+            None,
+            None,
+            "samconfig.toml",
+            "default",
+            build_in_source=False,
+            watch_exclude={},
+            language_extensions=None,
+        )
+
+    @parameterized.expand([(True, True, True), (True, False, False), (False, True, False)])
+    @patch("samcli.commands.sync.command.manage_stack", side_effect=RuntimeError("stop"))
+    @patch("samcli.cli.global_config.GlobalConfig")
+    @patch("samcli.lib.providers.sam_web_function_provider.template_file_has_local_web_functions")
+    def test_watch_note_for_web_functions(self, watch, has_web_functions, expect_note, has_mock, global_config_mock, _):
+        from samcli.commands.sync.command import WEB_FUNCTION_WATCH_NOTE
+
+        has_mock.return_value = has_web_functions
+        global_config_mock.return_value.is_accelerate_opt_in_stack.return_value = True
+        with patch("samcli.commands.sync.command.LOG") as log_mock:
+            with self.assertRaises(RuntimeError):
+                self._do_cli(watch=watch)
+        logged = " ".join(str(c) for c in log_mock.info.call_args_list)
+        self.assertEqual(WEB_FUNCTION_WATCH_NOTE in logged, expect_note)

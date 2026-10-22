@@ -5,6 +5,8 @@ SAM CLI Default Build constants
 import os
 
 DEFAULT_STACK_NAME = "sam-app"
+# SAM CLI's own working directory; it holds state other than build output (cache, deps, pipeline config)
+DEFAULT_SAM_DIR = ".aws-sam"
 DEFAULT_BUILD_DIR = os.path.join(".aws-sam", "build")
 DEFAULT_BUILD_DIR_WITH_AUTO_DEPENDENCY_LAYER = os.path.join(".aws-sam", "auto-dependency-layer")
 DEFAULT_CACHE_DIR = os.path.join(".aws-sam", "cache")

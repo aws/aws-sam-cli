@@ -14,11 +14,12 @@ Logic for uploading to s3 based on supplied template file and s3 bucket
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import contextlib
 import copy
 import json
 import logging
 import os
-from typing import List, Optional
+from typing import Any, List, Optional, Tuple
 
 import boto3
 import click
@@ -26,6 +27,7 @@ import click
 from samcli.commands.package.exceptions import PackageFailedError
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.bootstrap.companion_stack.companion_stack_manager import sync_ecr_stack
+from samcli.lib.bootstrap.web_function_code_bucket import manage_web_function_code_bucket
 from samcli.lib.cfn_language_extensions.sam_integration import (
     expand_language_extensions,
     resolve_language_extensions_enabled,
@@ -41,8 +43,10 @@ from samcli.lib.package.language_extensions_packaging import (
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
+from samcli.lib.package.web_function_code_access import WebFunctionCodeBucketError, check_web_function_code_bucket
 from samcli.lib.providers.provider import ResourceIdentifier, Stack, get_resource_full_path_by_id
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_web_function_provider import check_no_web_functions_in_foreach, stacks_have_web_functions
 from samcli.lib.utils.boto_utils import get_boto_config_with_user_agent
 from samcli.lib.utils.preview_runtimes import PREVIEW_RUNTIMES
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_SERVERLESS_FUNCTION
@@ -86,6 +90,7 @@ class PackageContext:
         resolve_image_repos=False,
         language_extensions=None,
         output="text",
+        web_function_stack_name=None,
     ):
         self.template_file = template_file
         self.s3_bucket = s3_bucket
@@ -108,6 +113,8 @@ class PackageContext:
         self._language_extensions_enabled: bool = resolve_language_extensions_enabled(language_extensions)
         self._global_parameter_overrides = {IntrinsicsSymbolTable.AWS_REGION: region} if region else {}
         self._output_mode = OutputOption(output)
+        # When set, Web Function code goes to this stack's code bucket instead of s3_bucket
+        self.web_function_stack_name = web_function_stack_name
 
     def __enter__(self):
         return self
@@ -134,6 +141,7 @@ class PackageContext:
             language_extensions_enabled=self._language_extensions_enabled,
         )
         self._warn_preview_runtime(stacks)
+        check_no_web_functions_in_foreach(stacks)
         self.image_repositories = self.image_repositories if self.image_repositories is not None else {}
         updated_repo = {}
         for image_repo_func_id, image_repo_uri in self.image_repositories.items():
@@ -152,6 +160,15 @@ class PackageContext:
         # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
         docker_client = None
 
+        web_function_s3_uploader = None
+        web_function_bucket_export = None
+        if self.web_function_stack_name and stacks_have_web_functions(stacks, local_code_only=True):
+            web_function_s3_uploader, web_function_bucket_export = self._web_function_code_uploader(
+                s3_client, region_name
+            )
+        else:
+            self._check_web_function_code_bucket(stacks, s3_client, region_name)
+
         s3_uploader = S3Uploader(
             s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
         )
@@ -161,7 +178,7 @@ class PackageContext:
             docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
         )
 
-        self.uploaders = Uploaders(s3_uploader, ecr_uploader)
+        self.uploaders = Uploaders(s3_uploader, ecr_uploader, web_function_s3_uploader, web_function_bucket_export)
 
         code_signer_client = boto3.client("signer", config=get_boto_config_with_user_agent(region_name=region_name))
         self.code_signer = CodeSigner(code_signer_client, self.signing_profiles)
@@ -287,6 +304,39 @@ class PackageContext:
                 template_dir,
             )
         return output_template
+
+    def _web_function_code_uploader(self, s3_client: Any, region_name: Optional[str]) -> Tuple[S3Uploader, str]:
+        """Return an uploader for the stack's code bucket, and the export holding the bucket name"""
+        if self._output_mode is OutputOption.json:
+            # Keep progress messages out of the JSON output
+            with open(os.devnull, "w") as devnull, contextlib.redirect_stdout(devnull):
+                bucket, export_name = manage_web_function_code_bucket(
+                    self.web_function_stack_name, region_name, self.profile
+                )
+        else:
+            bucket, export_name = manage_web_function_code_bucket(
+                self.web_function_stack_name, region_name, self.profile
+            )
+        # The bucket uses SSE-S3 by default; a --kms-key-id key must grant Lambda access
+        uploader = S3Uploader(s3_client, bucket, None, None, self.force_upload, self.no_progressbar)
+        uploader.artifact_metadata = self.metadata
+        return uploader, export_name
+
+    def _check_web_function_code_bucket(self, stacks: List[Stack], s3_client: Any, region_name: Optional[str]) -> None:
+        """Fail before uploading if Lambda can't read Web Function code from the bucket. Check errors are logged."""
+        try:
+            if not self.s3_bucket or not stacks_have_web_functions(stacks, local_code_only=True):
+                return
+            kms_client = (
+                boto3.client("kms", config=get_boto_config_with_user_agent(region_name=region_name))
+                if self.kms_key_id
+                else None
+            )
+            check_web_function_code_bucket(s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, kms_client)
+        except WebFunctionCodeBucketError:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            LOG.debug("Could not check the S3 bucket for Lambda Web Function code access", exc_info=True)
 
     def _warn_preview_runtime(self, stacks: List[Stack]) -> None:
         # In JSON mode this warning goes to stderr so it does not corrupt the JSON lines on stdout.

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
-from samcli.commands._utils.constants import DEFAULT_BUILD_DIR
+from samcli.commands._utils.constants import DEFAULT_BUILD_DIR, DEFAULT_SAM_DIR
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled, prompt_experimental
 from samcli.commands._utils.template import (
     FOREACH_REQUIRED_ELEMENTS,
@@ -59,13 +59,22 @@ from samcli.lib.package.language_extensions_packaging import (
     _resolve_property_paths,
     _set_prop_value,
 )
-from samcli.lib.providers.provider import Function, LayerVersion, ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import (
+    BuildableFunction,
+    LayerVersion,
+    ResourcesToBuildCollector,
+    Stack,
+    WebFunction,
+    get_full_path,
+)
 from samcli.lib.providers.sam_api_provider import SamApiProvider
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
 from samcli.lib.providers.sam_layer_provider import SamLayerProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider, check_no_web_functions_in_foreach
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
+from samcli.lib.utils.path_utils import is_same_or_ancestor
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
@@ -214,6 +223,7 @@ class BuildContext:
         self._print_success_message = print_success_message
 
         self._function_provider: Optional[SamFunctionProvider] = None
+        self._web_function_provider: Optional[SamWebFunctionProvider] = None
         self._layer_provider: Optional[SamLayerProvider] = None
         self._container_manager: Optional[ContainerManager] = None
         self._stacks: List[Stack] = []
@@ -254,13 +264,18 @@ class BuildContext:
         self._function_provider = SamFunctionProvider(
             self.stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested
         )
+        check_no_web_functions_in_foreach(self.stacks)
+        self._web_function_provider = SamWebFunctionProvider(self.stacks, self._use_raw_codeuri)
         self._layer_provider = SamLayerProvider(self.stacks, self._use_raw_codeuri)
 
+        template_dir = str(pathlib.Path(self._template_file).resolve().parent)
         if not self._base_dir:
             # Base directory, if not provided, is the directory containing the template
-            self._base_dir = str(pathlib.Path(self._template_file).resolve().parent)
+            self._base_dir = template_dir
 
-        self._build_dir = self._setup_build_dir(self._build_dir, self._clean)
+        self._build_dir = self._setup_build_dir(
+            self._build_dir, self._clean, self._cache_dir, [template_dir, self._base_dir]
+        )
 
         if self._cached:
             cache_path = pathlib.Path(self._cache_dir)
@@ -426,6 +441,8 @@ class BuildContext:
             for stack in self.stacks:
                 stacks.append(EsbuildBundlerManager(stack).set_sourcemap_metadata_from_env())
             self.function_provider.update(stacks, self._use_raw_codeuri, locate_layer_nested=self._locate_layer_nested)
+            if self._web_function_provider:
+                self._web_function_provider.update(stacks, self._use_raw_codeuri)
         return stacks if stacks else self.stacks
 
     def _handle_build_post_processing(self, builder: ApplicationBuilder, build_result: ApplicationBuildResult) -> None:
@@ -1119,13 +1136,16 @@ class BuildContext:
         function = self.function_provider.get(resource_identifier) if self.function_provider else None
         if function:
             return [function.full_path]
+        web_function = self._web_function_provider.get(resource_identifier) if self._web_function_provider else None
+        if web_function:
+            return [web_function.full_path]
         layer = self.layer_provider.get(resource_identifier) if self.layer_provider else None
         if layer:
             return [layer.full_path]
         return [resource_identifier]
 
     @staticmethod
-    def _function_to_json(function: Function) -> Dict[str, Any]:
+    def _function_to_json(function: BuildableFunction) -> Dict[str, Any]:
         """
         Serialize a built function for the JSON success document. Includes a package_type
         discriminator so Image functions (which have runtime: None) are distinguishable from
@@ -1261,17 +1281,40 @@ Commands you can use next
         return msg
 
     @staticmethod
-    def _setup_build_dir(build_dir: str, clean: bool) -> str:
+    def _setup_build_dir(
+        build_dir: str, clean: bool, cache_dir: Optional[str] = None, project_dirs: Optional[List[str]] = None
+    ) -> str:
         build_path = pathlib.Path(build_dir)
+        build_abs = os.path.abspath(str(build_path))
+        cwd = os.path.abspath(str(pathlib.Path.cwd()))
 
-        if os.path.abspath(str(build_path)) == os.path.abspath(str(pathlib.Path.cwd())):
+        # The build dir is removed before building, so it must not be or contain the current working
+        # directory, the template's directory or the base dir: '--build-dir ..', or
+        # '-t proj/template.yaml --build-dir proj', would otherwise delete the project.
+        protected_project_dirs = [cwd] + [os.path.abspath(d) for d in project_dirs or []]
+        if any(is_same_or_ancestor(build_abs, protected) for protected in protected_project_dirs):
             exception_message = (
-                "Failing build: Running a build with build-dir as current working directory "
-                "is extremely dangerous since the build-dir contents is first removed. "
-                "This is no longer supported, please remove the '--build-dir' option from the command "
-                "to allow the build artifacts to be placed in the directory your template is in."
+                f"Failing build: build-dir '{build_dir}' is or contains the current working directory, "
+                "the template's directory or the base directory, and the build-dir contents is first removed, "
+                "which would delete them. This is not supported, please remove the '--build-dir' option from the "
+                "command to allow the build artifacts to be placed in the directory your template is in, "
+                "or choose a directory outside the project."
             )
             raise InvalidBuildDirException(exception_message)
+
+        # Nor should it contain the state SAM CLI keeps across builds. This still builds, since some
+        # users pass '--build-dir .aws-sam' today, but the state is lost on every build.
+        protected_dirs = [DEFAULT_SAM_DIR, DEFAULT_DEPENDENCIES_DIR] + ([cache_dir] if cache_dir else [])
+        if clean and any(is_same_or_ancestor(build_abs, os.path.join(cwd, protected)) for protected in protected_dirs):
+            LOG.warning(
+                "Warning: build-dir '%s' is or contains SAM CLI's own '%s' directory, its build cache or dependencies, "
+                "and the build-dir contents is first removed, so these are deleted on every build. "
+                "This will not be supported in a future release. Remove the '--build-dir' option to place "
+                "the build artifacts in '%s', or choose a directory that does not contain these.",
+                build_dir,
+                DEFAULT_SAM_DIR,
+                DEFAULT_BUILD_DIR,
+            )
 
         try:
             if build_path.exists() and os.listdir(build_dir) and clean:
@@ -1391,11 +1434,14 @@ Commands you can use next
         result = ResourcesToBuildCollector()
         # Get the functions and its layer. Skips if it's inline.
         self._collect_single_function_and_dependent_layers(resource_identifier, result)
+        if not result.functions:
+            self._collect_single_web_function(resource_identifier, result)
         self._collect_single_buildable_layer(resource_identifier, result)
 
         if not result.functions and not result.layers:
             # Collect all functions and layers that are not inline
             all_resources = [func.name for func in self.function_provider.get_all() if not func.inlinecode]
+            all_resources.extend([web_function.name for web_function in self._get_web_functions()])
             all_resources.extend([layer.name for layer in self.layer_provider.get_all()])
 
             available_resource_message = (
@@ -1420,6 +1466,13 @@ Commands you can use next
                 func
                 for func in self.function_provider.get_all()
                 if (func.name not in excludes) and func.function_build_info.is_buildable()
+            ]
+        )
+        result.add_functions(
+            [
+                web_function
+                for web_function in self._get_web_functions()
+                if (web_function.name not in excludes) and web_function.function_build_info.is_buildable()
             ]
         )
         result.add_layers(
@@ -1458,6 +1511,17 @@ Commands you can use next
 
         resource_collector.add_function(function)
         resource_collector.add_layers([layer for layer in function.layers if BuildContext.is_layer_buildable(layer)])
+
+    def _collect_single_web_function(
+        self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
+    ) -> None:
+        """Add the Web Function with the given identifier, if any, to resource_collector"""
+        web_function = self._web_function_provider.get(resource_identifier) if self._web_function_provider else None
+        if web_function:
+            resource_collector.add_function(web_function)
+
+    def _get_web_functions(self) -> List[WebFunction]:
+        return list(self._web_function_provider.get_all()) if self._web_function_provider else []
 
     def _collect_single_buildable_layer(
         self, resource_identifier: str, resource_collector: ResourcesToBuildCollector
