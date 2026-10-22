@@ -103,6 +103,9 @@ jobs:
     name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config.name }}
     if: github.repository_owner == 'aws'
     runs-on: ${{ matrix.os }}
+    permissions:
+      id-token: write   # Required for OIDC (Public ECR login)
+      contents: read
     env:
       AWS_DEFAULT_REGION: us-east-1
       SAM_CLI_DEV: "1"
@@ -192,6 +195,27 @@ jobs:
         run: make init
       - name: uv install setuptools in Python3.12
         run: uv pip install --break-system-packages --python "$(uv python find 3.12)" --upgrade pip setuptools
+      # Anonymous Public ECR pulls of the emulator image hit "toomanyrequests: Data limit exceeded".
+      # Fork PRs get no secrets or OIDC token, so they stay anonymous.
+      - name: Configure AWS credentials via OIDC
+        id: aws-creds
+        if: ${{ matrix.tests_config.name == 'durable-functions' && (github.event_name == 'merge_group' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+        with:
+          role-to-assume: ${{ secrets.OIDC_ROLE_ARN }}
+          aws-region: us-east-1
+          # Keep the credentials out of the test step's environment
+          output-env-credentials: false
+          output-credentials: true
+      - name: Log in to Public ECR
+        if: ${{ steps.aws-creds.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.aws-creds.outputs.aws-access-key-id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.aws-creds.outputs.aws-secret-access-key }}
+          AWS_SESSION_TOKEN: ${{ steps.aws-creds.outputs.aws-session-token }}
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.params }}
         env:
