@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import zipfile
 from contextlib import contextmanager
-from typing import Callable, Dict, List, Optional, cast
+from typing import Callable, Dict, List, Optional, Tuple, cast
 
 import jmespath
 
@@ -132,6 +132,11 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     return uploader.upload(image_path, resource_id)
 
 
+def upload_cache_key(uploader: S3Uploader, local_path: str) -> Tuple[Optional[str], Optional[str], str]:
+    """Upload cache key: bucket, prefix and local path"""
+    return uploader.bucket_name, uploader.prefix, local_path
+
+
 def upload_local_artifacts(
     resource_type: str,
     resource_id: str,
@@ -186,8 +191,10 @@ def upload_local_artifacts(
 
     local_path = make_abs_path(parent_dir, local_path)
 
-    if previously_uploaded and local_path in previously_uploaded:
-        result = previously_uploaded[local_path]
+    # Exporters share the cache but can use different buckets, so the key includes the bucket and prefix
+    cache_key = upload_cache_key(uploader, local_path)
+    if previously_uploaded and cache_key in previously_uploaded:
+        result = previously_uploaded[cache_key]
         LOG.debug("Skipping upload of %s since is already uploaded to %s", local_path, result)
         return cast(str, result)
 
@@ -200,14 +207,14 @@ def upload_local_artifacts(
             zip_method=make_zip_with_lambda_permissions if resource_type in LAMBDA_LOCAL_RESOURCES else make_zip,
         )
         if previously_uploaded is not None:
-            previously_uploaded[local_path] = result
+            previously_uploaded[cache_key] = result
         return result
 
     # Path could be pointing to a file. Upload the file
     if is_local_file(local_path):
         result = uploader.upload_with_dedup(local_path)
         if previously_uploaded is not None:
-            previously_uploaded[local_path] = result
+            previously_uploaded[cache_key] = result
         return result
 
     raise InvalidLocalPathError(resource_id=resource_id, property_name=property_path, local_path=local_path)
