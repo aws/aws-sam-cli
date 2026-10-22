@@ -12,6 +12,7 @@ import docker
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker import utils
 from samcli.local.docker.container import Container, ContainerContext
+from samcli.local.docker.exceptions import ContainerImagePullFailedException
 from samcli.local.docker.lambda_image import LambdaImage
 
 LOG = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class ContainerManager:
         Instantiate the container manager
 
         :param docker_network_id: Optional Docker network to run this container in.
-        :param bool skip_pull_image: Should we pull new Docker container image?
+        :param bool skip_pull_image: Should we pull new container image?
         :param bool do_shutdown_event: Optional. If True, send a SHUTDOWN event to the container before final teardown.
         """
 
@@ -56,7 +57,7 @@ class ContainerManager:
 
         Raises
         ------
-        DockerImagePullFailedException
+        ContainerImagePullFailedException
             If the Docker image was not available in the server
         """
         image_name = container.image
@@ -74,10 +75,10 @@ class ContainerManager:
         else:
             try:
                 self.pull_image(image_name)
-            except DockerImagePullFailedException as ex:
+            except ContainerImagePullFailedException as ex:
                 if not is_image_local:
-                    raise DockerImagePullFailedException(
-                        "Could not find {} image locally and failed to pull it from docker.".format(image_name)
+                    raise ContainerImagePullFailedException(
+                        "Could not find {} image locally and failed to pull it: {}".format(image_name, ex)
                     ) from ex
 
                 LOG.info("Failed to download a new %s image. Invoking with the already downloaded image.", image_name)
@@ -101,7 +102,7 @@ class ContainerManager:
 
         Raises
         ------
-        DockerImagePullFailedException
+        ContainerImagePullFailedException
             If the Docker image was not available in the server
         """
         if not container.is_created():
@@ -131,7 +132,7 @@ class ContainerManager:
 
         Raises
         ------
-        DockerImagePullFailedException
+        ContainerImagePullFailedException
             If the Docker image was not available in the server
         """
         if tag is None:
@@ -153,14 +154,10 @@ class ContainerManager:
         with image_lock:
             stream_writer = stream or StreamWriter(sys.stderr)
 
-            try:
-                result_itr = self.container_client.api.pull(image_name, tag=tag, stream=True, decode=True)
-            except docker.errors.APIError as ex:
-                LOG.debug("Failed to download image with name %s", image_name)
-                raise DockerImagePullFailedException(str(ex)) from ex
+            result_itr = self.container_client.pull_image(image_name, tag=tag)
 
             # io streams, especially StringIO, work only with unicode strings
-            stream_writer.write_str("\nFetching {}:{} Docker container image...".format(image_name, tag))
+            stream_writer.write_str("\nFetching {}:{} container image...".format(image_name, tag))
 
             # Each line contains information on progress of the pull. Each line is a JSON string
             for _ in result_itr:
@@ -204,7 +201,3 @@ class ContainerManager:
         except (docker.errors.APIError, docker.errors.NullResource) as ex:
             LOG.debug("Failed to call Docker inspect: %s", str(ex))
             return False
-
-
-class DockerImagePullFailedException(Exception):
-    pass

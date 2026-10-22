@@ -31,8 +31,8 @@ from samcli.lib.utils.tar import extract_tarfile
 from samcli.local.docker import utils
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 from samcli.local.docker.exceptions import (
+    ContainerCreationFailedException,
     ContainerNotStartableException,
-    DockerContainerCreationFailedException,
     PortAlreadyInUse,
 )
 from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix_path
@@ -146,8 +146,8 @@ class Container:
 
         # Store docker_client parameter for lazy initialization
         # Only validate container runtime when Docker client is actually accessed
-        self._docker_client_param = docker_client
-        self._validated_docker_client = None
+        self._container_client_param = docker_client
+        self._validated_container_client = None
 
         # Runtime properties of the container. They won't have value until container is created or started
         self.id: Optional[str] = None
@@ -180,9 +180,9 @@ class Container:
         Lazy initialization of Docker client. Only validates container runtime when actually accessed.
         This prevents unnecessary container runtime validation during object creation.
         """
-        if self._validated_docker_client is None:
-            self._validated_docker_client = self._docker_client_param or utils.get_validated_container_client()
-        return self._validated_docker_client
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or utils.get_validated_container_client()
+        return self._validated_container_client
 
     def create(self, context):
         """
@@ -289,7 +289,7 @@ class Container:
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
-            raise DockerContainerCreationFailedException(
+            raise ContainerCreationFailedException(
                 f"Container creation failed: {ex.explanation}, check template for potential issue"
             )
         self.id = real_container.id

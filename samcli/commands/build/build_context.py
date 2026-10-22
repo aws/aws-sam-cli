@@ -159,7 +159,7 @@ class BuildContext:
         docker_network: Optional[str]
             Docker network to run the container in.
         skip_pull_image: bool
-            Whether we should pull new Docker container image or not
+            Whether we should pull new container image or not
         container_env_var: Optional[dict]
             An optional dictionary of environment variables to pass to the container
         container_env_var_file: Optional[dict]

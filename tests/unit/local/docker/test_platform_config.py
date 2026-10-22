@@ -13,6 +13,7 @@ from samcli.local.docker.platform_config import (
     WindowsHandler,
     get_platform_handler,
     get_finch_socket_path,
+    get_finch_registry_config_path,
 )
 from samcli.local.docker.container_engine import ContainerEngine
 
@@ -497,3 +498,29 @@ class TestAbstractPlatformHandlerMethods(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGetFinchRegistryConfigPath(unittest.TestCase):
+    """Tests for get_finch_registry_config_path: where `finch login` writes registry credentials"""
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("samcli.local.docker.platform_config.os.path.expanduser", return_value="/Users/me")
+    @patch("samcli.local.docker.platform_config.platform.system", return_value="Darwin")
+    def test_macos_defaults_to_finch_dir(self, mock_system, mock_expanduser):
+        self.assertEqual(get_finch_registry_config_path(), "/Users/me/.finch/config.json")
+
+    @patch.dict("os.environ", {"DOCKER_CONFIG": "/custom/config"}, clear=True)
+    @patch("samcli.local.docker.platform_config.platform.system", return_value="Darwin")
+    def test_macos_honors_docker_config(self, mock_system):
+        self.assertEqual(get_finch_registry_config_path(), "/custom/config/config.json")
+
+    @parameterized.expand([("Linux",), ("Windows",)])
+    @patch("samcli.local.docker.platform_config.platform.system")
+    def test_returns_none_where_finch_uses_docker_config_or_is_unsupported(self, platform_name, mock_system):
+        mock_system.return_value = platform_name
+
+        self.assertIsNone(get_finch_registry_config_path())
+
+    @patch("samcli.local.docker.platform_config.get_platform_handler", return_value=None)
+    def test_returns_none_when_no_handler(self, mock_get_handler):
+        self.assertIsNone(get_finch_registry_config_path())

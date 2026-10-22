@@ -31,7 +31,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerNotReachableException
-from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.exceptions import ContainerImagePullFailedException
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
 
@@ -3447,8 +3447,8 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
             )
 
         msg = (
-            "You are running an outdated version of Docker container 'image name' that is not compatible with"
-            "this version of SAM CLI. Please upgrade to continue to continue with build. "
+            "You are running an outdated version of container 'image name' that is not compatible with "
+            "this version of SAM CLI. Please upgrade to continue with build. "
             "Reason: 'myexecutable executable not found in container'"
         )
 
@@ -3467,7 +3467,7 @@ class TestApplicationBuilder_build_function_on_container(TestCase):
         container_mock = LambdaBuildContainerMock.return_value = Mock()
         container_mock.image = "image name"
 
-        self.container_manager.run.side_effect = DockerImagePullFailedException(
+        self.container_manager.run.side_effect = ContainerImagePullFailedException(
             f"Could not find {container_mock.image} image locally and failed to pull it from docker."
         )
 

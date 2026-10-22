@@ -49,6 +49,8 @@ class TestContainerClientFactory(TestCase):
 
         self.assertEqual(result, mock_client)
         mock_auto_detect.assert_called_once()
+        # Only the selected runtime warns about its registry credentials
+        mock_client.warn_about_registry_credentials.assert_called_once_with()
 
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory.get_admin_container_preference")
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._create_enforced_client")
@@ -62,6 +64,7 @@ class TestContainerClientFactory(TestCase):
 
         self.assertEqual(result, mock_client)
         mock_enforced.assert_called_once_with("docker")
+        mock_client.warn_about_registry_credentials.assert_called_once_with()
 
     @patch("samcli.local.docker.container_client_factory.ContainerClientFactory._try_create_docker_client")
     @patch("samcli.local.docker.container_client_factory.LOG")
