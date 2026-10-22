@@ -103,7 +103,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
         command_list = self.get_invoke_command_list("WaitForCallback", no_event=True)
         process, output_lines, thread = self.start_command_with_streaming(command_list, "invoke_wait_for_callback")
 
-        callback_id = self.wait_for_callback_id(output_lines)
+        callback_id = self.wait_for_callback_id(process, output_lines)
         self.assertIsNotNone(callback_id, "Callback ID not found in output")
 
         # Send callback success via CLI
@@ -157,7 +157,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
             command_list, f"invoke_wait_for_callback_fail_{name}"
         )
 
-        callback_id = self.wait_for_callback_id(output_lines)
+        callback_id = self.wait_for_callback_id(process, output_lines)
         self.assertIsNotNone(callback_id)
 
         # Send callback failure
@@ -183,7 +183,7 @@ class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
             command_list, "invoke_wait_for_callback_heartbeat"
         )
 
-        callback_id = self.wait_for_callback_id(output_lines)
+        callback_id = self.wait_for_callback_id(process, output_lines)
         self.assertIsNotNone(callback_id)
 
         # Send heartbeat

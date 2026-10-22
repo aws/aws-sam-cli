@@ -21,6 +21,10 @@ class TestDurableCallbackHandler(TestCase):
     def setUp(self):
         self.mock_client = Mock()
         self.handler = DurableCallbackHandler(self.mock_client)
+        stdin_patcher = patch("samcli.lib.utils.durable_callback_handler.sys.stdin")
+        self.mock_stdin = stdin_patcher.start()
+        self.mock_stdin.isatty.return_value = True
+        self.addCleanup(stdin_patcher.stop)
 
     def test_init(self):
         """Test handler initializes with client and empty prompted callbacks set"""
@@ -143,6 +147,25 @@ class TestDurableCallbackHandler(TestCase):
         lambda_client_api_call = getattr(self.mock_client, method_name)
         lambda_client_api_call.assert_called_once_with(**expected_call_args)
         self.assertIn("callback-123", self.handler._prompted_callbacks)
+
+    @parameterized.expand([("pipe", False), ("closed", None)])
+    @patch("samcli.lib.utils.durable_callback_handler.click.prompt")
+    @patch("samcli.lib.utils.durable_callback_handler.click.echo")
+    def test_prompt_callback_response_skips_prompt_without_terminal(self, name, isatty, mock_echo, mock_prompt):
+        """Test that the callback ID is shown without prompting when stdin is not a terminal"""
+        if isatty is None:
+            patcher = patch("samcli.lib.utils.durable_callback_handler.sys.stdin", None)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+        else:
+            self.mock_stdin.isatty.return_value = isatty
+
+        result = self.handler.prompt_callback_response("test-arn", "callback-123")
+
+        self.assertFalse(result)
+        mock_prompt.assert_not_called()
+        mock_echo.assert_called_once_with("\n🔄 Execution is waiting for callback: callback-123")
+        self.mock_client.send_callback_success.assert_not_called()
 
     def test_prompt_callback_response_only_prompts_once(self):
         """Test that callback is only prompted once per ID"""
