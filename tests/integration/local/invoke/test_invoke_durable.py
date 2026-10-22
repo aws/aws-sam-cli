@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from unittest import skip
 
 import pytest
 from parameterized import parameterized
@@ -12,6 +13,7 @@ from tests.integration.durable_function_examples import DurableFunctionExamples
 # Assertions are inherited from DurableIntegBase, invoke set up gets inherited from InvokeIntegBase
 # Durable tests use a hardcoded port (9014) for the execution server, so they must not run
 # concurrently with other durable tests across pytest-xdist workers.
+@skip("Temporarily skipped: durable function tests are failing in CI due to emulator/service errors")
 @pytest.mark.xdist_group(name="durable")
 class TestInvokeDurable(DurableIntegBase, InvokeIntegBase):
     template = Path("template.yaml")

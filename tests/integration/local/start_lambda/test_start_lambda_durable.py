@@ -3,6 +3,7 @@
 import json
 import shutil
 import time
+from unittest import skip
 import json
 import pytest
 import boto3
@@ -20,6 +21,7 @@ from tests.testing_utils import (
 )
 
 
+@skip("Temporarily skipped: durable function tests are failing in CI due to emulator/service errors")
 @pytest.mark.xdist_group(name="durable")
 class TestStartLambdaDurable(DurableIntegBase, StartLambdaIntegBaseClass):
     collect_start_lambda_process_output = True
