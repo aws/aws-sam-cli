@@ -9,6 +9,13 @@ class ContainerNotStartableException(Exception):
     pass
 
 
+class ContainerImagePullFailedException(Exception):
+    """
+    Pulling a container image failed, either on the pull request itself or as an error the
+    container runtime reported while streaming the pull (e.g. a registry rate limit).
+    """
+
+
 class NoFreePortsError(Exception):
     """
     Exception to raise when there are no free ports found in a specified range.
@@ -39,9 +46,9 @@ class InvalidRuntimeException(UserException):
     """
 
 
-class DockerContainerCreationFailedException(UserException):
+class ContainerCreationFailedException(UserException):
     """
-    Docker Container Creation failed. It could be due to invalid template
+    Container creation failed. It could be due to invalid template
     """
 
 

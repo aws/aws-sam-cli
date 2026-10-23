@@ -424,9 +424,9 @@ class TestSamPython36HelloWorldIntegrationImages(IntegrationCliIntegBase):
 
         # Check for either Docker or Finch error message
         self.assertTrue(
-            "Error: Error building docker image: pull access denied for non-existing-image" in stderr_text
-            or "Error: Error building docker image: no image was built" in stderr_text
-            or "Error: Error building docker image: exit status 1" in stderr_text,
+            "Error: Error building container image: pull access denied for non-existing-image" in stderr_text
+            or "Error: Error building container image: no image was built" in stderr_text
+            or "Error: Error building container image: exit status 1" in stderr_text,
             f"Expected error message not found in: {stderr_text}",
         )
         self.assertEqual(process.returncode, 1)

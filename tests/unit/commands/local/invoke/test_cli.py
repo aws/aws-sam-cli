@@ -9,7 +9,7 @@ from parameterized import parameterized, param
 from samcli.local.docker.exceptions import (
     ContainerNotStartableException,
     PortAlreadyInUse,
-    DockerContainerCreationFailedException,
+    ContainerCreationFailedException,
 )
 from samcli.local.lambdafn.exceptions import FunctionNotFound
 from samcli.lib.providers.exceptions import InvalidLayerReference
@@ -17,7 +17,7 @@ from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.invoke.cli import do_cli as invoke_cli, _get_event as invoke_cli_get_event
 from samcli.commands.local.lib.exceptions import OverridesNotWellDefinedError, InvalidIntermediateImageError
-from samcli.local.docker.manager import DockerImagePullFailedException
+from samcli.local.docker.exceptions import ContainerImagePullFailedException
 from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
 
 STDIN_FILE_NAME = "-"
@@ -198,7 +198,7 @@ class TestCli(TestCase):
     @parameterized.expand(
         [
             param(FunctionNotFound("not found"), "Function id not found in template"),
-            param(DockerImagePullFailedException("Failed to pull image"), "Failed to pull image"),
+            param(ContainerImagePullFailedException("Failed to pull image"), "Failed to pull image"),
         ]
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
@@ -220,6 +220,8 @@ class TestCli(TestCase):
 
         msg = str(ex_ctx.exception)
         self.assertEqual(msg, expected_exception_message)
+        # The wrapped exception's class name is what gets reported in metrics
+        self.assertEqual(ex_ctx.exception.wrapped_from, side_effect_exception.__class__.__name__)
 
     @parameterized.expand(
         [
@@ -300,7 +302,7 @@ class TestCli(TestCase):
                 "Container cannot be started, provided port already in use",
             ),
             param(
-                DockerContainerCreationFailedException("Container creation failed, check template for potential issue"),
+                ContainerCreationFailedException("Container creation failed, check template for potential issue"),
                 "Container creation failed, check template for potential issue",
             ),
         ]
