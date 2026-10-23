@@ -271,7 +271,12 @@ class IntrinsicResolver:
         """
         processed_dict = OrderedDict()
         for key, val in cloud_formation_property.items():
-            processed_key = self._symbol_resolver.get_translation(key) or key
+            translated_key = self._symbol_resolver.get_translation(key)
+            # Only use the translated key when it is a string. get_translation()
+            # can return a list when a CommaDelimitedList parameter shares its
+            # name with a Resource/Output logical ID; using that list as a dict
+            # key would raise TypeError: unhashable type: 'list'.
+            processed_key = translated_key if isinstance(translated_key, str) else key
             try:
                 processed_resource = self.intrinsic_property_resolver(val, ignore_errors, parent_function=processed_key)
                 processed_dict[processed_key] = processed_resource
