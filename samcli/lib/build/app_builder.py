@@ -212,6 +212,9 @@ class ApplicationBuilder:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._image_build_client: Optional[ImageBuildClient] = None
+        # Absolute source directory each MicrovmImage was built from, keyed by full path. The built template
+        # points back at this directory, because the source (not the local image) is the deployment artifact.
+        self._microvm_image_source_dirs: Dict[str, str] = {}
 
     @property
     def _container_client(self) -> ContainerClient:
@@ -347,8 +350,8 @@ class ApplicationBuilder:
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    @staticmethod
     def update_template(
+        self,
         stack: Stack,
         built_artifacts: Dict[str, str],
         stack_output_template_path_by_stack_path: Dict[str, str],
@@ -411,19 +414,8 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
-                # For MicrovmImage: if CodeUri is an intrinsic, replace it with the resolved literal
-                # from stack.resources so that move_template can correctly rebase the path.
-                # CodeArtifact may also be the {"Uri": ...} structure, whose Uri is the path.
                 if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
-                    code_prop = "CodeUri" if resource_type == AWS_SERVERLESS_MICROVMIMAGE else "CodeArtifact"
-                    code_value = properties.get(code_prop)
-                    if code_value and not isinstance(code_value, str):
-                        resolved_props = normalized_resources.get(logical_id, {}).get("Properties", {})
-                        resolved_code = resolved_props.get(code_prop)
-                        if isinstance(resolved_code, str) or (
-                            isinstance(resolved_code, dict) and isinstance(resolved_code.get("Uri"), str)
-                        ):
-                            properties[code_prop] = resolved_code
+                    self._point_microvm_image_at_source_dir(full_path, resource_type, properties, original_dir)
 
                 ApplicationBuilder._update_built_resource(
                     built_artifacts[full_path], properties, resource_type or "", store_path
@@ -438,11 +430,51 @@ class ApplicationBuilder:
 
         return template_dict
 
+    def _point_microvm_image_at_source_dir(
+        self, full_path: str, resource_type: str, properties: Dict, original_dir: pathlib.Path
+    ) -> None:
+        """
+        Set a built MicrovmImage's code path to the directory it was actually built from.
+
+        The path is written relative to the template's directory, which is what move_template expects
+        when it rebases paths into the build directory. Using the built directory, rather than the original
+        value, keeps the built template correct for intrinsics (!Ref), the CodeArtifact {Uri: ...} structure,
+        and --base-dir (where the source is resolved from base_dir, not from the template's directory).
+
+        Parameters
+        ----------
+        full_path : str
+            Stack-path-qualified identifier of the MicrovmImage
+        resource_type : str
+            AWS::Serverless::MicrovmImage or AWS::Lambda::MicrovmImage
+        properties : dict
+            Properties of the resource in the template being written, modified in place
+        original_dir : pathlib.Path
+            Directory of the template being written
+        """
+        source_dir = self._microvm_image_source_dirs.get(full_path)
+        if not source_dir:
+            return
+
+        # In Windows, if the template and the source are on different drives, relpath fails
+        source_path = (
+            os.path.relpath(source_dir, original_dir)
+            if pathlib.Path(source_dir).drive == original_dir.drive
+            else source_dir
+        )
+
+        code_prop = "CodeUri" if resource_type == AWS_SERVERLESS_MICROVMIMAGE else "CodeArtifact"
+        code_value = properties.get(code_prop)
+        if resource_type == AWS_LAMBDA_MICROVMIMAGE and isinstance(code_value, dict) and "Uri" in code_value:
+            properties[code_prop] = {**code_value, "Uri": source_path}
+        else:
+            properties[code_prop] = source_path
+
     @staticmethod
     def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
-        # MicrovmImage: Docker image is local-only for testing, built template is not updated.
-        # Deployment artifact is the zip of source directory (handled by sam package), not the Docker image.
-        # Intrinsic CodeUri is resolved to a literal in update_template before reaching here.
+        # MicrovmImage: the Docker image is local-only for testing, so the code path is not set to a build artifact.
+        # The deployment artifact is the zip of the source directory (handled by sam package), not the Docker image.
+        # update_template points the code path at the built source directory before reaching here.
         if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
             return
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
@@ -1108,6 +1140,7 @@ class ApplicationBuilder:
                 raise DockerfileOutSideOfContext(e.explanation) from e
             raise
 
+        self._microvm_image_source_dirs[full_path] = str(docker_context_dir)
         return docker_tag
 
     def _build_function_in_process(

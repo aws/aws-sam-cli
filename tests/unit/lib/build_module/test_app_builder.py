@@ -1655,39 +1655,70 @@ class TestApplicationBuilder_update_built_web_function(TestCase):
         self.assertEqual(properties["CodeUri"], "build/WebFn")
 
 
-class TestApplicationBuilder_update_template_resolves_microvm_intrinsic_code(TestCase):
+class TestApplicationBuilder_update_template_microvm_code_path(TestCase):
+    """update_template points a built MicrovmImage at the directory it was built from."""
+
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     def setUp(self, mock_get_validated_container_client):
         mock_get_validated_container_client.return_value = Mock()
         self.builder = ApplicationBuilder(
             Mock(), "builddir", "basedir", "cachedir", stream_writer=StreamWriter(sys.stderr)
         )
+        self.proj = os.path.abspath(os.path.join(os.sep, "proj"))
+
+    def _update(self, resource_type, code_prop, raw_value, template_dir, source_dir):
+        template_dict = {"Resources": {"MyImage": {"Type": resource_type, "Properties": {code_prop: raw_value}}}}
+        stack = Mock(
+            stack_path="",
+            template_dict=template_dict,
+            resources={},
+            location=os.path.join(template_dir, "template.yaml"),
+        )
+        self.builder._microvm_image_source_dirs = {"MyImage": source_dir}
+        actual = self.builder.update_template(stack, {"MyImage": "myimage:latest"}, {})
+        return actual["Resources"]["MyImage"]["Properties"][code_prop]
 
     @parameterized.expand(
         [
-            ("serverless_code_uri", "AWS::Serverless::MicrovmImage", "CodeUri", {"Ref": "Src"}, "./app"),
-            ("lambda_code_artifact_string", "AWS::Lambda::MicrovmImage", "CodeArtifact", {"Ref": "Src"}, "./app"),
+            ("serverless_code_uri", "AWS::Serverless::MicrovmImage", "CodeUri", {"Ref": "Src"}, "app"),
+            ("lambda_code_artifact_string", "AWS::Lambda::MicrovmImage", "CodeArtifact", {"Ref": "Src"}, "app"),
             (
                 "lambda_code_artifact_uri",
                 "AWS::Lambda::MicrovmImage",
                 "CodeArtifact",
                 {"Uri": {"Ref": "Src"}},
-                {"Uri": "./app"},
+                {"Uri": "app"},
             ),
         ]
     )
-    def test_intrinsic_code_path_is_replaced_with_resolved_literal(
-        self, _name, resource_type, code_prop, raw_value, resolved_value
+    def test_intrinsic_code_path_is_replaced_with_built_directory(
+        self, _name, resource_type, code_prop, raw_value, expected
     ):
-        template_dict = {"Resources": {"MyImage": {"Type": resource_type, "Properties": {code_prop: raw_value}}}}
-        resolved_resources = {"MyImage": {"Type": resource_type, "Properties": {code_prop: resolved_value}}}
-        stack = Mock(
-            stack_path="", template_dict=template_dict, resources=resolved_resources, location="/proj/template.yaml"
+        actual = self._update(resource_type, code_prop, raw_value, self.proj, os.path.join(self.proj, "app"))
+        self.assertEqual(actual, expected)
+
+    def test_base_dir_source_is_written_relative_to_template_directory(self):
+        # sam build -t infra/template.yaml --base-dir . with CodeUri: src/app builds <proj>/src/app.
+        # The template lives in <proj>/infra, so the path must be ../src/app, not src/app (which
+        # move_template would resolve to <proj>/infra/src/app).
+        actual = self._update(
+            "AWS::Serverless::MicrovmImage",
+            "CodeUri",
+            "src/app",
+            os.path.join(self.proj, "infra"),
+            os.path.join(self.proj, "src", "app"),
         )
+        self.assertEqual(actual, os.path.join("..", "src", "app"))
 
+    def test_image_without_recorded_source_directory_is_left_unchanged(self):
+        template_dict = {
+            "Resources": {"MyImage": {"Type": "AWS::Serverless::MicrovmImage", "Properties": {"CodeUri": "app"}}}
+        }
+        stack = Mock(
+            stack_path="", template_dict=template_dict, resources={}, location=os.path.join(self.proj, "t.yaml")
+        )
         actual = self.builder.update_template(stack, {"MyImage": "myimage:latest"}, {})
-
-        self.assertEqual(actual["Resources"]["MyImage"]["Properties"][code_prop], resolved_value)
+        self.assertEqual(actual["Resources"]["MyImage"]["Properties"]["CodeUri"], "app")
 
 
 class TestApplicationBuilder_update_template_windows(TestCase):
@@ -3850,6 +3881,7 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         builder._image_build_client.build_image.return_value = []
         builder._validated_container_client = MagicMock()
         builder._stream_writer = MagicMock()
+        builder._microvm_image_source_dirs = {}
         return builder
 
     @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
@@ -3865,6 +3897,7 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         self.assertEqual(call_kwargs["tag"], "mymicrovm:latest")
         self.assertEqual(call_kwargs["dockerfile"], "Dockerfile")
         self.assertEqual(call_kwargs["platform"], "linux/arm64")
+        self.assertEqual(builder._microvm_image_source_dirs, {"MyMicroVM": call_kwargs["path"]})
 
     @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
     def test_build_microvm_image_calls_docker_build_nested_stack(self, mock_exists):
