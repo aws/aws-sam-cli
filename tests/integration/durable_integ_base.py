@@ -14,7 +14,12 @@ from tests.testing_utils import (
     run_command,
     get_sam_command,
     get_build_command_list,
+    kill_process,
 )
+
+# The first durable invoke pulls the emulator image and builds the runtime image, which takes over
+# 30 seconds on the Windows runners
+CALLBACK_ID_TIMEOUT = 120
 
 
 class DurableIntegBase(TestCase):
@@ -72,15 +77,18 @@ class DurableIntegBase(TestCase):
             command.extend(["--error-data", kwargs["error_data"]])
         return command
 
-    def wait_for_callback_id(self, output_lines: List[str], timeout=30):
-        """Extract callback ID from output lines, waiting up to timeout seconds."""
+    def wait_for_callback_id(self, process: Popen, output_lines: List[str], timeout=CALLBACK_ID_TIMEOUT):
+        """Extract callback ID from output lines, waiting up to timeout seconds or until the process exits."""
         end_time = time.time() + timeout
         while time.time() < end_time:
+            exited = process.poll() is not None
             for line in output_lines:
                 if "Waiting for callback:" in line:
                     match = re.search(r"Waiting for callback: (.+)", line)
                     if match:
                         return match.group(1).strip()
+            if exited:
+                return None
             time.sleep(0.1)
         return None
 
@@ -129,6 +137,8 @@ class DurableIntegBase(TestCase):
         process = Popen(
             command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd
         )
+        # Stop the command if the test fails before it exits, so that it does not run into the rerun
+        self.addCleanup(self._kill_if_running, process)
         output_lines = []
 
         def log_output():
@@ -139,6 +149,11 @@ class DurableIntegBase(TestCase):
         thread.start()
 
         return process, output_lines, thread
+
+    @staticmethod
+    def _kill_if_running(process: Popen):
+        if process.poll() is None:
+            kill_process(process)
 
     def assert_invoke_output(
         self,
