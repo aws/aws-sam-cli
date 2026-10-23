@@ -10,7 +10,7 @@ import os
 import pathlib
 import shutil
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, cast
 
 import click
 
@@ -78,6 +78,7 @@ from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.path_utils import is_same_or_ancestor
 from samcli.local.docker.manager import ContainerManager
+from samcli.local.docker.utils import get_docker_platform
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
     ResourceNotFound,
@@ -1234,6 +1235,7 @@ class BuildContext:
                 artifacts_dir,
                 output_template_path,
                 os.path.abspath(self.build_dir) == os.path.abspath(DEFAULT_BUILD_DIR),
+                resources_to_build,
             )
             click.secho(msg, fg="yellow")
 
@@ -1248,7 +1250,13 @@ class BuildContext:
         if self._output is not OutputOption.json:
             click.secho("\nBuild Failed", fg="red")
 
-    def _gen_success_msg(self, artifacts_dir: str, output_template_path: str, is_default_build_dir: bool) -> str:
+    def _gen_success_msg(
+        self,
+        artifacts_dir: str,
+        output_template_path: str,
+        is_default_build_dir: bool,
+        resources_to_build: Optional[ResourcesToBuildCollector] = None,
+    ) -> str:
         """
         Generates a success message containing some suggested commands to run
 
@@ -1260,6 +1268,8 @@ class BuildContext:
             A string path representing the final template file
         is_default_build_dir: bool
             True if the build folder is the folder defined by SAM CLI
+        resources_to_build: Optional[ResourcesToBuildCollector]
+            The resources that were built, used to list built MicrovmImages and tailor the suggestions
 
         Returns
         -------
@@ -1277,7 +1287,18 @@ class BuildContext:
             invoke_suggestion += " -t {}".format(output_template_path)
             deploy_suggestion += " --template-file {}".format(output_template_path)
 
-        commands = [validate_suggestion, invoke_suggestion, sync_suggestion, deploy_suggestion]
+        microvm_images = resources_to_build.microvm_images if resources_to_build else []
+        only_microvm_images = (
+            resources_to_build is not None
+            and bool(microvm_images)
+            and not resources_to_build.functions
+            and not resources_to_build.layers
+        )
+        if only_microvm_images:
+            # There is no function to invoke when only MicrovmImages were built
+            commands = [validate_suggestion, sync_suggestion, deploy_suggestion]
+        else:
+            commands = [validate_suggestion, invoke_suggestion, sync_suggestion, deploy_suggestion]
 
         # check if we have used a hook package before building
         if self._hook_name:
@@ -1290,7 +1311,19 @@ class BuildContext:
 
         msg = f"""\nBuilt Artifacts  : {artifacts_dir}
 Built Template   : {output_template_path}
+"""
 
+        if microvm_images:
+            # The local image is not in the build directory, so name its tag here
+            built_artifacts = self._build_result.artifacts if self._build_result else {}
+            image_lines = [
+                f"{image.full_path} -> {built_artifacts.get(image.full_path)} "
+                f"({get_docker_platform(cast(str, image.architecture))})"
+                for image in microvm_images
+            ]
+            msg += "\nBuilt MicrovmImages\n===================\n[*] " + f"{os.linesep}[*] ".join(image_lines) + "\n"
+
+        msg += """
 Commands you can use next
 =========================
 """

@@ -1146,7 +1146,7 @@ class TestBuildContext_run(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock(functions=[], layers=[])
+        resources_mock.return_value = Mock(functions=[], layers=[], microvm_images=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -1385,7 +1385,7 @@ class TestBuildContext_run(TestCase):
         SamMicrovmImageProviderMock.return_value.get.return_value = None
         SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         stack = Mock()
-        resources_mock.return_value = Mock(functions=[], layers=[])
+        resources_mock.return_value = Mock(functions=[], layers=[], microvm_images=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
@@ -1736,6 +1736,75 @@ Commands you can use next
         )
 
         self.assertEqual(msg, expected_msg)
+
+
+class TestBuildContext_gen_success_msg_microvm_images(TestCase):
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier=None,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+        self.build_context._hook_name = False
+        self.images = [
+            MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64"),
+            MicrovmImage(name="Other", code_uri="./other", architecture="arm64", stack_path="Child"),
+        ]
+        self.build_context._build_result = ApplicationBuildResult(
+            Mock(), {"MyImage": "myimage:latest", "Child/Other": "child-other:latest"}
+        )
+
+    def _collector(self, functions=(), layers=(), images=()):
+        collector = ResourcesToBuildCollector()
+        collector.add_functions(list(functions))
+        collector.add_layers(list(layers))
+        collector.add_microvm_images(list(images))
+        return collector
+
+    def test_lists_built_microvm_images_with_tag_and_platform(self):
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(images=self.images)
+        )
+
+        self.assertIn(
+            "\nBuilt MicrovmImages\n===================\n"
+            f"[*] MyImage -> myimage:latest (linux/arm64){os.linesep}"
+            "[*] Child/Other -> child-other:latest (linux/arm64)\n",
+            msg,
+        )
+
+    def test_image_only_build_drops_local_invoke_but_keeps_sync_and_deploy(self):
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(images=self.images)
+        )
+
+        self.assertNotIn("sam local invoke", msg)
+        self.assertIn("sam validate", msg)
+        self.assertIn("sam sync", msg)
+        self.assertIn("sam deploy --guided", msg)
+
+    def test_mixed_build_keeps_local_invoke(self):
+        function = Mock()
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(functions=[function], images=self.images)
+        )
+
+        self.assertIn("sam local invoke", msg)
+        self.assertIn("Built MicrovmImages", msg)
+
+    def test_no_microvm_images_leaves_message_unchanged(self):
+        with_collector = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(functions=[Mock()])
+        )
+        without_collector = self.build_context._gen_success_msg("build_dir", "template_file", True)
+
+        self.assertEqual(with_collector, without_collector)
+        self.assertNotIn("Built MicrovmImages", with_collector)
 
 
 class TestBuildContext_print_build_success(TestCase):
