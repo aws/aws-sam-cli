@@ -27,10 +27,6 @@
       "Result": {
         "Payload": "\"Step with explicit name\"",
         "Truncated": false
-      },
-      "RetryDetails": {
-        "CurrentAttempt": 1,
-        "NextAttemptDelaySeconds": 0
       }
     }
   },
