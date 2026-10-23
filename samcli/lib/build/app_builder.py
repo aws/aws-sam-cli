@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, cast
 
@@ -1047,13 +1048,25 @@ class ApplicationBuilder:
 
         return working_directory
 
+    @staticmethod
+    def _microvm_image_tag(full_path: str) -> str:
+        """
+        Local Docker tag for a MicrovmImage: <full path, lowercased>:latest.
+
+        CDK construct IDs (used as the resource ID) can contain characters Docker rejects in an image
+        name, such as spaces, so every run of non-alphanumeric characters (including the nested stack "/")
+        becomes a single "-".
+        """
+        name = re.sub(r"[^a-z0-9]+", "-", full_path.lower()).strip("-") or "microvm-image"
+        return f"{name}:latest"
+
     def _build_microvm_image(self, full_path: str, code_uri: str, architecture: str) -> str:
         """
         Build a Docker image for a MicrovmImage resource.
 
         Uses CodeUri as the Docker build context. Dockerfile must be in that directory.
-        Tags the image as <full-path-with-slashes-replaced-by-dashes-lowercase>:latest, so that
-        MicrovmImage resources with the same logical ID in different nested stacks don't collide
+        Tags the image with _microvm_image_tag (the full path, lowercased and with "/" turned into "-"),
+        so that MicrovmImage resources with the same logical ID in different nested stacks don't collide
         on the same local Docker tag.
         Does NOT update the built template.
 
@@ -1095,7 +1108,7 @@ class ApplicationBuilder:
                 architecture,
             )
 
-        docker_tag = f"{full_path.replace('/', '-').lower()}:latest"
+        docker_tag = self._microvm_image_tag(full_path)
 
         build_args = {
             "path": str(docker_context_dir),
@@ -1131,14 +1144,14 @@ class ApplicationBuilder:
         except docker.errors.APIError as e:
             if self._container_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
-            raise
+            raise DockerBuildFailed(f"{full_path} failed to build: {e.explanation or e}") from e
 
         try:
             self._stream_lambda_image_build_logs(build_logs, full_path)  # type: ignore[arg-type]
         except docker.errors.APIError as e:
             if self._container_client.is_dockerfile_error(e):
                 raise DockerfileOutSideOfContext(e.explanation) from e
-            raise
+            raise DockerBuildFailed(f"{full_path} failed to build: {e.explanation or e}") from e
 
         self._microvm_image_source_dirs[full_path] = str(docker_context_dir)
         return docker_tag

@@ -3935,6 +3935,41 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
 
     @parameterized.expand(
         [
+            ("logical_id", "MyImage", "myimage:latest"),
+            ("nested_stack", "ChildStackA/MyMicroVM", "childstacka-mymicrovm:latest"),
+            ("cdk_id_with_spaces", "ucb space img", "ucb-space-img:latest"),
+            ("dots_and_underscores", "my_image..v2", "my-image-v2:latest"),
+            ("leading_and_trailing", " /Img/ ", "img:latest"),
+            ("nothing_valid", "  ", "microvm-image:latest"),
+        ]
+    )
+    def test_microvm_image_tag_is_a_valid_docker_name(self, _name, full_path, expected):
+        self.assertEqual(ApplicationBuilder._microvm_image_tag(full_path), expected)
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_api_error_becomes_docker_build_failed(self, mock_exists):
+        builder = self._make_builder()
+        builder._validated_container_client.is_dockerfile_error.return_value = False
+        builder._image_build_client.build_image.side_effect = docker.errors.APIError(
+            "400 Client Error", explanation="dockerfile parse error on line 3: unknown instruction: RUNN"
+        )
+
+        with self.assertRaisesRegex(DockerBuildFailed, "MyMicroVM failed to build: dockerfile parse error"):
+            builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_dockerfile_api_error_is_still_dockerfile_outside_of_context(self, mock_exists):
+        builder = self._make_builder()
+        builder._validated_container_client.is_dockerfile_error.return_value = True
+        builder._image_build_client.build_image.side_effect = docker.errors.APIError(
+            "500 Server Error", explanation="Cannot locate specified Dockerfile: Dockerfile"
+        )
+
+        with self.assertRaises(DockerfileOutSideOfContext):
+            builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+
+    @parameterized.expand(
+        [
             ("x86_64_host", "x86_64", True),
             ("arm64_host", "arm64", False),
         ]
