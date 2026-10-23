@@ -218,7 +218,8 @@ class EventTypeSubCommand(Group):
         compact = kwargs.pop("compact", False)
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)
         if compact:
-            event = json.dumps(json.loads(event), separators=(",", ":"))
+            # Keep non-ASCII characters as generated rather than escaping them.
+            event = json.dumps(json.loads(event), separators=(",", ":"), ensure_ascii=False)
         click.echo(event)
         return event
 
