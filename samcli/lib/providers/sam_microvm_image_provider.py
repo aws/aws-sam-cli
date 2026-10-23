@@ -19,6 +19,10 @@ _SUPPORTED_ARCHITECTURES = {
 }
 _DEFAULT_ARCHITECTURE = ARM64
 
+# Metadata keys that configure a Lambda image function build. A MicrovmImage is always built from the
+# Dockerfile at the root of CodeUri, as the MicroVM service builds it, so these have no effect.
+_IGNORED_DOCKER_METADATA_KEYS = ("Dockerfile", "DockerContext", "DockerTag", "DockerBuildArgs")
+
 
 class SamMicrovmImageProvider(SamBaseProvider):
     """Extracts MicrovmImage resources from SAM templates."""
@@ -159,6 +163,15 @@ class SamMicrovmImageProvider(SamBaseProvider):
                         logical_id,
                         cfn_architecture,
                     )
+
+        ignored_metadata_keys = [key for key in _IGNORED_DOCKER_METADATA_KEYS if key in (metadata or {})]
+        if ignored_metadata_keys:
+            LOG.warning(
+                "MicrovmImage '%s' ignores Metadata %s: it is built from the Dockerfile at the root of CodeUri, "
+                "as the MicroVM service builds it.",
+                logical_id,
+                ", ".join(ignored_metadata_keys),
+            )
 
         return MicrovmImage(
             name=logical_id,

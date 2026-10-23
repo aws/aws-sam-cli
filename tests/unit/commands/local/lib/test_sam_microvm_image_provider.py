@@ -249,6 +249,28 @@ class TestSamMicrovmImageProvider(TestCase):
         self.assertIsNone(provider.get_skip_reason("GoodImage"))
         self.assertIsNone(provider.get_skip_reason("NonExistent"))
 
+    @parameterized.expand(
+        [
+            ("docker_metadata", {"Dockerfile": "Dockerfile.dev", "DockerBuildArgs": {"A": "1"}}, True),
+            ("no_docker_metadata", {"SkipBuild": False}, False),
+            ("no_metadata", None, False),
+        ]
+    )
+    @patch("samcli.lib.providers.sam_microvm_image_provider.LOG")
+    def test_warns_on_ignored_docker_metadata(self, _name, metadata, expect_warning, mock_log):
+        resource = {"Type": "AWS::Lambda::MicrovmImage", "Properties": {"CodeArtifact": "./app"}}
+        if metadata is not None:
+            resource["Metadata"] = metadata
+        stack = Stack("", "", "template.yaml", None, {"Resources": {"MyImage": resource}})
+
+        SamMicrovmImageProvider([stack], use_raw_codeuri=True)
+
+        warnings = [c.args for c in mock_log.warning.call_args_list if "ignores Metadata" in c.args[0]]
+        if expect_warning:
+            self.assertEqual(warnings, [(warnings[0][0], "MyImage", "Dockerfile, DockerBuildArgs")])
+        else:
+            self.assertEqual(warnings, [])
+
     def test_ignore_code_extraction_warnings_skips_warning(self):
         stack = Stack(
             "",
