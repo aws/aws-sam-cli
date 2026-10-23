@@ -100,6 +100,28 @@ class TestBuildMicrovmImage(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, command_result.stderr.decode())
 
+    def test_build_foreach_dynamic_code_uri(self):
+        """With --language-extensions, each Fn::ForEach image builds from its own directory and the
+        built template keeps Fn::ForEach, with per-image paths in a generated Mapping."""
+        source_dir = Path(self.test_data_path, "microvm-image-foreach")
+        self.template_path = str(source_dir.joinpath("template.yaml"))
+        cmdlist = self.get_command_list(use_buildkit=self.use_buildkit) + ["--language-extensions"]
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, command_result.stderr.decode())
+
+        container_client = get_validated_container_client()
+        for tag in ("alphaimage:latest", "betaimage:latest"):
+            self.assertTrue(container_client.images.list(name=tag), f"Docker image '{tag}' should exist")
+
+        with open(str(self.built_template), "r") as f:
+            built_template = yaml_parse(f.read())
+        self.assertIn("Fn::ForEach::Images", built_template["Resources"])
+        mapping = built_template["Mappings"]["SAMCodeUriImages"]
+        for name in ("Alpha", "Beta"):
+            built_path = Path(self.default_build_dir, mapping[name]["CodeUri"]).resolve()
+            self.assertEqual(built_path, source_dir.joinpath(name).resolve())
+
     def test_build_fails_when_dockerfile_not_found(self):
         """sam build should fail when CodeUri directory doesn't contain a Dockerfile."""
         overrides = {"CodeUri": "./NonExistentDirectory"}
@@ -113,7 +135,8 @@ class TestBuildMicrovmImage(BuildIntegBase):
         # Clean up the image created during the test (works across Docker and Finch)
         try:
             container_client = get_validated_container_client()
-            container_client.remove_image_safely("mymicrovmimage:latest")
+            for tag in ("mymicrovmimage:latest", "alphaimage:latest", "betaimage:latest"):
+                container_client.remove_image_safely(tag)
         except Exception:
             pass
         super().tearDown()
