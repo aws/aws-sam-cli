@@ -38,6 +38,7 @@ from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     DockerBuildFailed,
     DockerfileOutSideOfContext,
+    MicrovmImageSourceError,
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.utils import _get_host_architecture, _make_env_vars, warn_cross_architecture_build
@@ -1090,8 +1091,19 @@ class ApplicationBuilder:
         docker_context_dir = pathlib.Path(self._base_dir, code_uri).resolve()
         dockerfile_path = docker_context_dir / "Dockerfile"
 
+        # These checks run before any Docker build, so they raise MicrovmImageSourceError, not DockerBuildFailed
+        if not docker_context_dir.exists():
+            raise MicrovmImageSourceError(
+                f"CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}' does not exist. "
+                "If CodeUri references a template parameter, provide its value via --parameter-overrides."
+            )
+        if not docker_context_dir.is_dir():
+            raise MicrovmImageSourceError(
+                f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a file. CodeUri must be a "
+                "directory containing a Dockerfile; sam build cannot build a MicrovmImage from a .zip file."
+            )
         if not dockerfile_path.exists():
-            raise DockerBuildFailed(
+            raise MicrovmImageSourceError(
                 f"Dockerfile not found in CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}'."
             )
 

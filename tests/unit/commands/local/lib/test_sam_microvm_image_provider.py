@@ -218,6 +218,37 @@ class TestSamMicrovmImageProvider(TestCase):
         self.assertEqual(provider.get("ImageB").code_uri, "./b")
         self.assertEqual(provider.get("SomethingElse").name, "ImageB")
 
+    def test_get_skip_reason_for_skipped_images(self):
+        stack = Stack(
+            "",
+            "",
+            "template.yaml",
+            None,
+            {
+                "Resources": {
+                    "S3Image": {
+                        "Type": "AWS::Serverless::MicrovmImage",
+                        "Properties": {
+                            "Name": "s3-image",
+                            "CodeUri": "s3://bucket/app.zip",
+                            "BaseImageArn": "arn:aws:lambda:::microvm-image:base",
+                            "BaseImageVersion": "0",
+                        },
+                    },
+                    "BadImage": {"Type": "AWS::Lambda::MicrovmImage", "Properties": {"CodeArtifact": {"Uri": 5}}},
+                    "GoodImage": {"Type": "AWS::Lambda::MicrovmImage", "Properties": {"CodeArtifact": "./app"}},
+                }
+            },
+        )
+        provider = SamMicrovmImageProvider([stack], use_raw_codeuri=True)
+
+        for identifier in ("S3Image", "s3-image"):
+            self.assertIsNone(provider.get(identifier))
+            self.assertIn("CodeUri is an S3 location", provider.get_skip_reason(identifier))
+        self.assertIn("CodeArtifact is missing or invalid", provider.get_skip_reason("BadImage"))
+        self.assertIsNone(provider.get_skip_reason("GoodImage"))
+        self.assertIsNone(provider.get_skip_reason("NonExistent"))
+
     def test_ignore_code_extraction_warnings_skips_warning(self):
         stack = Stack(
             "",

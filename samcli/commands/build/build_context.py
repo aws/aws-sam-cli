@@ -40,6 +40,7 @@ from samcli.lib.build.bundler import EsbuildBundlerManager
 from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     InvalidBuildGraphException,
+    MicrovmImageSourceError,
 )
 from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.cfn_language_extensions.models import PACKAGEABLE_RESOURCE_ARTIFACT_PROPERTIES
@@ -1634,6 +1635,10 @@ Commands you can use next
         """
         image = self.microvm_image_provider.get(resource_identifier)
         if not image:
+            # A targeted image skipped at extraction (e.g. an S3 source) would otherwise be reported as not found
+            skip_reason = self.microvm_image_provider.get_skip_reason(resource_identifier)
+            if isinstance(skip_reason, str) and not resource_collector.functions and not resource_collector.layers:
+                raise MicrovmImageSourceError(f"MicrovmImage '{resource_identifier}' is not buildable: {skip_reason}.")
             return
         # Hard fail only for truly unbuildable cases (unsupported architecture)
         if image.architecture is None:

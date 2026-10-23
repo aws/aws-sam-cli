@@ -122,14 +122,14 @@ class TestBuildMicrovmImage(BuildIntegBase):
             built_path = Path(self.default_build_dir, mapping[name]["CodeUri"]).resolve()
             self.assertEqual(built_path, source_dir.joinpath(name).resolve())
 
-    def test_build_fails_when_dockerfile_not_found(self):
-        """sam build should fail when CodeUri directory doesn't contain a Dockerfile."""
+    def test_build_fails_when_code_uri_does_not_exist(self):
+        """sam build should fail with a specific message when the CodeUri directory doesn't exist."""
         overrides = {"CodeUri": "./NonExistentDirectory"}
         cmdlist = self.get_command_list(parameter_overrides=overrides, use_buildkit=self.use_buildkit)
         command_result = run_command(cmdlist, cwd=self.working_dir)
 
         self.assertEqual(command_result.process.returncode, 1)
-        self.assertIn("Dockerfile not found", command_result.stderr.decode())
+        self.assertIn("does not exist", command_result.stderr.decode())
 
     def tearDown(self):
         # Clean up the image created during the test (works across Docker and Finch)

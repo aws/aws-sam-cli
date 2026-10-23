@@ -21,7 +21,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.build.exceptions import InvalidBuildGraphException, MicrovmImageSourceError
 from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.observability.util import OutputOption
 from samcli.lib.providers.provider import Function, MicrovmImage, ResourcesToBuildCollector, get_function_build_info
@@ -3111,6 +3111,31 @@ class TestCollectSingleMicrovmImage(TestCase):
 
         collector = ResourcesToBuildCollector()
         ctx._collect_single_microvm_image("NonExistent", collector)
+
+        self.assertEqual(len(collector.microvm_images), 0)
+
+    def test_collect_reports_why_a_skipped_image_is_not_buildable(self):
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = None
+        mock_provider.get_skip_reason.return_value = "CodeUri is an S3 location; sam build only builds a local source"
+        ctx._microvm_image_provider = mock_provider
+
+        with self.assertRaisesRegex(
+            MicrovmImageSourceError, "MicrovmImage 'MyImage' is not buildable: CodeUri is an S3"
+        ):
+            ctx._collect_single_microvm_image("MyImage", ResourcesToBuildCollector())
+
+    def test_collect_does_not_report_skipped_image_when_a_function_matched(self):
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = None
+        mock_provider.get_skip_reason.return_value = "CodeUri is an S3 location"
+        ctx._microvm_image_provider = mock_provider
+        collector = ResourcesToBuildCollector()
+        collector.add_function(Mock())
+
+        ctx._collect_single_microvm_image("MyImage", collector)
 
         self.assertEqual(len(collector.microvm_images), 0)
 

@@ -20,6 +20,7 @@ from samcli.lib.build.app_builder import (
     DockerBuildFailed,
     DockerfileOutSideOfContext,
     LambdaBuilderError,
+    MicrovmImageSourceError,
     UnsupportedBuilderLibraryVersionError,
 )
 from samcli.lib.build.exceptions import DockerConnectionError
@@ -3869,6 +3870,12 @@ class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
 
 
 class TestApplicationBuilder_build_microvm_image(TestCase):
+    def setUp(self):
+        # The CodeUri directory is a directory unless a test says otherwise
+        is_dir_patcher = patch("samcli.lib.build.app_builder.pathlib.Path.is_dir", return_value=True)
+        self.mock_is_dir = is_dir_patcher.start()
+        self.addCleanup(is_dir_patcher.stop)
+
     def _make_builder(self, microvm_images=None, base_dir="/project"):
         resources = ResourcesToBuildCollector()
         if microvm_images:
@@ -3919,13 +3926,32 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         call_kwargs = builder._image_build_client.build_image.call_args[1]
         self.assertEqual(call_kwargs["tag"], "childstacka-mymicrovm:latest")
 
-    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=False)
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", autospec=True)
     def test_build_microvm_image_raises_when_no_dockerfile(self, mock_exists):
-        image = MicrovmImage(name="MyMicroVM", code_uri="./app", architecture="arm64", microvm_image_name="MyMicroVM")
-        builder = self._make_builder(microvm_images=[image])
+        # The directory exists, the Dockerfile in it does not
+        mock_exists.side_effect = lambda path: path.name != "Dockerfile"
+        builder = self._make_builder()
 
-        with self.assertRaisesRegex(DockerBuildFailed, "Dockerfile not found"):
+        with self.assertRaisesRegex(MicrovmImageSourceError, "Dockerfile not found in CodeUri directory"):
             builder._build_microvm_image("MyMicroVM", "./app", "arm64")
+        builder._image_build_client.build_image.assert_not_called()
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=False)
+    def test_build_microvm_image_raises_when_code_uri_does_not_exist(self, mock_exists):
+        builder = self._make_builder()
+
+        with self.assertRaisesRegex(MicrovmImageSourceError, "does not exist.*--parameter-overrides"):
+            builder._build_microvm_image("MyMicroVM", "./CodeUriParam", "arm64")
+        builder._image_build_client.build_image.assert_not_called()
+
+    @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
+    def test_build_microvm_image_raises_when_code_uri_is_a_file(self, mock_exists):
+        self.mock_is_dir.return_value = False
+        builder = self._make_builder()
+
+        with self.assertRaisesRegex(MicrovmImageSourceError, "is a file.*cannot build a MicrovmImage from a .zip"):
+            builder._build_microvm_image("MyMicroVM", "./app.zip", "arm64")
+        builder._image_build_client.build_image.assert_not_called()
 
     @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
     def test_tag_is_lowercase(self, mock_exists):

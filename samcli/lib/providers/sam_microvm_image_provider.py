@@ -1,9 +1,9 @@
 """Provider for AWS::Serverless::MicrovmImage resources."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
-from samcli.lib.providers.provider import MicrovmImage, Stack
+from samcli.lib.providers.provider import MicrovmImage, Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
 from samcli.lib.utils.architecture import ARM64
@@ -30,6 +30,8 @@ class SamMicrovmImageProvider(SamBaseProvider):
         ignore_code_extraction_warnings: bool = False,
     ) -> None:
         self._microvm_images: List[MicrovmImage] = []
+        # Images skipped at extraction: (identifiers it can be looked up by, why it was skipped)
+        self._skipped_images: List[Tuple[Set[str], str]] = []
         self._use_raw_codeuri = use_raw_codeuri
         self._ignore_code_extraction_warnings = ignore_code_extraction_warnings
         self._extract_microvm_images(stacks)
@@ -54,6 +56,13 @@ class SamMicrovmImageProvider(SamBaseProvider):
                 if SamBaseProvider._is_s3_location(code_value):
                     if not self._ignore_code_extraction_warnings:
                         SamBaseProvider._warn_code_extraction(resource_type, logical_id, code_property_key)
+                    self._record_skipped_image(
+                        stack,
+                        logical_id,
+                        properties,
+                        metadata,
+                        f"{code_property_key} is an S3 location; sam build only builds a local source directory",
+                    )
                     continue
 
                 # Only extract if code_value is a non-empty local path string
@@ -68,6 +77,33 @@ class SamMicrovmImageProvider(SamBaseProvider):
                         logical_id,
                         code_property_key,
                     )
+                    self._record_skipped_image(
+                        stack, logical_id, properties, metadata, f"{code_property_key} is missing or invalid"
+                    )
+
+    def _record_skipped_image(
+        self, stack: Stack, logical_id: str, properties: Dict, metadata: Optional[Dict], reason: str
+    ) -> None:
+        """Remember why an image was skipped, under the same identifiers get() accepts."""
+        sam_resource_id = (metadata or {}).get("SamResourceId")
+        resource_id = sam_resource_id if isinstance(sam_resource_id, str) and sam_resource_id else logical_id
+        identifiers = {logical_id, resource_id, get_full_path(stack.stack_path, resource_id)}
+        name = properties.get("Name")
+        if isinstance(name, str) and name:
+            identifiers.add(name)
+        self._skipped_images.append((identifiers, reason))
+
+    def get_skip_reason(self, name: str) -> Optional[str]:
+        """
+        Why the MicrovmImage with this identifier was skipped at extraction, or None if it wasn't.
+
+        A skipped image is not returned by get(), so an explicitly targeted build can use this to report
+        the real reason instead of "resource not found".
+        """
+        for identifiers, reason in self._skipped_images:
+            if name in identifiers:
+                return reason
+        return None
 
     def _convert_microvm_image_resource(
         self,
