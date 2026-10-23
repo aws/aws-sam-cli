@@ -3,6 +3,7 @@ Generates the services and commands for selection in SAM CLI generate-event
 """
 
 import functools
+import json
 
 import click
 from click import Group
@@ -150,6 +151,15 @@ class EventTypeSubCommand(Group):
                 )
             )
 
+        parameters.append(
+            click.Option(
+                ["--compact"],
+                is_flag=True,
+                default=False,
+                help="Print the event as single-line JSON, for example to pass it in an environment variable.",
+            )
+        )
+
         command_callback = functools.partial(
             self.cmd_implementation, self.events_lib, self.top_level_cmd_name, cmd_name
         )
@@ -205,7 +215,10 @@ class EventTypeSubCommand(Group):
         event : string
             returns the customized event json as a string
         """
+        compact = kwargs.pop("compact", False)
         event = events_lib.generate_event(top_level_cmd_name, subcmd_name, kwargs)
+        if compact:
+            event = json.dumps(json.loads(event), separators=(",", ":"))
         click.echo(event)
         return event
 
