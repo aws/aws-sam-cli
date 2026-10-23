@@ -19,6 +19,7 @@ from samcli.lib.build.build_graph import (
     BuildGraph,
     FunctionBuildDefinition,
     LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
 )
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
 from samcli.lib.build.exceptions import (
@@ -37,9 +38,10 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 
-# type definition which can be used in generic types for both FunctionBuildDefinition & LayerBuildDefinition
-FunctionOrLayerBuildDefinition = TypeVar(
-    "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
+# type definition which can be used in generic types for FunctionBuildDefinition, LayerBuildDefinition,
+# and MicrovmImageBuildDefinition
+BuildDefinitionType = TypeVar(
+    "BuildDefinitionType", FunctionBuildDefinition, LayerBuildDefinition, MicrovmImageBuildDefinition
 )
 
 # Build failures that are attributable to specific resources. When one of these escapes a strategy
@@ -95,7 +97,7 @@ def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
 class BuildStrategy(ABC):
     """
     Base class for BuildStrategy
-    Keeps basic implementation of build, build_functions and build_layers
+    Keeps basic implementation of build, build_functions, build_layers, and build_microvm_images
     """
 
     def __init__(self, build_graph: BuildGraph) -> None:
@@ -109,12 +111,13 @@ class BuildStrategy(ABC):
 
     def build(self) -> Dict[str, str]:
         """
-        Builds all functions and layers in the given build graph
+        Builds all functions, layers, and MicrovmImages in the given build graph
         """
         result = {}
         with self:
             result.update(self._build_layers(self._build_graph))
             result.update(self._build_functions(self._build_graph))
+            result.update(self._build_microvm_images(self._build_graph))
 
         return result
 
@@ -152,10 +155,28 @@ class BuildStrategy(ABC):
         build location as value
         """
 
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        """
+        Iterates through build graph and runs each unique build for MicrovmImage resources
+        """
+        microvm_build_results = {}
+        for microvm_definition in build_graph.get_microvm_image_build_definitions():
+            microvm_build_results.update(self.build_single_microvm_image_definition(microvm_definition))
+
+        return microvm_build_results
+
+    @abstractmethod
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Builds single MicrovmImage definition and returns dictionary which contains MicrovmImage full path as key,
+        Docker image tag as value
+        """
+
 
 class DefaultBuildStrategy(BuildStrategy):
     """
-    Default build strategy, loops over given build graph for each function and layer, and builds each of them one by one
+    Default build strategy, loops over given build graph for each function, layer, and MicrovmImage,
+    and builds each of them one by one
     """
 
     def __init__(
@@ -166,12 +187,14 @@ class DefaultBuildStrategy(BuildStrategy):
             [str, str, Optional[str], str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str
         ],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
+        build_microvm_image: Callable[[str, str, str], str],
         cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
         self._build_function = build_function
         self._build_layer = build_layer
+        self._build_microvm_image = build_microvm_image
         self._cached = cached
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
@@ -301,6 +324,29 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.metadata,
             )
         }
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Build a single MicrovmImage definition via docker build.
+        """
+        microvm_image = microvm_definition.microvm_image
+        if not microvm_image or not microvm_image.architecture:
+            LOG.warning(
+                "Skipping MicrovmImage build: missing image or architecture for definition %s",
+                microvm_definition.code_uri,
+            )
+            return {}
+        with _attribute_build_failure_to([microvm_image.full_path]):
+            LOG.info(
+                "Building MicrovmImage: %s from %s",
+                microvm_image.full_path,
+                microvm_definition.code_uri,
+            )
+
+            result = self._build_microvm_image(
+                microvm_image.full_path, microvm_definition.code_uri, microvm_image.architecture
+            )
+        return {microvm_image.full_path: result}
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -444,6 +490,13 @@ class CachedBuildStrategy(BuildStrategy):
         uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
         clean_redundant_folders(self._cache_dir, uuids)
 
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Builds single MicrovmImage definition. Delegates to the underlying build strategy since
+        Docker has its own layer caching.
+        """
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
+
 
 class ParallelBuildStrategy(BuildStrategy):
     """
@@ -472,10 +525,15 @@ class ParallelBuildStrategy(BuildStrategy):
             self.build_single_function_definition, build_graph.get_function_build_definitions()
         )
 
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(
+            self.build_single_microvm_image_definition, build_graph.get_microvm_image_build_definitions()
+        )
+
     @staticmethod
     def _run_builds_async(
-        build_method: Callable[[FunctionOrLayerBuildDefinition], Dict[str, str]],
-        build_definitions: Tuple[FunctionOrLayerBuildDefinition, ...],
+        build_method: Callable[[BuildDefinitionType], Dict[str, str]],
+        build_definitions: Tuple[BuildDefinitionType, ...],
     ) -> Dict[str, str]:
         """Builds given list of build definitions in async and return the result"""
         if not build_definitions:
@@ -496,6 +554,9 @@ class ParallelBuildStrategy(BuildStrategy):
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
 
 class IncrementalBuildStrategy(BuildStrategy):
@@ -541,6 +602,9 @@ class IncrementalBuildStrategy(BuildStrategy):
                 layer_definition, layer_definition.codeuri, layer_definition.build_method
             )
             return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
     def _check_whether_manifest_is_changed(
         self,
@@ -664,6 +728,9 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
             layer_definition.get_resource_full_paths,
         )
         return self._cached_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._cached_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """

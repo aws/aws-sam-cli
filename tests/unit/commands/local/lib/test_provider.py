@@ -9,6 +9,7 @@ from samcli.lib.utils.architecture import X86_64, ARM64
 
 from samcli.lib.providers.provider import (
     LayerVersion,
+    MicrovmImage,
     ResourceIdentifier,
     Stack,
     _get_build_dir,
@@ -900,3 +901,43 @@ class TestGetStack(TestCase):
             self.child_child_stack, [self.root_stack, self.child_stack, self.child_child_stack]
         )
         self.assertEqual(stack_list, [])
+
+
+class TestMicrovmImage(TestCase):
+    """Tests for MicrovmImage class."""
+
+    @parameterized.expand(
+        [
+            ("MyImage", "./app", "", None, "MyImage"),  # root stack, full_path = name (logical_id)
+            ("MyImage", "./app", "ChildStack", None, "ChildStack/MyImage"),  # nested stack
+            ("MyImage", "./app", "", {"SamResourceId": "MyImage-x"}, "MyImage-x"),  # CDK with SamResourceId
+        ]
+    )
+    def test_full_path(self, name, code_uri, stack_path, metadata, expected_full_path):
+        img = MicrovmImage(name=name, code_uri=code_uri, architecture="arm64", stack_path=stack_path, metadata=metadata)
+        self.assertEqual(img.full_path, expected_full_path)
+
+    def test_microvm_image_name(self):
+        img = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64", microvm_image_name="my-app")
+        self.assertEqual(img.microvm_image_name, "my-app")
+
+    @parameterized.expand(
+        [
+            (None, {}),  # None metadata defaults to empty dict
+            ({}, {}),  # empty dict stays empty
+            ({"SkipBuild": True}, {"SkipBuild": True}),  # metadata preserved
+        ]
+    )
+    def test_metadata(self, input_metadata, expected_metadata):
+        img = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64", metadata=input_metadata)
+        self.assertEqual(img.metadata, expected_metadata)
+
+    def test_microvm_image_id_defaults_to_name(self):
+        img = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64")
+        self.assertEqual(img.microvm_image_id, "MyImage")
+
+    def test_microvm_image_id_uses_sam_resource_id(self):
+        img = MicrovmImage(
+            name="MyImage", code_uri="./app", architecture="arm64", metadata={"SamResourceId": "MyImage-x"}
+        )
+        self.assertEqual(img.microvm_image_id, "MyImage-x")
