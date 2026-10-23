@@ -2,6 +2,7 @@
 Unit tests for platform_config module
 """
 
+import os
 import plistlib
 import unittest
 from unittest.mock import patch, mock_open, Mock
@@ -507,12 +508,12 @@ class TestGetFinchRegistryConfigPath(unittest.TestCase):
     @patch("samcli.local.docker.platform_config.os.path.expanduser", return_value="/Users/me")
     @patch("samcli.local.docker.platform_config.platform.system", return_value="Darwin")
     def test_macos_defaults_to_finch_dir(self, mock_system, mock_expanduser):
-        self.assertEqual(get_finch_registry_config_path(), "/Users/me/.finch/config.json")
+        self.assertEqual(get_finch_registry_config_path(), os.path.join("/Users/me", ".finch", "config.json"))
 
     @patch.dict("os.environ", {"DOCKER_CONFIG": "/custom/config"}, clear=True)
     @patch("samcli.local.docker.platform_config.platform.system", return_value="Darwin")
     def test_macos_honors_docker_config(self, mock_system):
-        self.assertEqual(get_finch_registry_config_path(), "/custom/config/config.json")
+        self.assertEqual(get_finch_registry_config_path(), os.path.join("/custom/config", "config.json"))
 
     @parameterized.expand([("Linux",), ("Windows",)])
     @patch("samcli.local.docker.platform_config.platform.system")
