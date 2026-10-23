@@ -1086,8 +1086,6 @@ class ApplicationBuilder:
         str
             The Docker image tag that was built
         """
-        LOG.info("Building MicrovmImage %s", full_path)
-
         docker_context_dir = pathlib.Path(self._base_dir, code_uri).resolve()
         dockerfile_path = docker_context_dir / "Dockerfile"
 
