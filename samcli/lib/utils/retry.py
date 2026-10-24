@@ -26,14 +26,16 @@ def retry(exc, attempts=3, delay=0.05, exc_raise=Exception, exc_raise_msg=""):
         def wrapper(*args, **kwargs):
             remaining_attempts = attempts
             retry_attempt = 1
+            last_exception = None
             while remaining_attempts >= 1:
                 try:
                     return func(*args, **kwargs)
-                except exc:
+                except exc as e:
+                    last_exception = e
                     time.sleep(math.pow(2, retry_attempt) * delay)
                     retry_attempt = retry_attempt + 1
                     remaining_attempts = remaining_attempts - 1
-            raise exc_raise(exc_raise_msg)
+            raise exc_raise(exc_raise_msg) from last_exception
 
         return wrapper
 
