@@ -270,12 +270,19 @@ class IntrinsicsSymbolTable:
         partition_name = self.handle_pseudo_partition()
         if service_name == "lambda":
             resource_name = self._get_function_name(logical_id)
-            resource_name = self.logical_id_translator.get(resource_name) or resource_name
+            # Only use logical_id_translator if resource_name is a string (not an unresolved intrinsic)
+            if isinstance(resource_name, str):
+                resource_name = self.logical_id_translator.get(resource_name) or resource_name
+            else:
+                # If resource_name is still an intrinsic (dict), fall back to logical_id
+                resource_name = logical_id
 
             str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:function:{resource_name}"
         else:
             resource_name = logical_id
-            resource_name = self.logical_id_translator.get(resource_name) or resource_name
+            # Only use logical_id_translator if resource_name is a string
+            if isinstance(resource_name, str):
+                resource_name = self.logical_id_translator.get(resource_name) or resource_name
 
             str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{resource_name}"
 
