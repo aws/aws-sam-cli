@@ -374,6 +374,23 @@ class TestContainer_create(TestCase):
             container.create(self.container_context)
         self.assertIsNone(container._concurrency_semaphore)
 
+    def test_create_raises_port_already_in_use_when_port_allocated(self):
+        """Test that create() raises PortAlreadyInUse when Docker reports port is already allocated"""
+        container = Container(
+            self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
+        )
+
+        # Mock APIError with "port is already allocated" message (as reported by Finch)
+        error_msg = 'failed to parse port mapping "0.0.0.0:7311:8080/tcp": bind for 0.0.0.0:7311 failed: port is already allocated'
+        mock_error = APIError(error_msg)
+        self.mock_docker_client.containers.create.side_effect = mock_error
+
+        with self.assertRaises(PortAlreadyInUse) as context:
+            container.create(self.container_context)
+
+        # Verify the original error is chained
+        self.assertIs(context.exception.__cause__, mock_error)
+
     @patch("samcli.local.docker.container.os.path.exists")
     @patch("samcli.local.docker.container.os.makedirs")
     def test_must_make_host_tmp_dir_if_mount_with_write_container_build(self, mock_makedirs, mock_exists):

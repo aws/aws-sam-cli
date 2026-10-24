@@ -289,6 +289,8 @@ class Container:
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
+            if "port is already allocated" in str(ex):
+                raise PortAlreadyInUse(str(ex)) from ex
             raise DockerContainerCreationFailedException(
                 f"Container creation failed: {ex.explanation}, check template for potential issue"
             )
