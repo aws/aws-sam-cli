@@ -2014,6 +2014,192 @@ class TestLambdaRuntime_on_invoke_done_with_container(TestCase):
         # Verify cleanup was called
         self.runtime._clean_decompressed_paths.assert_called_once()
 
+    def test_on_invoke_done_stops_container_and_cleans_paths_even_when_check_exit_state_raises(self):
+        """Regression test: when the container was OOM-killed, _check_exit_state raises
+        ContainerFailureError. The container must still be stopped and the decompressed
+        code path must still be cleaned up, not skipped by the propagating exception.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with self.assertRaises(ContainerFailureError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_cleans_paths_even_when_container_manager_stop_raises(self):
+        """Regression test: if _container_manager.stop() itself raises (e.g. docker.errors.APIError
+        from Container.stop()/delete() for a reason other than "removal already in progress"),
+        _clean_decompressed_paths() must still run and not be skipped. Cleanup failures are
+        best-effort and must not propagate out of _on_invoke_done when there's no other error.
+        """
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock()
+        self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        # Should not raise: stop()'s failure is logged, not propagated.
+        self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_cleans_paths_when_both_check_exit_state_and_stop_raise(self):
+        """Regression test: when the container is OOM-killed (_check_exit_state raises
+        ContainerFailureError) AND the subsequent stop() also raises (e.g. a Docker API error),
+        _clean_decompressed_paths() must still run, and the original ContainerFailureError must
+        be what propagates -- not stop()'s cleanup-only error, which would otherwise replace the
+        user-facing OOM message with an opaque Docker API error.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.manager_mock.stop = Mock(side_effect=RuntimeError("docker API error"))
+        self.runtime._clean_decompressed_paths = Mock()
+
+        with self.assertRaises(ContainerFailureError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_stop_still_runs_when_clean_decompressed_paths_raises(self):
+        """Regression test: if _clean_decompressed_paths() itself raises (e.g. shutil.rmtree
+        OSError), that failure is best-effort and must not propagate, and must not prevent
+        stop() from having already run.
+        """
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock()
+        self.runtime._clean_decompressed_paths = Mock(side_effect=OSError("could not remove temp dir"))
+
+        # Should not raise: _clean_decompressed_paths()'s failure is logged, not propagated.
+        self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+    def test_on_invoke_done_original_error_propagates_when_clean_decompressed_paths_also_raises(self):
+        """Regression test: when _check_exit_state raises ContainerFailureError AND
+        _clean_decompressed_paths() also raises, the original ContainerFailureError must be
+        what propagates, not the cleanup-only error.
+        """
+        from samcli.local.docker.exceptions import ContainerFailureError
+
+        container = Mock()
+
+        self.runtime._check_exit_state = Mock(side_effect=ContainerFailureError("out of memory"))
+        self.runtime._clean_decompressed_paths = Mock(side_effect=OSError("could not remove temp dir"))
+
+        with self.assertRaises(ContainerFailureError):
+            self.runtime._on_invoke_done(container)
+
+        self.manager_mock.stop.assert_called_once_with(container)
+        self.runtime._clean_decompressed_paths.assert_called_once()
+
+
+class TestLambdaRuntime_get_code_dir_locking(TestCase):
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.lambda_image_mock)
+
+    @patch("samcli.local.lambdafn.runtime._unzip_file")
+    @patch("samcli.local.lambdafn.runtime.os.path.isfile", return_value=True)
+    @patch("samcli.local.lambdafn.runtime.os.path.exists", return_value=True)
+    def test_appending_to_cleanup_list_holds_the_same_lock_cleanup_uses(self, exists_mock, isfile_mock, unzip_mock):
+        """Regression test: _clean_decompressed_paths() snapshots and clears
+        self._temp_uncompressed_paths_to_be_cleaned under self._lock so a concurrent cleanup
+        can't observe a torn/partial list. That's only meaningful if every producer of that list
+        holds the same lock while mutating it -- start-api/start-lambda run threaded, and a
+        request thread appending here without the lock could race with a concurrent cleanup's
+        snapshot: the entry could be silently lost, or (worse) removed by rmtree while the
+        request that just unzipped it is still about to use it.
+        """
+        unzip_mock.return_value = "/tmp/decompressed"
+        self.runtime._lock = MagicMock()
+
+        result = self.runtime._get_code_dir("code.zip")
+
+        self.assertEqual(result, "/tmp/decompressed")
+        self.runtime._lock.__enter__.assert_called_once()
+        self.runtime._lock.__exit__.assert_called_once()
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, ["/tmp/decompressed"])
+
+
+class TestLambdaRuntime_clean_decompressed_paths(TestCase):
+    def setUp(self):
+        self.manager_mock = Mock()
+        self.lambda_image_mock = Mock()
+        self.runtime = LambdaRuntime(self.manager_mock, self.lambda_image_mock)
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_all_paths_cleaned_and_list_cleared_on_success(self, shutil_mock):
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "path2"]
+
+        self.runtime._clean_decompressed_paths()
+
+        self.assertEqual(shutil_mock.rmtree.call_args_list, [call("path1"), call("path2")])
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_failure_removing_one_path_does_not_block_the_others(self, shutil_mock):
+        """Regression test: previously, if shutil.rmtree() raised for one directory, the loop
+        aborted immediately and self._temp_uncompressed_paths_to_be_cleaned was never reset
+        (the reset only ran after the loop finished). Since this list is append-only, every
+        entry -- including ones successfully removed before the failure, and any added by later
+        invokes -- would be stuck in it forever, and every subsequent call would re-hit the same
+        first failing path and abort again, permanently leaking all newer temp dirs. A single
+        failure must not prevent the other paths in the same batch from being attempted.
+        """
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "bad_path", "path3"]
+
+        def rmtree_side_effect(path):
+            if path == "bad_path":
+                raise OSError("boom")
+
+        shutil_mock.rmtree = Mock(side_effect=rmtree_side_effect)
+
+        # Should not raise, and must still attempt every path.
+        self.runtime._clean_decompressed_paths()
+
+        self.assertEqual(shutil_mock.rmtree.call_args_list, [call("path1"), call("bad_path"), call("path3")])
+
+    @patch("samcli.local.lambdafn.runtime.shutil")
+    def test_failed_path_is_requeued_for_retry_not_dropped_permanently(self, shutil_mock):
+        """Regression test: rmtree() failures at this call site are commonly transient (e.g. a
+        directory just bind-mounted into a just-stopped container isn't released yet), so a
+        failed path must be requeued for the next cleanup pass rather than dropped permanently
+        with only a log warning -- otherwise every one-off failure in a long-running
+        `start-api`/`start-lambda` process accumulates into a silent, permanent leak.
+        """
+        self.runtime._temp_uncompressed_paths_to_be_cleaned = ["path1", "bad_path", "path3"]
+
+        def rmtree_side_effect(path):
+            if path == "bad_path":
+                raise OSError("boom")
+
+        shutil_mock.rmtree = Mock(side_effect=rmtree_side_effect)
+
+        self.runtime._clean_decompressed_paths()
+
+        # Only the failed path remains queued; successfully-removed paths are gone.
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, ["bad_path"])
+
+        # And it's actually retried (and this time succeeds) on the next cleanup pass.
+        shutil_mock.rmtree = Mock()
+        self.runtime._clean_decompressed_paths()
+        shutil_mock.rmtree.assert_called_once_with("bad_path")
+        self.assertEqual(self.runtime._temp_uncompressed_paths_to_be_cleaned, [])
+
 
 class TestWarmLambdaRuntime_create_container_branch(TestCase):
     """Test WarmLambdaRuntime.create method container branch - lines 470->473"""
