@@ -25,6 +25,24 @@ logging.basicConfig()
 
 
 class TestSamConfigForAllCommands(TestCase):
+    @parameterized.expand(
+        [
+            ("single", "First", [], "First"),
+            ("multiple", ["First", "Second"], [], ("First", "Second")),
+            ("override", ["First", "Second"], ["Third"], "Third"),
+        ]
+    )
+    @patch("samcli.commands.build.command.do_cli")
+    def test_build_configured_resources(self, _name, configured, arguments, expected, do_cli_mock):
+        from samcli.commands.build.command import cli
+
+        with samconfig_parameters(
+            ["build"], self.scratch_dir, resource_logical_id=configured, template_file="mytemplate.yaml"
+        ):
+            result = CliRunner().invoke(cli, arguments)
+        self.assertIsNone(result.exception, result.output)
+        self.assertEqual(do_cli_mock.call_args[0][1], expected)
+
     def setUp(self):
         self._old_cwd = os.getcwd()
 

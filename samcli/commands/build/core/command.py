@@ -41,6 +41,10 @@ class BuildCommand(CoreCommand):
                             name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} FUNCTION_LOGICAL_ID OTHER_FUNCTION_ID LAYER_LOGICAL_ID"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
                     ]
                 )
             with formatter.indented_section(name="Build sam project using container", extra_indents=1):

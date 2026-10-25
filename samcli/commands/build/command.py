@@ -4,7 +4,7 @@ CLI command for "build" command
 
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -133,7 +133,7 @@ DESCRIPTION = """
 @structured_output_option
 @cli_framework_options
 @aws_creds_options
-@click.argument("resource_logical_id", required=False)
+@click.argument("resource_logical_id", nargs=-1)
 @save_params_option
 @pass_context
 @track_command
@@ -142,7 +142,7 @@ DESCRIPTION = """
 def cli(
     ctx: Context,
     # please keep the type below consistent with @click.options
-    resource_logical_id: Optional[str],
+    resource_logical_id: Tuple[str, ...],
     template_file: str,
     base_dir: Optional[str],
     build_dir: str,
@@ -178,9 +178,15 @@ def cli(
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
 
+    # Click treats an absent variadic argument as (), bypassing default_map values.
+    if not resource_logical_id:
+        configured_ids = click.get_current_context().lookup_default("resource_logical_id")
+        if configured_ids:
+            resource_logical_id = (configured_ids,) if isinstance(configured_ids, str) else tuple(configured_ids)
+
     do_cli(
         ctx,
-        resource_logical_id,
+        resource_logical_id[0] if len(resource_logical_id) == 1 else resource_logical_id or None,
         template_file,
         base_dir,
         build_dir,
@@ -210,7 +216,7 @@ def cli(
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     click_ctx,
-    function_identifier: Optional[str],
+    function_identifier: Optional[Union[str, Tuple[str, ...]]],
     template: str,
     base_dir: Optional[str],
     build_dir: str,
