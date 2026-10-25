@@ -173,6 +173,19 @@ class TestEvents(TestCase):
         self.assertEqual(s3_record["s3"]["bucket"]["arn"], "arn:aws-cn:s3:::example-uploads")
         self.assertEqual(unquote_plus(s3_record["s3"]["object"]["key"]), 'incoming/a "quoted"+雪.txt')
 
+    def test_chained_s3_object_keys_are_encoded_once(self) -> None:
+        event_library = events.Events()
+        for key in ("", "a b", "a+b", "a%2Fb", "a\\b", 'a"b', "a\nb", "a\tb", "雪/😀.txt", "a" * 1024):
+            with self.subTest(key=key):
+                values = {"key": key}
+                record = json.loads(event_library.generate_event("sqs", "receive-message-from-s3", values))["Records"][
+                    0
+                ]
+                self.assertEqual(record["body"], event_library.generate_event("s3", "put", {"key": key}))
+                s3_record = json.loads(record["body"])["Records"][0]
+                self.assertEqual(unquote_plus(s3_record["s3"]["object"]["key"]), key)
+                self.assertEqual(record["md5OfBody"], hashlib.md5(record["body"].encode("utf-8")).hexdigest())
+
 
 class TestServiceCommand(TestCase):
     def setUp(self):
