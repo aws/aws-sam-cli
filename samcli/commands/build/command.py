@@ -7,6 +7,7 @@ import os
 from typing import Dict, List, Optional, Tuple, Union
 
 import click
+from click.core import ParameterSource
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
@@ -66,6 +67,20 @@ DESCRIPTION = """
   5. Dotnet6, Dotnet8, Dotnet10 using Dotnet CLI\n
   6. Go 1.x using Go Modules (without --use-container)\n
 """
+
+
+def _resolve_resource_logical_ids(
+    ctx: click.Context, param: click.Parameter, value: Tuple[str, ...]
+) -> Tuple[str, ...]:
+    """Restore variadic defaults before --save-params can overwrite a saved selection."""
+    name = param.name
+    if value or name is None:
+        return value
+    configured_ids = ctx.lookup_default(name)
+    ctx.set_parameter_source(name, ParameterSource.DEFAULT_MAP if configured_ids else ParameterSource.DEFAULT)
+    if not configured_ids:
+        return ()
+    return (configured_ids,) if isinstance(configured_ids, str) else tuple(configured_ids)
 
 
 @click.command(
@@ -133,7 +148,7 @@ DESCRIPTION = """
 @structured_output_option
 @cli_framework_options
 @aws_creds_options
-@click.argument("resource_logical_id", nargs=-1)
+@click.argument("resource_logical_id", nargs=-1, callback=_resolve_resource_logical_ids)
 @save_params_option
 @pass_context
 @track_command
@@ -177,12 +192,6 @@ def cli(
     # All logic must be implemented in the ``do_cli`` method. This helps with easy unit testing
 
     mode = _get_mode_value_from_envvar("SAM_BUILD_MODE", choices=["debug"])
-
-    # Click treats an absent variadic argument as (), bypassing default_map values.
-    if not resource_logical_id:
-        configured_ids = click.get_current_context().lookup_default("resource_logical_id")
-        if configured_ids:
-            resource_logical_id = (configured_ids,) if isinstance(configured_ids, str) else tuple(configured_ids)
 
     do_cli(
         ctx,

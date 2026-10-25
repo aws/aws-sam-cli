@@ -22,6 +22,10 @@ resource set uses the existing serial, parallel, cached, and container build
 workflows. Unselected resources remain in the output template with paths to
 their original source locations.
 
+Resource selections saved in `samconfig.toml` can be a single name or a list.
+CLI names override the saved selection. Running `sam build --save-params`
+without names preserves the saved selection for subsequent builds.
+
 What is the problem?
 --------------------
 

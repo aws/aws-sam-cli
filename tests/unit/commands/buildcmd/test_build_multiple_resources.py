@@ -62,6 +62,11 @@ class TestBuildMultipleResources(TestCase):
         self.assertEqual([function.full_path for function in result.functions], ["First", "Child/First"])
         self.assertEqual([layer.full_path for layer in result.layers], ["Shared", "Child/Shared"])
 
+    def test_selects_multiple_layers_without_building_functions(self) -> None:
+        result = self._context(("Shared", "Child/Shared", "Shared")).resources_to_build
+        self.assertEqual(result.functions, [])
+        self.assertEqual([layer.full_path for layer in result.layers], ["Shared", "Child/Shared"])
+
     def test_rejects_an_unknown_identifier_even_when_another_is_valid(self) -> None:
         with self.assertRaisesRegex(ResourceNotFound, "Missing"):
             self._context(("First", "Missing")).resources_to_build

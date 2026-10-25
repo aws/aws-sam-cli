@@ -25,6 +25,23 @@ logging.basicConfig()
 
 
 class TestSamConfigForAllCommands(TestCase):
+    @parameterized.expand([("single", "First", "First"), ("multiple", ["First", "Second"], ("First", "Second"))])
+    @patch("samcli.commands.build.command.do_cli")
+    def test_saving_without_resource_arguments_preserves_config(self, _name, configured, expected, do_cli_mock):
+        from samcli.commands.build.command import cli
+
+        with samconfig_parameters(
+            ["build"], self.scratch_dir, resource_logical_id=configured, template_file="mytemplate.yaml"
+        ):
+            with patch("samcli.cli.cli_config_file.LOG.info"):
+                result = CliRunner().invoke(cli, ["--save-params", "--region", "us-east-1"])
+            self.assertIsNone(result.exception, result.output)
+            self.assertEqual(do_cli_mock.call_args[0][1], expected)
+            self.assertEqual(
+                SamConfig(self.scratch_dir).get_all(["build"], "parameters", DEFAULT_ENV)["resource_logical_id"],
+                configured,
+            )
+
     @parameterized.expand(
         [
             ("single", "First", [], "First"),

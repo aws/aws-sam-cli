@@ -52,7 +52,14 @@ class TestBuildMultipleResources(TestCase):
             timeout=60,
         )
 
-    @parameterized.expand([("serial", []), ("parallel", ["--parallel"]), ("cached", ["--cached"])])
+    @parameterized.expand(
+        [
+            ("serial", []),
+            ("parallel", ["--parallel"]),
+            ("cached", ["--cached"]),
+            ("cached_parallel", ["--cached", "--parallel"]),
+        ]
+    )
     def test_builds_one_combined_template(self, _name: str, options: list) -> None:
         for _ in range(2 if "--cached" in options else 1):
             process = self._build(["First", "Second", "Shared", "First"], options)
@@ -67,6 +74,21 @@ class TestBuildMultipleResources(TestCase):
                 self.assertTrue((artifact / "app.py").is_file(), name)
             self.assertEqual(built["Unselected"]["Properties"]["CodeUri"], "../../src")
             self.assertFalse((build_dir / "Unselected").exists())
+
+    def test_saved_selection_survives_repeated_save_without_arguments(self) -> None:
+        for identifiers, options in (
+            (["First", "Second"], ["--save-params", "--region", "us-east-1"]),
+            ([], []),
+            ([], ["--save-params", "--region", "us-east-1"]),
+            ([], []),
+        ):
+            process = self._build(identifiers, options)
+            self.assertEqual(process.returncode, 0, process.stdout + process.stderr)
+            self.assertEqual(
+                {r["resource_id"] for r in json.loads(process.stdout)["resources"]},
+                {"First", "Second", "Shared"},
+            )
+            self.assertIn('resource_logical_id = ["First", "Second"]', (self.project / "samconfig.toml").read_text())
 
     def test_rejects_unknown_selection(self) -> None:
         process = self._build(["First", "Missing"], [])
