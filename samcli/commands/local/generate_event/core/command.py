@@ -19,6 +19,17 @@ class CoreGenerateEventCommand(CoreCommand, GenerateEventCommand):
     @staticmethod
     def format_examples(ctx: Context, formatter: RootCommandHelpTextFormatter):
         with formatter.indented_section(name="Examples", extra_indents=1):
+            with formatter.indented_section(name="Generate an S3 notification delivered through SQS", extra_indents=1):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=style(
+                                f"$ {ctx.command_path} sqs receive-message-from-s3 --bucket <bucket> --key <key>"
+                            ),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
             with formatter.indented_section(name="Generate event S3 sends to local Lambda function", extra_indents=1):
                 formatter.write_text_rows(
                     [

@@ -1,5 +1,7 @@
+import hashlib
 import json
 import os
+from urllib.parse import unquote_plus
 
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -145,6 +147,31 @@ class TestEvents(TestCase):
         self.assertIsInstance(result_json["queryStringParameters"], dict)
         self.assertEqual(result_json["queryStringParameters"]["outer"]["inner"], "x")
         self.assertEqual(result_json["queryStringParameters"]["items"], ["a", "b"])
+
+    def test_generate_sqs_event_from_s3(self) -> None:
+        values = {
+            "partition": "aws-cn",
+            "region": "cn-north-1",
+            "account_id": "111122223333",
+            "queue_name": "object-events",
+            "bucket": "example-uploads",
+            "key": 'incoming/a "quoted"+雪.txt',
+        }
+        result = json.loads(events.Events().generate_event("sqs", "receive-message-from-s3", values))
+        record = result["Records"][0]
+        self.assertEqual(record["eventSource"], "aws:sqs")
+        self.assertEqual(record["eventSourceARN"], "arn:aws-cn:sqs:cn-north-1:111122223333:object-events")
+        self.assertEqual(record["awsRegion"], "cn-north-1")
+        self.assertIsInstance(record["body"], str)
+        self.assertEqual(record["md5OfBody"], hashlib.md5(record["body"].encode("utf-8")).hexdigest())
+
+        s3_record = json.loads(record["body"])["Records"][0]
+        self.assertEqual(s3_record["eventSource"], "aws:s3")
+        self.assertEqual(s3_record["eventName"], "ObjectCreated:Put")
+        self.assertEqual(s3_record["awsRegion"], "cn-north-1")
+        self.assertEqual(s3_record["s3"]["bucket"]["name"], "example-uploads")
+        self.assertEqual(s3_record["s3"]["bucket"]["arn"], "arn:aws-cn:s3:::example-uploads")
+        self.assertEqual(unquote_plus(s3_record["s3"]["object"]["key"]), 'incoming/a "quoted"+雪.txt')
 
 
 class TestServiceCommand(TestCase):
