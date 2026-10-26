@@ -1,6 +1,8 @@
 import io
 import json
 import os
+import pathlib
+import tempfile
 from contextlib import redirect_stdout
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
@@ -27,6 +29,21 @@ from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
+
+_web_function_provider_patcher = None
+
+
+def setUpModule():
+    # These tests use Mock stacks; SamWebFunctionProvider is tested separately
+    global _web_function_provider_patcher
+    _web_function_provider_patcher = patch("samcli.commands.build.build_context.SamWebFunctionProvider")
+    provider_class_mock = _web_function_provider_patcher.start()
+    provider_class_mock.return_value.get.return_value = None
+    provider_class_mock.return_value.get_all.return_value = []
+
+
+def tearDownModule():
+    _web_function_provider_patcher.stop()
 
 
 class DeepWrap(Exception):
@@ -172,7 +189,7 @@ class TestBuildContext__enter__(TestCase):
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
-        setup_build_dir_mock.assert_called_with("build_dir", True)
+        setup_build_dir_mock.assert_called_with("build_dir", True, "cache_dir", ["basedir", "basedir"])
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
@@ -511,7 +528,7 @@ class TestBuildContext__enter__(TestCase):
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
-        setup_build_dir_mock.assert_called_with("build_dir", True)
+        setup_build_dir_mock.assert_called_with("build_dir", True, "cache_dir", ["basedir", "basedir"])
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
 
@@ -753,6 +770,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         os_patch.listdir.return_value = True
@@ -780,6 +798,7 @@ class TestBuildContext_setup_build_dir(TestCase):
         # must surface as InvalidBuildDirException so --output json still emits a JSON error.
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.exists.return_value = True
         os_patch.listdir.return_value = True
@@ -794,6 +813,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_exists_with_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.listdir.return_value = False
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
@@ -819,6 +839,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_does_not_exist(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         path_mock.resolve.return_value = "long/full/path"
@@ -843,6 +864,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_non_clean_build_when_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         os_patch.listdir.return_value = True
@@ -868,6 +890,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_when_build_dir_is_cwd_raises_exception(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/somepath"]
         path_mock.cwd.return_value = "/somepath"
         build_dir = "/somepath"
@@ -883,6 +906,105 @@ class TestBuildContext_setup_build_dir(TestCase):
         pathlib_patch.Path.assert_called_once_with(build_dir)
         shutil_patch.rmtree.assert_not_called()
         pathlib_patch.Path.cwd.assert_called_once()
+
+    @parameterized.expand([("..",), (os.path.join("..", ".."),)])
+    def test_when_build_dir_is_parent_of_cwd_raises_and_removes_nothing(self, relative_build_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "workspace", "project")
+            project.mkdir(parents=True)
+            template = project / "template.yaml"
+            template.write_text("Resources: {}")
+            sibling = pathlib.Path(root, "workspace", "sibling.txt")
+            sibling.write_text("unrelated")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with self.assertRaises(InvalidBuildDirException):
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True)
+
+            self.assertTrue(template.exists())
+            self.assertTrue(sibling.exists())
+
+    def test_when_build_dir_contains_template_dir_raises_and_removes_nothing(self):
+        # sam build -t proj/template.yaml --build-dir proj, run from proj's parent
+        with tempfile.TemporaryDirectory() as root:
+            cwd = pathlib.Path(root)
+            template = cwd / "proj" / "template.yaml"
+            template.parent.mkdir()
+            template.write_text("Resources: {}")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=cwd):
+                with self.assertRaises(InvalidBuildDirException):
+                    BuildContext._setup_build_dir(str(cwd / "proj"), True, None, [str(template.parent)])
+
+            self.assertTrue(template.exists())
+
+    @parameterized.expand(
+        [
+            (".aws-sam", None),
+            (os.path.join(".aws-sam", "cache"), os.path.join(".aws-sam", "cache")),
+            (os.path.join(".aws-sam", "deps"), os.path.join(".aws-sam", "cache")),
+            ("out", os.path.join("out", "cache")),
+            ("out", os.path.join("out", "nested", "cache")),
+        ]
+    )
+    def test_when_build_dir_contains_sam_state_warns(self, relative_build_dir, cache_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            (project / relative_build_dir).mkdir(parents=True)
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with self.assertLogs("samcli.commands.build.build_context", level="WARNING") as logs:
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True, cache_dir)
+
+            self.assertIn("will not be supported in a future release", logs.output[0])
+            self.assertTrue((project / relative_build_dir).is_dir())
+
+    def test_when_build_dir_contains_sam_state_without_clean_does_not_warn(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            state_file = project / ".aws-sam" / "cache" / "marker"
+            state_file.parent.mkdir(parents=True)
+            state_file.write_text("state")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with patch("samcli.commands.build.build_context.LOG") as log_mock:
+                    BuildContext._setup_build_dir(str(project / ".aws-sam"), False, os.path.join(".aws-sam", "cache"))
+
+            log_mock.warning.assert_not_called()
+            self.assertTrue(state_file.exists())
+
+    @parameterized.expand(
+        [
+            (os.path.join(".aws-sam", "build"), os.path.join(".aws-sam", "cache")),
+            (os.path.join(".aws-sam", "auto-dependency-layer"), os.path.join(".aws-sam", "cache")),
+            ("out", os.path.join(".aws-sam", "cache")),
+            ("out", None),
+        ]
+    )
+    def test_build_dir_beside_sam_state_is_allowed(self, relative_build_dir, cache_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            project.mkdir()
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with patch("samcli.commands.build.build_context.LOG") as log_mock:
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True, cache_dir)
+
+            log_mock.warning.assert_not_called()
+            self.assertTrue((project / relative_build_dir).is_dir())
+
+    def test_build_dir_inside_cwd_is_cleaned(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            build_dir = project / ".aws-sam" / "build"
+            build_dir.mkdir(parents=True)
+            (build_dir / "stale").write_text("old artifact")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                BuildContext._setup_build_dir(str(build_dir), True)
+
+            self.assertTrue(build_dir.is_dir())
+            self.assertEqual(os.listdir(build_dir), [])
 
 
 class TestBuildContext_setup_cached_and_deps_dir(TestCase):

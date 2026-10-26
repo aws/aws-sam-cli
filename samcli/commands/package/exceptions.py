@@ -165,6 +165,18 @@ class PackageResolveS3AndS3NotSetError(UserException):
         super().__init__(message=message_fmt)
 
 
+class PackageResolveS3WebFunctionError(UserException):
+    def __init__(self):
+        message_fmt = (
+            "Cannot use --resolve-s3 with an AWS::Serverless::WebFunction that has local code. Lambda Web Functions "
+            "read their code from S3 for as long as they exist, so their code can't be stored in the shared SAM CLI "
+            "managed bucket. Use 'sam deploy', which creates a code bucket for the stack, or pass --s3-bucket with a "
+            "versioned bucket whose policy allows lambda.amazonaws.com to call s3:GetObject and s3:GetObjectVersion."
+        )
+
+        super().__init__(message=message_fmt)
+
+
 class InvalidMappingKeyError(UserException):
     """
     Exception raised when collection values contain invalid characters for CloudFormation Mapping keys.

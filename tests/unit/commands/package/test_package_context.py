@@ -57,6 +57,7 @@ class TestPackageCommand(TestCase):
             profile=None,
         )
 
+    @patch("samcli.commands.package.package_context.check_no_web_functions_in_foreach", MagicMock())
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(SamLocalStackProvider, "get_stacks")
     @patch.object(Template, "export", MagicMock(sideeffect=OSError))
@@ -153,6 +154,7 @@ class TestPackageCommand(TestCase):
             )
             package_command_context.run()
 
+    @patch("samcli.commands.package.package_context.check_no_web_functions_in_foreach", MagicMock())
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch("samcli.commands.package.package_context.PackageContext._warn_preview_runtime")
     @patch("samcli.commands.package.package_context.get_resource_full_path_by_id")
@@ -309,7 +311,7 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # ECR uploader should be created but Docker client not validated yet
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
@@ -382,8 +384,8 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # Verify ECRUploader was created with None docker_client parameter
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._docker_client_param)
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._container_client_param)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
@@ -4606,3 +4608,121 @@ class TestExportLanguageExtensionsStructuralGate(TestCase):
         ctx._export("template.yaml", use_json=False)
 
         mock_pre_le_pass.assert_not_called()
+
+
+class TestPackageContextWebFunctionCodeAccess(TestCase):
+    def _context(self, s3_bucket="bucket", kms_key_id=None):
+        return PackageContext(
+            template_file="template-file",
+            s3_bucket=s3_bucket,
+            s3_prefix="prefix",
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=kms_key_id,
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={},
+            region="us-east-1",
+            profile=None,
+        )
+
+    @patch("samcli.commands.package.package_context.check_web_function_code_bucket")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=True)
+    @patch("samcli.commands.package.package_context.boto3")
+    def test_checks_bucket_when_template_has_web_functions(self, boto3_mock, has_mock, warn_mock):
+        s3_client = Mock()
+        self._context(kms_key_id="key")._check_web_function_code_bucket(["stack"], s3_client, "r")
+        has_mock.assert_called_once_with(["stack"], local_code_only=True)
+        warn_mock.assert_called_once_with(s3_client, "bucket", "prefix", "key", boto3_mock.client.return_value)
+
+    @patch("samcli.commands.package.package_context.check_web_function_code_bucket")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=False)
+    def test_skips_check_without_web_functions(self, has_mock, warn_mock):
+        self._context()._check_web_function_code_bucket(["stack"], Mock(), "r")
+        warn_mock.assert_not_called()
+
+    @patch("samcli.commands.package.package_context.check_web_function_code_bucket")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=True)
+    def test_check_failure_does_not_fail_packaging(self, has_mock, warn_mock):
+        warn_mock.side_effect = Exception("boom")
+        self._context()._check_web_function_code_bucket(["stack"], Mock(), "r")
+
+
+class TestPackageContextWebFunctionCodeBucketErrors(TestCase):
+    @patch("samcli.commands.package.package_context.check_web_function_code_bucket")
+    @patch("samcli.commands.package.package_context.stacks_have_web_functions", return_value=True)
+    def test_bucket_errors_fail_packaging(self, has_mock, check_mock):
+        from samcli.lib.package.web_function_code_access import WebFunctionCodeBucketError
+
+        check_mock.side_effect = WebFunctionCodeBucketError(["not versioned"])
+        context = TestPackageContextWebFunctionCodeAccess()._context()
+        with self.assertRaises(WebFunctionCodeBucketError):
+            context._check_web_function_code_bucket(["stack"], Mock(), "r")
+
+
+class TestPackageContextWebFunctionCodeBucket(TestCase):
+    @patch(
+        "samcli.commands.package.package_context.manage_web_function_code_bucket",
+        return_value=("code-bucket", "my-app-export"),
+    )
+    def test_uploader_targets_the_stack_code_bucket(self, manage_mock):
+        context = PackageContext(
+            template_file="template-file",
+            s3_bucket="managed-bucket",
+            s3_prefix="prefix",
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id="kms-key",
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={"k": "v"},
+            region="us-east-1",
+            profile="profile",
+            web_function_stack_name="my-app",
+        )
+        uploader, export_name = context._web_function_code_uploader(Mock(), "us-east-1")
+        self.assertEqual(export_name, "my-app-export")
+        manage_mock.assert_called_once_with("my-app", "us-east-1", "profile")
+        self.assertEqual(uploader.bucket_name, "code-bucket")
+        self.assertIsNone(uploader.prefix)
+        self.assertIsNone(uploader.kms_key_id)
+        self.assertEqual(uploader.artifact_metadata, {"k": "v"})
+
+
+class TestPackageContextWebFunctionCodeBucketJsonOutput(TestCase):
+    @patch("samcli.commands.package.package_context.manage_web_function_code_bucket")
+    def test_progress_is_kept_out_of_json_output(self, manage_mock):
+        import io
+        from contextlib import redirect_stdout
+
+        def manage(*_):
+            print("progress message")
+            return "code-bucket", "export"
+
+        manage_mock.side_effect = manage
+        context = PackageContext(
+            template_file="template-file",
+            s3_bucket="managed-bucket",
+            s3_prefix=None,
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=None,
+            output_template_file=None,
+            use_json=True,
+            force_upload=False,
+            no_progressbar=True,
+            metadata={},
+            region="us-east-1",
+            profile=None,
+            output="json",
+            web_function_stack_name="my-app",
+        )
+        stdout = io.StringIO()
+        with redirect_stdout(stdout):
+            uploader, export_name = context._web_function_code_uploader(Mock(), "us-east-1")
+        self.assertEqual(stdout.getvalue(), "")
+        self.assertEqual((uploader.bucket_name, export_name), ("code-bucket", "export"))

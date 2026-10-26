@@ -60,8 +60,8 @@ class TestECRUploader(TestCase):
         )
 
         # Docker client should not be validated yet
-        self.assertIsNone(ecr_uploader._docker_client_param)
-        self.assertIsNone(ecr_uploader._validated_docker_client)
+        self.assertIsNone(ecr_uploader._container_client_param)
+        self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     def test_lazy_docker_client_validation_on_first_access(self, mock_get_validated_client):
@@ -78,7 +78,7 @@ class TestECRUploader(TestCase):
         )
 
         # Docker client should not be validated yet
-        self.assertIsNone(ecr_uploader._validated_docker_client)
+        self.assertIsNone(ecr_uploader._validated_container_client)
         mock_get_validated_client.assert_not_called()
 
         # First access should trigger validation
@@ -87,7 +87,7 @@ class TestECRUploader(TestCase):
         # Validation should have been called
         mock_get_validated_client.assert_called_once()
         self.assertEqual(docker_client, mock_docker_client)
-        self.assertEqual(ecr_uploader._validated_docker_client, mock_docker_client)
+        self.assertEqual(ecr_uploader._validated_container_client, mock_docker_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     def test_lazy_docker_client_validation_cached_after_first_access(self, mock_get_validated_client):

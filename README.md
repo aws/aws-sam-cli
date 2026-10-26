@@ -4,11 +4,11 @@
 # AWS SAM CLI
 
 [![Apache 2.0 License](https://img.shields.io/github/license/aws/aws-sam-cli)](https://github.com/aws/aws-sam-cli/blob/develop/LICENSE)
-![SAM CLI Version](https://img.shields.io/github/release/aws/aws-sam-cli.svg?label=CLI%20Version)
+![SAM CLI Version](https://img.shields.io/github/v/release/aws/aws-sam-cli.svg?label=CLI%20Version)
 ![Install](https://img.shields.io/badge/brew-aws/tap/aws--sam--cli-orange)
 ![pip](https://img.shields.io/badge/pip-aws--sam--cli-9cf)
 
-[Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/SAM-CLI-Roadmap) | [Try It Out](https://s12d.com/jKo46elk) | [Slack Us](https://join.slack.com/t/awsdevelopers/shared_invite/zt-yryddays-C9fkWrmguDv0h2EEDzCqvw)
+[Installation](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html) | [Blogs](https://serverlessland.com/blog?tag=AWS%20SAM) | [Videos](https://serverlessland.com/video?tag=AWS%20SAM) | [AWS Docs](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html) | [Roadmap](https://github.com/aws/aws-sam-cli/wiki/AWS-SAM-CLI-Roadmap) | [Try It Out](https://s12d.com/jKo46elk)
 
 The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that helps you develop serverless applications containing [Lambda functions](https://aws.amazon.com/lambda/), [Step Functions](https://aws.amazon.com/step-functions/), [API Gateway](https://aws.amazon.com/api-gateway/), [EventBridge](https://aws.amazon.com/eventbridge/), [SQS](https://aws.amazon.com/sqs/), [SNS](https://aws.amazon.com/sns/) and more. Some of the features it provides are:
 
@@ -26,13 +26,13 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 
 * **Develop Node projects with SAM CLI using esbuild** - and use SAM Accelerate on Typescript projects. [Read blogpost here](https://s12d.com/5Aa6u0o7).
 
-* **Speed up development with SAM Accelerate** - quickly test your changes in the cloud. [Read docs here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/accelerate.html).
+* **Speed up development with SAM Accelerate** - quickly test your changes in the cloud. [Read docs here](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/using-sam-cli-sync.html).
 
 * **AWS Serverless Developer Experience Workshop: A day in a life of a developer** - [This advanced workshop](https://s12d.com/aws-sde-workshop) provides you with an immersive experience as a serverless developer, with hands-on experience building a serverless solution using AWS SAM and SAM CLI.
 
 * **The Complete SAM Workshop** - [This workshop](https://s12d.com/jKo46elk) is a great way to experience the power of SAM and SAM CLI.
 
-* **Getting started with CI/CD? SAM pipelines can help you get started** - [This workshop](https://s12d.com/_JQ48d5T) walks you through the basics.
+* **Getting started with CI/CD? SAM pipelines can help you get started** - [This guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-generating-example-ci-cd.html) walks you through the basics.
 
 * **Get started with Serverless Application development using SAM CLI** - [This workshop](https://s12d.com/Tq9ZE-Br) walks you through the basics.
 
@@ -41,11 +41,11 @@ The AWS Serverless Application Model (SAM) CLI is an open-source CLI tool that h
 To get started with building SAM-based applications, use the SAM CLI. SAM CLI provides a Lambda-like execution
 environment that lets you locally build, test, debug, and deploy [AWS serverless](https://aws.amazon.com/serverless/) applications.
 
-* [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-* [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-quick-start.html)
-* [Install AWS Toolkit](https://aws.amazon.com/getting-started/tools-sdks/#IDE_and_IDE_Toolkits) to use SAM with your favorite IDEs
+* [Install SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html)
+* [Build & Deploy a "Hello World" Web App](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-getting-started-hello-world.html)
+* [Install AWS Toolkit](https://builder.aws.com/build/tools) to use SAM with your favorite IDEs
 * [Tutorials and Workshops](https://serverlessland.com/learn)
-* **Powertools for AWS Lambda** is a developer toolkit to implement Serverless best practices and increase developer velocity. Available for [Python](https://awslabs.github.io/aws-lambda-powertools-python), [Java](https://github.com/awslabs/aws-lambda-powertools-java), [TypeScript](https://github.com/awslabs/aws-lambda-powertools-typescript) and [.NET](https://github.com/awslabs/aws-lambda-powertools-dotnet).
+* **Powertools for AWS Lambda** is a developer toolkit to implement Serverless best practices and increase developer velocity. Available for [Python](https://docs.aws.amazon.com/powertools/python/latest/), [Java](https://github.com/aws-powertools/powertools-lambda-java), [TypeScript](https://github.com/aws-powertools/powertools-lambda-typescript) and [.NET](https://github.com/aws-powertools/powertools-lambda-dotnet).
 
 **Next Steps:** Learn to build a more complex serverless application.
 
@@ -91,11 +91,5 @@ get started.
 
 **Update SAM Developer Guide**
 
-[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/index.html) provides a comprehensive getting started guide and reference documentation.
-Source code is located on Github at [awsdocs/aws-sam-developer-guide](https://github.com/awsdocs/aws-sam-developer-guide).
-Read the [SAM Documentation Contribution Guide](https://github.com/awsdocs/aws-sam-developer-guide/blob/master/CONTRIBUTING.md) to get
-started.
-
-### Join the SAM Community on Slack
-
-[Join the SAM developers channel (#samdev)](https://join.slack.com/t/awsdevelopers/shared_invite/zt-yryddays-C9fkWrmguDv0h2EEDzCqvw) on Slack to collaborate with fellow community members and the AWS SAM team.
+[SAM Developer Guide](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/) provides a comprehensive getting started guide and reference documentation.
+To suggest changes, use the **Provide feedback** link on any page of the guide.
