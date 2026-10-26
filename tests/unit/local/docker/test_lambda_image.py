@@ -87,7 +87,7 @@ class TestLambdaImage(TestCase):
 
     @patch("samcli.local.docker.lambda_image.Runtime.get_image_name_tag")
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_building_image_with_no_runtime_only_image_always_build(
         self, generate_docker_image_version_patch, build_image_patch, mock_get_image_name_tag
     ):
@@ -120,7 +120,7 @@ class TestLambdaImage(TestCase):
         layer_downloader_mock.assert_not_called()
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_building_image_with_different_architecture_are_not_the_same(
         self, generate_docker_image_version_patch, build_image_patch
     ):
@@ -301,7 +301,7 @@ class TestLambdaImage(TestCase):
 
     @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_not_building_image_that_is_up_to_date(
         self, generate_docker_image_version_patch, build_image_patch, is_base_image_current_patch
     ):
@@ -334,7 +334,7 @@ class TestLambdaImage(TestCase):
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_force_building_image_that_doesnt_already_exists(
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
@@ -375,7 +375,7 @@ class TestLambdaImage(TestCase):
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_force_building_image_on_daemon_404(
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
@@ -416,7 +416,7 @@ class TestLambdaImage(TestCase):
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_docker_distribution_api_error_on_daemon_api_error(
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
@@ -442,7 +442,7 @@ class TestLambdaImage(TestCase):
         ]
     )
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
-    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
     def test_not_force_building_image_that_doesnt_already_exists(
         self, runtime, image_suffix, image_name, generate_docker_image_version_patch, build_image_patch
     ):
@@ -485,7 +485,7 @@ class TestLambdaImage(TestCase):
         layer_mock = Mock()
         layer_mock.name = "layer1"
 
-        image_version = LambdaImage._generate_docker_image_version([layer_mock], "runtime:1-arm64")
+        image_version = LambdaImage._generate_image_version([layer_mock], "runtime:1-arm64")
 
         self.assertEqual(image_version, "runtime:1-arm64-thisisahexdigestofshahash")
 

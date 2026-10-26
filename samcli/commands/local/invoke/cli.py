@@ -26,8 +26,8 @@ from samcli.lib.telemetry.metric import track_command
 from samcli.lib.utils.version_checker import check_newer_version
 from samcli.local.common.runtime_template import INIT_RUNTIMES
 from samcli.local.docker.exceptions import (
+    ContainerCreationFailedException,
     ContainerNotStartableException,
-    DockerContainerCreationFailedException,
     PortAlreadyInUse,
 )
 
@@ -227,8 +227,8 @@ def do_cli(  # pylint: disable=R0914
     from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
     from samcli.lib.providers.exceptions import InvalidLayerReference
     from samcli.lib.utils.name_utils import InvalidFunctionNameException
+    from samcli.local.docker.exceptions import ContainerImagePullFailedException
     from samcli.local.docker.lambda_debug_settings import DebuggingNotSupported
-    from samcli.local.docker.manager import DockerImagePullFailedException
     from samcli.local.lambdafn.exceptions import FunctionNotFound
 
     LOG.debug("local invoke command is called")
@@ -296,7 +296,7 @@ def do_cli(  # pylint: disable=R0914
         PortAlreadyInUse,
     ) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
-    except (DockerImagePullFailedException, DockerContainerCreationFailedException) as ex:
+    except (ContainerImagePullFailedException, ContainerCreationFailedException) as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
     except ContainerNotStartableException as ex:
         raise UserException(str(ex), wrapped_from=ex.__class__.__name__) from ex
