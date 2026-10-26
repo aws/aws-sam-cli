@@ -495,6 +495,11 @@ class CachedBuildStrategy(BuildStrategy):
         Builds single MicrovmImage definition. Delegates to the underlying build strategy since
         Docker has its own layer caching.
         """
+        if microvm_definition.microvm_image:
+            LOG.info(
+                "MicrovmImage %s is not cached by SAM CLI; Docker's layer cache is used",
+                microvm_definition.microvm_image.full_path,
+            )
         return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
 
