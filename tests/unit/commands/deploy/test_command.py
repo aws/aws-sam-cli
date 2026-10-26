@@ -638,6 +638,8 @@ class TestDeployCliCommand(TestCase):
             )
 
             context_mock.run.assert_called_with()
+            # The code bucket uses the prompted stack name, not --stack-name
+            self.assertEqual(mock_package_context.call_args.kwargs["web_function_stack_name"], "sam-app")
             mock_save_config.assert_called_with(
                 {
                     "Myparameter": {"Value": "guidedParameter", "Hidden": False},
@@ -1415,6 +1417,7 @@ class TestDeployCliCommand(TestCase):
             parameter_overrides=self.parameter_overrides,
             language_extensions=None,
             output="text",
+            web_function_stack_name=None,
         )
 
         context_mock.run.assert_called_with()

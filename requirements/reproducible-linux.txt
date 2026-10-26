@@ -14,9 +14,9 @@ attrs==26.1.0 \
     # via
     #   jsonschema
     #   referencing
-aws-lambda-builders==1.67.0 \
-    --hash=sha256:5dc24d16433e5d45d2efb1469e9ff50e9a1a322fc7d8ca056304e9067cf679a5 \
-    --hash=sha256:822a5ba74ad65369ce1d1ab9b63f833ea7292b9cd8b355fa8ea3fc1c4bcef087
+aws-lambda-builders==1.68.0 \
+    --hash=sha256:89b23de84ac51b917b331b39eb0f52954f60305af2f5cdf63deec051b063e679 \
+    --hash=sha256:b3fda238575ccf3736e5729f06865a72615f0267dafeec81c9fe4c4d882c291f
     # via aws-sam-cli (pyproject.toml)
 aws-sam-translator==1.115.0 \
     --hash=sha256:9766852bd212baa94f240b0b98b82ab1ed5857034bcc87cce5bfc782043d9902 \
@@ -100,9 +100,9 @@ botocore-stubs==1.43.67 \
     --hash=sha256:853e74014a1f557055c4ffae5fb38d7c65c7c0520e1aab366cac41d5428f419d \
     --hash=sha256:c51262bac3341c1cda71f05fa01141fffd3990d7a92c7960e3b755c1bc830373
     # via boto3-stubs
-certifi==2026.7.22 \
-    --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
-    --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
+certifi==2026.10.19 \
+    --hash=sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae \
+    --hash=sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b
     # via requests
 cffi==2.1.1 \
     --hash=sha256:046bfc24911b37851ee1b51aab8bffe713d89c68c6a057b09484ce9fd5f69b4e \
@@ -206,9 +206,9 @@ cffi==2.1.1 \
     --hash=sha256:fb92203a88b3d3053034db775110081c49d28be6551923805e039924093761e4 \
     --hash=sha256:fcd22650c908d7b7da162bbfaab594a1227a15d1643a98c68b122ac642fa2264
     # via cryptography
-cfn-lint==1.57.2 \
-    --hash=sha256:7007b30215ffb204bf1c669aeb68689253d23cddd21ef1a904fd424df13851cc \
-    --hash=sha256:7e859164badf01d2bd62c6d362284ab6e814d036f0a64249ba6a05287d787d68
+cfn-lint==1.58.0 \
+    --hash=sha256:9d9f06043160756a6158f5c3f92a44ce38254b1c578127461608305bc8262987 \
+    --hash=sha256:ba02cd7f7e06c8bc160936051a03ec931af52943fcc9cc72ad2748caa0f2a103
     # via aws-sam-cli (pyproject.toml)
 charset-normalizer==3.5.2 \
     --hash=sha256:01077390b03f7988f11d700a2194e69b119741a86b1a638b1db88891e3eced8e \

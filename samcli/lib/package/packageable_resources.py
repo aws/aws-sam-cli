@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Type, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Type, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -47,6 +47,7 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
     AWS_SERVERLESS_STATEMACHINE,
+    AWS_SERVERLESS_WEBFUNCTION,
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
     METADATA_WITH_LOCAL_PATHS,
@@ -398,6 +399,42 @@ class ServerlessFunctionResource(ResourceZip):
     FORCE_ZIP = True
 
 
+class ServerlessWebFunctionResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_WEBFUNCTION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    FORCE_ZIP = True
+    EXPORT_DESTINATION = Destination.WEB_FUNCTION_S3
+
+    def do_export(
+        self,
+        resource_id,
+        resource_dict,
+        parent_dir,
+        property_path: Optional[str] = None,
+        local_path: Optional[str] = None,
+    ):
+        property_path = property_path or self.PROPERTY_NAME
+        original_value = jmespath.search(property_path, resource_dict)
+        super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
+        if isinstance(original_value, str) and is_s3_protocol_url(original_value):
+            # Code already in S3 keeps its location
+            return
+        export_name = getattr(self.uploaders, "web_function_bucket_export", None)
+        uploaded_url = jmespath.search(property_path, resource_dict)
+        if not isinstance(export_name, str) or not export_name or not isinstance(uploaded_url, str):
+            return
+        # Importing the bucket name stops CloudFormation deleting the code bucket stack while this stack uses it
+        location = parse_s3_url(uploaded_url, version_property="Version")
+        code_uri: Dict[str, Any] = {"Bucket": {"Fn::ImportValue": export_name}, "Key": location["Key"]}
+        if location.get("Version"):
+            code_uri["Version"] = location["Version"]
+        set_value_from_jmespath(resource_dict, property_path, code_uri)
+
+    def delete(self, resource_id, resource_dict):
+        # Revisions keep reading this code; sam delete removes the code bucket after the stack
+        pass
+
+
 class ServerlessFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_SERVERLESS_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
@@ -692,6 +729,7 @@ class GraphQLApiCodeResource(ResourceZip):
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
+    ServerlessWebFunctionResource,
     ServerlessApiResource,
     ServerlessHttpApiResource,
     ServerlessStateMachineResource,

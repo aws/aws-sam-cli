@@ -260,6 +260,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.manifest_hash, "")
         self.assertEqual(build_definition.env_vars, {})
         self.assertEqual(build_definition.architecture, X86_64)
+        self.assertEqual(build_definition.resource_type, "AWS::Serverless::Function")
 
     def test_minimal_toml_table_to_layer_build_definition(self):
         toml_table = tomlkit.table()
@@ -852,6 +853,27 @@ class TestBuildDefinition(TestCase):
         )
 
         self.assertNotEqual(build_definition1, build_definition2)
+
+    def test_lambda_and_web_function_should_not_reflect_as_same_object(self):
+        lambda_definition = FunctionBuildDefinition("runtime", "codeuri", None, ZIP, X86_64, {}, "index.js")
+        web_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", None, ZIP, X86_64, {}, "index.js", resource_type="AWS::Serverless::WebFunction"
+        )
+
+        self.assertNotEqual(lambda_definition, web_definition)
+
+    @parameterized.expand([("AWS::Serverless::Function", None), ("AWS::Serverless::WebFunction",) * 2])
+    def test_resource_type_round_trips_through_toml(self, resource_type, written_resource_type):
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", None, ZIP, X86_64, {}, "index.js", resource_type=resource_type
+        )
+
+        toml_table = _function_build_definition_to_toml_table(build_definition)
+        read_definition = _toml_table_to_function_build_definition(build_definition.uuid, toml_table)
+
+        self.assertEqual(toml_table.get("resource_type"), written_resource_type)
+        self.assertEqual(read_definition.resource_type, resource_type)
+        self.assertEqual(read_definition, build_definition)
 
     def test_different_env_vars_should_not_reflect_as_same_object(self):
         build_definition1 = FunctionBuildDefinition(

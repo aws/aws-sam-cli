@@ -17,13 +17,14 @@ from tomlkit.toml_document import TOMLDocument
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.exceptions import InvalidBuildGraphException
-from samcli.lib.providers.provider import Function, LayerVersion
+from samcli.lib.providers.provider import BuildableFunction, LayerVersion, get_build_entry_point
 from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_IS_NORMALIZED,
     SAM_RESOURCE_ID_KEY,
 )
 from samcli.lib.utils.architecture import X86_64
 from samcli.lib.utils.packagetype import ZIP
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 
 LOG = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ COMPATIBLE_RUNTIMES_FIELD = "compatible_runtimes"
 LAYER_FIELD = "layer"
 ARCHITECTURE_FIELD = "architecture"
 HANDLER_FIELD = "handler"
+RESOURCE_TYPE_FIELD = "resource_type"
 SHARED_CODEURI_SUFFIX = "Shared"
 
 # Compiled runtimes that we need to compare handlers for
@@ -84,6 +86,9 @@ def _function_build_definition_to_toml_table(
         toml_table[METADATA_FIELD] = function_build_definition.metadata
     if function_build_definition.env_vars:
         toml_table[ENV_VARS_FIELD] = function_build_definition.env_vars
+    # Only written for Web Functions, so existing build.toml files don't change
+    if function_build_definition.resource_type != AWS_SERVERLESS_FUNCTION:
+        toml_table[RESOURCE_TYPE_FIELD] = function_build_definition.resource_type
 
     return toml_table
 
@@ -115,6 +120,7 @@ def _toml_table_to_function_build_definition(uuid: str, toml_table: tomlkit.api.
         toml_table.get(SOURCE_HASH_FIELD, ""),
         toml_table.get(MANIFEST_HASH_FIELD, ""),
         dict(toml_table.get(ENV_VARS_FIELD, {})),
+        toml_table.get(RESOURCE_TYPE_FIELD, AWS_SERVERLESS_FUNCTION),
     )
     function_build_definition.uuid = uuid
     return function_build_definition
@@ -238,7 +244,7 @@ class BuildGraph:
         return None
 
     def put_function_build_definition(
-        self, function_build_definition: "FunctionBuildDefinition", function: Function
+        self, function_build_definition: "FunctionBuildDefinition", function: BuildableFunction
     ) -> None:
         """
         Puts the newly read function build definition into existing build graph.
@@ -251,7 +257,7 @@ class BuildGraph:
         ----------
         function_build_definition: FunctionBuildDefinition
             function build definition which is newly read from template.yaml file
-        function: Function
+        function: BuildableFunction
             function details for this function build definition
         """
         if function_build_definition in self._function_build_definitions:
@@ -593,6 +599,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         source_hash: str = "",
         manifest_hash: str = "",
         env_vars: Optional[Dict] = None,
+        resource_type: str = AWS_SERVERLESS_FUNCTION,
     ) -> None:
         super().__init__(source_hash, manifest_hash, env_vars, architecture)
         self.runtime = runtime
@@ -600,6 +607,8 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         self.imageuri = imageuri
         self.packagetype = packagetype
         self.handler = handler
+        # Web Functions keep their dependencies (no layers), so they never share a build with Lambda functions
+        self.resource_type = resource_type
 
         # Skip SAM Added metadata properties
         metadata_copied = deepcopy(metadata) if metadata else {}
@@ -607,9 +616,9 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
         metadata_copied.pop(SAM_IS_NORMALIZED, "")
         self.metadata = metadata_copied
 
-        self.functions: List[Function] = []
+        self.functions: List[BuildableFunction] = []
 
-    def add_function(self, function: Function) -> None:
+    def add_function(self, function: BuildableFunction) -> None:
         self.functions.append(function)
 
     def get_function_name(self) -> str:
@@ -618,7 +627,7 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
 
     def get_handler_name(self) -> Optional[str]:
         self._validate_functions()
-        return self.functions[0].handler
+        return get_build_entry_point(self.functions[0])
 
     def get_full_path(self) -> str:
         """
@@ -700,4 +709,5 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.metadata == other.metadata
             and self.env_vars == other.env_vars
             and self.architecture == other.architecture
+            and self.resource_type == other.resource_type
         )
