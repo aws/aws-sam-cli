@@ -360,7 +360,7 @@ class BuildContext:
             )
 
             self._check_exclude_warning()
-            self._check_build_method_experimental_flag()
+            self._check_build_method_experimental_flag(resources_to_build)
 
             for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
@@ -1687,15 +1687,24 @@ Commands you can use next
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
 
-    def _check_build_method_experimental_flag(self) -> None:
+    def _check_build_method_experimental_flag(
+        self, resources_to_build: Optional[ResourcesToBuildCollector] = None
+    ) -> None:
         """
         Prints warning message and confirms if user wants to use beta feature
+
+        Parameters
+        ----------
+        resources_to_build: Optional[ResourcesToBuildCollector]
+            The resources already collected for this build. Passing them avoids collecting again, which
+            would repeat the collection's warnings (such as skipped MicrovmImages).
         """
         EXPERIMENTAL_BUILD_METHODS = {
             "python-uv": ExperimentalFlag.UvPackageManager,
         }
 
-        resources_to_build = self.get_resources_to_build()
+        if resources_to_build is None:
+            resources_to_build = self.get_resources_to_build()
         for function in resources_to_build.functions:
             if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
                 build_method = function.metadata.get("BuildMethod", "")
