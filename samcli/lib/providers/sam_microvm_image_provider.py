@@ -150,19 +150,19 @@ class SamMicrovmImageProvider(SamBaseProvider):
             first_config = cpu_configurations[0]
             if isinstance(first_config, dict) and "Architecture" in first_config:
                 cfn_architecture = first_config.get("Architecture")
-                # An unresolvable !Ref is rewritten by IntrinsicResolver to the parameter name
-                # (a string), so it lands here as an unsupported value rather than a dict.
                 architecture = (
                     _SUPPORTED_ARCHITECTURES.get(cfn_architecture) if isinstance(cfn_architecture, str) else None
                 )
                 if architecture is None:
-                    LOG.warning(
-                        "MicrovmImage '%s' has unsupported Architecture %r; only ARM_64 is supported. "
-                        "If Architecture references a template parameter, provide its value via "
-                        "--parameter-overrides.",
-                        logical_id,
-                        cfn_architecture,
-                    )
+                    message = "MicrovmImage '%s' has unsupported Architecture %r; only ARM_64 is supported."
+                    args = [logical_id, cfn_architecture]
+                    # An unresolvable !Ref is rewritten by IntrinsicResolver to the parameter name, so a value
+                    # equal to a parameter name means the parameter has no value
+                    template_parameters = (stack.template_dict or {}).get("Parameters") or {}
+                    if isinstance(cfn_architecture, str) and cfn_architecture in template_parameters:
+                        message += " %r is a template parameter with no value; provide it via --parameter-overrides."
+                        args.append(cfn_architecture)
+                    LOG.warning(message, *args)
 
         ignored_metadata_keys = [key for key in _IGNORED_DOCKER_METADATA_KEYS if key in (metadata or {})]
         if ignored_metadata_keys:
