@@ -6,8 +6,6 @@ import pytest
 from tests.testing_utils import (
     IS_WINDOWS,
     RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
     CI_OVERRIDE,
 )
 from tests.integration.buildcmd.build_integ_base import (
@@ -19,7 +17,6 @@ from tests.integration.buildcmd.build_integ_base import (
 LOG = logging.getLogger(__name__)
 
 # SAR tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SAR_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 
 @pytest.mark.nodejs

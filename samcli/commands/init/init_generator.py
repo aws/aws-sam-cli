@@ -20,8 +20,16 @@ def do_generate(
     application_insights,
     structured_logging,
 ):
+    """
+    Generate a project and return the directory it was created in.
+
+    Returns
+    -------
+    Optional[str]
+        Path to the generated project directory, or None if it could not be determined
+    """
     try:
-        generate_project(
+        return generate_project(
             location,
             package_type,
             runtime,

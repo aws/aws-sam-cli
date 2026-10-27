@@ -10,6 +10,8 @@ from typing import Sized
 
 import click
 
+from samcli.lib.observability.util import OutputOption
+
 MIN_OFFSET = 20
 
 
@@ -62,6 +64,17 @@ def pprint_column_names(
 
         @wraps(func)
         def wrap(*args, **kwargs):
+            output_mode = kwargs.pop("output_mode", OutputOption.text.value)
+            # Validate loudly: an unrecognized value (e.g. a typo) must raise rather than silently
+            # fall through to table output, which would corrupt a caller's stdout JSON stream.
+            if output_mode not in (OutputOption.text.value, OutputOption.json.value):
+                raise ValueError(f"Unsupported output_mode: {output_mode!r}")
+            if output_mode == OutputOption.json.value:
+                # In JSON mode the wrapped function emits its own structured output; skip the table
+                # chrome. The function is responsible for not referencing the width/margin/format_args
+                # kwargs injected below (today both JSON-capable callers branch on output_mode first).
+                kwargs["output_mode"] = output_mode
+                return func(*args, **kwargs)
             # The table is setup with the column names, format_string contains the column names.
             if table_header:
                 click.secho(

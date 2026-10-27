@@ -1,6 +1,5 @@
 import os
 import time
-from unittest import skipIf
 
 import boto3
 import pytest
@@ -11,23 +10,18 @@ from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 
 from samcli.local.docker.utils import get_validated_container_client
 from tests.integration.delete.delete_integ_base import DeleteIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, CommandResult
+from tests.testing_utils import CommandResult
 from tests.testing_utils import (
     run_command,
     run_command_with_input,
-    start_persistent_process,
-    read_until_string,
-    kill_process,
 )
 
-# Delete tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_DELETE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 CFN_SLEEP = 3
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
-@skipIf(SKIP_DELETE_TESTS, "Skip delete tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestDelete(DeleteIntegBase):
     @classmethod
     def setUpClass(cls):

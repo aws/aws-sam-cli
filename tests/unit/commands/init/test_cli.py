@@ -3263,3 +3263,323 @@ test-project
         ):
             with self.assertRaises(PopularRuntimeNotFoundException):
                 _get_latest_python_runtime()
+
+    def _do_cli_with(self, **overrides):
+        # Invoke init with the setUp defaults, overriding only the fields a test cares about.
+        # Defaults to --output json, since every test below but one exercises JSON mode.
+        kwargs = dict(
+            ctx=self.ctx,
+            no_interactive=self.no_interactive,
+            location=self.location,
+            pt_explicit=self.pt_explicit,
+            package_type=self.package_type,
+            runtime=self.runtime,
+            architecture=X86_64,
+            base_image=self.base_image,
+            dependency_manager=self.dependency_manager,
+            output_dir=self.output_dir,
+            name=self.name,
+            app_template=self.app_template,
+            no_input=self.no_input,
+            extra_context=None,
+            tracing=False,
+            application_insights=False,
+            structured_logging=False,
+            output="json",
+        )
+        kwargs.update(overrides)
+        init_cli(**kwargs)
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_emits_success_document(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        # WHEN a project is generated with --output json
+        with osutils.mkdir_temp() as temp_dir:
+            # Mirror generate_project's real contract: it returns the directory it created
+            generate_project_patch.return_value = os.path.join(temp_dir, self.name)
+
+            self._do_cli_with(output_dir=temp_dir)
+
+            # THEN exactly one JSON success document is emitted describing what was created
+            echo_mock.assert_called_once()
+            document = json.loads(echo_mock.call_args[0][0])
+
+            self.assertEqual(document["type"], "result")
+            self.assertEqual(document["status"], "success")
+            self.assertEqual(document["project_directory"], os.path.join(os.path.abspath(temp_dir), self.name))
+            # No template.yaml exists because generate_project is mocked out
+            self.assertIsNone(document["template_file"])
+            self.assertEqual(document["runtime"], self.runtime)
+            self.assertEqual(document["package_type"], ZIP)
+            self.assertEqual(document["dependency_manager"], self.dependency_manager)
+            self.assertEqual(document["app_template"], self.app_template)
+            self.assertEqual(document["architectures"], [X86_64])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_forces_no_input(self, generate_project_patch, echo_mock):
+        generate_project_patch.return_value = None
+
+        # WHEN a project is generated from a location, which does not set no_input itself
+        self._do_cli_with(location="/some/location", app_template=None, no_input=False)
+
+        # THEN cookiecutter is told not to prompt, since a JSON consumer cannot answer prompts
+        self.assertTrue(generate_project_patch.call_args[0][6])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_emits_failure_document(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+        generate_project_patch.side_effect = GenerateProjectFailedError(project="testing project", provider_error="ex")
+
+        # WHEN generation fails with --output json
+        with self.assertRaises(UserException):
+            self._do_cli_with()
+
+        # THEN the failure document reports the wrapped error type, not the UserException wrapper
+        echo_mock.assert_called_once()
+        document = json.loads(echo_mock.call_args[0][0])
+
+        self.assertEqual(document["type"], "result")
+        self.assertEqual(document["status"], "failure")
+        self.assertEqual(document["error"]["type"], "GenerateProjectFailedError")
+        self.assertIn("testing project", document["error"]["message"])
+
+    @patch("samcli.commands.init.interactive_init_flow.do_interactive")
+    def test_init_cli_output_json_requires_no_interactive(self, do_interactive_mock):
+        # WHEN --output json is used without enough parameters to skip the interactive flow
+        with self.assertRaises(click.UsageError) as ex:
+            # Nothing here identifies a template, so the run would reach the interactive flow
+            self._do_cli_with(
+                no_interactive=False,
+                location=None,
+                pt_explicit=False,
+                package_type=None,
+                runtime=None,
+                architecture=None,
+                base_image=None,
+                dependency_manager=None,
+                name=None,
+                app_template=None,
+                no_input=False,
+            )
+
+        # THEN it is rejected before any prompting happens, and the message lists the parameter
+        # combinations that would make the run non-interactive rather than naming a single flag
+        self.assertIn("--location", str(ex.exception))
+        self.assertIn("--app-template", str(ex.exception))
+        self.assertIn("--base-image", str(ex.exception))
+        self.assertFalse(do_interactive_mock.called)
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_text_output_emits_no_json(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        # WHEN a project is generated without --output json
+        self._do_cli_with(output="text")
+
+        # THEN no structured document is emitted, preserving the existing text behaviour
+        self.assertFalse(echo_mock.called)
+
+    def _init_cli_json_with_generated_files(self, generate_project_patch, echo_mock, temp_dir, file_names):
+        """Run init with --output json, having generate_project create the given files in the project."""
+
+        def create_files(*args, **kwargs):
+            project_directory = Path(temp_dir, self.name)
+            project_directory.mkdir(parents=True, exist_ok=True)
+            for file_name in file_names:
+                Path(project_directory, file_name).write_text("Resources: {}")
+            # generate_project returns the directory it created
+            return str(project_directory)
+
+        generate_project_patch.side_effect = create_files
+
+        self._do_cli_with(output_dir=temp_dir)
+
+        return json.loads(echo_mock.call_args[0][0])
+
+    @parameterized.expand(
+        [
+            # A template may use any recognised name, and .yaml wins when several exist because
+            # that is the one a subsequent build resolves to
+            (["template.yml"], "template.yml"),
+            (["template.yml", "template.yaml"], "template.yaml"),
+            (["README.md"], None),
+        ]
+    )
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_template_file(
+        self,
+        generated_files,
+        expected_template,
+        generate_project_patch,
+        location_from_app_template_mock,
+        echo_mock,
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        with osutils.mkdir_temp() as temp_dir:
+            document = self._init_cli_json_with_generated_files(
+                generate_project_patch, echo_mock, temp_dir, generated_files
+            )
+
+            expected = os.path.join(temp_dir, self.name, expected_template) if expected_template else None
+            self.assertEqual(document["template_file"], expected)
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_generated_directory(self, generate_project_patch, echo_mock):
+        # GIVEN a template that creates a project directory of its own choosing, which is what
+        # happens for a --location template used without --name
+        with osutils.mkdir_temp() as temp_dir:
+            generated_directory = os.path.join(temp_dir, "template-chosen-name")
+            generate_project_patch.return_value = generated_directory
+
+            self._do_cli_with(
+                location="/some/location",
+                runtime=None,
+                architecture=None,
+                dependency_manager=None,
+                output_dir=temp_dir,
+                name=None,
+                app_template=None,
+            )
+
+            document = json.loads(echo_mock.call_args[0][0])
+
+            # THEN the reported directory is the one the generator created, not output_dir
+            self.assertEqual(document["project_directory"], generated_directory)
+            self.assertNotEqual(document["project_directory"], temp_dir)
+            # AND the fields only a managed template can resolve are not invented for a clone
+            self.assertIsNone(document["architectures"])
+            self.assertIsNone(document["package_type"])
+            self.assertIsNone(document["runtime"])
+            self.assertIsNone(document["dependency_manager"])
+            self.assertIsNone(document["app_template"])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_null_when_directory_unknown(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+        # GIVEN the generator could not determine where the project was created
+        generate_project_patch.return_value = None
+
+        with osutils.mkdir_temp() as temp_dir:
+            self._do_cli_with(output_dir=temp_dir)
+
+            document = json.loads(echo_mock.call_args[0][0])
+
+            # THEN the location is reported as unknown rather than as a fabricated path
+            self.assertIsNone(document["project_directory"])
+            self.assertIsNone(document["template_file"])
+            # AND the command still succeeds, matching what text mode does in this case
+            self.assertEqual(document["status"], "success")
+            # AND architectures is reported, since a managed template resolved a runtime
+            self.assertEqual(document["architectures"], [X86_64])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_template_output(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_to_stdout(*args, **kwargs):
+            # Templates print from hook subprocesses, so write to the descriptor rather than print()
+            os.write(1, b"hook wrote this\n")
+
+        generate_project_patch.side_effect = write_to_stdout
+
+        self._do_cli_with()
+
+        # THEN the template's output is reported as its own document ahead of the result, so every
+        # line of stdout stays parseable
+        self.assertEqual(echo_mock.call_count, 2)
+
+        info_document = json.loads(echo_mock.call_args_list[0][0][0])
+        self.assertEqual(info_document["type"], "info")
+        self.assertEqual(info_document["source"], "template")
+        self.assertIn("hook wrote this", info_document["message"])
+
+        result_document = json.loads(echo_mock.call_args_list[1][0][0])
+        self.assertEqual(result_document["type"], "result")
+        self.assertEqual(result_document["status"], "success")
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_does_not_report_usage_errors(self, generate_project_patch, echo_mock):
+        # WHEN the command is called incorrectly, here with --extra-context that is not valid JSON
+        with self.assertRaises(click.UsageError):
+            self._do_cli_with(location="/some/location", app_template=None, extra_context="{not valid json")
+
+        # THEN no result document is emitted, since nothing was attempted. Usage errors are
+        # reported by click on stderr, the same way the --output json guard reports them.
+        self.assertFalse(echo_mock.called)
+        self.assertFalse(generate_project_patch.called)
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_reports_template_output_on_failure(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_then_fail(*args, **kwargs):
+            # A failing hook prints its diagnostics before cookiecutter raises
+            os.write(1, b"hook failed because of a missing tool\n")
+            raise GenerateProjectFailedError(project="testing project", provider_error="hook failed")
+
+        generate_project_patch.side_effect = write_then_fail
+
+        with self.assertRaises(UserException):
+            self._do_cli_with()
+
+        # THEN the template output is still reported, since the failure is undiagnosable without it
+        info_document = json.loads(echo_mock.call_args_list[0][0][0])
+        self.assertEqual(info_document["type"], "info")
+        self.assertIn("missing tool", info_document["message"])
+
+        failure_document = json.loads(echo_mock.call_args_list[1][0][0])
+        self.assertEqual(failure_document["status"], "failure")
+        self.assertEqual(failure_document["error"]["type"], "GenerateProjectFailedError")
+        # The shared failure shape carries resources, so a build or deploy consumer can read it
+        self.assertIn("resources", failure_document["error"])
+
+    @patch("samcli.commands.init.command.click.echo")
+    @patch("samcli.commands.init.init_templates.InitTemplates.location_from_app_template")
+    @patch("samcli.commands.init.init_generator.generate_project")
+    def test_init_cli_output_json_survives_undecodable_template_output(
+        self, generate_project_patch, location_from_app_template_mock, echo_mock
+    ):
+        location_from_app_template_mock.return_value = "applocation"
+
+        def write_invalid_bytes(*args, **kwargs):
+            # A hook writes in whatever encoding it likes, which may not decode cleanly
+            os.write(1, b"\xff\xfe invalid bytes\n")
+
+        generate_project_patch.side_effect = write_invalid_bytes
+
+        self._do_cli_with()
+
+        # THEN the run still reports success, rather than a decode error from the capture
+        result_document = json.loads(echo_mock.call_args_list[-1][0][0])
+        self.assertEqual(result_document["status"], "success")

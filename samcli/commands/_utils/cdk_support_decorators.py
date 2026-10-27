@@ -33,9 +33,13 @@ def unsupported_command_cdk(alternative_command=None):
                 return func(*args, **kwargs)
 
             if is_cdk_project(template_dict):
-                click.secho("Warning: CDK apps are not officially supported with this command.", fg="yellow")
+                # Advisory notice: write to stderr so it never corrupts the stdout stream a command
+                # emits in --output json mode (matches SAM's other advisory/telemetry notices).
+                click.secho("Warning: CDK apps are not officially supported with this command.", fg="yellow", err=True)
                 if alternative_command:
-                    click.secho(f"We recommend you use this alternative command: {alternative_command}", fg="yellow")
+                    click.secho(
+                        f"We recommend you use this alternative command: {alternative_command}", fg="yellow", err=True
+                    )
 
             return func(*args, **kwargs)
 

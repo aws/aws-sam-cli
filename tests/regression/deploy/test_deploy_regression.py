@@ -3,24 +3,21 @@ import tempfile
 import uuid
 import time
 from subprocess import Popen, PIPE, TimeoutExpired
-from unittest import skipIf
 
 import boto3
 from parameterized import parameterized
 
 from tests.regression.deploy.regression_deploy_base import DeployRegressionBase
 from tests.regression.package.regression_package_base import PackageRegressionBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+import pytest
 
-# Package Regression tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
-SKIP_DEPLOY_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 CFN_SLEEP = 3
 TIMEOUT = 300
 # Only testing return codes to be equivalent
 
 
-@skipIf(SKIP_DEPLOY_REGRESSION_TESTS, "Skip deploy regression tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestDeployRegression(PackageRegressionBase, DeployRegressionBase):
     def setUp(self):
         self.sns_arn = os.environ.get("AWS_SNS")

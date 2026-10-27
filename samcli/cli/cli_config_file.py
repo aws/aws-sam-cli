@@ -16,6 +16,7 @@ import click
 from click.core import ParameterSource
 
 from samcli.cli.context import Context, get_cmd_names
+from samcli.commands._utils.custom_options.structured_output_option import StructuredOutputOption
 from samcli.commands.exceptions import ConfigException
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME, DEFAULT_ENV, SamConfig
 from samcli.lib.utils.defaults import get_default_aws_region
@@ -306,6 +307,14 @@ def save_command_line_args_to_config(
         "save_params",  # don't save the provided save-params
         "config_file",  # don't save config specs to prevent confusion
         "config_env",
+    ]
+
+    # The shared structured output flag describes how a single run reports rather than what to
+    # build, so persisting it would change the output format of later runs, and for sam init it
+    # would make the interactive flow unreachable. Matched by option type, because sam list and
+    # sam remote invoke define an unrelated --output that is a display preference worth saving.
+    params_to_exclude += [
+        param.name for param in ctx.command.params if isinstance(param, StructuredOutputOption) and param.name
     ]
 
     saved_params = {}

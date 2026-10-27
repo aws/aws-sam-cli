@@ -9,7 +9,6 @@ from tests.testing_utils import (
     SKIP_DOCKER_TESTS,
     SKIP_DOCKER_BUILD,
     SKIP_DOCKER_MESSAGE,
-    USING_FINCH_RUNTIME,
     run_command_with_input,
 )
 from tests.integration.buildcmd.build_integ_base import (
@@ -23,25 +22,11 @@ LOG = logging.getLogger(__name__)
 class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
     @parameterized.expand(
         [
-            ("provided.al2", "Dotnet7", None, None),
-            ("provided.al2", "Dotnet7", None, MountMode.WRITE),
             ("provided.al2", "Dotnet", None, None),
         ]
     )
     @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
     def test_dotnet_al2(self, runtime, code_uri, mode, mount_mode):
-        # Skip specific test case when using Finch runtime
-        if (
-            runtime == "provided.al2"
-            and code_uri == "Dotnet7"
-            and mode is None
-            and mount_mode is None
-            and USING_FINCH_RUNTIME
-        ):
-            self.skipTest(
-                "Skip test when using Finch runtime: Terraform uses Docker provider that connect to Finch daemon via Docker socket"
-            )
-
         overrides = {
             "Runtime": runtime,
             "CodeUri": code_uri,
@@ -49,10 +34,7 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
             "Architectures": "x86_64",
         }
 
-        if mode == "Dotnet":
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
-        else:
-            self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
+        self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet.yaml")
 
         self.validate_build_command(overrides, mode, mount_mode)
         self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED)
@@ -141,25 +123,6 @@ class TestBuildCommand_Dotnet_cli_package(BuildIntegDotnetBase):
 @pytest.mark.dotnet
 @skipIf(SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD, SKIP_DOCKER_MESSAGE)
 class TestBuildCommand_Dotnet_cli_package_interactive(BuildIntegDotnetBase):
-    @parameterized.expand(
-        [
-            ("provided.al2", "Dotnet7", None),
-        ]
-    )
-    def test_dotnet_al2_in_container(self, runtime, code_uri, mode):
-        overrides = {
-            "Runtime": runtime,
-            "CodeUri": code_uri,
-            "Handler": "HelloWorld::HelloWorld.Function::FunctionHandler",
-            "Architectures": "x86_64",
-        }
-
-        self.template_path = self.template_path.replace("template.yaml", "template_build_method_dotnet_7.yaml")
-
-        self.validate_build_command(overrides, mode, use_container=True, input="y")
-        self.validate_build_artifacts(self.EXPECTED_FILES_PROJECT_MANIFEST_PROVIDED)
-        self.validate_invoke_command(overrides, runtime)
-
     @parameterized.expand(
         [
             ("dotnet6", "Dotnet6", None),

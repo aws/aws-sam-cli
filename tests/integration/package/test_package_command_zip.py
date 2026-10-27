@@ -5,20 +5,16 @@ from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
 import pytest
-from unittest import skipIf
 from parameterized import parameterized, param
 
 from samcli.lib.utils.hash import dir_checksum
 from tests.integration.package.package_integ_base import PackageIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
-# Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
-SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 TIMEOUT = 300
 
 
-@skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPackageZip(PackageIntegBase):
     def setUp(self):
         super().setUp()
@@ -707,9 +703,9 @@ class TestPackageZip(PackageIntegBase):
             s3_bucket=self.s3_bucket.name, s3_prefix=self.s3_prefix, template_file=template_path
         )
 
-        process = Popen(command_list, stdout=PIPE)
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
         try:
-            stdout, _ = process.communicate(timeout=TIMEOUT)
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
         except TimeoutExpired:
             process.kill()
             raise
@@ -721,5 +717,6 @@ class TestPackageZip(PackageIntegBase):
             encoding="utf-8",
         )
 
-        self.assertIn(warning_message, stdout)
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        self.assertIn(warning_message, stderr)
         self.assertIn("{bucket_name}".format(bucket_name=self.s3_bucket.name), process_stdout.decode("utf-8"))

@@ -23,7 +23,11 @@ def find_all_paths_and_values(property_name: str, graphql_dict: Dict[str, Any]) 
         list of tuple (path, value) for all found properties which has property_name
     """
     # need to look up only in "Resolvers" and "Functions" subtrees
-    resolvers_and_functions = {k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict}
+    # Annotated because the literal keys would otherwise narrow this to
+    # Dict[Literal["Resolvers", "Functions"], Any], which Dict's invariant key type rejects below.
+    resolvers_and_functions: Dict[str, Any] = {
+        k: graphql_dict[k] for k in ("Resolvers", "Functions") if k in graphql_dict
+    }
     stack: List[Tuple[Dict[str, Any], str]] = [(resolvers_and_functions, "")]
     paths_values: List[Tuple[str, Union[str, Dict]]] = []
 

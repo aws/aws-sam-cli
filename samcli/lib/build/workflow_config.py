@@ -27,11 +27,11 @@ LOG = logging.getLogger(__name__)
 
 
 class UnsupportedRuntimeException(Exception):
-    pass
+    resource_names: Optional[List[str]] = None
 
 
 class UnsupportedBuilderException(Exception):
-    pass
+    resource_names: Optional[List[str]] = None
 
 
 WorkFlowSelector = Union["BasicWorkflowSelector", "ManifestWorkflowSelector"]

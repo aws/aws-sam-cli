@@ -7,7 +7,7 @@ import tempfile
 import uuid
 from pathlib import Path
 from typing import Dict
-from unittest import skipIf, SkipTest
+from unittest import skipIf
 
 import pytest
 from parameterized import parameterized, parameterized_class
@@ -18,12 +18,10 @@ from samcli.lib.utils.resources import (
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from tests.integration.sync.sync_integ_base import SyncIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY, SKIP_LMI_TESTS
+from tests.testing_utils import SKIP_LMI_TESTS
 from tests.testing_utils import run_command_with_input
 
-# Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_SYNC_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 IS_WINDOWS = platform.system().lower() == "windows"
 # Some wait time for code updates to be reflected on each service
 API_SLEEP = 5
@@ -33,7 +31,7 @@ CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".
 LOG = logging.getLogger(__name__)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfra(SyncIntegBase):
     parameter_overrides: Dict[str, str] = {}
@@ -384,7 +382,7 @@ Requires capabilities : [CAPABILITY_AUTO_EXPAND]",
         self.assertEqual(self._get_sfn_response(state_machine), '"World 1"')
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncInfraCDKTemplates(SyncIntegBase):
     dependency_layer = None
 
@@ -512,7 +510,7 @@ class TestSyncInfraCDKTemplates(SyncIntegBase):
             self.assertEqual(lambda_response.get("message"), "9")
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": True}, {"dependency_layer": False}])
 class TestSyncInfraWithJava(SyncIntegBase):
     ecr_repo_name = None
@@ -566,7 +564,7 @@ class TestSyncInfraWithJava(SyncIntegBase):
             self.assertEqual(lambda_response.get("sum"), 12)
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncInfraWithEsbuild(SyncIntegBase):
     dependency_layer = False
 
@@ -702,7 +700,7 @@ class TestSyncInfraLMI(SyncIntegBase):
         self.assertEqual(body["max_concurrency"], "20")  # Updated from 10 to 20
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 @parameterized_class([{"dependency_layer": False}])
 class TestSyncInfraExpress(SyncIntegBase):
     parameter_overrides: Dict[str, str] = {}

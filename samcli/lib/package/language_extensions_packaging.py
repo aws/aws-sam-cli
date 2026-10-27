@@ -690,6 +690,9 @@ def _replace_dynamic_artifact_with_findmap(
 def warn_parameter_based_collections(dynamic_properties: List[DynamicArtifactProperty]) -> None:
     """
     Emit warnings for dynamic artifact properties that use parameter-based collections.
+
+    The warning is written to stderr (like SAM's other advisory notices) so it never corrupts the
+    stdout JSON stream when a command runs with --output json. It is also recorded via LOG.debug.
     """
     warned_loops: set = set()
 
@@ -708,4 +711,4 @@ def warn_parameter_based_collections(dynamic_properties: List[DynamicArtifactPro
             )
 
             LOG.debug(warning_msg)
-            click.secho(warning_msg, fg="yellow")
+            click.secho(warning_msg, fg="yellow", err=True)

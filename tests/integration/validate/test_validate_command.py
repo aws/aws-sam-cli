@@ -10,15 +10,11 @@ from datetime import datetime
 from enum import Enum, auto
 from pathlib import Path
 from typing import List, Optional
-from unittest import TestCase, skip
-from unittest.case import skipIf
+from unittest import TestCase
 
 import pytest
 from parameterized import parameterized
 from tests.testing_utils import (
-    RUN_BY_CANARY,
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
     run_command,
     get_sam_command,
 )
@@ -48,9 +44,7 @@ def get_runtime_deprecation_values(runtime):
     return {"code": "E2533", "msg": "Check if Lambda Function Runtimes are updatable"}
 
 
-# Validate tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_VALIDATE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 
 
 class TemplateFileTypes(Enum):
@@ -58,7 +52,7 @@ class TemplateFileTypes(Enum):
     YAML = auto()
 
 
-@skipIf(SKIP_VALIDATE_TESTS, "Skip validate tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestValidate(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -124,7 +118,8 @@ class TestValidate(TestCase):
         template_file = "aws-serverless-function-cdk.yaml"
         template_path = test_data_path.joinpath(template_file)
         command_result = run_command(self.command_list(template_file=template_path))
-        output = command_result.stdout.decode("utf-8")
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        output = command_result.stderr.decode("utf-8")
 
         warning_message = (
             f"Warning: CDK apps are not officially supported with this command.{os.linesep}"
@@ -161,6 +156,7 @@ class TestValidate(TestCase):
             ("ruby3.2",),
             ("dotnet6",),
             ("nodejs20.x"),
+            ("provided.al2",),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -214,7 +210,6 @@ class TestValidate(TestCase):
             "java8.al2",
             "nodejs22.x",
             "nodejs24.x",
-            "provided.al2",
             "provided.al2023",
             "python3.10",
             "python3.11",

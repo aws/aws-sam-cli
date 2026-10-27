@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 class ImageFunctionSyncFlow(FunctionSyncFlow):
     _ecr_client: Optional[Any]
-    _docker_client: Optional[DockerClient]
+    _container_client: Optional[DockerClient]
     _image_name: Optional[str]
 
     def __init__(
@@ -69,13 +69,13 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
         )
         self._ecr_client = None
         self._image_name = None
-        self._docker_client = None
+        self._container_client = None
 
-    def _get_docker_client(self) -> DockerClient:
+    def _get_container_client(self) -> DockerClient:
         """Lazy instantiates and returns the docker client"""
-        if not self._docker_client:
-            self._docker_client = get_validated_container_client()
-        return self._docker_client
+        if not self._container_client:
+            self._container_client = get_validated_container_client()
+        return self._container_client
 
     def _get_ecr_client(self) -> Any:
         """Lazy instantiates and returns the boto3 ecr client"""
@@ -117,7 +117,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
 
     def _get_local_image_id(self, image: str) -> Optional[str]:
         """Returns the local hash of the image"""
-        docker_img = self._get_docker_client().images.get(image)
+        docker_img = self._get_container_client().images.get(image)
         if not docker_img or not docker_img.attrs.get("Id"):
             return None
         return str(docker_img.attrs.get("Id"))
@@ -146,7 +146,7 @@ class ImageFunctionSyncFlow(FunctionSyncFlow):
             LOG.debug("%sGetting ECR Repo from Remote Function", self.log_prefix)
             function_result = self._lambda_client.get_function(FunctionName=function_physical_id)
             ecr_repo = function_result.get("Code", dict()).get("ImageUri", "").split(":")[0]
-        ecr_uploader = ECRUploader(self._get_docker_client(), self._get_ecr_client(), ecr_repo, None)
+        ecr_uploader = ECRUploader(self._get_container_client(), self._get_ecr_client(), ecr_repo, None)
         image_uri = ecr_uploader.upload(self._image_name, self._function_identifier)
 
         update_params = FunctionUpdateParams(FunctionName=function_physical_id, ImageUri=image_uri)

@@ -58,17 +58,17 @@ class TestImageFunctionSyncFlow(TestCase):
     @patch("samcli.lib.sync.flows.image_function_sync_flow.get_validated_container_client")
     def test_get_docker_client(self, patched_get_validated_client):
         sync_flow = self.create_function_sync_flow()
-        self.assertIsNone(sync_flow._docker_client)
+        self.assertIsNone(sync_flow._container_client)
 
-        docker_client = sync_flow._get_docker_client()
+        docker_client = sync_flow._get_container_client()
         self.assertIsNotNone(docker_client)
-        self.assertIsNotNone(sync_flow._docker_client)
+        self.assertIsNotNone(sync_flow._container_client)
         patched_get_validated_client.assert_called_once()
 
         patched_get_validated_client.reset_mock()
-        docker_client = sync_flow._get_docker_client()
+        docker_client = sync_flow._get_container_client()
         self.assertIsNotNone(docker_client)
-        self.assertIsNotNone(sync_flow._docker_client)
+        self.assertIsNotNone(sync_flow._container_client)
         patched_get_validated_client.assert_not_called()
 
     @patch("samcli.lib.sync.flows.image_function_sync_flow.ImageFunctionSyncFlow._boto_client")
@@ -96,7 +96,7 @@ class TestImageFunctionSyncFlow(TestCase):
         builder_mock.return_value.build.return_value.artifacts.get = get_mock
         sync_flow = self.create_function_sync_flow()
 
-        with patch.object(sync_flow, "_get_docker_client") as patched_get_docker_client:
+        with patch.object(sync_flow, "_get_container_client") as patched_get_docker_client:
             sync_flow.set_up()
             sync_flow.gather_resources()
 
@@ -137,7 +137,7 @@ class TestImageFunctionSyncFlow(TestCase):
         sync_flow.sync()
 
         uploader_mock.return_value.upload.assert_called_once_with("ImageName1", "Function1")
-        uploader_mock.assert_called_once_with(sync_flow._docker_client, sync_flow._ecr_client, "repo_uri", None)
+        uploader_mock.assert_called_once_with(sync_flow._container_client, sync_flow._ecr_client, "repo_uri", None)
 
         sync_flow._get_lock_chain.assert_called_once()
         sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
@@ -173,7 +173,7 @@ class TestImageFunctionSyncFlow(TestCase):
         sync_flow.sync()
 
         uploader_mock.return_value.upload.assert_called_once_with("ImageName1", "Function1")
-        uploader_mock.assert_called_once_with(sync_flow._docker_client, sync_flow._ecr_client, "repo_uri", None)
+        uploader_mock.assert_called_once_with(sync_flow._container_client, sync_flow._ecr_client, "repo_uri", None)
 
         sync_flow._get_lock_chain.assert_called_once()
         sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
@@ -213,7 +213,7 @@ class TestImageFunctionSyncFlow(TestCase):
         sync_flow.sync()
 
         uploader_mock.return_value.upload.assert_called_once_with("ImageName1", "Function1")
-        uploader_mock.assert_called_once_with(sync_flow._docker_client, sync_flow._ecr_client, "repo_uri", None)
+        uploader_mock.assert_called_once_with(sync_flow._container_client, sync_flow._ecr_client, "repo_uri", None)
 
         sync_flow._get_lock_chain.assert_called_once()
         sync_flow._get_lock_chain.return_value.__enter__.assert_called_once()
@@ -254,7 +254,7 @@ class TestImageFunctionSyncFlow(TestCase):
         sync_flow.sync()
 
         uploader_mock.return_value.upload.assert_called_once_with("ImageName1", "Function1")
-        uploader_mock.assert_called_once_with(sync_flow._docker_client, sync_flow._ecr_client, "repo_uri", None)
+        uploader_mock.assert_called_once_with(sync_flow._container_client, sync_flow._ecr_client, "repo_uri", None)
 
         self.assertEqual(sync_flow._get_lock_chain.call_count, 2)
         self.assertEqual(sync_flow._get_lock_chain.return_value.__enter__.call_count, 2)

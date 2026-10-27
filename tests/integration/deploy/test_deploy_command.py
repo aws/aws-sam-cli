@@ -15,21 +15,16 @@ from samcli.local.docker.utils import get_validated_container_client
 from samcli.yamlhelper import yaml_parse
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
 from tests.testing_utils import (
-    RUNNING_ON_CI,
-    RUNNING_TEST_FOR_MASTER_ON_CI,
-    RUN_BY_CANARY,
     SKIP_LMI_TESTS,
     UpdatableSARTemplate,
     get_sam_command,
 )
 
-# Deploy tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_DEPLOY_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 CFN_PYTHON_VERSION_SUFFIX = os.environ.get("PYTHON_VERSION", "0.0.0").replace(".", "-")
 
 
-@skipIf(SKIP_DEPLOY_TESTS, "Skip deploy tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestDeploy(DeployIntegBase):
     @classmethod
     def setUpClass(cls):
@@ -1412,7 +1407,8 @@ to create a managed default bucket, or run sam deploy --guided",
         )
 
         deploy_process_execute = self.run_command(deploy_command_list)
-        self.assertIn(warning_message, deploy_process_execute.stdout)
+        # The CDK warning is emitted on stderr so it does not pollute the --output json stdout stream.
+        self.assertIn(warning_message, deploy_process_execute.stderr)
         self.assertEqual(deploy_process_execute.process.returncode, 0)
 
     @parameterized.expand(["aws-dynamodb-error.yaml"])
