@@ -285,9 +285,7 @@ class ApplicationBuilder:
                 bool(self._container_manager),
             )
 
-        result = ApplicationBuildResult(build_graph, build_strategy.build())
-
-        return result
+        return ApplicationBuildResult(build_graph, build_strategy.build())
 
     def _get_build_graph(
         self, inline_env_vars: Optional[Dict] = None, env_vars_file: Optional[str] = None

@@ -365,6 +365,8 @@ class BuildContext:
 
             for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
+            if resources_to_build.microvm_images:
+                EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.MICROVM_IMAGE_BUILD.value)
 
             self._build_result = builder.build()
 
@@ -1688,8 +1690,11 @@ Commands you can use next
         return True
 
     @staticmethod
-    def is_microvm_image_buildable(image: MicrovmImage):
-        if isinstance(image.code_uri, str) and image.code_uri.endswith(".zip"):
+    def is_microvm_image_buildable(image: MicrovmImage) -> Tuple[bool, str]:
+        """
+        Returns whether the image is buildable, and the reason it is not (empty when it is)
+        """
+        if isinstance(image.code_uri, str) and image.code_uri.lower().endswith(".zip"):
             return False, "CodeUri points to a .zip file, not a buildable source directory."
         if image.metadata and image.metadata.get("SkipBuild"):
             return False, "Metadata.SkipBuild is set."

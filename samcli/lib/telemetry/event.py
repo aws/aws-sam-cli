@@ -43,6 +43,7 @@ class UsedFeature(Enum):
     INVOKED_CUSTOM_LAMBDA_AUTHORIZERS = "InvokedLambdaAuthorizers"
     BUILD_IN_SOURCE = "BuildInSource"
     CFN_LANGUAGE_EXTENSIONS = "CFNLanguageExtensions"
+    MICROVM_IMAGE_BUILD = "MicrovmImageBuild"
 
 
 class EventType:
