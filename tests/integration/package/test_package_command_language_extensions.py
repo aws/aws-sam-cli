@@ -9,18 +9,16 @@ import os
 import tempfile
 from pathlib import Path
 from subprocess import PIPE, Popen, TimeoutExpired
-from unittest import skipIf
 
 from samcli.yamlhelper import yaml_parse
 
 from .package_integ_base import PackageIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
+import pytest
 
-SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 TIMEOUT = 300
 
 
-@skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPackageLanguageExtensions(PackageIntegBase):
     """Integration tests for sam package with CloudFormation Language Extensions."""
 

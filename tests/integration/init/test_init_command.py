@@ -24,7 +24,7 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 from pathlib import Path
 
 from tests.integration.init.test_init_base import InitIntegBase
-from tests.testing_utils import get_sam_command, IS_WINDOWS, RUNNING_ON_APPVEYOR, run_command
+from tests.testing_utils import get_sam_command, IS_WINDOWS, run_command
 
 TIMEOUT = 300
 
@@ -1305,10 +1305,6 @@ class TestInitProducesSamconfigFile(TestCase):
         return text
 
 
-@skipIf(
-    IS_WINDOWS and RUNNING_ON_APPVEYOR,
-    "Killing process in Windows in Appveyor gets stuck, skipping this test since it is already run in GHA",
-)
 @pytest.mark.xdist_group(name="sam_init")
 class TestInitCommand(InitIntegBase):
     def test_graceful_exit(self):

@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import zipfile
 from contextlib import contextmanager
-from typing import Callable, Dict, List, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 import jmespath
 
@@ -132,6 +132,11 @@ def upload_local_image_artifacts(resource_id, resource_dict, property_name, pare
     return uploader.upload(image_path, resource_id)
 
 
+def upload_cache_key(uploader: S3Uploader, local_path: str) -> Tuple[Optional[str], Optional[str], str]:
+    """Upload cache key: bucket, prefix and local path"""
+    return uploader.bucket_name, uploader.prefix, local_path
+
+
 def upload_local_artifacts(
     resource_type: str,
     resource_id: str,
@@ -188,11 +193,14 @@ def upload_local_artifacts(
 
     is_lambda_package = resource_type in LAMBDA_LOCAL_RESOURCES
     zip_method = make_zip_with_lambda_permissions if is_lambda_package else make_zip
-    # A thread-safe cache (parallel uploads) keys results by how the path is packaged and exposes a
+    # Exporters share the cache but can use different buckets, so the key includes the bucket and prefix.
+    # A thread-safe cache (parallel uploads) also keys results by how the path is packaged and exposes a
     # per-key lock, so the check-then-upload below is atomic: concurrent jobs sharing a local path
     # zip and upload it once and the rest reuse the result.
+    cache_key: Any = upload_cache_key(uploader, local_path)
     key_fn = getattr(previously_uploaded, "cache_key", None)
-    cache_key = key_fn(local_path, "lambda-zip" if is_lambda_package else "zip", extension) if key_fn else local_path
+    if key_fn:
+        cache_key = key_fn(cache_key, "lambda-zip" if is_lambda_package else "zip", extension)
     key_lock = getattr(previously_uploaded, "key_lock", None)
     with key_lock(cache_key) if key_lock else contextlib.nullcontext():
         if previously_uploaded and cache_key in previously_uploaded:

@@ -70,6 +70,7 @@ class TestPackageUtils(TestCase):
 
         cache = _ThreadSafeUploadCache({})
         calls = []
+        uploader = Mock(bucket_name="bucket", prefix="prefix")
 
         def slow_zip_and_upload(local_path, *args, **kwargs):
             calls.append(local_path)
@@ -90,7 +91,7 @@ class TestPackageUtils(TestCase):
                         resource_dict={"CodeUri": folder},
                         property_path="CodeUri",
                         parent_dir=folder,
-                        uploader=Mock(),
+                        uploader=uploader,
                         previously_uploaded=cache,
                     )
                 )
@@ -108,6 +109,7 @@ class TestPackageUtils(TestCase):
         from samcli.lib.package.artifact_exporter import _ThreadSafeUploadCache
 
         cache = _ThreadSafeUploadCache(key_by_packaging=True)
+        uploader = Mock(bucket_name="bucket", prefix="prefix")
         calls = []
 
         def slow_zip_and_upload(local_path, uploader, extension, zip_method):
@@ -127,7 +129,7 @@ class TestPackageUtils(TestCase):
                     resource_dict={"CodeUri": folder},
                     property_path="CodeUri",
                     parent_dir=folder,
-                    uploader=Mock(),
+                    uploader=uploader,
                     previously_uploaded=cache,
                 )
 

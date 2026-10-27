@@ -9,13 +9,10 @@ from parameterized import parameterized
 from samcli.lib.bootstrap.bootstrap import SAM_CLI_STACK_NAME
 from samcli.lib.config.samconfig import DEFAULT_CONFIG_FILE_NAME
 from tests.integration.deploy.deploy_integ_base import DeployIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 PYTHON_VERSION = os.environ.get("PYTHON_VERSION", "0.0.0")
 
-# Managed stack tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master or tests are not run by Canary
-SKIP_MANAGED_STACK_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 # Limits the managed stack tests to be run on a single python version to avoid CI race conditions
 IS_TARGETTED_PYTHON_VERSION = PYTHON_VERSION.startswith("3.8")
 
@@ -24,7 +21,8 @@ CFN_PYTHON_VERSION_SUFFIX = PYTHON_VERSION.replace(".", "-")
 DEFAULT_REGION = "us-west-2"
 
 
-@skipIf(SKIP_MANAGED_STACK_TESTS or not IS_TARGETTED_PYTHON_VERSION, "Skip managed stack tests in CI/CD only")
+@pytest.mark.requires_credential
+@skipIf(not IS_TARGETTED_PYTHON_VERSION, "Managed stack tests run on the targetted Python version only")
 @pytest.mark.xdist_group(name="managed_stack")
 class TestManagedStackDeploy(DeployIntegBase):
     def setUp(self):

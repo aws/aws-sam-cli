@@ -5,20 +5,16 @@ from subprocess import Popen, PIPE, TimeoutExpired
 import tempfile
 
 import pytest
-from unittest import skipIf
 from parameterized import parameterized, param
 
 from samcli.lib.utils.hash import dir_checksum
 from tests.integration.package.package_integ_base import PackageIntegBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
-# Package tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
-SKIP_PACKAGE_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 TIMEOUT = 300
 
 
-@skipIf(SKIP_PACKAGE_TESTS, "Skip package tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPackageZip(PackageIntegBase):
     def setUp(self):
         super().setUp()

@@ -43,7 +43,13 @@ from samcli.lib.build.workflow_config import (
     supports_specified_workflow,
 )
 from samcli.lib.docker.log_streamer import LogStreamer, LogStreamError
-from samcli.lib.providers.provider import ResourcesToBuildCollector, Stack, get_full_path
+from samcli.lib.providers.provider import (
+    ResourcesToBuildCollector,
+    Stack,
+    WebFunction,
+    get_build_entry_point,
+    get_full_path,
+)
 from samcli.lib.samlib.resource_metadata_normalizer import ResourceMetadataNormalizer
 from samcli.lib.utils import osutils
 from samcli.lib.utils.colors import Colored, Colors
@@ -57,14 +63,19 @@ from samcli.lib.utils.resources import (
     AWS_SERVERLESS_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_WEBFUNCTION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.container_client import ContainerClient
-from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerArchiveImageLoadFailedException
+from samcli.local.docker.exceptions import (
+    BuildkitNotAvailableException,
+    ContainerArchiveImageLoadFailedException,
+    ContainerImagePullFailedException,
+)
 from samcli.local.docker.image_build_client import CLIBuildClient, ImageBuildClient, SDKBuildClient
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.docker.utils import (
     get_docker_platform,
     get_validated_container_client,
@@ -288,12 +299,16 @@ class ApplicationBuilder:
             function_build_details = FunctionBuildDefinition(
                 function.runtime,
                 function.codeuri,
-                function.imageuri,
+                # Web Functions only have .zip code
+                None if isinstance(function, WebFunction) else function.imageuri,
                 function.packagetype,
                 function.architecture,
                 function.metadata,
-                function.handler,
+                get_build_entry_point(function),
                 env_vars=container_env_vars,
+                resource_type=(
+                    AWS_SERVERLESS_WEBFUNCTION if isinstance(function, WebFunction) else AWS_SERVERLESS_FUNCTION
+                ),
             )
             build_graph.put_function_build_definition(function_build_details, function)
 
@@ -394,6 +409,8 @@ class ApplicationBuilder:
     def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["CodeUri"] = absolute_path
+        if resource_type == AWS_SERVERLESS_WEBFUNCTION:
+            resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_LAMBDA_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["Code"] = absolute_path
         if resource_type == AWS_LAMBDA_LAYERVERSION:
@@ -404,6 +421,13 @@ class ApplicationBuilder:
             resource_properties["Code"] = {"ImageUri": path}
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == IMAGE:
             resource_properties["ImageUri"] = path
+
+    def _is_web_function(self, function_name: str) -> bool:
+        """Whether function_name is a Web Function, which can't use layers and so keeps its dependencies"""
+        functions = getattr(self._resources_to_build, "functions", None)
+        if not isinstance(functions, list):
+            return False
+        return any(isinstance(function, WebFunction) and function.name == function_name for function in functions)
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
@@ -786,6 +810,7 @@ class ApplicationBuilder:
                     metadata,
                     source_code_path=code_dir,
                     scratch_dir=scratch_dir_path,
+                    is_web_function=self._is_web_function(function_name),
                 )
                 # By default prefer to build in-process for speed
                 if self._container_manager:
@@ -818,7 +843,7 @@ class ApplicationBuilder:
                     options,
                     dependencies_dir,
                     download_dependencies,
-                    self._combine_dependencies,
+                    self._combine_dependencies or self._is_web_function(function_name),
                 )
 
         # pylint: disable=fixme
@@ -835,6 +860,7 @@ class ApplicationBuilder:
         metadata: Optional[dict] = None,
         source_code_path: Optional[str] = None,
         scratch_dir: Optional[str] = None,
+        is_web_function: bool = False,
     ) -> Optional[Dict]:
         """
         Parameters
@@ -855,6 +881,8 @@ class ApplicationBuilder:
             The lambda function source code path that will be used to calculate the working directory
         scratch_dir str
             The temporary directory path where the lambda function code will be copied to.
+        is_web_function bool
+            True when handler is a Web Function's EntryPoint, which is a file path rather than a Lambda handler
         Returns
         -------
         dict
@@ -869,7 +897,8 @@ class ApplicationBuilder:
             # as a required argument. This corresponds to the lambda function handler.
             normalized_build_props = ResourceMetadataNormalizer.normalize_build_properties(build_props)
             if handler and not build_props.get("EntryPoints"):
-                entry_points = [handler.split(".")[0]]
+                # A Web Function's EntryPoint is a file path; Lambda Builders adds .ts/.js if it's missing
+                entry_points = [handler if is_web_function else handler.split(".")[0]]
                 normalized_build_props["entry_points"] = entry_points
             return normalized_build_props
 
@@ -1068,7 +1097,7 @@ class ApplicationBuilder:
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
 
-        except DockerImagePullFailedException as ex:
+        except ContainerImagePullFailedException as ex:
             raise BuildInsideContainerError(ex)
 
         finally:

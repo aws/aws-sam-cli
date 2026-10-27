@@ -1,9 +1,7 @@
-import os
 import tempfile
 import pytest
 from functools import lru_cache
 from pathlib import Path
-from unittest import skipIf
 
 from boto3.session import Session
 from click.testing import CliRunner
@@ -12,10 +10,8 @@ from samcli.commands.init import cli as init_cmd
 from samcli.commands.init.init_templates import InitTemplates
 from samcli.commands.init.interactive_init_flow import get_sorted_runtimes
 from tests.integration.init.schemas.schemas_test_data_setup import SchemaTestDataSetup
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 # Schemas tests require credentials. This is to skip running the test where credentials are not available.
-SKIP_SCHEMA_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
 
 EVENT_BRIDGE_USE_CASE = "Infrastructure event management"
 
@@ -69,7 +65,7 @@ def _get_use_case_position(use_case_name):
     raise ValueError(f"Use case '{use_case_name}' not found. Available: {use_cases}")
 
 
-@skipIf(SKIP_SCHEMA_TESTS, "Skip schema test")
+@pytest.mark.requires_credential
 @pytest.mark.xdist_group(name="sam_init")
 class TestBasicInitWithEventBridgeCommand(SchemaTestDataSetup):
     @pytest.mark.timeout(300)

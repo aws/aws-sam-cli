@@ -113,7 +113,7 @@ def _is_upload_abort(error: Optional[BaseException]) -> bool:
     return False
 
 
-class _ThreadSafeUploadCache(MutableMapping[str, str]):
+class _ThreadSafeUploadCache(MutableMapping[Any, str]):
     """
     Thread-safe mapping used to deduplicate uploads across threads.
 
@@ -124,33 +124,33 @@ class _ThreadSafeUploadCache(MutableMapping[str, str]):
     PackagePerformance cache.
     """
 
-    def __init__(self, initial: Optional[MutableMapping[str, str]] = None, key_by_packaging: bool = False):
+    def __init__(self, initial: Optional[MutableMapping[Any, str]] = None, key_by_packaging: bool = False):
         # Copy into a regular dict so we can safely snapshot under a lock
-        self._cache: Dict[str, str] = dict(initial or {})
+        self._cache: Dict[Any, str] = dict(initial or {})
         self._key_by_packaging = key_by_packaging
         self._lock = threading.Lock()
-        self._key_locks: Dict[str, threading.Lock] = {}
+        self._key_locks: Dict[Any, threading.Lock] = {}
 
-    def cache_key(self, local_path: str, packaging: str, extension: Optional[str]) -> str:
-        """Key for an upload of ``local_path`` packaged as ``packaging`` with ``extension``."""
+    def cache_key(self, base_key: Any, packaging: str, extension: Optional[str]) -> Any:
+        """Key for an upload identified by ``base_key`` (bucket, prefix, local path) packaged as ``packaging``."""
         if not self._key_by_packaging:
-            return local_path
-        return f"{packaging}|{extension or ''}|{local_path}"
+            return base_key
+        return (*base_key, packaging, extension or "")
 
-    def key_lock(self, key: str) -> threading.Lock:
+    def key_lock(self, key: Any) -> threading.Lock:
         """Lock serializing check-then-upload for a single key; other keys proceed concurrently."""
         with self._lock:
             return self._key_locks.setdefault(key, threading.Lock())
 
-    def __getitem__(self, key: str) -> str:  # pragma: no cover - small helper
+    def __getitem__(self, key: Any) -> str:  # pragma: no cover - small helper
         with self._lock:
             return self._cache[key]
 
-    def __setitem__(self, key: str, value: str) -> None:  # pragma: no cover - small helper
+    def __setitem__(self, key: Any, value: str) -> None:  # pragma: no cover - small helper
         with self._lock:
             self._cache[key] = value
 
-    def __delitem__(self, key: str) -> None:  # pragma: no cover - small helper
+    def __delitem__(self, key: Any) -> None:  # pragma: no cover - small helper
         with self._lock:
             del self._cache[key]
 
@@ -724,7 +724,7 @@ class Template:
         self._apply_global_values()
         self.template_dict = self._export_global_artifacts(self.template_dict)
 
-        cache: Optional[MutableMapping[str, str]] = None
+        cache: Optional[MutableMapping[Any, str]] = None
         if is_experimental_enabled(ExperimentalFlag.PackagePerformance):
             cache = {}
         if self.parallel_upload:
@@ -748,7 +748,7 @@ class Template:
 
     def _collect_export_jobs(
         self,
-        cache: Optional[MutableMapping[str, str]],
+        cache: Optional[MutableMapping[Any, str]],
         executor: Optional[ThreadPoolExecutor],
         abort: Optional[threading.Event],
     ) -> List[Tuple[bool, Callable[[], None]]]:
@@ -778,7 +778,7 @@ class Template:
         exporter_class,
         resource_full_path: str,
         resource_dict: Dict,
-        cache: Optional[MutableMapping[str, str]],
+        cache: Optional[MutableMapping[Any, str]],
         executor: Optional[ThreadPoolExecutor] = None,
         abort: Optional[threading.Event] = None,
     ) -> Callable[[], None]:
