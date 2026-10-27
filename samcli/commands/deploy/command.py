@@ -25,6 +25,7 @@ from samcli.commands._utils.options import (
     metadata_option,
     no_progressbar_option,
     notification_arns_option,
+    parallel_upload_option,
     parameter_override_option,
     resolve_image_repos_option,
     resolve_s3_option,
@@ -159,13 +160,7 @@ LOG = logging.getLogger(__name__)
 @image_repository_option
 @image_repositories_option
 @force_upload_option
-@click.option(
-    "--parallel-upload",
-    is_flag=True,
-    default=False,
-    help="Enable parallel upload of artifacts to S3/ECR during packaging before deployment. "
-    "Runs up to 8 uploads at once; set the SAM_CLI_PARALLEL_UPLOAD_WORKERS environment variable to change this.",
-)
+@parallel_upload_option("packaging before deployment")
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option

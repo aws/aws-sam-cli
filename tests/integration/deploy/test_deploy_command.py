@@ -1105,6 +1105,44 @@ to create a managed default bucket, or run sam deploy --guided",
         # verify child stack ChildStackX's creation
         self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStackX")
 
+    def test_deploy_parallel_upload_nested_stack_image_function_and_shared_code_uri(self):
+        # Covers the parallel packaging paths: a nested stack, an image function and two functions
+        # that share one CodeUri.
+        template_path = self.test_data_path.joinpath("parallel-upload", "template.yaml")
+
+        stack_name = self._method_to_stack_name(self.id())
+        self.stacks.append({"name": stack_name})
+
+        deploy_command_list = self.get_deploy_command_list(
+            template_file=template_path,
+            stack_name=stack_name,
+            config_file=self.test_data_path.joinpath("samconfig-deep-nested.toml"),
+            s3_prefix=self.s3_prefix,
+            s3_bucket=self.s3_bucket.name,
+            force_upload=True,
+            parallel_upload=True,
+            kms_key_id=self.kms_key,
+            no_execute_changeset=False,
+            tags="integ=true clarity=yes foo_bar=baz",
+            confirm_changeset=False,
+            image_repository=self.ecr_repo_name,
+        )
+
+        deploy_process_execute = self.run_command(deploy_command_list)
+        process_stdout = deploy_process_execute.stdout.decode()
+        self.assertEqual(deploy_process_execute.process.returncode, 0)
+        self.assertRegex(process_stdout, r"Parallel uploads\s+:\s+True")
+        self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ChildStack")
+        self.assertRegex(process_stdout, r"CREATE_COMPLETE.+ImageFunction")
+
+        # The shared CodeUri is zipped and uploaded once, so both functions point at the same S3 object.
+        template_body = self.cfn_client.get_template(StackName=stack_name, TemplateStage="Processed")["TemplateBody"]
+        code_locations = {
+            template_body["Resources"][logical_id]["Properties"]["Code"]["S3Key"]
+            for logical_id in ("SharedCodeFunctionA", "SharedCodeFunctionB")
+        }
+        self.assertEqual(1, len(code_locations))
+
     @parameterized.expand([os.path.join("stackset", "template.yaml")])
     def test_deploy_stackset(self, template_file):
         template_path = self.test_data_path.joinpath(template_file)

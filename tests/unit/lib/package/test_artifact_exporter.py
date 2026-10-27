@@ -6,6 +6,7 @@ import os
 import platform
 import random
 import shutil
+import signal
 import string
 import tempfile
 import threading
@@ -40,6 +41,7 @@ from samcli.lib.package.artifact_exporter import (
     _resolve_nested_stack_parameters,
     _ThreadSafeUploadCache,
     _UploadAborted,
+    ParallelExport,
     _is_upload_abort,
     get_parallel_upload_workers,
 )
@@ -1250,9 +1252,7 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
                 language_extensions_enabled=True,
-                parallel_upload=False,
-                upload_executor=None,
-                upload_abort=None,
+                parallel_export=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1436,9 +1436,7 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_stack_id="id",
                 parameter_values=mock.ANY,
                 language_extensions_enabled=True,
-                parallel_upload=False,
-                upload_executor=None,
-                upload_abort=None,
+                parallel_export=None,
             )
             template_instance_mock.export.assert_called_once_with()
             self.s3_uploader_mock.upload.assert_called_once_with(mock.ANY, mock.ANY)
@@ -1660,10 +1658,10 @@ class TestArtifactExporter(unittest.TestCase):
             template_exporter.export()
 
         run_jobs_mock.assert_called_once()
-        jobs, executor, abort = run_jobs_mock.call_args[0]
+        jobs, parallel_export = run_jobs_mock.call_args[0]
         self.assertEqual([False, False], [is_nested_stack for is_nested_stack, _ in jobs])
-        self.assertIsInstance(executor, ThreadPoolExecutor)
-        self.assertIsInstance(abort, threading.Event)
+        self.assertIsInstance(parallel_export.executor, ThreadPoolExecutor)
+        self.assertIsInstance(parallel_export.abort, threading.Event)
 
     @patch("samcli.lib.package.artifact_exporter.is_experimental_enabled")
     @patch("samcli.lib.package.artifact_exporter.yaml_parse")
@@ -1769,7 +1767,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         jobs = [(False, record("upload1")), (True, record("nested")), (False, record("upload2"))]
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="upload") as executor:
-            Template._run_export_jobs(jobs, executor)
+            Template._run_export_jobs(jobs, ParallelExport(executor, threading.Event()))
 
         self.assertTrue(ran_on["upload1"].startswith("upload"))
         self.assertTrue(ran_on["upload2"].startswith("upload"))
@@ -1780,7 +1778,7 @@ class TestArtifactExporter(unittest.TestCase):
         barrier = threading.Barrier(2, timeout=5)
         jobs = [(True, barrier.wait), (True, barrier.wait)]
         with ThreadPoolExecutor(max_workers=1) as executor:
-            Template._run_export_jobs(jobs, executor)
+            Template._run_export_jobs(jobs, ParallelExport(executor, threading.Event()))
 
     @patch("samcli.lib.package.artifact_exporter.LOG")
     def test_run_export_jobs_fails_fast_and_reports_all_failures(self, log_mock):
@@ -1803,7 +1801,7 @@ class TestArtifactExporter(unittest.TestCase):
         jobs = [(False, fail_first), (False, fail_slow)] + [(False, queued)] * 20
         with ThreadPoolExecutor(max_workers=2) as executor:
             with self.assertRaises(ValueError):
-                Template._run_export_jobs(jobs, executor)
+                Template._run_export_jobs(jobs, ParallelExport(executor, threading.Event()))
 
         # Queued jobs are cancelled on the first failure; only jobs a free worker had already
         # picked up can still run.
@@ -1839,7 +1837,7 @@ class TestArtifactExporter(unittest.TestCase):
         with ThreadPoolExecutor(max_workers=1) as executor:
             with self.assertRaises(ValueError):
                 threading.Timer(0.2, release.set).start()
-                Template._run_export_jobs(jobs, executor)
+                Template._run_export_jobs(jobs, ParallelExport(executor, threading.Event()))
 
         queued.assert_not_called()
 
@@ -1851,7 +1849,7 @@ class TestArtifactExporter(unittest.TestCase):
                 pass
 
             def export(self, *args, **kwargs):
-                captured["executor"] = self.upload_executor
+                captured["parallel_export"] = self.parallel_export
 
         template_exporter = Template.__new__(Template)
         template_exporter.uploaders = Mock()
@@ -1860,11 +1858,11 @@ class TestArtifactExporter(unittest.TestCase):
         template_exporter.language_extensions_enabled = False
         template_exporter.template_dir = "dir"
         template_exporter.parallel_upload = True
-        shared_executor = Mock()
+        shared = ParallelExport(Mock(), threading.Event())
 
-        template_exporter._build_export_job(_NestedStack, "Nested", {}, None, shared_executor)()
+        template_exporter._build_export_job(_NestedStack, "Nested", {}, None, shared)()
 
-        self.assertIs(shared_executor, captured["executor"])
+        self.assertIs(shared, captured["parallel_export"])
 
     def test_packaging_keyed_upload_cache_separates_packaging(self):
         cache = _ThreadSafeUploadCache(key_by_packaging=True)
@@ -1925,7 +1923,9 @@ class TestArtifactExporter(unittest.TestCase):
 
         with ThreadPoolExecutor(max_workers=1) as executor:
             with self.assertRaises(RuntimeError):
-                Template._run_export_jobs([(False, failing_upload), (True, failing_nested_stack)], executor)
+                Template._run_export_jobs(
+                    [(False, failing_upload), (True, failing_nested_stack)], ParallelExport(executor, threading.Event())
+                )
 
         logged = [log_call.args[1] for log_call in log_mock.error.call_args_list]
         self.assertTrue(any(isinstance(error, ValueError) for error in logged))
@@ -1949,14 +1949,13 @@ class TestArtifactExporter(unittest.TestCase):
         uploaders.get.return_value = uploader
         stack_resource = CloudFormationStackResource(uploaders, Mock())
         stack_resource.language_extensions_enabled = False
-        stack_resource.parallel_upload = True
 
         with (
             tempfile.TemporaryDirectory() as parent_dir,
             ThreadPoolExecutor(max_workers=1, thread_name_prefix="upload") as executor,
         ):
             open(os.path.join(parent_dir, "child.yaml"), "w").close()
-            stack_resource.upload_executor = executor
+            stack_resource.parallel_export = ParallelExport(executor, threading.Event())
             upload_threads = []
             uploader.upload.side_effect = lambda *args: (
                 upload_threads.append(threading.current_thread().name) or "s3://bucket/child.template"
@@ -1982,11 +1981,13 @@ class TestArtifactExporter(unittest.TestCase):
             # A nested stack that only reaches its own uploads after the root upload has failed.
             upload_failed.wait(5)
             abort.wait(5)
-            Template._run_export_jobs([(False, child_upload)], executor, abort)
+            Template._run_export_jobs([(False, child_upload)], ParallelExport(executor, abort))
 
         with ThreadPoolExecutor(max_workers=2) as executor:
             with self.assertRaises(RuntimeError):
-                Template._run_export_jobs([(False, failing_upload), (True, nested_stack)], executor, abort)
+                Template._run_export_jobs(
+                    [(False, failing_upload), (True, nested_stack)], ParallelExport(executor, abort)
+                )
 
         child_upload.assert_not_called()
         self.assertTrue(abort.is_set())
@@ -2013,7 +2014,9 @@ class TestArtifactExporter(unittest.TestCase):
         abort = threading.Event()
         abort.set()
 
-        job = template_exporter._build_export_job(Mock(return_value=exporter), "Leaf", {}, None, Mock(), abort)
+        job = template_exporter._build_export_job(
+            Mock(return_value=exporter), "Leaf", {}, None, ParallelExport(Mock(), abort)
+        )
 
         with self.assertRaises(_UploadAborted):
             job()
@@ -2054,6 +2057,112 @@ class TestArtifactExporter(unittest.TestCase):
 
         self.assertIs(real_error, raised.exception)
         log_mock.error.assert_not_called()
+
+    @staticmethod
+    def _send_sigint_to_main_thread():
+        # Like a real Ctrl-C: delivered to the main thread so it wakes from a blocking wait.
+        signal.pthread_kill(threading.main_thread().ident, signal.SIGINT)
+
+    def _interruptible_template(self, exporter_classes, resource_count):
+        resources = {}
+        for index in range(resource_count):
+            resource_type = exporter_classes[index % len(exporter_classes)].RESOURCE_TYPE
+            resources[f"Resource{index}"] = {"Type": resource_type, "Properties": {}}
+        return Template(
+            "template.yaml",
+            os.getcwd(),
+            Mock(),
+            Mock(),
+            resources_to_export=exporter_classes,
+            template_dict={"Resources": resources},
+            parallel_upload=True,
+        )
+
+    @unittest.skipIf(platform.system() == "Windows", "needs signal.pthread_kill")
+    def test_keyboard_interrupt_stops_queued_uploads(self):
+        started = []
+        started_lock = threading.Lock()
+
+        class _SlowUpload:
+            RESOURCE_TYPE = "Slow::Upload"
+            ARTIFACT_TYPE = ZIP
+            EXPORT_DESTINATION = Destination.S3
+
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def export(self, *args, **kwargs):
+                with started_lock:
+                    started.append(1)
+                time.sleep(0.2)
+
+        template = self._interruptible_template([_SlowUpload], 40)
+        timer = threading.Timer(0.1, self._send_sigint_to_main_thread)
+        timer.start()
+        try:
+            with patch.dict(os.environ, {"SAM_CLI_PARALLEL_UPLOAD_WORKERS": "4"}):
+                with self.assertRaises(KeyboardInterrupt):
+                    template.export()
+        finally:
+            timer.cancel()
+
+        # Only uploads already running when the interrupt arrived finish; the other queued ones never start.
+        self.assertLessEqual(len(started), 8)
+
+    @unittest.skipIf(platform.system() == "Windows", "needs signal.pthread_kill")
+    def test_keyboard_interrupt_aborts_running_nested_stack_coordinators(self):
+        nested_running = threading.Event()
+        saw_abort = []
+
+        class _NestedStack(CloudFormationStackResource):
+            RESOURCE_TYPE = "Nested::Stack"
+            ARTIFACT_TYPE = ZIP
+
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def export(self, *args, **kwargs):
+                nested_running.set()
+                # A nested stack stops starting child uploads once the shared abort event is set.
+                saw_abort.append(self.parallel_export.abort.wait(5))
+                raise _UploadAborted()
+
+        template = self._interruptible_template([_NestedStack], 1)
+        timer = threading.Timer(0.1, self._send_sigint_to_main_thread)
+        timer.start()
+        try:
+            with self.assertRaises(KeyboardInterrupt):
+                template.export()
+        finally:
+            timer.cancel()
+
+        self.assertTrue(nested_running.is_set())
+        self.assertEqual([True], saw_abort)
+
+    def test_root_export_aborts_and_cancels_pending_work_on_any_base_exception(self):
+        captured = {}
+
+        def interrupted(jobs, parallel_export):
+            captured["parallel_export"] = parallel_export
+            raise KeyboardInterrupt()
+
+        template = self._interruptible_template([Mock(RESOURCE_TYPE="Any::Type", ARTIFACT_TYPE=ZIP)], 1)
+        with patch.object(Template, "_run_export_jobs", side_effect=interrupted):
+            with self.assertRaises(KeyboardInterrupt):
+                template.export()
+
+        self.assertTrue(captured["parallel_export"].abort.is_set())
+
+    def test_wait_fail_fast_aborts_and_cancels_when_interrupted_while_waiting(self):
+        abort = threading.Event()
+        pending = Future()
+
+        with patch("samcli.lib.package.artifact_exporter.wait", side_effect=KeyboardInterrupt):
+            with self.assertRaises(KeyboardInterrupt):
+                Template._wait_fail_fast([pending], abort)
+
+        self.assertTrue(abort.is_set())
+        self.assertTrue(pending.cancelled())
 
     def test_is_upload_abort_follows_wrapping(self):
         self.assertTrue(_is_upload_abort(_UploadAborted()))
