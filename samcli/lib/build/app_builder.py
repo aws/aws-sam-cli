@@ -239,6 +239,7 @@ class ApplicationBuilder:
             to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
+        self._warn_on_microvm_image_tag_collisions()
 
         # Add cross-architecture warning when using containers
         if self._container_manager:
@@ -1048,6 +1049,23 @@ class ApplicationBuilder:
                     working_directory = os.path.normpath(os.path.join(scratch_dir, working_directory))
 
         return working_directory
+
+    def _warn_on_microvm_image_tag_collisions(self) -> None:
+        """
+        Warn when MicrovmImages in this build map to the same local tag, so the image built last overwrites the
+        others. Tags are derived from the full path, so for example IDs that differ only in case collide.
+        """
+        full_paths_by_tag: Dict[str, List[str]] = {}
+        for image in self._resources_to_build.microvm_images:
+            full_paths_by_tag.setdefault(self._microvm_image_tag(image.full_path), []).append(image.full_path)
+        for tag, full_paths in full_paths_by_tag.items():
+            if len(full_paths) > 1:
+                LOG.warning(
+                    "MicrovmImages %s all map to the local image tag '%s', so the image built last overwrites "
+                    "the others. Rename the resources so their IDs differ by more than case or punctuation.",
+                    ", ".join(full_paths),
+                    tag,
+                )
 
     @staticmethod
     def _microvm_image_tag(full_path: str) -> str:
