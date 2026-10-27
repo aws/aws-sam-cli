@@ -502,6 +502,31 @@ class ApplicationBuilder:
             return False
         return any(isinstance(function, WebFunction) and function.name == function_name for function in functions)
 
+    def _get_image_build_client(self) -> ImageBuildClient:
+        """
+        Lazily create the client used for image builds, shared by Lambda image functions and MicrovmImages.
+        Uses the CLI client (BuildKit) with --use-buildkit, otherwise the Docker SDK client.
+
+        Raises
+        ------
+        BuildkitNotAvailableException
+            When --use-buildkit is set but BuildKit is not available for the container runtime
+        """
+        if not self._image_build_client:
+            if self._use_buildkit:
+                engine_type = self._container_client.get_runtime_type()
+
+                is_available, error_msg = CLIBuildClient.is_available(engine_type)
+                if not is_available:
+                    raise BuildkitNotAvailableException(error_msg)
+
+                self._image_build_client = CLIBuildClient(engine_type=engine_type)
+                LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
+            else:
+                self._image_build_client = SDKBuildClient(self._container_client)
+                LOG.debug("Using SDKBuildClient")
+        return self._image_build_client
+
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
         Build an Lambda image
@@ -568,21 +593,7 @@ class ApplicationBuilder:
             build_args["extra_params"] = docker_build_extra_params
 
         try:
-            if not self._image_build_client:
-                if self._use_buildkit:
-                    container_client = self._container_client
-                    engine_type = container_client.get_runtime_type()
-
-                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
-                    if not is_available:
-                        raise BuildkitNotAvailableException(error_msg)
-
-                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
-                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
-                else:
-                    self._image_build_client = SDKBuildClient(self._container_client)
-                    LOG.debug("Using SDKBuildClient")
-            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            build_logs = self._get_image_build_client().build_image(**build_args)  # type: ignore[arg-type]
             LOG.debug(f"Image built for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
@@ -1148,22 +1159,7 @@ class ApplicationBuilder:
         }
 
         try:
-            if not self._image_build_client:
-                if self._use_buildkit:
-                    container_client = self._container_client
-                    engine_type = container_client.get_runtime_type()
-
-                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
-                    if not is_available:
-                        raise BuildkitNotAvailableException(error_msg)
-
-                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
-                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
-                else:
-                    self._image_build_client = SDKBuildClient(self._container_client)
-                    LOG.debug("Using SDKBuildClient")
-
-            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            build_logs = self._get_image_build_client().build_image(**build_args)  # type: ignore[arg-type]
             LOG.debug("MicrovmImage built for %s", full_path)
         except docker.errors.BuildError as ex:
             LOG.error("Failed building MicrovmImage %s", full_path)
