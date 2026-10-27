@@ -21,7 +21,7 @@ from samcli.lib.providers.provider import Function
 from samcli.lib.utils.invocation_type import EVENT
 from samcli.lib.utils.name_utils import InvalidFunctionNameException, normalize_sam_function_identifier
 from samcli.lib.utils.stream_writer import StreamWriter
-from samcli.local.docker.exceptions import DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import ContainerCreationFailedException, ContainerImagePullFailedException
 from samcli.local.lambda_service.lambda_error_responses import LambdaErrorResponses
 from samcli.local.lambdafn.exceptions import DurableExecutionNotFound, FunctionNotFound, UnsupportedInvocationType
 from samcli.local.services.base_local_service import BaseLocalService, LambdaOutputParser
@@ -286,8 +286,8 @@ class LocalLambdaHttpService(BaseLocalService):
                 "invocation-type: %s is not supported. Only Event and RequestResponse are supported.", invocation_type
             )
             return LambdaErrorResponses.not_implemented_locally(str(e))
-        except DockerContainerCreationFailedException as ex:
-            return LambdaErrorResponses.container_creation_failed(ex.message)
+        except (ContainerCreationFailedException, ContainerImagePullFailedException) as ex:
+            return LambdaErrorResponses.container_creation_failed(str(ex))
 
         lambda_response, is_lambda_user_error_response = LambdaOutputParser.get_lambda_output(
             stdout_stream_string, stdout_stream_bytes

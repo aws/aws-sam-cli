@@ -54,10 +54,14 @@ class ContainerClientFactory:
 
         if admin_preference:
             LOG.debug("Using enforced client creation")
-            return ContainerClientFactory._create_enforced_client(admin_preference)
+            client = ContainerClientFactory._create_enforced_client(admin_preference)
+        else:
+            LOG.debug("Using auto-detected client creation")
+            client = ContainerClientFactory._create_auto_detected_client()
 
-        LOG.debug("Using auto-detected client creation")
-        return ContainerClientFactory._create_auto_detected_client()
+        # Only the runtime that was selected for this command warns about its registry credentials
+        client.warn_about_registry_credentials()
+        return client
 
     @staticmethod
     def _create_enforced_client(preference: str) -> "ContainerClient":
