@@ -3143,10 +3143,13 @@ class TestCollectSingleMicrovmImage(TestCase):
 class TestCollectAllMicrovmImages(TestCase):
     """Tests for collect_all_build_resources MicrovmImage filtering."""
 
+    @patch("samcli.commands.build.build_context.BuildContext._is_container_runtime_available", return_value=True)
     @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
-    def test_collect_all_skips_unbuildable_with_warning(self, mock_func_prov, mock_layer_prov, mock_mvm_prov):
+    def test_collect_all_skips_unbuildable_with_warning(
+        self, mock_func_prov, mock_layer_prov, mock_mvm_prov, mock_runtime_available
+    ):
         from samcli.lib.providers.provider import MicrovmImage
 
         buildable_image = MicrovmImage(name="Good", code_uri="./app", architecture="arm64")

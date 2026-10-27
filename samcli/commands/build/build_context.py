@@ -78,8 +78,9 @@ from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvide
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.path_utils import is_same_or_ancestor
+from samcli.local.docker.exceptions import ContainerEnforcementException, ContainerNotReachableException
 from samcli.local.docker.manager import ContainerManager
-from samcli.local.docker.utils import get_docker_platform
+from samcli.local.docker.utils import get_docker_platform, get_validated_container_client
 from samcli.local.lambdafn.exceptions import (
     FunctionNotFound,
     ResourceNotFound,
@@ -1554,8 +1555,27 @@ Commands you can use next
                 LOG.warning("Skipping MicrovmImage %s: %s", image.full_path, non_buildable_reason)
                 continue
             buildable_images.append(image)
+        # The local image is only for local testing; packaging uses the source directory. So without a
+        # container runtime, skip the images rather than fail a build whose deployment does not need them.
+        # Building a targeted image still fails.
+        if buildable_images and not BuildContext._is_container_runtime_available():
+            for image in buildable_images:
+                LOG.warning(
+                    "Skipping MicrovmImage %s: no container runtime (Docker or Finch) is available. The local "
+                    "image is only used for local testing; packaging uses the source directory.",
+                    image.full_path,
+                )
+            buildable_images = []
         result.add_microvm_images(buildable_images)
         return result
+
+    @staticmethod
+    def _is_container_runtime_available() -> bool:
+        try:
+            get_validated_container_client()
+        except (ContainerNotReachableException, ContainerEnforcementException):
+            return False
+        return True
 
     @property
     def is_building_specific_resource(self) -> bool:
