@@ -834,6 +834,12 @@ class WorkspaceAwareBuildStrategy(BuildStrategy):
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
 
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._delegate_build_strategy._build_microvm_images(build_graph)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
+
     def _prepare_shared_project_for_workspace_groups(self, build_graph: BuildGraph) -> None:
         groups: Dict[str, List[FunctionBuildDefinition]] = {}
         for build_definition in build_graph.get_function_build_definitions():
