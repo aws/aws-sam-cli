@@ -1570,7 +1570,7 @@ class TestApplicationBuilder_web_function_build_graph(TestCase):
         self.assertEqual(definition.handler, "server.js")
         self.assertIsNone(definition.imageuri)
         self.assertEqual(definition.packagetype, "Zip")
-        self.assertEqual(definition.architecture, "x86_64")
+        self.assertEqual(definition.architecture, "arm64")
 
     @patch("samcli.lib.build.app_builder.get_validated_container_client")
     def test_web_function_does_not_share_a_build_with_a_lambda_function(self, _):
