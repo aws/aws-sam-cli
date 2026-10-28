@@ -24,7 +24,7 @@ from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_RESOURCE_ID_KEY,
     ResourceMetadataNormalizer,
 )
-from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.path_utils import check_path_valid_type
 from samcli.local.apigw.route import Route
@@ -263,8 +263,8 @@ class WebFunction(NamedTuple):
 
     @property
     def architecture(self) -> str:
-        """Web Functions always build for x86_64"""
-        return X86_64
+        """Web Functions run only on arm64, so they always build for arm64"""
+        return ARM64
 
     @property
     def skip_build(self) -> bool:
