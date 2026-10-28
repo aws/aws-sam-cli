@@ -1053,7 +1053,17 @@ def build_in_source_click_option():
         required=False,
         is_flag=True,
         help="Opts in to build project in the source folder. The following workflows support "
-        f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}",
+        f"building in source: {SUPPORTED_BUILD_IN_SOURCE_WORKFLOWS}\n"
+        "\n"
+        "For `sam build` on an npm workspaces monorepo, npm installs once at the workspace root "
+        "instead of once per function, and each function's artifacts are narrowed to the "
+        "dependencies it resolves. The install runs in the workspace root npm itself reports, "
+        "which is inside your project but above the function's CodeUri.\n"
+        "\n"
+        "This grouping is in beta: enable it with --beta-features or "
+        "SAM_CLI_BETA_NODEJS_MONOREPO=1. Without it, every function installs for itself, as in "
+        "earlier releases. It is also skipped for --use-container and --cached builds, so "
+        "`sam sync` does not use it.",
         cls=ClickMutex,
         incompatible_params=["use_container", "hook_name"],
     )
