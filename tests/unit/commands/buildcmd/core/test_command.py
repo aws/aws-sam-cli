@@ -49,6 +49,9 @@ class TestBuildCommand(unittest.TestCase):
             "Build sam project and invoke default function locally": [
                 ("$ sam build && sam local invoke\x1b[0m", ""),
             ],
+            "Build an npm workspaces monorepo, installing once at the workspace root (beta)": [
+                ("$ sam build --build-in-source --beta-features\x1b[0m", ""),
+            ],
             "Build sam project and deploy": [("$ sam build && sam deploy\x1b[0m", "")],
             "Required Options": [("--template-file", "")],
             "Template Options": [("--parameter-overrides", "")],

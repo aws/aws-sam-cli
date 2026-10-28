@@ -1,0 +1,9 @@
+{
+  "name": "node-workspaces-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "functions/*"
+  ]
+}
