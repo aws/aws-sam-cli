@@ -77,10 +77,14 @@ from samcli.lib.utils.resources import (
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.container_client import ContainerClient
-from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerArchiveImageLoadFailedException
+from samcli.local.docker.exceptions import (
+    BuildkitNotAvailableException,
+    ContainerArchiveImageLoadFailedException,
+    ContainerImagePullFailedException,
+)
 from samcli.local.docker.image_build_client import CLIBuildClient, ImageBuildClient, SDKBuildClient
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.docker.utils import (
     get_docker_platform,
     get_validated_container_client,
@@ -1298,7 +1302,7 @@ class ApplicationBuilder:
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
 
-        except DockerImagePullFailedException as ex:
+        except ContainerImagePullFailedException as ex:
             raise BuildInsideContainerError(ex)
 
         finally:

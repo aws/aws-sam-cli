@@ -6,7 +6,9 @@ and FinchContainerClient implementations.
 """
 
 import io
+import json
 import os
+import tempfile
 from unittest import TestCase
 from unittest.mock import Mock, patch
 
@@ -18,10 +20,14 @@ from samcli.local.docker.container_client import (
     ContainerClient,
     DockerContainerClient,
     FinchContainerClient,
+    _is_docker_config_readable,
+    _missing_credential_helpers,
 )
+from samcli.local.docker import container_client as container_client_module
 from samcli.local.docker.exceptions import (
     ContainerArchiveImageLoadFailedException,
     ContainerInvalidSocketPathException,
+    ContainerImagePullFailedException,
 )
 from samcli.lib.constants import DOCKER_MIN_API_VERSION
 
@@ -683,7 +689,10 @@ class TestFinchContainerClientInit(BaseContainerClientTestCase):
     @patch("samcli.local.docker.container_client.LOG")
     def test_init_with_socket_path_success(self, mock_log, mock_docker_init):
         """Test FinchContainerClient init with socket path available"""
-        with patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket):
+        with (
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
+            patch("samcli.local.docker.container_client.get_finch_registry_config_path", return_value=None),
+        ):
             client = FinchContainerClient()
 
         # Verify DockerClient.__init__ was called with expected parameters
@@ -828,3 +837,338 @@ class TestContainerClientBaseClass(TestCase):
         method = getattr(self.client, method_name)
         result = method()
         self.assertEqual(result, expected_result)
+
+
+class TestContainerClientPullImage(TestCase):
+    """Test the shared ContainerClient.pull_image used by every image pull"""
+
+    def setUp(self):
+        container_client_module._warned_once.clear()
+        self.addCleanup(container_client_module._warned_once.clear)
+        self.client = Mock(spec=DockerContainerClient)
+        self.client.api = Mock()
+        for method in ("pull_image", "_request_pull", "_raise_on_streamed_pull_error", "_describe_pull_failure"):
+            setattr(self.client, method, getattr(ContainerClient, method).__get__(self.client))
+
+    def test_yields_progress_events(self):
+        events = [{"status": "Pulling"}, {"status": "Downloaded"}]
+        self.client.api.pull.return_value = iter(events)
+
+        result = list(self.client.pull_image("public.ecr.aws/foo/bar", tag="1.0"))
+
+        self.assertEqual(result, events)
+        self.client.api.pull.assert_called_once_with("public.ecr.aws/foo/bar", tag="1.0", stream=True, decode=True)
+
+    def test_raises_when_pull_request_fails(self):
+        self.client.api.pull.side_effect = docker.errors.APIError("pull access denied")
+
+        with self.assertRaises(ContainerImagePullFailedException) as context:
+            self.client.pull_image("foo/bar")
+
+        self.assertIn("pull access denied", str(context.exception))
+
+    def test_raises_on_error_reported_in_stream(self):
+        self.client.api.pull.return_value = iter(
+            [{"status": "Pulling"}, {"error": "toomanyrequests: rate limit", "errorDetail": {}}]
+        )
+
+        progress = self.client.pull_image("foo/bar")
+        self.assertEqual(next(progress), {"status": "Pulling"})
+        with self.assertRaises(ContainerImagePullFailedException) as context:
+            next(progress)
+
+        self.assertIn("toomanyrequests", str(context.exception))
+
+    def test_ignores_non_dict_events(self):
+        self.client.api.pull.return_value = iter(["raw line"])
+
+        self.assertEqual(list(self.client.pull_image("foo/bar")), ["raw line"])
+
+    def test_falls_back_to_anonymous_pull_when_credential_helper_is_missing(self):
+        events = [{"status": "Pulled"}]
+        self.client.api.pull.side_effect = [
+            docker.errors.DockerException(
+                "Credentials store error: StoreError('docker-credential-desktop not installed or not available in PATH')"
+            ),
+            iter(events),
+        ]
+
+        with self.assertLogs("samcli.local.docker.container_client", level="WARNING") as logs:
+            result = list(self.client.pull_image("public.ecr.aws/foo/bar", tag="1.0"))
+
+        self.assertEqual(result, events)
+        self.client.api.pull.assert_called_with(
+            "public.ecr.aws/foo/bar", tag="1.0", stream=True, decode=True, auth_config={}
+        )
+        self.assertTrue(any("without credentials" in line for line in logs.output))
+
+    def test_pull_image_and_wait_reads_the_whole_pull(self):
+        progress = iter([{"status": "Pulling"}, {"status": "Pulled"}])
+        self.client.api.pull.return_value = progress
+        self.client.pull_image_and_wait = ContainerClient.pull_image_and_wait.__get__(self.client)
+
+        self.client.pull_image_and_wait("public.ecr.aws/foo/bar:1.0")
+
+        self.client.api.pull.assert_called_once_with("public.ecr.aws/foo/bar:1.0", tag=None, stream=True, decode=True)
+        self.assertEqual(list(progress), [])
+
+    def test_pull_image_and_wait_raises_on_streamed_error(self):
+        self.client.api.pull.return_value = iter([{"error": "toomanyrequests: rate limit"}])
+        self.client.pull_image_and_wait = ContainerClient.pull_image_and_wait.__get__(self.client)
+
+        with self.assertRaises(ContainerImagePullFailedException):
+            self.client.pull_image_and_wait("foo/bar")
+
+    def test_credentials_store_warning_is_shown_once(self):
+        store_error = docker.errors.DockerException("Credentials store error: StoreError('missing helper')")
+        self.client.api.pull.side_effect = [store_error, iter([]), store_error, iter([])]
+
+        with self.assertLogs("samcli.local.docker.container_client", level="WARNING") as logs:
+            list(self.client.pull_image("foo/bar"))
+            list(self.client.pull_image("foo/baz"))
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("private registries will fail", logs.output[0])
+
+    def test_other_docker_errors_are_not_swallowed(self):
+        self.client.api.pull.side_effect = docker.errors.DockerException("something else")
+
+        with self.assertRaises(docker.errors.DockerException):
+            self.client.pull_image("foo/bar")
+
+        self.client.api.pull.assert_called_once()
+
+
+VALID_AUTH = "QVdTOnRva2Vu"  # base64("AWS:token")
+
+
+class RegistryCredentialTestCase(BaseContainerClientTestCase):
+    """Shared fixtures: a temp registry config, a real docker-py APIClient, clean warning state"""
+
+    def setUp(self):
+        super().setUp()
+        container_client_module._warned_once.clear()
+        self.addCleanup(container_client_module._warned_once.clear)
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp_dir.cleanup)
+        self.config_path = os.path.join(self.temp_dir.name, "config.json")
+        # Keep docker-py away from the real Docker client config of whoever runs the tests
+        env = patch.dict(
+            "os.environ",
+            {"DOCKER_CONFIG": os.path.join(self.temp_dir.name, "docker-config"), "HOME": self.temp_dir.name},
+        )
+        env.start()
+        self.addCleanup(env.stop)
+
+    def write_config(self, config):
+        with open(self.config_path, "w") as f:
+            f.write(config if isinstance(config, str) else json.dumps(config))
+
+    def create_finch_client(self, config_path, installed_helpers=()):
+        """Create a FinchContainerClient around a real APIClient that never connects to a daemon."""
+        installed = {f"docker-credential-{helper}" for helper in installed_helpers}
+        api = docker.APIClient(base_url="unix:///nonexistent.sock", version=DOCKER_MIN_API_VERSION)
+        with (
+            patch("docker.DockerClient.__init__", return_value=None),
+            patch("samcli.local.docker.container_client.get_finch_socket_path", return_value=self.finch_socket),
+            patch("samcli.local.docker.container_client.get_finch_registry_config_path", return_value=config_path),
+            patch(
+                "samcli.local.docker.container_client.shutil.which",
+                side_effect=lambda name: name if name in installed else None,
+            ),
+            patch.object(ContainerClient, "api", api, create=True),
+        ):
+            client = FinchContainerClient()
+        return client, api
+
+    @staticmethod
+    def sends_credentials(api, registry):
+        """Whether docker-py would send credentials for registry on a pull."""
+        return docker.auth.get_config_header(api, registry) is not None
+
+
+class TestContainerClientRegistryAuthConfig(RegistryCredentialTestCase):
+    """Each runtime loads its registry credentials once, at client creation"""
+
+    @patch("docker.DockerClient.__init__", return_value=None)
+    @patch("samcli.local.docker.container_client.get_finch_socket_path")
+    @patch.dict("os.environ", {}, clear=True)
+    def test_docker_client_keeps_docker_py_credential_resolution(self, mock_finch_socket, mock_docker_init):
+        mock_finch_socket.return_value = self.finch_socket
+
+        with patch.object(ContainerClient, "api", create=True) as mock_api:
+            DockerContainerClient()
+
+        mock_api.reload_config.assert_not_called()
+
+    def test_finch_client_uses_finch_registry_config(self):
+        self.write_config({"auths": {"public.ecr.aws": {"auth": VALID_AUTH}}})
+
+        client, api = self.create_finch_client(self.config_path)
+
+        self.assertTrue(self.sends_credentials(api, "public.ecr.aws"))
+        self.assertTrue(client._uses_finch_registry_config)
+
+    @parameterized.expand([("platform_uses_docker_config", False), ("config_file_missing", True)])
+    def test_finch_client_falls_back_to_docker_config(self, _name, has_path):
+        client, api = self.create_finch_client(self.config_path if has_path else None)
+
+        self.assertFalse(self.sends_credentials(api, "public.ecr.aws"))
+        self.assertFalse(client._uses_finch_registry_config)
+
+    @parameterized.expand(
+        [
+            ("invalid_json", "{not json"),
+            ("not_an_object", "[]"),
+            ("invalid_base64_auth", {"auths": {"x.io": {"auth": "%%%notbase64"}}}),
+            ("non_dict_auth_entry", {"auths": {"x.io": "oops"}}),
+        ]
+    )
+    def test_unusable_finch_config_keeps_finch_available(self, _name, config):
+        self.write_config(config)
+
+        with self.assertLogs("samcli.local.docker.container_client", level="WARNING") as logs:
+            client, _ = self.create_finch_client(self.config_path)
+
+        self.assertIsInstance(client, FinchContainerClient)
+        self.assertFalse(client._uses_finch_registry_config)
+        self.assertTrue(any("using the Docker client config instead" in line for line in logs.output))
+
+    @parameterized.expand(
+        [
+            ("missing_credential_store", {"credsStore": "osxkeychain"}),
+            (
+                "missing_registry_helper",
+                {
+                    "auths": {"https://index.docker.io/v1/": {"auth": VALID_AUTH}},
+                    "credHelpers": {"public.ecr.aws": "ecr-login"},
+                },
+            ),
+        ]
+    )
+    def test_config_with_missing_helper_is_not_used(self, _name, config):
+        self.write_config(config)
+
+        with self.assertLogs("samcli.local.docker.container_client", level="WARNING") as logs:
+            client, _ = self.create_finch_client(self.config_path)
+
+        self.assertFalse(client._uses_finch_registry_config)
+        self.assertTrue(any("docker-credential-" in line and "Install the helper" in line for line in logs.output))
+
+    def test_installed_credential_store_is_used(self):
+        self.write_config({"credsStore": "osxkeychain"})
+
+        client, _ = self.create_finch_client(self.config_path, installed_helpers=("osxkeychain",))
+
+        self.assertTrue(client._uses_finch_registry_config)
+
+
+class TestRegistryCredentialWarnings(RegistryCredentialTestCase):
+    """Warnings come from the selected runtime only, once per process, and say how to fix the setup"""
+
+    @patch("samcli.local.docker.container_client._is_docker_config_readable", return_value=False)
+    def test_finch_warns_once_when_docker_config_is_unreadable(self, mock_readable):
+        client, _ = self.create_finch_client(None)
+
+        with self.assertLogs("samcli.local.docker.container_client", level="WARNING") as logs:
+            client.warn_about_registry_credentials()
+            client.warn_about_registry_credentials()
+
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn("cannot be read by the current user", logs.output[0])
+        self.assertIn("without sudo", logs.output[0])
+
+    @patch("samcli.local.docker.container_client._is_docker_config_readable", return_value=False)
+    def test_no_readability_warning_while_creating_the_client(self, mock_readable):
+        with patch("samcli.local.docker.container_client.LOG") as mock_log:
+            self.create_finch_client(None)
+
+        mock_log.warning.assert_not_called()
+
+    @patch("samcli.local.docker.container_client._is_docker_config_readable", return_value=False)
+    def test_no_readability_warning_when_finch_config_is_used(self, mock_readable):
+        self.write_config({"auths": {"public.ecr.aws": {"auth": VALID_AUTH}}})
+        client, _ = self.create_finch_client(self.config_path)
+
+        with patch("samcli.local.docker.container_client.LOG") as mock_log:
+            client.warn_about_registry_credentials()
+
+        mock_log.warning.assert_not_called()
+
+    def test_docker_client_has_nothing_to_warn_about(self):
+        client = Mock(spec=DockerContainerClient)
+
+        with patch("samcli.local.docker.container_client.LOG") as mock_log:
+            DockerContainerClient.warn_about_registry_credentials(client)
+
+        mock_log.warning.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("rate_limited", "toomanyrequests: Rate exceeded", True),
+            ("finch_daemon_not_found", "no such image: public.ecr.aws/foo/bar: not found", True),
+            ("unauthorized", "unexpected status code 401 Unauthorized", True),
+            ("status_code_inside_digest", "sha256:9a4041c0f3: no space left on device", False),
+            ("unrelated", "context deadline exceeded", False),
+        ]
+    )
+    @patch("samcli.local.docker.container_client.get_finch_registry_config_path", return_value=None)
+    def test_pull_failure_guidance(self, _name, error, expect_guidance, mock_config_path):
+        client = Mock(spec=FinchContainerClient)
+        message = FinchContainerClient._describe_pull_failure(client, error)
+
+        self.assertTrue(message.startswith(error))
+        self.assertEqual("finch login" in message, expect_guidance)
+
+    def test_docker_client_pull_failure_is_unchanged(self):
+        client = Mock(spec=DockerContainerClient)
+
+        self.assertEqual(DockerContainerClient._describe_pull_failure(client, "toomanyrequests"), "toomanyrequests")
+
+
+class TestDockerConfigReadability(TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.config_dir = os.path.join(self.temp_dir.name, ".docker")
+        self.env = patch.dict("os.environ", {"DOCKER_CONFIG": self.config_dir})
+        self.env.start()
+
+    def tearDown(self):
+        self.env.stop()
+        self.temp_dir.cleanup()
+
+    def test_missing_config_is_readable(self):
+        self.assertTrue(_is_docker_config_readable())
+
+    def test_user_owned_config_is_readable(self):
+        os.makedirs(self.config_dir)
+        with open(os.path.join(self.config_dir, "config.json"), "w") as f:
+            f.write("{}")
+
+        self.assertTrue(_is_docker_config_readable())
+
+    @parameterized.expand([("directory_not_accessible", True), ("file_not_readable", False)])
+    def test_unreadable_config(self, _name, deny_directory):
+        os.makedirs(self.config_dir)
+        config_file = os.path.join(self.config_dir, "config.json")
+        with open(config_file, "w") as f:
+            f.write("{}")
+        denied = self.config_dir if deny_directory else config_file
+
+        with patch("samcli.local.docker.container_client.os.access", side_effect=lambda path, mode: path != denied):
+            self.assertFalse(_is_docker_config_readable())
+
+
+class TestRegistryConfigHelpers(TestCase):
+    def test_missing_credential_helpers_reports_only_missing_ones(self):
+        config = {"credsStore": "osxkeychain", "credHelpers": {"public.ecr.aws": "ecr-login", "x.io": "osxkeychain"}}
+        installed = {"docker-credential-ecr-login"}
+
+        with patch(
+            "samcli.local.docker.container_client.shutil.which",
+            side_effect=lambda name: name if name in installed else None,
+        ):
+            self.assertEqual(_missing_credential_helpers(config), ["osxkeychain"])
+
+    def test_missing_credential_helpers_without_helpers(self):
+        self.assertEqual(_missing_credential_helpers({"auths": {}}), [])

@@ -18,11 +18,7 @@ REGION = "us-east-1"
 
 # SAM resource types that we don't validate yet, because the bundled cfn-lint can't lint them.
 # Remove an entry once cfn-lint supports the type.
-NEW_RESOURCES_TO_IGNORE = {
-    # cfn-lint has no schema for AWS::Serverless::WebFunction or the AWS::Lambda::WebFunction* types it
-    # generates (E3006), see aws-cloudformation/resource-provider-enhanced-schemas#50.
-    "AWS::Serverless::WebFunction",
-}
+NEW_RESOURCES_TO_IGNORE: Set[str] = set()
 
 
 def get_sam_resource_types() -> Set[str]:
@@ -110,6 +106,14 @@ def get_all_sam_resource_types_template() -> Dict[str, Any]:
             "StateMachine": {
                 "Type": "AWS::Serverless::StateMachine",
                 "Properties": {"Definition": {"StartAt": "Done", "States": {"Done": {"Type": "Succeed"}}}},
+            },
+            "WebFunction": {
+                "Type": "AWS::Serverless::WebFunction",
+                "Properties": {
+                    "Runtime": "nodejs24.x",
+                    "AuthType": "IamAuth",
+                    "CodeUri": "s3://bucket/web.zip",
+                },
             },
             "WebSocketApi": {
                 "Type": "AWS::Serverless::WebSocketApi",

@@ -311,7 +311,7 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # ECR uploader should be created but Docker client not validated yet
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
@@ -384,8 +384,8 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # Verify ECRUploader was created with None docker_client parameter
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._docker_client_param)
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._container_client_param)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
