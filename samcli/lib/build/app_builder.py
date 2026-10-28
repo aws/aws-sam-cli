@@ -18,13 +18,18 @@ from aws_lambda_builders import (
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
 
-from samcli.commands._utils.experimental import get_enabled_experimental_flags
+from samcli.commands._utils.experimental import (
+    ExperimentalFlag,
+    get_enabled_experimental_flags,
+    is_experimental_enabled,
+)
 from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     BuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
     DefaultBuildStrategy,
     ParallelBuildStrategy,
+    WorkspaceAwareBuildStrategy,
 )
 from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
 from samcli.lib.build.exceptions import (
@@ -68,10 +73,14 @@ from samcli.lib.utils.resources import (
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.container_client import ContainerClient
-from samcli.local.docker.exceptions import BuildkitNotAvailableException, ContainerArchiveImageLoadFailedException
+from samcli.local.docker.exceptions import (
+    BuildkitNotAvailableException,
+    ContainerArchiveImageLoadFailedException,
+    ContainerImagePullFailedException,
+)
 from samcli.local.docker.image_build_client import CLIBuildClient, ImageBuildClient, SDKBuildClient
 from samcli.local.docker.lambda_build_container import LambdaBuildContainer
-from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.docker.utils import (
     get_docker_platform,
     get_validated_container_client,
@@ -205,6 +214,8 @@ class ApplicationBuilder:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._image_build_client: Optional[ImageBuildClient] = None
+        # one SubprocessNpm per build session, so `npm prefix` answers are cached per directory
+        self._npm_subprocess: Optional[object] = None
 
     @property
     def _container_client(self) -> ContainerClient:
@@ -265,6 +276,26 @@ class ApplicationBuilder:
                 self._manifest_path_override,
                 self._is_building_specific_resource,
                 bool(self._container_manager),
+            )
+
+        if (
+            is_experimental_enabled(ExperimentalFlag.NodejsMonorepo)
+            and self._build_in_source
+            and not self._cached
+            and not self._container_manager
+        ):
+            # npm workspaces monorepo: install the shared dependency tree once per workspace root
+            # instead of once per function. Outside ParallelBuildStrategy on purpose - the install
+            # must complete before any grouped function build starts. --cached is excluded because
+            # it supplies dependencies from .aws-sam/deps and manages download_dependencies itself.
+            # Behind SAM_CLI_BETA_NODEJS_MONOREPO while the grouping rolls out: without it every
+            # function keeps its own install, which is the behaviour every release so far has had.
+            build_strategy = WorkspaceAwareBuildStrategy(
+                build_graph,
+                build_strategy,
+                self._base_dir,
+                self._resolve_npm_project_root,
+                self._prepare_workspace_shared_project,
             )
 
         return ApplicationBuildResult(build_graph, build_strategy.build())
@@ -697,6 +728,68 @@ class ApplicationBuilder:
             # Not including subfolder in return so that we copy subfolder, instead of copying artifacts inside it.
             return artifact_dir
 
+    def _resolve_npm_project_root(self, code_dir: str) -> Optional[str]:
+        """
+        Ask npm (through aws-lambda-builders) which project root covers code_dir.
+
+        Returns None when the answer is unavailable for any reason - npm missing, an
+        aws-lambda-builders too old to expose the resolver - which disables workspace grouping for
+        that function and keeps today's per-function install.
+        """
+        try:
+            from aws_lambda_builders.workflows.nodejs_npm.npm import SubprocessNpm
+            from aws_lambda_builders.workflows.nodejs_npm.utils import OSUtils as NpmOSUtils
+        except ImportError:
+            return None
+
+        if self._npm_subprocess is None:
+            self._npm_subprocess = SubprocessNpm(NpmOSUtils())
+        resolver = getattr(self._npm_subprocess, "resolve_project_root", None)
+        if resolver is None:
+            return None
+        try:
+            return cast(Optional[str], resolver(code_dir))
+        except OSError as ex:
+            LOG.debug("Could not resolve the npm project root of %s: %s", code_dir, ex)
+            return None
+
+    def _prepare_workspace_shared_project(self, project_root: str, build_definition: "FunctionBuildDefinition") -> bool:
+        """
+        Do once, at project_root, the work every workspace function under it shares.
+
+        For the npm workflows that is installing the hoisted dependency tree. The build definition
+        supplies the workflow (npm or npm-esbuild) whose builder does it; both funnel into the same
+        npm project tree. Returns False on any failure so the caller leaves the grouped functions on
+        per-function installs.
+        """
+        code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
+        specified_workflow = build_definition.metadata.get("BuildMethod") if build_definition.metadata else None
+        try:
+            config = get_workflow_config(
+                build_definition.runtime, code_dir, self._base_dir, specified_workflow=specified_workflow
+            )
+            builder = LambdaBuilder(
+                language=config.language,
+                dependency_manager=config.dependency_manager,
+                application_framework=config.application_framework,
+            )
+            prepare = getattr(builder, "prepare_shared_project", None)
+            if prepare is None:
+                LOG.debug("Installed aws-lambda-builders has no shared-project hook; skipping grouping")
+                return False
+            # The same flags the per-function build() calls get: the builders hook refuses without
+            # experimentalNodejsMonorepo, because the per-function artifacts link is gated on it too
+            # and preparing the root without it would ship artifacts carrying no dependencies.
+            prepare(project_root, experimental_flags=get_enabled_experimental_flags())
+            return True
+        except (UnsupportedRuntimeException, LambdaBuilderError) as ex:
+            LOG.warning(
+                "Preparing the shared project root %s failed (%s); falling back to per-function installs",
+                project_root,
+                ex,
+            )
+            return False
+
     def _build_function(  # pylint: disable=R1710
         self,
         function_name: str,
@@ -1093,7 +1186,7 @@ class ApplicationBuilder:
             result_dir_in_container = response["result"]["artifacts_dir"] + "/."
             container.copy(result_dir_in_container, artifacts_dir)
 
-        except DockerImagePullFailedException as ex:
+        except ContainerImagePullFailedException as ex:
             raise BuildInsideContainerError(ex)
 
         finally:
