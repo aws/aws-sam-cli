@@ -1,0 +1,18 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  LodashFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/fn-lodash
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 600
+  AxiosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/fn-axios
+      Handler: index.handler
+      Runtime: nodejs22.x
+      Timeout: 600

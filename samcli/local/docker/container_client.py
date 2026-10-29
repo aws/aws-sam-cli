@@ -22,22 +22,55 @@ Usage:
     finch_client.get_runtime_type()  # Returns "finch"
 """
 
+import json
 import logging
 import os
+import re
+import shutil
 import tarfile
 import tempfile
+import threading
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Set, Tuple, Union, cast
 
 import docker
 from docker.utils import kwargs_from_env
 
 from samcli.cli.global_config import GlobalConfig
 from samcli.lib.constants import DOCKER_MIN_API_VERSION, DOCKER_MIN_API_VERSION_FALLBACK
-from samcli.local.docker.exceptions import ContainerArchiveImageLoadFailedException, ContainerInvalidSocketPathException
-from samcli.local.docker.platform_config import get_finch_socket_path
+from samcli.local.docker.exceptions import (
+    ContainerArchiveImageLoadFailedException,
+    ContainerImagePullFailedException,
+    ContainerInvalidSocketPathException,
+)
+from samcli.local.docker.platform_config import get_finch_registry_config_path, get_finch_socket_path
 
 LOG = logging.getLogger(__name__)
+
+# Prefix of the DockerException docker-py raises when a configured credential helper fails or is missing
+CREDENTIALS_STORE_ERROR_PREFIX = "Credentials store error"
+
+# Pull errors that usually mean the registry wanted credentials, or rate limited an anonymous pull.
+# finch-daemon reports authorization failures as "not found". Status codes must stand alone so they
+# do not match inside digests, sizes or ports.
+REGISTRY_AUTH_FAILURE_PATTERN = re.compile(
+    r"\b(?:401|403|404|429)\b|unauthorized|denied|not found|toomanyrequests|rate limit", re.IGNORECASE
+)
+
+# Maximum length of third-party error text (e.g. credential helper output) included in warnings
+_MAX_ERROR_TEXT_IN_WARNING = 200
+
+# Warnings about the user's registry setup are shown once per process, not once per client
+_warned_once: Set[str] = set()
+_warned_once_lock = threading.Lock()
+
+
+def _warn_once(key: str, message: str, *args: Any) -> None:
+    with _warned_once_lock:
+        if key in _warned_once:
+            return
+        _warned_once.add(key)
+    LOG.warning(message, *args)
 
 
 class ContainerClient(docker.DockerClient, ABC):
@@ -100,6 +133,10 @@ class ContainerClient(docker.DockerClient, ABC):
         # Initialize DockerClient with processed parameters
         LOG.debug(f"Creating container client with parameters: {self.client_params}")
         super().__init__(**self.client_params)
+
+        # Registry credentials are resolved once per client, so every operation that talks to a
+        # registry (pull, build, push) authenticates the same way for a given runtime.
+        self._load_registry_auth_config()
 
     @abstractmethod
     def is_available(self) -> bool:
@@ -258,6 +295,106 @@ class ContainerClient(docker.DockerClient, ABC):
             bool: True if this client is connected to Docker
         """
         return self.get_runtime_type() == "docker"
+
+    def warn_about_registry_credentials(self) -> None:
+        """
+        Warn about registry credential setups that make pulls silently anonymous.
+
+        Called once the client has been selected as the runtime for the command, so users are not
+        warned about a runtime they are not using. The default (Docker) has nothing to warn about.
+        """
+
+    def _load_registry_auth_config(self) -> None:
+        """
+        Load the registry credentials this runtime uses into the client.
+
+        The default keeps docker-py's own resolution: the Docker client config
+        (``$DOCKER_CONFIG`` or ``~/.docker/config.json``) and its credential helpers.
+        Runtimes that keep registry credentials elsewhere override this.
+        """
+
+    def pull_image(self, repository: str, tag: Optional[str] = None) -> Iterator[Dict[str, Any]]:
+        """
+        Pull an image, yielding the runtime's progress events.
+
+        A runtime can report a failed pull (e.g. a 429 rate limit or an authorization error) as an
+        ``error`` event in an otherwise successful streamed response, instead of an HTTP error.
+        Both cases raise ContainerImagePullFailedException, so a failed pull is never mistaken for a
+        successful one that later surfaces as a misleading "no such image".
+
+        Args:
+            repository: Image repository, optionally including the tag
+            tag: Image tag. If None, docker-py takes the tag from ``repository`` or uses ``latest``
+
+        Returns:
+            Iterator of progress events. The pull request is sent immediately; errors streamed
+            by the runtime are raised while iterating.
+
+        Raises:
+            ContainerImagePullFailedException: If the runtime rejects or fails the pull
+        """
+        try:
+            progress = self._request_pull(repository, tag)
+        except docker.errors.APIError as ex:
+            LOG.debug("Failed to pull image %s: %s", repository, ex)
+            raise ContainerImagePullFailedException(self._describe_pull_failure(str(ex))) from ex
+        return self._raise_on_streamed_pull_error(repository, progress)
+
+    def pull_image_and_wait(self, image: str) -> None:
+        """
+        Pull an image and wait until the pull has finished, for callers that do not show progress.
+
+        The pull only completes, and a failure reported by the runtime only surfaces, while the
+        progress stream from ``pull_image`` is read, so this reads it to the end.
+
+        Args:
+            image: Image reference, e.g. ``public.ecr.aws/foo/bar:1.0`` (``latest`` when untagged)
+
+        Raises:
+            ContainerImagePullFailedException: If the runtime rejects or fails the pull
+        """
+        for _ in self.pull_image(image):
+            pass
+
+    def _request_pull(self, repository: str, tag: Optional[str]) -> Iterable[Any]:
+        """
+        Send the pull request, falling back to an anonymous pull when credentials cannot be read.
+
+        docker-py raises "Credentials store error" when the config names a credential helper
+        (``credsStore``/``credHelpers``) that is not installed, e.g. a ``"credsStore": "desktop"``
+        left behind by an uninstalled Docker Desktop. Public images do not need credentials, so
+        warn and pull anonymously instead of failing the command.
+        """
+        try:
+            return cast(Iterable[Any], self.api.pull(repository, tag=tag, stream=True, decode=True))
+        except docker.errors.APIError:
+            raise
+        except docker.errors.DockerException as ex:
+            if not str(ex).startswith(CREDENTIALS_STORE_ERROR_PREFIX):
+                raise
+            _warn_once(
+                "credentials-store-error",
+                "Could not use the configured registry credential helper (%s). Pulling images without "
+                "credentials; pulls from private registries will fail until the helper is installed or "
+                "removed from the registry config.",
+                str(ex)[:_MAX_ERROR_TEXT_IN_WARNING],
+            )
+            # An empty auth config sends an empty X-Registry-Auth header, i.e. an anonymous pull,
+            # instead of resolving the broken credential helper again.
+            return cast(Iterable[Any], self.api.pull(repository, tag=tag, stream=True, decode=True, auth_config={}))
+
+    def _raise_on_streamed_pull_error(self, repository: str, progress: Iterable[Any]) -> Iterator[Dict[str, Any]]:
+        for event in progress:
+            if isinstance(event, dict) and event.get("error"):
+                LOG.debug("Pull of image %s reported an error: %s", repository, event["error"])
+                raise ContainerImagePullFailedException(self._describe_pull_failure(str(event["error"])))
+            yield event
+
+    def _describe_pull_failure(self, error: str) -> str:
+        """
+        Return the message for a failed pull. Runtimes override this to add setup guidance.
+        """
+        return error
 
 
 class DockerContainerClient(ContainerClient):
@@ -432,10 +569,10 @@ class DockerContainerClient(ContainerClient):
             self.images.remove(image_id, force=force)
         except docker.errors.ImageNotFound:
             # Image already removed, continue silently
-            LOG.debug(f"Docker image {image_id} not found, may have been already removed")
+            LOG.debug(f"Image {image_id} not found, may have been already removed")
         except docker.errors.APIError as e:
             # Log but don't fail on cleanup errors
-            LOG.warning(f"Failed to remove Docker image {image_id}: {e}")
+            LOG.warning(f"Failed to remove image {image_id}: {e}")
 
     def get_archive(self, container_id: str, path: str) -> Tuple[Any, Any]:
         """
@@ -553,6 +690,74 @@ class FinchContainerClient(ContainerClient):
             str: Always returns "finch"
         """
         return "finch"
+
+    def _load_registry_auth_config(self) -> None:
+        """
+        Use the registry credentials ``finch login`` wrote.
+
+        On macOS ``finch login`` writes ``~/.finch/config.json`` (or ``$DOCKER_CONFIG``), not the
+        ``~/.docker/config.json`` docker-py reads, so without this every pull and build went out
+        anonymously. docker-py sends the loaded config on pulls, builds and pushes. The Docker client
+        config stays in use when the Finch config is missing, unusable or holds no credentials.
+        On Linux ``finch login`` writes the Docker client config itself, so there is nothing to load.
+        """
+        self._uses_finch_registry_config = False
+        config_path = get_finch_registry_config_path()
+        if not config_path or not os.path.isfile(config_path):
+            LOG.debug("No Finch registry config found; using the Docker client config.")
+            return
+        if not _is_registry_config_usable(config_path):
+            return
+        try:
+            # Replaces the client's credential store only if the config parses
+            self.api.reload_config(config_path)
+        except (docker.errors.DockerException, ValueError) as ex:
+            # e.g. an "auth" entry that is not valid base64
+            _warn_once(
+                f"unusable-registry-config:{config_path}",
+                "Could not load registry config %s (%s); using the Docker client config instead.",
+                config_path,
+                str(ex)[:_MAX_ERROR_TEXT_IN_WARNING],
+            )
+            return
+        LOG.debug("Using Finch registry config %s.", config_path)
+        self._uses_finch_registry_config = True
+
+    def warn_about_registry_credentials(self) -> None:
+        """
+        Warn when the Docker client config Finch relies on cannot be read by the current user.
+
+        On Linux a ``finch login`` run as root (``sudo`` or a setuid ``finch``) before that config
+        exists leaves it owned by root, and docker-py silently treats an unreadable config as missing.
+        """
+        if getattr(self, "_uses_finch_registry_config", False) or _is_docker_config_readable():
+            return
+        _warn_once(
+            "unreadable-docker-config",
+            "The registry credentials in %s cannot be read by the current user, so images are pulled "
+            "without credentials and may be rate limited. This happens when `finch login` runs as root "
+            "before that file exists. Run `finch login` without sudo, or give the file back to your "
+            "user (sudo chown -R $USER %s).",
+            _docker_config_file(),
+            _docker_config_dir(),
+        )
+
+    def _describe_pull_failure(self, error: str) -> str:
+        """
+        Add Finch credential guidance when a pull failed in a way that points at registry sign-in.
+        """
+        if not REGISTRY_AUTH_FAILURE_PATTERN.search(error):
+            return error
+        finch_config_path = get_finch_registry_config_path()
+        if getattr(self, "_uses_finch_registry_config", False) and finch_config_path:
+            credentials_path = finch_config_path
+        else:
+            credentials_path = _docker_config_file()
+        return (
+            f"{error}\n"
+            f"If the registry requires sign-in or limits anonymous pulls, run `finch login <registry>` "
+            f"(on Linux, without sudo) and make sure {credentials_path} is readable by your user."
+        )
 
     def load_image_from_archive(self, image_archive) -> Any:
         """
@@ -822,3 +1027,75 @@ class FinchContainerClient(ContainerClient):
         except docker.errors.APIError as e:
             LOG.warning(f"Failed to validate image count for {image_name}: {e}")
             return False
+
+
+def _docker_config_dir() -> str:
+    """Directory of the Docker client config docker-py reads ($DOCKER_CONFIG or ~/.docker)."""
+    return os.environ.get("DOCKER_CONFIG") or os.path.join(os.path.expanduser("~"), ".docker")
+
+
+def _docker_config_file() -> str:
+    return os.path.join(_docker_config_dir(), "config.json")
+
+
+def _is_docker_config_readable() -> bool:
+    """
+    False when the Docker client config exists but the current user cannot read it.
+
+    A missing config is "readable": docker-py simply has no credentials, which is expected.
+    """
+    config_dir = _docker_config_dir()
+    if not os.path.isdir(config_dir):
+        return True
+    if not os.access(config_dir, os.R_OK | os.X_OK):
+        return False
+    config_file = _docker_config_file()
+    return not os.path.isfile(config_file) or os.access(config_file, os.R_OK)
+
+
+def _is_registry_config_usable(config_path: str) -> bool:
+    """
+    Whether docker-py can use a registry config without failing registry operations.
+
+    docker-py fails every pull, build and push that resolves credentials through a credential helper
+    (``credsStore``/``credHelpers``) that is not installed, and a build resolves all of them. Such a
+    config, or one that is not a JSON object, is not used; the Docker client config stays in use.
+    """
+    try:
+        with open(config_path) as config_file:
+            config = json.load(config_file)
+        if not isinstance(config, dict):
+            raise ValueError("expected a JSON object")
+    except (OSError, ValueError) as ex:
+        _warn_once(
+            f"unusable-registry-config:{config_path}",
+            "Could not read registry config %s (%s); using the Docker client config instead.",
+            config_path,
+            str(ex)[:_MAX_ERROR_TEXT_IN_WARNING],
+        )
+        return False
+
+    missing_helpers = _missing_credential_helpers(config)
+    if missing_helpers:
+        _warn_once(
+            f"missing-credential-helpers:{config_path}",
+            "Registry config %s uses credential helper(s) %s that are not installed, so it is not used and "
+            "the Docker client config is used instead. Install the helper(s) or remove them from %s.",
+            config_path,
+            ", ".join(f"docker-credential-{helper}" for helper in missing_helpers),
+            config_path,
+        )
+        return False
+    return True
+
+
+def _missing_credential_helpers(config: Dict[str, Any]) -> List[str]:
+    """
+    Credential helpers named by a registry config (``credsStore``/``credHelpers``) that are not installed.
+    """
+    helpers = set()
+    if config.get("credsStore"):
+        helpers.add(str(config["credsStore"]))
+    if isinstance(config.get("credHelpers"), dict):
+        helpers.update(str(helper) for helper in config["credHelpers"].values() if helper)
+    return sorted(helper for helper in helpers if shutil.which(f"docker-credential-{helper}") is None)
