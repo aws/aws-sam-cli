@@ -455,6 +455,66 @@ class TestLambdaAuthorizer(TestCase):
 
         self.assertEqual(result, expected_result)
 
+    @parameterized.expand(
+        [
+            (  # HTTP API "$default" stage, wildcard resource
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/$default/*",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/$default/GET/hello",
+                True,
+            ),
+            (  # authorizer echoes the method ARN it was given back verbatim
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/$default/GET/hello",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/$default/GET/hello",
+                True,
+            ),
+            (  # a "[" in the path must not be read as a character set
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/a[b",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/a[b",
+                True,
+            ),
+            (  # a "(" in the path must not be read as a group
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/x(y",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/x(y",
+                True,
+            ),
+            (  # "." is a literal, not a wildcard
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/a.c",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/abc",
+                False,
+            ),
+            (  # a different stage is still denied
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/$default/*",
+                "arn:aws:execute-api:us-east-1:123456789012:1234567890/prod/GET/hello",
+                False,
+            ),
+        ]
+    )
+    def test_is_resource_authorized_treats_arn_as_literal(self, resource_arn, method_arn, expected_result):
+        auth = LambdaAuthorizer(
+            "my auth",
+            Mock(),
+            Mock(),
+            [],
+            Mock(),
+            Mock(),
+            Mock(),
+        )
+        response = {
+            "policyDocument": {
+                "Statement": [
+                    {
+                        "Action": ["execute-api:Invoke"],
+                        "Effect": "Allow",
+                        "Resource": resource_arn,
+                    }
+                ]
+            },
+        }
+
+        result = auth._is_resource_authorized(response, method_arn)
+
+        self.assertEqual(result, expected_result)
+
 
 class TestLambdaAuthorizerIamPolicyValidator(TestCase):
     @parameterized.expand(
