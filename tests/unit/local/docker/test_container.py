@@ -23,6 +23,7 @@ from samcli.local.docker.container import (
     ContainerResponseException,
     ContainerConnectionTimeoutException,
     PortAlreadyInUse,
+    ContainerCreationFailedException,
 )
 
 
@@ -374,21 +375,23 @@ class TestContainer_create(TestCase):
             container.create(self.container_context)
         self.assertIsNone(container._concurrency_semaphore)
 
-    def test_create_raises_port_already_in_use_when_port_allocated(self):
-        """Test that create() raises PortAlreadyInUse when Docker reports port is already allocated"""
+    def test_create_reports_port_in_use_when_port_allocated(self):
+        """Test that create() keeps ContainerCreationFailedException but explains the port conflict"""
         container = Container(
             self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
         )
 
         # Mock APIError with "port is already allocated" message (as reported by Finch)
         error_msg = 'failed to parse port mapping "0.0.0.0:7311:8080/tcp": bind for 0.0.0.0:7311 failed: port is already allocated'
-        mock_error = APIError(error_msg)
+        mock_error = APIError(error_msg, explanation=error_msg)
         self.mock_docker_client.containers.create.side_effect = mock_error
 
-        with self.assertRaises(PortAlreadyInUse) as context:
+        with self.assertRaises(ContainerCreationFailedException) as context:
             container.create(self.container_context)
 
-        # Verify the original error is chained
+        self.assertNotIsInstance(context.exception, PortAlreadyInUse)
+        self.assertIn("already in use", str(context.exception))
+        self.assertNotIn("check template", str(context.exception))
         self.assertIs(context.exception.__cause__, mock_error)
 
     @patch("samcli.local.docker.container.os.path.exists")
