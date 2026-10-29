@@ -1,0 +1,26 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Zip-only variant for `sam package`: shared CodeUri and a nested stack.
+
+Resources:
+  # Two functions sharing one CodeUri: the directory is zipped and uploaded once and both reuse the result.
+  SharedCodeFunctionA:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.11
+      CodeUri: SharedCode
+      Timeout: 60
+
+  SharedCodeFunctionB:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.handler
+      Runtime: python3.11
+      CodeUri: SharedCode
+      Timeout: 60
+
+  ChildStack:
+    Type: AWS::Serverless::Application
+    Properties:
+      Location: ChildStack/template.yaml

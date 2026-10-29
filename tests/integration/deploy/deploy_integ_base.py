@@ -119,6 +119,7 @@ class DeployIntegBase(PackageIntegBase):
         capabilities=None,
         capabilities_list=None,
         force_upload=False,
+        parallel_upload=False,
         notification_arns=None,
         fail_on_empty_changeset=None,
         confirm_changeset=False,
@@ -175,6 +176,8 @@ class DeployIntegBase(PackageIntegBase):
             command_list = command_list + ["--no-execute-changeset"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
+        if parallel_upload:
+            command_list = command_list + ["--parallel-upload"]
         if fail_on_empty_changeset is None:
             pass
         elif fail_on_empty_changeset:

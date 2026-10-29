@@ -748,6 +748,23 @@ def force_upload_option(f):
     return force_upload_click_option()(f)
 
 
+def parallel_upload_click_option(action):
+    return click.option(
+        "--parallel-upload",
+        is_flag=True,
+        default=False,
+        help=f"Enable parallel upload of artifacts to S3/ECR during {action}. "
+        "Runs up to 8 uploads at once; set the SAM_CLI_PARALLEL_UPLOAD_WORKERS environment variable to change this.",
+    )
+
+
+def parallel_upload_option(action):
+    def _decorator(f):
+        return parallel_upload_click_option(action)(f)
+
+    return _decorator
+
+
 def resolve_s3_click_option(guided):
     from samcli.commands.package.exceptions import PackageResolveS3AndS3NotSetError, PackageResolveS3AndS3SetError
 

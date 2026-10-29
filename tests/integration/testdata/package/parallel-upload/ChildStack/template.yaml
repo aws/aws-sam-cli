@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Nested stack for the parallel upload test.
+
+Resources:
+  ChildFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: child.handler
+      Runtime: python3.11
+      CodeUri: ChildCode
+      Timeout: 60
