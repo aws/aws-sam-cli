@@ -17,7 +17,7 @@ from tomlkit.toml_document import TOMLDocument
 
 from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled
 from samcli.lib.build.exceptions import InvalidBuildGraphException
-from samcli.lib.providers.provider import BuildableFunction, LayerVersion, get_build_entry_point
+from samcli.lib.providers.provider import BuildableFunction, LayerVersion, MicrovmImage, get_build_entry_point
 from samcli.lib.samlib.resource_metadata_normalizer import (
     SAM_IS_NORMALIZED,
     SAM_RESOURCE_ID_KEY,
@@ -212,6 +212,7 @@ class BuildGraph:
         self._filepath = Path(build_dir).parent.joinpath(DEFAULT_BUILD_GRAPH_FILE_NAME)
         self._function_build_definitions: List["FunctionBuildDefinition"] = []
         self._layer_build_definitions: List["LayerBuildDefinition"] = []
+        self._microvm_image_build_definitions: List["MicrovmImageBuildDefinition"] = []
         self._atomic_read()
 
     def get_function_build_definitions(self) -> Tuple["FunctionBuildDefinition", ...]:
@@ -219,6 +220,9 @@ class BuildGraph:
 
     def get_layer_build_definitions(self) -> Tuple["LayerBuildDefinition", ...]:
         return tuple(self._layer_build_definitions)
+
+    def get_microvm_image_build_definitions(self) -> Tuple["MicrovmImageBuildDefinition", ...]:
+        return tuple(self._microvm_image_build_definitions)
 
     def get_function_build_definition_with_full_path(
         self, function_full_path: str
@@ -315,10 +319,33 @@ class BuildGraph:
             layer_build_definition.layer = layer
             self._layer_build_definitions.append(layer_build_definition)
 
+    def put_microvm_image_build_definition(
+        self, microvm_image_build_definition: "MicrovmImageBuildDefinition", microvm_image: MicrovmImage
+    ) -> None:
+        """
+        Puts the newly read MicroVM image build definition into existing build graph.
+
+        Unlike Function/Layer, MicrovmImage definitions are not persisted to build.toml (Docker has its own
+        layer cache), so there are no pre-existing definitions to match against. Each definition is always new.
+
+        Parameters
+        ----------
+        microvm_image_build_definition: MicrovmImageBuildDefinition
+            MicroVM image build definition which is newly read from template.yaml file
+        microvm_image: MicrovmImage
+            MicroVM image details for this build definition
+        """
+        microvm_image_build_definition.add_microvm_image(microvm_image)
+        self._microvm_image_build_definitions.append(microvm_image_build_definition)
+
     def clean_redundant_definitions_and_update(self, persist: bool) -> None:
         """
         Removes build definitions which doesn't have any function in it, which means these build definitions
         are no longer used, and they can be deleted
+
+        Note: MicrovmImage build definitions are intentionally not cleaned up here. Unlike Function/Layer,
+        they are never read from build.toml, so every put_microvm_image_build_definition() call always
+        sets microvm_image before appending -- there is no code path that produces an empty definition.
 
         If persist parameter is given True, build graph is written to .aws-sam/build.toml file
         """
@@ -711,3 +738,48 @@ class FunctionBuildDefinition(AbstractBuildDefinition):
             and self.architecture == other.architecture
             and self.resource_type == other.resource_type
         )
+
+
+class MicrovmImageBuildDefinition(AbstractBuildDefinition):
+    """
+    MicrovmImageBuildDefinition holds information about each unique MicroVM image build.
+    Each MicrovmImage is built via docker build from its CodeUri directory.
+    """
+
+    def __init__(
+        self,
+        full_path: str,
+        code_uri: str,
+        architecture: str,
+        source_hash: str = "",
+        manifest_hash: str = "",
+        env_vars: Optional[Dict] = None,
+    ) -> None:
+        super().__init__(source_hash, manifest_hash, env_vars, architecture)
+        self.full_path = full_path
+        self.code_uri = code_uri
+        self.microvm_image: Optional["MicrovmImage"] = None
+
+    def add_microvm_image(self, microvm_image: "MicrovmImage") -> None:
+        self.microvm_image = microvm_image
+
+    def get_resource_full_paths(self) -> str:
+        """Returns the MicroVM image's full path"""
+        if not self.microvm_image:
+            return ""
+        return self.microvm_image.full_path
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, MicrovmImageBuildDefinition):
+            return False
+        return (
+            self.full_path == other.full_path
+            and self.code_uri == other.code_uri
+            and self.architecture == other.architecture
+        )
+
+    def __hash__(self) -> int:
+        return hash((self.full_path, self.code_uri, self.architecture))
+
+    def __str__(self) -> str:
+        return f"MicrovmImageBuildDefinition({self.full_path}, {self.code_uri}, {self.architecture})"

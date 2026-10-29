@@ -8,8 +8,13 @@ from parameterized import parameterized
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
+)
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
@@ -77,6 +82,9 @@ class _TestBuildStrategy(BuildStrategy):
         return {}
 
     def build_single_layer_definition(self, layer_definition):
+        return {}
+
+    def build_single_microvm_image_definition(self, microvm_definition):
         return {}
 
 
@@ -201,11 +209,36 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         build_graph = Mock(spec=BuildGraph)
         build_graph.get_layer_build_definitions.return_value = [layer_build_definition]
         build_graph.get_function_build_definitions.return_value = []
+        build_graph.get_microvm_image_build_definitions.return_value = []
         mock_function = Mock()
         mock_function.inlinecode = None
-        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock())
+        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock(), Mock())
 
         self.assertRaises(MissingBuildMethodException, default_build_strategy.build)
+
+    def test_build_microvm_image(self, mock_copy_tree):
+        mock_build_microvm_image = Mock(return_value="myagent:latest")
+
+        microvm_image = Mock()
+        microvm_image.full_path = "MyAgent"
+        microvm_image.architecture = "arm64"
+
+        microvm_definition = MicrovmImageBuildDefinition("MyAgent", "./app", "arm64")
+        microvm_definition.microvm_image = microvm_image
+
+        build_graph = Mock(spec=BuildGraph)
+        build_graph.get_function_build_definitions.return_value = []
+        build_graph.get_layer_build_definitions.return_value = []
+        build_graph.get_microvm_image_build_definitions.return_value = [microvm_definition]
+
+        default_build_strategy = DefaultBuildStrategy(
+            build_graph, "build_dir", Mock(), Mock(), mock_build_microvm_image
+        )
+
+        result = default_build_strategy.build()
+
+        mock_build_microvm_image.assert_called_once_with("MyAgent", "./app", "arm64")
+        self.assertEqual(result, {"MyAgent": "myagent:latest"})
 
     def test_build_layers_and_functions(self, mock_copy_tree):
         given_build_function = Mock()
@@ -213,7 +246,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         default_build_strategy.build()
@@ -299,7 +332,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         build_result = default_build_strategy.build()
@@ -319,7 +352,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         function1 = Mock()
@@ -383,7 +416,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
         cache_build_strategy = CachedBuildStrategy(
             self.build_graph, default_build_strategy, "base_dir", given_build_dir, "cache_dir"
@@ -649,7 +682,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer = Mock()
         self.build_graph = Mock()
         self.delegate_build_strategy = DefaultBuildStrategy(
-            self.build_graph, Mock(), self.build_function, self.build_layer, cached=True
+            self.build_graph, Mock(), self.build_function, self.build_layer, Mock(), cached=True
         )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,
@@ -680,6 +713,7 @@ class TestIncrementalBuildStrategy(TestCase):
             manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
         )
         self.build_graph.get_function_build_definitions.return_value = [given_function_build_def]
+        self.build_graph.get_microvm_image_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = []
 
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
@@ -712,6 +746,7 @@ class TestIncrementalBuildStrategy(TestCase):
         )
         given_layer_build_def.layer.compatible_architectures = None
         self.build_graph.get_function_build_definitions.return_value = []
+        self.build_graph.get_microvm_image_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
@@ -819,6 +854,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             mocked_build_graph = Mock()
             mocked_build_graph.get_layer_build_definitions.return_value = []
             mocked_build_graph.get_function_build_definitions.return_value = []
+            mocked_build_graph.get_microvm_image_build_definitions.return_value = []
 
             cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(
                 mocked_build_graph,

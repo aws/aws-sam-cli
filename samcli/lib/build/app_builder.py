@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+import re
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, cast
 
@@ -23,7 +24,12 @@ from samcli.commands._utils.experimental import (
     get_enabled_experimental_flags,
     is_experimental_enabled,
 )
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
+)
 from samcli.lib.build.build_strategy import (
     BuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
@@ -37,9 +43,10 @@ from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     DockerBuildFailed,
     DockerfileOutSideOfContext,
+    MicrovmImageSourceError,
     UnsupportedBuilderLibraryVersionError,
 )
-from samcli.lib.build.utils import _make_env_vars, warn_cross_architecture_build
+from samcli.lib.build.utils import _get_host_architecture, _make_env_vars, warn_cross_architecture_build
 from samcli.lib.build.workflow_config import (
     CONFIG,
     UnsupportedRuntimeException,
@@ -65,9 +72,11 @@ from samcli.lib.utils.resources import (
     AWS_CLOUDFORMATION_STACK,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_APPLICATION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_WEBFUNCTION,
 )
 from samcli.lib.utils.stream_writer import StreamWriter
@@ -214,6 +223,9 @@ class ApplicationBuilder:
         self._mount_symlinks = mount_symlinks
         self._use_buildkit = use_buildkit
         self._image_build_client: Optional[ImageBuildClient] = None
+        # Absolute source directory each MicrovmImage was built from, keyed by full path. The built template
+        # points back at this directory, because the source (not the local image) is the deployment artifact.
+        self._microvm_image_source_dirs: Dict[str, str] = {}
         # one SubprocessNpm per build session, so `npm prefix` answers are cached per directory
         self._npm_subprocess: Optional[object] = None
 
@@ -238,6 +250,7 @@ class ApplicationBuilder:
             to the path string
         """
         build_graph = self._get_build_graph(self._container_env_var, self._container_env_var_file)
+        self._warn_on_microvm_image_tag_collisions()
 
         # Add cross-architecture warning when using containers
         if self._container_manager:
@@ -246,7 +259,12 @@ class ApplicationBuilder:
             warn_cross_architecture_build(functions, container_runtime)
 
         build_strategy: BuildStrategy = DefaultBuildStrategy(
-            build_graph, self._build_dir, self._build_function, self._build_layer, self._cached
+            build_graph,
+            self._build_dir,
+            self._build_function,
+            self._build_layer,
+            self._build_microvm_image,
+            self._cached,
         )
 
         if self._parallel:
@@ -311,6 +329,7 @@ class ApplicationBuilder:
         build_graph = BuildGraph(self._build_dir)
         functions = self._resources_to_build.functions
         layers = self._resources_to_build.layers
+        microvm_images = self._resources_to_build.microvm_images
         file_env_vars = {}
         if env_vars_file:
             try:
@@ -352,11 +371,19 @@ class ApplicationBuilder:
             )
             build_graph.put_layer_build_definition(layer_build_details, layer)
 
+        for microvm_image in microvm_images:
+            microvm_build_details = MicrovmImageBuildDefinition(
+                microvm_image.full_path,
+                microvm_image.code_uri,
+                cast(str, microvm_image.architecture),
+            )
+            build_graph.put_microvm_image_build_definition(microvm_build_details, microvm_image)
+
         build_graph.clean_redundant_definitions_and_update(not self._is_building_specific_resource)
         return build_graph
 
-    @staticmethod
     def update_template(
+        self,
         stack: Stack,
         built_artifacts: Dict[str, str],
         stack_output_template_path_by_stack_path: Dict[str, str],
@@ -419,6 +446,9 @@ class ApplicationBuilder:
                 store_path = os.path.relpath(absolute_output_path, original_dir)
 
             if has_build_artifact:
+                if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
+                    self._point_microvm_image_at_source_dir(full_path, resource_type, properties, original_dir)
+
                 ApplicationBuilder._update_built_resource(
                     built_artifacts[full_path], properties, resource_type or "", store_path
                 )
@@ -432,8 +462,53 @@ class ApplicationBuilder:
 
         return template_dict
 
+    def _point_microvm_image_at_source_dir(
+        self, full_path: str, resource_type: str, properties: Dict, original_dir: pathlib.Path
+    ) -> None:
+        """
+        Set a built MicrovmImage's code path to the directory it was actually built from.
+
+        The path is written relative to the template's directory, which is what move_template expects
+        when it rebases paths into the build directory. Using the built directory, rather than the original
+        value, keeps the built template correct for intrinsics (!Ref), the CodeArtifact {Uri: ...} structure,
+        and --base-dir (where the source is resolved from base_dir, not from the template's directory).
+
+        Parameters
+        ----------
+        full_path : str
+            Stack-path-qualified identifier of the MicrovmImage
+        resource_type : str
+            AWS::Serverless::MicrovmImage or AWS::Lambda::MicrovmImage
+        properties : dict
+            Properties of the resource in the template being written, modified in place
+        original_dir : pathlib.Path
+            Directory of the template being written
+        """
+        source_dir = self._microvm_image_source_dirs.get(full_path)
+        if not source_dir:
+            return
+
+        # In Windows, if the template and the source are on different drives, relpath fails
+        source_path = (
+            os.path.relpath(source_dir, original_dir)
+            if pathlib.Path(source_dir).drive == original_dir.drive
+            else source_dir
+        )
+
+        code_prop = "CodeUri" if resource_type == AWS_SERVERLESS_MICROVMIMAGE else "CodeArtifact"
+        code_value = properties.get(code_prop)
+        if resource_type == AWS_LAMBDA_MICROVMIMAGE and isinstance(code_value, dict) and "Uri" in code_value:
+            properties[code_prop] = {**code_value, "Uri": source_path}
+        else:
+            properties[code_prop] = source_path
+
     @staticmethod
     def _update_built_resource(path: str, resource_properties: Dict, resource_type: str, absolute_path: str) -> None:
+        # MicrovmImage: the Docker image is local-only for testing, so the code path is not set to a build artifact.
+        # The deployment artifact is the zip of the source directory (handled by sam package), not the Docker image.
+        # update_template points the code path at the built source directory before reaching here.
+        if resource_type in (AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE):
+            return
         if resource_type == AWS_SERVERLESS_FUNCTION and resource_properties.get("PackageType", ZIP) == ZIP:
             resource_properties["CodeUri"] = absolute_path
         if resource_type == AWS_SERVERLESS_WEBFUNCTION:
@@ -455,6 +530,31 @@ class ApplicationBuilder:
         if not isinstance(functions, list):
             return False
         return any(isinstance(function, WebFunction) and function.name == function_name for function in functions)
+
+    def _get_image_build_client(self) -> ImageBuildClient:
+        """
+        Lazily create the client used for image builds, shared by Lambda image functions and MicrovmImages.
+        Uses the CLI client (BuildKit) with --use-buildkit, otherwise the Docker SDK client.
+
+        Raises
+        ------
+        BuildkitNotAvailableException
+            When --use-buildkit is set but BuildKit is not available for the container runtime
+        """
+        if not self._image_build_client:
+            if self._use_buildkit:
+                engine_type = self._container_client.get_runtime_type()
+
+                is_available, error_msg = CLIBuildClient.is_available(engine_type)
+                if not is_available:
+                    raise BuildkitNotAvailableException(error_msg)
+
+                self._image_build_client = CLIBuildClient(engine_type=engine_type)
+                LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
+            else:
+                self._image_build_client = SDKBuildClient(self._container_client)
+                LOG.debug("Using SDKBuildClient")
+        return self._image_build_client
 
     def _build_lambda_image(self, function_name: str, metadata: Dict, architecture: str) -> str:
         """
@@ -522,21 +622,7 @@ class ApplicationBuilder:
             build_args["extra_params"] = docker_build_extra_params
 
         try:
-            if not self._image_build_client:
-                if self._use_buildkit:
-                    container_client = self._container_client
-                    engine_type = container_client.get_runtime_type()
-
-                    is_available, error_msg = CLIBuildClient.is_available(engine_type)
-                    if not is_available:
-                        raise BuildkitNotAvailableException(error_msg)
-
-                    self._image_build_client = CLIBuildClient(engine_type=engine_type)
-                    LOG.debug(f"Using CLIBuildClient with engine_type {engine_type}")
-                else:
-                    self._image_build_client = SDKBuildClient(self._container_client)
-                    LOG.debug("Using SDKBuildClient")
-            build_logs = self._image_build_client.build_image(**build_args)  # type: ignore[arg-type]
+            build_logs = self._get_image_build_client().build_image(**build_args)  # type: ignore[arg-type]
             LOG.debug(f"Image built for {function_name} function")
         except docker.errors.BuildError as ex:
             LOG.error("Failed building function %s", function_name)
@@ -1065,6 +1151,125 @@ class ApplicationBuilder:
                     working_directory = os.path.normpath(os.path.join(scratch_dir, working_directory))
 
         return working_directory
+
+    def _warn_on_microvm_image_tag_collisions(self) -> None:
+        """
+        Warn when MicrovmImages in this build map to the same local tag, so the image built last overwrites the
+        others. Tags are derived from the full path, so for example IDs that differ only in case collide.
+        """
+        full_paths_by_tag: Dict[str, List[str]] = {}
+        for image in self._resources_to_build.microvm_images:
+            full_paths_by_tag.setdefault(self._microvm_image_tag(image.full_path), []).append(image.full_path)
+        for tag, full_paths in full_paths_by_tag.items():
+            if len(full_paths) > 1:
+                LOG.warning(
+                    "MicrovmImages %s all map to the local image tag '%s', so the image built last overwrites "
+                    "the others. Rename the resources so their IDs differ by more than case or punctuation.",
+                    ", ".join(full_paths),
+                    tag,
+                )
+
+    @staticmethod
+    def _microvm_image_tag(full_path: str) -> str:
+        """
+        Local Docker tag for a MicrovmImage: <full path, lowercased>:latest.
+
+        CDK construct IDs (used as the resource ID) can contain characters Docker rejects in an image
+        name, such as spaces, so every run of non-alphanumeric characters (including the nested stack "/")
+        becomes a single "-".
+        """
+        name = re.sub(r"[^a-z0-9]+", "-", full_path.lower()).strip("-") or "microvm-image"
+        return f"{name}:latest"
+
+    def _build_microvm_image(self, full_path: str, code_uri: str, architecture: str) -> str:
+        """
+        Build a Docker image for a MicrovmImage resource.
+
+        Uses CodeUri as the Docker build context. Dockerfile must be in that directory.
+        Tags the image with _microvm_image_tag (the full path, lowercased and with "/" turned into "-"),
+        so that MicrovmImage resources with the same logical ID in different nested stacks don't collide
+        on the same local Docker tag.
+        Does NOT update the built template.
+
+        Parameters
+        ----------
+        full_path : str
+            Stack-path-qualified unique identifier of the MicrovmImage resource (see
+            MicrovmImage.full_path), e.g. "MyImage" or "ChildStack/MyImage"
+        code_uri : str
+            Local path to the source directory containing the Dockerfile
+        architecture : str
+            CPU architecture for the Docker build platform
+
+        Returns
+        -------
+        str
+            The Docker image tag that was built
+        """
+        docker_context_dir = pathlib.Path(self._base_dir, code_uri).resolve()
+        dockerfile_path = docker_context_dir / "Dockerfile"
+
+        # These checks run before any Docker build, so they raise MicrovmImageSourceError, not DockerBuildFailed
+        if not docker_context_dir.exists():
+            raise MicrovmImageSourceError(
+                f"CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}' does not exist. "
+                "If CodeUri references a template parameter, provide its value via --parameter-overrides."
+            )
+        if not docker_context_dir.is_dir():
+            raise MicrovmImageSourceError(
+                f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a file. CodeUri must be a "
+                "directory containing a Dockerfile; sam build cannot build a MicrovmImage from a .zip file."
+            )
+        if not dockerfile_path.exists():
+            raise MicrovmImageSourceError(
+                f"Dockerfile not found in CodeUri directory '{docker_context_dir}' for MicrovmImage '{full_path}'."
+            )
+
+        # The image is built for the target platform, but RUN steps execute on the host CPU.
+        host_architecture = _get_host_architecture()
+        if host_architecture != architecture:
+            LOG.warning(
+                "Building MicrovmImage '%s' for %s on a %s host. Dockerfile RUN steps execute %s binaries "
+                "and need emulation (for example QEMU via binfmt_misc); without it the build fails with "
+                "'exec format error'.",
+                full_path,
+                architecture,
+                host_architecture,
+                architecture,
+            )
+
+        docker_tag = self._microvm_image_tag(full_path)
+
+        build_args = {
+            "path": str(docker_context_dir),
+            "dockerfile": "Dockerfile",
+            "tag": docker_tag,
+            "buildargs": {},
+            "platform": get_docker_platform(architecture),
+            "rm": True,
+        }
+
+        try:
+            build_logs = self._get_image_build_client().build_image(**build_args)  # type: ignore[arg-type]
+            LOG.debug("MicrovmImage built for %s", full_path)
+        except docker.errors.BuildError as ex:
+            LOG.error("Failed building MicrovmImage %s", full_path)
+            self._stream_lambda_image_build_logs(ex.build_log, full_path, False)
+            raise DockerBuildFailed(str(ex)) from ex
+        except docker.errors.APIError as e:
+            if self._container_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+            raise DockerBuildFailed(f"{full_path} failed to build: {e.explanation or e}") from e
+
+        try:
+            self._stream_lambda_image_build_logs(build_logs, full_path)  # type: ignore[arg-type]
+        except docker.errors.APIError as e:
+            if self._container_client.is_dockerfile_error(e):
+                raise DockerfileOutSideOfContext(e.explanation) from e
+            raise DockerBuildFailed(f"{full_path} failed to build: {e.explanation or e}") from e
+
+        self._microvm_image_source_dirs[full_path] = str(docker_context_dir)
+        return docker_tag
 
     def _build_function_in_process(
         self,
