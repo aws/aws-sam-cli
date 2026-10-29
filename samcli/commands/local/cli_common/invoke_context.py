@@ -3,9 +3,11 @@ Reads CLI arguments and performs necessary preparation to be able to run the fun
 """
 
 import errno
+import ipaddress
 import json
 import logging
 import os
+import socket
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Type, cast
@@ -257,6 +259,8 @@ class InvokeContext:
 
         self._stacks = self._get_stacks()
 
+        self._warn_on_unusable_container_networking()
+
         _function_providers_class: Dict[ContainersMode, Type[SamFunctionProvider]] = {
             ContainersMode.WARM: RefreshableSamFunctionProvider,
             ContainersMode.COLD: SamFunctionProvider,
@@ -506,6 +510,76 @@ class InvokeContext:
         """
         cast(WarmLambdaRuntime, self.lambda_runtime).clean_running_containers_and_related_resources()
         cast(RefreshableSamFunctionProvider, self._function_provider).stop_observer()
+
+    @staticmethod
+    def _resolves_to_loopback(host: str) -> bool:
+        """
+        Returns True if the given address or hostname refers to a loopback interface.
+
+        A hostname that cannot be resolved is reported as non-loopback: SAM CLI cannot tell
+        what it points at, and an unresolvable container host will not be reachable either.
+        """
+        try:
+            return ipaddress.ip_address(host).is_loopback
+        except ValueError:
+            pass
+
+        try:
+            # getaddrinfo rather than gethostbyname: the latter resolves IPv4 only, so an
+            # IPv6-only name would look unresolvable and be reported as non-loopback.
+            address_infos = socket.getaddrinfo(host, None)
+        except (OSError, UnicodeError):
+            # Unresolvable, or not even encodable as a hostname: getaddrinfo runs the name
+            # through the idna codec first, which raises UnicodeError (a ValueError, not an
+            # OSError) for something like a label over 63 characters. This check only emits
+            # a warning, so a malformed flag value must not abort the command.
+            return False
+
+        for address_info in address_infos:
+            # Drop any IPv6 scope id ("fe80::1%eth0") before parsing the address.
+            address = str(address_info[4][0]).partition("%")[0]
+            try:
+                if ipaddress.ip_address(address).is_loopback:
+                    return True
+            except ValueError:
+                continue
+
+        return False
+
+    def _warn_on_unusable_container_networking(self) -> None:
+        """
+        Warns about container networking options that cannot work as written.
+
+        Both checks are warnings rather than errors: the combinations below do not fail
+        for every Docker setup, and the same flags are already relied upon by working
+        configurations that should keep running.
+        """
+        if (
+            self._container_host
+            and self._container_host_interface
+            and not self._resolves_to_loopback(self._container_host)
+            and self._resolves_to_loopback(self._container_host_interface)
+        ):
+            LOG.warning(
+                "--container-host is %s, but the Lambda container's port is published on %s, which is a "
+                "loopback interface of the machine running the Docker daemon. A loopback-bound port is not "
+                "reachable through %s, so invocations will time out while connecting to the container. Pass "
+                "--container-host-interface with an address reachable from %s, such as the Docker bridge "
+                "gateway. 0.0.0.0 also works but publishes the container's unauthenticated invoke endpoint "
+                "on every interface of the Docker host.",
+                self._container_host,
+                self._container_host_interface,
+                self._container_host,
+                self._container_host,
+            )
+
+        if self._docker_network == "host":
+            LOG.warning(
+                "--docker-network host has no effect and is ignored. Lambda containers are created on the "
+                "default bridge network, and Docker cannot move an existing container into the host network "
+                "namespace afterwards. Omit the flag for the same behaviour, or pass the name of a "
+                "user-defined network for the containers to join."
+            )
 
     def _validate_function_logical_ids(self) -> None:
         """
