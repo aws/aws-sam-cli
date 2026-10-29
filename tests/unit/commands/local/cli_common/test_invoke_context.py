@@ -18,8 +18,13 @@ from samcli.commands.local.cli_common.invoke_context import (
     NoFunctionIdentifierProvidedException,
     InvalidEnvironmentVariablesFileException,
 )
+from samcli.commands.exceptions import ContainersInitializationException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.docker.exceptions import ContainerNotReachableException
+from samcli.local.docker.exceptions import (
+    ContainerNotReachableException,
+    ContainerNotStartableException,
+    PortAlreadyInUse,
+)
 
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, mock_open, call
@@ -582,6 +587,46 @@ class TestInvokeContext__enter__(TestCase):
         self.assertFalse(invoke_context._no_watch)
         # And we surface a warning to the user
         self.assertTrue(any("--no-watch" in msg and "warm-containers" in msg for msg in log_ctx.output))
+
+
+class TestInvokeContext_initialize_all_functions_containers(TestCase):
+    """
+    The eager warm-container path wraps failures in a generic message. Exceptions that name the
+    flag the user has to change must survive it instead, and must still release what was created.
+    """
+
+    def _context_failing_with(self, exception, AsyncContextMock):
+        AsyncContextMock.return_value.run_async.side_effect = exception
+        context = InvokeContext(template_file="template")
+        context._function_provider = Mock()
+        context._function_provider.get_all.return_value = []
+        context._clean_running_containers_and_related_resources = Mock()
+        return context
+
+    @parameterized.expand(
+        [
+            (PortAlreadyInUse("port 3001 is in use"),),
+            (ContainerNotStartableException("pass --container-host-interface"),),
+        ]
+    )
+    @patch("samcli.commands.local.cli_common.invoke_context.AsyncContext")
+    def test_actionable_exceptions_are_not_wrapped(self, exception, AsyncContextMock):
+        context = self._context_failing_with(exception, AsyncContextMock)
+
+        with self.assertRaises(type(exception)) as raised:
+            context._initialize_all_functions_containers()
+
+        self.assertIs(raised.exception, exception)
+        context._clean_running_containers_and_related_resources.assert_called_once_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.AsyncContext")
+    def test_other_exceptions_are_still_wrapped(self, AsyncContextMock):
+        context = self._context_failing_with(ValueError("something else"), AsyncContextMock)
+
+        with self.assertRaises(ContainersInitializationException):
+            context._initialize_all_functions_containers()
+
+        context._clean_running_containers_and_related_resources.assert_called_once_with()
 
 
 class TestInvokeContext__exit__(TestCase):
