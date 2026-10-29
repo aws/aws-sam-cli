@@ -10,7 +10,7 @@ import os
 import pathlib
 import shutil
 from collections import Counter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import click
 
@@ -92,7 +92,7 @@ def build_failure_json(ex: Exception) -> str:
 class BuildContext:
     def __init__(
         self,
-        resource_identifier: Optional[str],
+        resource_identifier: Optional[Union[str, Tuple[str, ...]]],
         template_file: str,
         base_dir: Optional[str],
         build_dir: str,
@@ -131,8 +131,8 @@ class BuildContext:
 
         Parameters
         ----------
-        resource_identifier: Optional[str]
-            The unique identifier of the resource
+        resource_identifier: Optional[Union[str, Tuple[str, ...]]]
+            One or more resource identifiers, or None to build all resources
         template_file: str
             Path to the template for building
         base_dir : str
@@ -1123,16 +1123,26 @@ class BuildContext:
             if value is not None:
                 _set_prop_value(original_props, prop_name, value)
 
-    def _resolve_resource_full_paths(self, resource_identifier: Optional[str]) -> Optional[List[str]]:
+    def _resolve_resource_full_paths(
+        self, resource_identifier: Optional[Union[str, Tuple[str, ...]]]
+    ) -> Optional[List[str]]:
         """
-        Resolve a resource identifier (a CLI argument, which may be a bare logical ID) to a single
-        element list holding its full path, so error.resources stays in the same namespace as
+        Resolve resource identifiers (CLI arguments, which may be bare logical IDs) to a list
+        holding their full paths, so error.resources stays in the same namespace as
         resources[].resource_id in the success document (both nested-stack-qualified, e.g.
         ChildStack/MyFn). Returns None when there is no identifier, and falls back to the raw
         identifier if the resource cannot be looked up.
         """
         if not resource_identifier:
             return None
+        if isinstance(resource_identifier, tuple):
+            return list(
+                dict.fromkeys(
+                    full_path
+                    for identifier in resource_identifier
+                    for full_path in self._resolve_resource_full_paths(identifier) or []
+                )
+            )
         function = self.function_provider.get(resource_identifier) if self.function_provider else None
         if function:
             return [function.full_path]
@@ -1398,9 +1408,23 @@ Commands you can use next
         -------
         ResourcesToBuildCollector
         """
+        if isinstance(self._resource_identifier, tuple) and self._resource_identifier:
+            selected = [self.collect_build_resources(identifier) for identifier in self._resource_identifier]
+            result = ResourcesToBuildCollector()
+            result.add_functions(
+                list(
+                    {
+                        function.full_path: function for resources in selected for function in resources.functions
+                    }.values()
+                )
+            )
+            result.add_layers(
+                list({layer.full_path: layer for resources in selected for layer in resources.layers}.values())
+            )
+            return result
         return (
             self.collect_build_resources(self._resource_identifier)
-            if self._resource_identifier
+            if isinstance(self._resource_identifier, str) and self._resource_identifier
             else self.collect_all_build_resources()
         )
 
@@ -1487,7 +1511,7 @@ Commands you can use next
     @property
     def is_building_specific_resource(self) -> bool:
         """
-        Whether customer requested to build a specific resource alone in isolation,
+        Whether customer requested to build specific resources in isolation,
         by specifying function_identifier to the build command.
         Ex: sam build MyServerlessFunction
         :return: True if user requested to build specific resource, False otherwise
@@ -1567,10 +1591,15 @@ Commands you can use next
 
     def _check_exclude_warning(self) -> None:
         """
-        Prints warning message if a single resource to build is also being excluded
+        Prints a warning if any explicitly selected resource is also excluded
         """
         excludes: Tuple[str, ...] = self._exclude if self._exclude is not None else ()
-        if self._resource_identifier in excludes:
+        identifiers = (
+            (self._resource_identifier,)
+            if isinstance(self._resource_identifier, str)
+            else self._resource_identifier or ()
+        )
+        if any(identifier in excludes for identifier in identifiers):
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
 
     def _check_build_method_experimental_flag(self) -> None:

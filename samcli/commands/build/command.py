@@ -4,9 +4,10 @@ CLI command for "build" command
 
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import click
+from click.core import ParameterSource
 
 from samcli.cli.cli_config_file import ConfigProvider, configuration_option, save_params_option
 from samcli.cli.context import Context
@@ -66,6 +67,20 @@ DESCRIPTION = """
   5. Dotnet6, Dotnet8, Dotnet10 using Dotnet CLI\n
   6. Go 1.x using Go Modules (without --use-container)\n
 """
+
+
+def _resolve_resource_logical_ids(
+    ctx: click.Context, param: click.Parameter, value: Tuple[str, ...]
+) -> Tuple[str, ...]:
+    """Restore variadic defaults before --save-params can overwrite a saved selection."""
+    name = param.name
+    if value or name is None:
+        return value
+    configured_ids = ctx.lookup_default(name)
+    ctx.set_parameter_source(name, ParameterSource.DEFAULT_MAP if configured_ids else ParameterSource.DEFAULT)
+    if not configured_ids:
+        return ()
+    return (configured_ids,) if isinstance(configured_ids, str) else tuple(configured_ids)
 
 
 @click.command(
@@ -133,7 +148,7 @@ DESCRIPTION = """
 @structured_output_option
 @cli_framework_options
 @aws_creds_options
-@click.argument("resource_logical_id", required=False)
+@click.argument("resource_logical_id", nargs=-1, callback=_resolve_resource_logical_ids)
 @save_params_option
 @pass_context
 @track_command
@@ -142,7 +157,7 @@ DESCRIPTION = """
 def cli(
     ctx: Context,
     # please keep the type below consistent with @click.options
-    resource_logical_id: Optional[str],
+    resource_logical_id: Tuple[str, ...],
     template_file: str,
     base_dir: Optional[str],
     build_dir: str,
@@ -180,7 +195,7 @@ def cli(
 
     do_cli(
         ctx,
-        resource_logical_id,
+        resource_logical_id[0] if len(resource_logical_id) == 1 else resource_logical_id or None,
         template_file,
         base_dir,
         build_dir,
@@ -210,7 +225,7 @@ def cli(
 
 def do_cli(  # pylint: disable=too-many-locals, too-many-statements
     click_ctx,
-    function_identifier: Optional[str],
+    function_identifier: Optional[Union[str, Tuple[str, ...]]],
     template: str,
     base_dir: Optional[str],
     build_dir: str,

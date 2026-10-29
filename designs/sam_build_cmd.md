@@ -5,6 +5,27 @@ This is the design for a command to **build** a Lambda function.
 **Build** is the operation of converting the function\'s source code to
 an artifact that can be executed on AWS Lambda.
 
+Selecting multiple resources
+----------------------------
+
+`sam build FirstFunction SecondFunction SharedLayer --parallel` builds the
+selected functions and layers in one operation and writes one combined template.
+Function selections include their buildable layer dependencies. Duplicate
+selections and shared dependencies are built once, identified by their full
+nested-stack paths. Use `ChildStack/Function` to select a nested resource.
+
+With no identifiers, `sam build` continues to build all eligible resources;
+one identifier retains the existing behavior. Every identifier is validated
+before the builders run. Explicit selections take precedence over `--exclude`,
+with the existing warning if a requested resource is also excluded. The selected
+resource set uses the existing serial, parallel, cached, and container build
+workflows. Unselected resources remain in the output template with paths to
+their original source locations.
+
+Resource selections saved in `samconfig.toml` can be a single name or a list.
+CLI names override the saved selection. Running `sam build --save-params`
+without names preserves the saved selection for subsequent builds.
+
 What is the problem?
 --------------------
 

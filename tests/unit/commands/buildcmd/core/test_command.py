@@ -41,7 +41,10 @@ class TestBuildCommand(unittest.TestCase):
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
             "Build sam project": [("$ sam build\x1b[0m", "")],
-            "Build sam project for a specific function": [("$ sam build FUNCTION_LOGICAL_ID\x1b[0m", "")],
+            "Build sam project for a specific function": [
+                ("$ sam build FUNCTION_LOGICAL_ID\x1b[0m", ""),
+                ("$ sam build FUNCTION_LOGICAL_ID OTHER_FUNCTION_ID LAYER_LOGICAL_ID\x1b[0m", ""),
+            ],
             "Build sam project using container": [("$ sam build --use-container\x1b[0m", "")],
             "Build sam project using container with environment variable file": [
                 ("$ sam build --use-container --container-env-var-file env.json\x1b[0m", ""),
