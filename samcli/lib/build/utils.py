@@ -77,7 +77,20 @@ def warn_cross_architecture_build(functions: List[BuildableFunction], container_
 
     for function in functions:
         function_arch = _get_function_architecture(function)
-        if host_arch != function_arch:
+        if host_arch == function_arch:
+            continue
+        if isinstance(function, WebFunction):
+            # Web Functions run only on arm64, so changing the architecture isn't an option
+            LOG.warning(
+                "Cross-architecture build detected: Building arm64 Web Function '%s' on %s host. "
+                "This may cause build failures with %s. "
+                "Web Functions run only on arm64, so enable arm64 emulation in %s or build on an arm64 host",
+                function.name,
+                host_arch,
+                container_runtime,
+                container_runtime,
+            )
+        else:
             LOG.warning(
                 "Cross-architecture build detected: Building %s function '%s' on %s host. "
                 "This may cause build failures with %s. "
