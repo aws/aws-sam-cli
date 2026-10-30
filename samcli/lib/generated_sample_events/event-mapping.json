@@ -1080,6 +1080,37 @@
     }
   },
   "sqs": {
+    "receive-message-from-s3": {
+      "filename": "Sqs",
+      "help": "Generates an Amazon SQS Event containing an S3 Put notification",
+      "body-event": {
+        "service": "s3",
+        "event": "put"
+      },
+      "tags": {
+        "partition": {
+          "default": "aws"
+        },
+        "region": {
+          "type": "string",
+          "default": "us-east-1"
+        },
+        "account-id": {
+          "default": "123456789012"
+        },
+        "queue-name": {
+          "default": "MyQueue"
+        },
+        "bucket": {
+          "type": "string",
+          "default": "example-bucket"
+        },
+        "key": {
+          "type": "string",
+          "default": "test/key"
+        }
+      }
+    },
     "receive-message": {
       "filename": "Sqs",
       "help": "Generates an Amazon SQS Event",
