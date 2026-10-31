@@ -234,8 +234,14 @@ class TestEventTypeSubCommand(TestCase):
         click_mock.Command.assert_called_once_with(
             name="hi",
             short_help="Generates a hello Event",
-            params=[],
+            params=[click_mock.Option.return_value],
             callback=callback_object_mock,
+        )
+        click_mock.Option.assert_called_once_with(
+            ["--compact"],
+            is_flag=True,
+            default=False,
+            help="Print the event as single-line JSON, for example to pass it in an environment variable.",
         )
 
     def test_subcommand_list_return_value(self):
@@ -262,3 +268,32 @@ class TestEventTypeSubCommand(TestCase):
             self.service_cmd_name, self.event_type_name, {"key": "value"}
         )
         self.assertEqual(event, event_json)
+
+    def test_compact_prints_single_line_json(self):
+        event_json = '{\n  "hello": "world",\n  "nested": {"a": 1}\n}'
+        self.events_lib_mock.generate_event.return_value = event_json
+        s = EventTypeSubCommand(self.events_lib_mock, "hello", event_json)
+        event = s.cmd_implementation(
+            self.events_lib_mock, self.service_cmd_name, self.event_type_name, key="value", compact=True
+        )
+        # --compact is not an event parameter.
+        self.events_lib_mock.generate_event.assert_called_with(
+            self.service_cmd_name, self.event_type_name, {"key": "value"}
+        )
+        self.assertEqual(event, '{"hello":"world","nested":{"a":1}}')
+        self.assertEqual(json.loads(event), json.loads(event_json))
+
+    def test_without_compact_the_event_is_printed_as_generated(self):
+        event_json = '{\n  "hello": "world"\n}'
+        self.events_lib_mock.generate_event.return_value = event_json
+        s = EventTypeSubCommand(self.events_lib_mock, "hello", event_json)
+        event = s.cmd_implementation(self.events_lib_mock, self.service_cmd_name, self.event_type_name, compact=False)
+        self.assertEqual(event, event_json)
+
+    def test_compact_keeps_non_ascii_characters(self):
+        event_json = '{\n  "key": "caf\u00e9 \u6771\u4eac"\n}'
+        self.events_lib_mock.generate_event.return_value = event_json
+        s = EventTypeSubCommand(self.events_lib_mock, "hello", event_json)
+        event = s.cmd_implementation(self.events_lib_mock, self.service_cmd_name, self.event_type_name, compact=True)
+        self.assertEqual(event, '{"key":"caf\u00e9 \u6771\u4eac"}')
+        self.assertEqual(json.loads(event), json.loads(event_json))
