@@ -769,17 +769,6 @@ class TestContainer_start(TestCase):
         container_mock.reload.assert_called_once_with()
         self.assertEqual(self.container.rapid_port_host, 50724)
 
-    def test_must_leave_rapid_host_port_unset_if_container_already_exited(self):
-        # Docker drops the port bindings of a container that has stopped
-        self.container.is_created.return_value = True
-        container_mock = Mock()
-        container_mock.ports = {}
-        self.mock_docker_client.containers.get.return_value = container_mock
-
-        self.container.start()
-
-        self.assertIsNone(self.container.rapid_port_host)
-
     def test_must_not_keep_previous_rapid_host_port_on_restart(self):
         # Docker assigns a new host port on each start; an exited container has none
         self.container.is_created.return_value = True
