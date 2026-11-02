@@ -17,6 +17,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
             "runtimes": [
+                "python3.15",
                 "python3.14",
                 "python3.13",
                 "python3.12",
@@ -150,6 +151,7 @@ INIT_RUNTIMES = [
     "provided.al2",
     "provided",
     # python runtimes in descending order
+    "python3.15",
     "python3.14",
     "python3.13",
     "python3.12",
@@ -185,6 +187,7 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
+    "python3.15": "amazon/python3.15-base",
     "python3.14": "amazon/python3.14-base",
     "python3.13": "amazon/python3.13-base",
     "python3.12": "amazon/python3.12-base",
@@ -219,6 +222,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.12": "Python36",
     "python3.13": "Python36",
     "python3.14": "Python36",
+    "python3.15": "Python36",
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
     "dotnet10": "dotnet6",
