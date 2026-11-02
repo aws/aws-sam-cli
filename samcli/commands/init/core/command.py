@@ -55,13 +55,13 @@ class InitCommand(CoreCommand):
                 formatter.write_text_rows(
                     [
                         RowDefinition(
-                            name=style(f"$ {ctx.command_path} --location gh:aws-samples/cookiecutter-aws-sam-python"),
+                            name=style(f"$ {ctx.command_path} --location gh:your-org/your-template"),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),
                         RowDefinition(
                             name=style(
                                 f"$ {ctx.command_path} --location "
-                                f"git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git"
+                                f"git+ssh://git@github.com/your-org/your-template.git"
                             ),
                             extra_row_modifiers=[ShowcaseRowModifier()],
                         ),

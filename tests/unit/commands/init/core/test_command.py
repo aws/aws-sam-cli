@@ -53,10 +53,9 @@ class TestInitCommand(unittest.TestCase):
             ],
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Direct Initialization": [
-                ("$ sam init --location " "gh:aws-samples/cookiecutter-aws-sam-python\x1b[0m", ""),
+                ("$ sam init --location " "gh:your-org/your-template\x1b[0m", ""),
                 (
-                    "$ sam init --location "
-                    "git+ssh://git@github.com/aws-samples/cookiecutter-aws-sam-python.git\x1b[0m",
+                    "$ sam init --location " "git+ssh://git@github.com/your-org/your-template.git\x1b[0m",
                     "",
                 ),
                 ("$ sam init --location " "/path/to/template.zip\x1b[0m", ""),
