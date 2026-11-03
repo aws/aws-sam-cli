@@ -41,19 +41,33 @@ LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
 
-# A daemon reports a taken host port in three different ways, depending on which layer
-# refuses it and which daemon is answering: the port allocator when another container holds
-# it, and the userland proxy's bind when an ordinary process does. Verified against Docker
-# 25 on Linux and reported by Docker Desktop respectively.
+# A container engine reports a taken host port in several ways, depending on which layer
+# refuses it and which engine is answering. self.docker_client can be either a Docker or a
+# Finch client (utils.get_validated_container_client), so these match the layer-independent
+# fragment rather than one engine's whole sentence:
+#
+#   "Ports are not available"     Docker Desktop.
+#   "port is already allocated"   the port allocator, when another container holds the port.
+#                                 Docker formats it "Bind for 127.0.0.1:3093 failed: ...",
+#                                 nerdctl "bind for 127.0.0.1:3093 failed: ...".
+#   "address already in use"      any bind-level refusal, when something other than a
+#                                 container holds the port. Docker's userland proxy prefixes
+#                                 this with "bind: "; nerdctl surfaces the bare errno text,
+#                                 so the prefix is deliberately left out of the match.
+#
+# Measured against Docker 25.0.16 and Finch 1.17.2 / nerdctl 2.3.5 on Linux; the Docker
+# Desktop wording is as reported. The nerdctl strings above are present in the nerdctl
+# binary, which carries no "bind: "-prefixed form of either errno message.
 PORT_TAKEN_WORDINGS = (
-    "Ports are not available",  # Docker Desktop
-    "port is already allocated",  # Linux daemon, port held by another container
-    "bind: address already in use",  # Linux daemon, port held by a non-Docker process
+    "Ports are not available",
+    "port is already allocated",
+    "address already in use",
 )
 
-# Not a port conflict: the address itself does not exist on the machine running the daemon,
-# which is what a stale or mistyped --container-host-interface produces.
-HOST_INTERFACE_MISSING_WORDING = "bind: cannot assign requested address"
+# Not a port conflict: the address itself does not exist on the machine running the engine,
+# which is what a stale or mistyped --container-host-interface produces. Prefix-free for the
+# same reason as the wordings above.
+HOST_INTERFACE_MISSING_WORDING = "cannot assign requested address"
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
@@ -475,9 +489,9 @@ class Container:
 
             if HOST_INTERFACE_MISSING_WORDING in message:
                 raise ContainerNotStartableException(
-                    f"The Docker host cannot publish the container's port on the requested interface: {detail} "
-                    f"Pass --container-host-interface with an address that exists on the machine running the "
-                    f"Docker daemon."
+                    f"The container engine cannot publish the container's port on the requested interface: "
+                    f"{detail} Pass --container-host-interface with an address that exists on the machine "
+                    f"running the container engine."
                 ) from ex
 
             raise ex
