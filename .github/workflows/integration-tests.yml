@@ -319,6 +319,7 @@ jobs:
                 --ignore=tests/integration/buildcmd/test_build_in_source.py \
                 --ignore=tests/integration/buildcmd/test_build_samconfig.py \
                 --ignore=tests/integration/buildcmd/test_build_cmd_arm64.py \
+                --ignore=tests/integration/buildcmd/test_build_cmd_microvm_image.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications.py \
                 --ignore=tests/integration/buildcmd/test_build_terraform_applications_other_cases.py \
                 -k "not container" \
@@ -327,6 +328,7 @@ jobs:
             "build-arm64")
               pytest -vv -n 2 --reruns 3 -m "not requires_credential and not tier1_extra" \
                 tests/integration/buildcmd/test_build_cmd_arm64.py \
+                tests/integration/buildcmd/test_build_cmd_microvm_image.py \
                 -k "not container" \
                 --json-report --json-report-file=TEST_REPORT-${{ matrix.test_suite }}.json
               ;;

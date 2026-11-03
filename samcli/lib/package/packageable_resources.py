@@ -41,11 +41,13 @@ from samcli.lib.utils.resources import (
     AWS_GLUE_JOB,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_SERVERLESS_WEBFUNCTION,
     AWS_SERVERLESSREPO_APPLICATION,
@@ -726,6 +728,51 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+class MicrovmImageResource(Resource):
+    """
+    Placeholder until sam package can upload MicrovmImage code.
+
+    MicrovmImage types are in RESOURCES_WITH_LOCAL_PATHS so that sam build rebases their source path, but
+    without an exporter sam package would report success and leave a local path in the packaged template.
+    Fail for a local path instead. S3 URIs and unresolved intrinsics are left unchanged.
+    """
+
+    EXPORT_DESTINATION = Destination.S3
+    ARTIFACT_TYPE = ZIP
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
+        if resource_dict is None or resource_not_packageable(resource_dict):
+            return
+
+        property_value = resource_dict.get(self.PROPERTY_NAME)
+        if isinstance(property_value, dict):
+            # AWS::Lambda::MicrovmImage CodeArtifact: {Uri: ...}
+            property_value = property_value.get("Uri")
+        if not isinstance(property_value, str) or not property_value or is_s3_protocol_url(property_value):
+            return
+
+        raise exceptions.ExportFailedError(
+            resource_id=resource_id,
+            property_name=self.PROPERTY_NAME,
+            property_value=property_value,
+            ex=f"sam package does not support local code for {self.RESOURCE_TYPE} yet. Upload the source "
+            f"directory as a zip to S3 and set {self.PROPERTY_NAME} to its S3 URI.",
+        )
+
+    def get_property_value(self, resource_dict: Optional[Dict]) -> Dict[str, Optional[str]]:
+        return {"Bucket": None, "Key": None}
+
+
+class ServerlessMicrovmImageResource(MicrovmImageResource):
+    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
+
+
+class LambdaMicrovmImageResource(MicrovmImageResource):
+    RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -754,6 +801,8 @@ RESOURCES_EXPORT_LIST = [
     ECRResource,
     GraphQLApiSchemaResource,
     GraphQLApiCodeResource,
+    ServerlessMicrovmImageResource,
+    LambdaMicrovmImageResource,
 ]
 
 
