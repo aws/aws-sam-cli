@@ -838,6 +838,9 @@ class TestContainer_start(TestCase):
         self.assertIn("--container-host-interface", str(raised.exception))
         # The message must not name one engine: self.docker_client can be Docker or Finch.
         self.assertNotIn("Docker", str(raised.exception))
+        # The engine's detail does not end in punctuation, so it must not run into the next
+        # sentence ("...requested address Pass --container-host-interface...").
+        self.assertIn(f"({detail}). Pass", str(raised.exception))
 
     def test_docker_raises_port_inuse_error_with_bytes_explanation(self):
         # docker-py hands back a str today; older versions used bytes.

@@ -489,9 +489,12 @@ class Container:
 
             if HOST_INTERFACE_MISSING_WORDING in message:
                 raise ContainerNotStartableException(
-                    f"The container engine cannot publish the container's port on the requested interface: "
-                    f"{detail} Pass --container-host-interface with an address that exists on the machine "
-                    f"running the container engine."
+                    # The engine's own detail is parenthesised: it does not end in punctuation,
+                    # so interpolating it bare ran it into the next sentence ("...requested
+                    # address Pass --container-host-interface...").
+                    f"The container engine cannot publish the container's port on the requested interface "
+                    f"({detail}). Pass --container-host-interface with an address that exists on the "
+                    f"machine running the container engine."
                 ) from ex
 
             raise ex
