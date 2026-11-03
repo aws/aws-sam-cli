@@ -1216,9 +1216,15 @@ class ApplicationBuilder:
                 "If CodeUri references a template parameter, provide its value via --parameter-overrides."
             )
         if not docker_context_dir.is_dir():
+            if docker_context_dir.suffix.lower() == ".zip":
+                raise MicrovmImageSourceError(
+                    f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a .zip file. sam build builds "
+                    "MicrovmImages from a source directory containing a Dockerfile; point CodeUri at that directory "
+                    "to build locally. sam package uploads a .zip as is."
+                )
             raise MicrovmImageSourceError(
                 f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a file. CodeUri must be a "
-                "directory containing a Dockerfile; sam build cannot build a MicrovmImage from a .zip file."
+                f"directory containing a Dockerfile, for example '{docker_context_dir.parent}'."
             )
         if not dockerfile_path.exists():
             raise MicrovmImageSourceError(
