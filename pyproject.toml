@@ -76,7 +76,7 @@ dev = [
     "aws-sam-cli[pre-dev]",
     "coverage==7.16.0",
     "pytest-cov==7.1.0",
-    "mypy==2.3.1",
+    "mypy==2.4.0",
     "types-pywin32==312.0.0.20260928",
     "types-PyYAML==6.0.12.20260906",
     "types-chevron==0.14.2.20260408",
