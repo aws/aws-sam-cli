@@ -115,8 +115,10 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
     # candidate also keeps a value that does not resolve at all from costing a whole scan.
     try:
         family, socket_type, proto, _, resolved = socket.getaddrinfo(network_interface, 0, type=socket.SOCK_STREAM)[0]
-    except OSError:
-        # socket.gaierror, an OSError subclass, for an address this machine cannot resolve.
+    except (OSError, ValueError):
+        # socket.gaierror (an OSError subclass) for an address this machine cannot resolve,
+        # and UnicodeError (a ValueError, NOT an OSError) when getaddrinfo's idna encoding
+        # rejects the name - a label over 63 characters, which a mistyped flag value can be.
         # The answer is the same for every candidate port, so there is nothing to scan.
         return _unprobeable_port(network_interface, port_range[0])
 

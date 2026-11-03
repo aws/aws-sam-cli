@@ -165,6 +165,21 @@ class TestFreePorts(TestCase):
             any("daemon-host.internal" in message and "without checking it" in message for message in log_ctx.output)
         )
 
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_returns_unprobed_port_for_unencodable_interface(self, mock_random):
+        # getaddrinfo idna-encodes the name first, which raises UnicodeError - a ValueError,
+        # NOT an OSError - for a label over 63 characters. A mistyped flag value must not
+        # escape as a traceback from a function whose whole job is to pick a port. The real
+        # socket module is used deliberately: a mock cannot show which exception type is
+        # raised, and that type is the entire point of this test.
+        mock_random.randrange = Mock(side_effect=[3093] * 1000)
+
+        with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
+            port = find_free_port("a" * 64, start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        self.assertTrue(any("without checking it" in message for message in log_ctx.output))
+
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
     def test_free_port_warns_once_per_interface(self, mock_random, mock_socket):
