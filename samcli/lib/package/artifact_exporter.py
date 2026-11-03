@@ -226,7 +226,7 @@ class CloudFormationStackResource(ResourceZip):
         ):
             # Packaging leaves virtual-hosted URLs unchanged and uploads local templates using path-style URLs.
             return {"Bucket": None, "Key": None}
-        return super().get_property_value(resource_dict)
+        return cast(Dict, super().get_property_value(resource_dict))
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
