@@ -180,6 +180,21 @@ class TestFreePorts(TestCase):
         self.assertEqual(port, 3093)
         self.assertTrue(any("without checking it" in message for message in log_ctx.output))
 
+    @patch("samcli.local.docker.utils.random")
+    def test_free_port_probes_all_interfaces_for_an_empty_interface(self, mock_random):
+        # An empty interface means "all interfaces", which bind("") probed for real before
+        # this change. getaddrinfo("") is a gaierror even with AI_PASSIVE, so without the
+        # None conversion the wildcard would take the unprobeable path and warn that an
+        # empty address "does not exist on this machine". Real socket module on purpose:
+        # the point is that the wildcard resolves and binds.
+        mock_random.randrange = Mock(side_effect=[3093] * 1000)
+
+        with patch("samcli.local.docker.utils.LOG") as log_mock:
+            port = find_free_port("", start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        log_mock.warning.assert_not_called()
+
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
     def test_free_port_warns_once_per_interface(self, mock_random, mock_socket):

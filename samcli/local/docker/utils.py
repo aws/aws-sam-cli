@@ -113,8 +113,15 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
     # IPv6 socket instead of failing address resolution on an AF_INET one, and so that an
     # IPv6 scope id (fe80::1%eth0) survives into the bind. Resolving once rather than per
     # candidate also keeps a value that does not resolve at all from costing a whole scan.
+    #
+    # An empty interface becomes None with AI_PASSIVE, which resolves to the wildcard address
+    # and so keeps bind("") semantics - all interfaces, genuinely probed. getaddrinfo("") is
+    # a gaierror even with AI_PASSIVE, which would send the wildcard down the unprobeable
+    # path instead. AI_PASSIVE is ignored for any non-empty host.
     try:
-        family, socket_type, proto, _, resolved = socket.getaddrinfo(network_interface, 0, type=socket.SOCK_STREAM)[0]
+        family, socket_type, proto, _, resolved = socket.getaddrinfo(
+            network_interface or None, 0, type=socket.SOCK_STREAM, flags=socket.AI_PASSIVE
+        )[0]
     except (OSError, ValueError):
         # socket.gaierror (an OSError subclass) for an address this machine cannot resolve,
         # and UnicodeError (a ValueError, NOT an OSError) when getaddrinfo's idna encoding
