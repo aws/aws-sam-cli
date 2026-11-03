@@ -728,49 +728,74 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
-class MicrovmImageResource(Resource):
+class ServerlessMicrovmImageResource(ResourceZip):
     """
-    Placeholder until sam package can upload MicrovmImage code.
-
-    MicrovmImage types are in RESOURCES_WITH_LOCAL_PATHS so that sam build rebases their source path, but
-    without an exporter sam package would report success and leave a local path in the packaged template.
-    Fail for a local path instead. S3 URIs and unresolved intrinsics are left unchanged.
+    AWS::Serverless::MicrovmImage. The source directory, which holds the Dockerfile, is zipped and uploaded,
+    and CodeUri is set to its S3 URI. The MicroVM service builds the image from that zip.
     """
 
-    EXPORT_DESTINATION = Destination.S3
-    ARTIFACT_TYPE = ZIP
+    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
+    FORCE_ZIP = True
+    # CodeUri is required, so a missing value is left for validation instead of packaging the template directory
+    PACKAGE_NULL_PROPERTY = False
+
+
+class LambdaMicrovmImageResource(ResourceZip):
+    """
+    AWS::Lambda::MicrovmImage. Like ServerlessMicrovmImageResource, but the code is in CodeArtifact, which
+    CloudFormation requires as {Uri: s3://...}. A local path is accepted as {Uri: ./src}, or as a plain string
+    (CDK templates and built templates use that form), and is written back as {Uri: <S3 URI>}.
+    S3 URIs and intrinsics are left unchanged.
+    """
+
+    RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
+    URI_PROPERTY = "Uri"
+    FORCE_ZIP = True
 
     def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
         if resource_dict is None or resource_not_packageable(resource_dict):
             return
 
-        property_value = resource_dict.get(self.PROPERTY_NAME)
-        if isinstance(property_value, dict):
-            # AWS::Lambda::MicrovmImage CodeArtifact: {Uri: ...}
-            property_value = property_value.get("Uri")
-        if not isinstance(property_value, str) or not property_value or is_s3_protocol_url(property_value):
+        code_artifact = resource_dict.get(self.PROPERTY_NAME)
+        if isinstance(code_artifact, dict):
+            local_path = code_artifact.get(self.URI_PROPERTY)
+            property_path = f"{self.PROPERTY_NAME}.{self.URI_PROPERTY}"
+        else:
+            local_path = code_artifact
+            property_path = self.PROPERTY_NAME
+        # Unresolved intrinsics are dicts; leave them, S3 URIs and missing values unchanged
+        if not isinstance(local_path, str) or not local_path or is_s3_protocol_url(local_path):
             return
 
-        raise exceptions.ExportFailedError(
-            resource_id=resource_id,
-            property_name=self.PROPERTY_NAME,
-            property_value=property_value,
-            ex=f"sam package does not support local code for {self.RESOURCE_TYPE} yet. Upload the source "
-            f"directory as a zip to S3 and set {self.PROPERTY_NAME} to its S3 URI.",
-        )
+        temp_dir = None
+        if is_local_file(local_path) and not is_zip_file(local_path):
+            temp_dir = copy_to_temp_dir(local_path)
+            set_value_from_jmespath(resource_dict, property_path, temp_dir)
+
+        try:
+            self.do_export(resource_id, resource_dict, parent_dir, property_path=property_path)
+            if property_path == self.PROPERTY_NAME:
+                resource_dict[self.PROPERTY_NAME] = {self.URI_PROPERTY: resource_dict[self.PROPERTY_NAME]}
+        except Exception as ex:
+            LOG.debug("Unable to export", exc_info=ex)
+            raise exceptions.ExportFailedError(
+                resource_id=resource_id, property_name=property_path, property_value=local_path, ex=ex
+            )
+        finally:
+            if temp_dir:
+                shutil.rmtree(temp_dir)
 
     def get_property_value(self, resource_dict: Optional[Dict]) -> Dict[str, Optional[str]]:
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
+        code_artifact = resource_dict.get(self.PROPERTY_NAME)
+        uri = code_artifact.get(self.URI_PROPERTY) if isinstance(code_artifact, dict) else code_artifact
+        if isinstance(uri, str) and is_s3_protocol_url(uri):
+            return parse_s3_url(uri)
         return {"Bucket": None, "Key": None}
-
-
-class ServerlessMicrovmImageResource(MicrovmImageResource):
-    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
-    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
-
-
-class LambdaMicrovmImageResource(MicrovmImageResource):
-    RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
-    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
 
 
 RESOURCES_EXPORT_LIST = [
