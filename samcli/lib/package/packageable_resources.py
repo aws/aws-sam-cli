@@ -22,6 +22,7 @@ from samcli.lib.package.utils import (
     is_path_value_valid,
     is_s3_protocol_url,
     is_zip_file,
+    make_abs_path,
     resource_not_packageable,
     upload_local_artifacts,
     upload_local_image_artifacts,
@@ -728,6 +729,22 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+def _check_microvm_image_source(resource_id: str, property_name: str, local_path: str, parent_dir: str) -> None:
+    """
+    A MicrovmImage is built from a directory with a Dockerfile at its root, or from a .zip of one. Reject a
+    single other file, such as the Dockerfile itself, instead of uploading a zip of just that file.
+    """
+    abs_path = make_abs_path(parent_dir, local_path)
+    if is_local_file(abs_path) and not is_zip_file(abs_path):
+        raise exceptions.ExportFailedError(
+            resource_id=resource_id,
+            property_name=property_name,
+            property_value=local_path,
+            ex=f"'{abs_path}' is a file. A MicrovmImage source must be a directory containing a Dockerfile, "
+            f"or a .zip of one, for example '{os.path.dirname(abs_path)}'.",
+        )
+
+
 class ServerlessMicrovmImageResource(ResourceZip):
     """
     AWS::Serverless::MicrovmImage. The source directory, which holds the Dockerfile, is zipped and uploaded,
@@ -739,6 +756,13 @@ class ServerlessMicrovmImageResource(ResourceZip):
     FORCE_ZIP = True
     # CodeUri is required, so a missing value is left for validation instead of packaging the template directory
     PACKAGE_NULL_PROPERTY = False
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
+        if resource_dict is not None and not resource_not_packageable(resource_dict):
+            code_uri = resource_dict.get(self.PROPERTY_NAME)
+            if isinstance(code_uri, str) and code_uri and not is_s3_protocol_url(code_uri):
+                _check_microvm_image_source(resource_id, self.PROPERTY_NAME, code_uri, parent_dir)
+        super().export(resource_id, resource_dict, parent_dir)
 
 
 class LambdaMicrovmImageResource(ResourceZip):
@@ -769,10 +793,7 @@ class LambdaMicrovmImageResource(ResourceZip):
         if not isinstance(local_path, str) or not local_path or is_s3_protocol_url(local_path):
             return
 
-        temp_dir = None
-        if is_local_file(local_path) and not is_zip_file(local_path):
-            temp_dir = copy_to_temp_dir(local_path)
-            set_value_from_jmespath(resource_dict, property_path, temp_dir)
+        _check_microvm_image_source(resource_id, property_path, local_path, parent_dir)
 
         try:
             self.do_export(resource_id, resource_dict, parent_dir, property_path=property_path)
@@ -783,9 +804,6 @@ class LambdaMicrovmImageResource(ResourceZip):
             raise exceptions.ExportFailedError(
                 resource_id=resource_id, property_name=property_path, property_value=local_path, ex=ex
             )
-        finally:
-            if temp_dir:
-                shutil.rmtree(temp_dir)
 
     def get_property_value(self, resource_dict: Optional[Dict]) -> Dict[str, Optional[str]]:
         if resource_dict is None:

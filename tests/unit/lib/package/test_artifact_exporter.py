@@ -3416,6 +3416,17 @@ class TestMicrovmImageResource(unittest.TestCase):
                 with self.assertRaises(ExportFailedError):
                     self._export(exporter_class, value)
 
+    def test_single_non_zip_file_fails_and_suggests_its_directory(self):
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app/Dockerfile"),
+            (LambdaMicrovmImageResource, "./app/Dockerfile"),
+            (LambdaMicrovmImageResource, {"Uri": "./app/Dockerfile"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__, value=value):
+                with self.assertRaisesRegex(ExportFailedError, "is a file.*directory containing a Dockerfile.*app'"):
+                    self._export(exporter_class, value)
+        self.s3_uploader.upload_with_dedup.assert_not_called()
+
     def test_get_property_value_reads_the_s3_uri(self):
         exporter = LambdaMicrovmImageResource(self.uploaders, self.code_signer)
         for value in ({"Uri": "s3://bucket/key"}, "s3://bucket/key"):
