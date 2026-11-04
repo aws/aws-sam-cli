@@ -161,6 +161,22 @@ class TestTar(TestCase):
 
         self.assertFalse(_is_within_directory(directory, target))
 
+    def test_tarfile_obj_in_sibling_dir_sharing_name_prefix_is_not_within_dir(self):
+        # "/my/pathological" shares a string prefix with "/my/path" but is not inside it
+        directory = "/my/path"
+        target = "/my/pathological/file"
+
+        self.assertFalse(_is_within_directory(directory, target))
+
+    def test_tarfile_obj_escaping_with_parent_reference_is_not_within_dir(self):
+        directory = "/my/path"
+        target = "/my/path/../other/file"
+
+        self.assertFalse(_is_within_directory(directory, target))
+
+    def test_directory_is_within_itself(self):
+        self.assertTrue(_is_within_directory("/my/path", "/my/path"))
+
     @patch("samcli.lib.utils.tar.tarfile.open")
     @patch("samcli.lib.utils.tar.TemporaryFile")
     @patch("samcli.lib.utils.tar._validate_destinations_exists")
