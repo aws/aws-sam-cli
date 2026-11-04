@@ -31,6 +31,7 @@ from samcli.lib.package.code_signer import CodeSigner
 from samcli.lib.package.language_extensions_packaging import (
     generate_and_apply_artifact_mappings,
     merge_language_extensions_s3_uris,
+    wrap_microvm_image_code_artifact_strings,
 )
 from samcli.lib.package.local_files_utils import get_uploaded_s3_object_name, mktempfile
 from samcli.lib.package.packageable_resources import (
@@ -314,6 +315,7 @@ class CloudFormationStackResource(ResourceZip):
             self.uploaders.get(ResourceZip.EXPORT_DESTINATION),
             child_template_dir,
         )
+        wrap_microvm_image_code_artifact_strings(child_template_dict)
 
         parameter_values = _build_child_parameter_values(
             self.parent_parameter_values,

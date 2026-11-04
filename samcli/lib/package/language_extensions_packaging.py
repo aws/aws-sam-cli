@@ -28,6 +28,8 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 from samcli.lib.package.packageable_resources import METADATA_EXPORTS
+from samcli.lib.package.utils import is_s3_protocol_url
+from samcli.lib.utils.resources import AWS_LAMBDA_MICROVMIMAGE
 
 LOG = logging.getLogger(__name__)
 
@@ -38,6 +40,37 @@ _VALID_MAPPING_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+
+def wrap_microvm_image_code_artifact_strings(template: Dict[str, Any]) -> None:
+    """
+    Rewrite a local AWS::Lambda::MicrovmImage CodeArtifact given as a plain string into {Uri: <string>},
+    including resources inside Fn::ForEach. Mutates ``template`` in place.
+
+    The exporter writes CodeArtifact back as {Uri: <S3 URI>}. Copying that back into a Fn::ForEach body
+    that still holds a string fails, and a dynamic string would become an Fn::FindInMap string, while
+    CloudFormation requires the object form. With {Uri: ...} in the original, both paths use the
+    CodeArtifact.Uri property. S3 URIs and intrinsics are left unchanged.
+    """
+    resources = template.get("Resources") if isinstance(template, dict) else None
+    if isinstance(resources, dict):
+        _wrap_microvm_image_code_artifacts_in(resources)
+
+
+def _wrap_microvm_image_code_artifacts_in(resources: Dict[str, Any]) -> None:
+    for key, value in resources.items():
+        if is_foreach_key(key):
+            if isinstance(value, list) and len(value) == FOREACH_REQUIRED_ELEMENTS and isinstance(value[2], dict):
+                _wrap_microvm_image_code_artifacts_in(value[2])
+            continue
+        if not isinstance(value, dict) or value.get("Type") != AWS_LAMBDA_MICROVMIMAGE:
+            continue
+        properties = value.get("Properties")
+        if not isinstance(properties, dict):
+            continue
+        code_artifact = properties.get("CodeArtifact")
+        if isinstance(code_artifact, str) and code_artifact and not is_s3_protocol_url(code_artifact):
+            properties["CodeArtifact"] = {"Uri": code_artifact}
 
 
 def merge_language_extensions_s3_uris(
