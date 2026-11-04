@@ -5,6 +5,7 @@ Represents Durable Lambda runtime containers.
 import logging
 import threading
 import time
+import uuid
 from typing import Optional
 
 import click
@@ -36,6 +37,9 @@ class DurableLambdaContainer(LambdaContainer):
         we need to adhere to the behaviour of the container modes for the HTTP service (cold, lazy, eager)
         """
         self._is_warm_runtime = is_warm_runtime
+
+        # Name the emulator reaches this container by on the emulator's network, set on create
+        self._network_host: Optional[str] = None
 
         self._update_lambda_environment_with_emulator_endpoint(kwargs)
         super().__init__(*args, **kwargs)
@@ -74,25 +78,27 @@ class DurableLambdaContainer(LambdaContainer):
         # A container on the host network cannot join another network.
         return not self.emulator_container._is_external_emulator() and self.network_id != "host"
 
-    def _get_network_alias(self):
-        """Name the emulator uses to reach this container on the emulator's network."""
-        return f"sam-durable-function-{self.id[:12]}"
-
     def create(self, context):
         if self.network_id == "host" and not self.emulator_container._is_external_emulator():
             # The network is only known now. On the host network the container shares the host's
             # loopback interface, which is where the emulator port is published.
             self._env_vars["AWS_ENDPOINT_URL_LAMBDA"] = f"http://localhost:{self.emulator_container.port}"
-        container_id = super().create(context)
-        if self._uses_emulator_network():
-            try:
-                network = self.emulator_container.get_or_create_network()
-                network.connect(container_id, aliases=[self._get_network_alias()])
-            except Exception:
-                # Same as a failed network connect in the base class: don't leave the container behind.
-                self.docker_client.containers.get(container_id).remove(force=True)
-                raise
-        return container_id
+        if not self._uses_emulator_network():
+            return super().create(context)
+
+        # Create the container directly on the emulator's network, under a name the emulator can resolve.
+        # Attaching it afterwards with an alias does not work on every runtime: Finch only makes a
+        # container resolvable by its name and hostname, and only for containers that joined the
+        # network when they were created.
+        network = self.emulator_container.get_or_create_network()
+        self._network_host = f"sam-durable-function-{uuid.uuid4().hex[:12]}"
+        self._container_opts = {
+            **(self._container_opts or {}),
+            "name": self._network_host,
+            "hostname": self._network_host,
+            "network": network.name,
+        }
+        return super().create(context)
 
     def _get_lambda_container_endpoint(self):
         """
@@ -101,7 +107,7 @@ class DurableLambdaContainer(LambdaContainer):
         (or for a container on the host network, which cannot join the emulator's network).
         """
         if self._uses_emulator_network():
-            return f"http://{self._get_network_alias()}:{self.RAPID_PORT_CONTAINER}"
+            return f"http://{self._network_host}:{self.RAPID_PORT_CONTAINER}"
         lambda_host = "localhost" if self.emulator_container._is_external_emulator() else "host.docker.internal"
         return f"http://{lambda_host}:{self.get_port()}"
 

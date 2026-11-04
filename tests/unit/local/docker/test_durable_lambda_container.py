@@ -11,7 +11,8 @@ from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
 from samcli.local.docker.lambda_container import LambdaContainer
 
 CONTAINER_ID = "0123456789abcdef0123"
-NETWORK_ENDPOINT = "http://sam-durable-function-0123456789ab:8080"
+NETWORK_HOST = "sam-durable-function-0123456789ab"
+NETWORK_ENDPOINT = f"http://{NETWORK_HOST}:8080"
 
 
 class TestDurableLambdaContainer(TestCase):
@@ -47,6 +48,8 @@ class TestDurableLambdaContainer(TestCase):
         # LambdaContainer.__init__ is patched out, so set the state it and create() would.
         container.id = CONTAINER_ID
         container._network_id = None
+        container._container_opts = None
+        container._network_host = NETWORK_HOST
         return container
 
     @parameterized.expand(
@@ -106,18 +109,43 @@ class TestDurableLambdaContainer(TestCase):
 
         self.assertEqual(self.mock_lambda_init.call_args[1]["container_host_interface"], "127.0.0.1")
 
+    @patch("samcli.local.docker.durable_lambda_container.uuid.uuid4")
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
-    def test_create_joins_emulator_network(self, mock_parent_create):
+    def test_create_joins_emulator_network(self, mock_parent_create, mock_uuid4):
         mock_parent_create.return_value = CONTAINER_ID
+        mock_uuid4.return_value.hex = "abcdef0123456789abcdef0123456789"
+        mock_emulator = Mock()
+        mock_emulator._is_external_emulator = Mock(return_value=False)
+        mock_emulator.get_or_create_network.return_value.name = "sam-durable-execution"
+        container = self._create_container(mock_emulator)
+        container._container_opts = {"privileged": True}
+
+        self.assertEqual(container.create(Mock()), CONTAINER_ID)
+
+        # Joined at creation time under a name, not attached afterwards with an alias
+        mock_emulator.get_or_create_network.return_value.connect.assert_not_called()
+        self.assertEqual(
+            container._container_opts,
+            {
+                "privileged": True,
+                "name": "sam-durable-function-abcdef012345",
+                "hostname": "sam-durable-function-abcdef012345",
+                "network": "sam-durable-execution",
+            },
+        )
+        self.assertEqual(container._get_lambda_container_endpoint(), "http://sam-durable-function-abcdef012345:8080")
+
+    @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
+    def test_create_uses_new_name_each_time(self, mock_parent_create):
         mock_emulator = Mock()
         mock_emulator._is_external_emulator = Mock(return_value=False)
         container = self._create_container(mock_emulator)
 
-        self.assertEqual(container.create(Mock()), CONTAINER_ID)
+        container.create(Mock())
+        first_name = container._container_opts["name"]
+        container.create(Mock())
 
-        mock_network = mock_emulator.get_or_create_network.return_value
-        mock_network.connect.assert_called_once_with(CONTAINER_ID, aliases=["sam-durable-function-0123456789ab"])
-        self.assertEqual(container._get_lambda_container_endpoint(), NETWORK_ENDPOINT)
+        self.assertNotEqual(container._container_opts["name"], first_name)
 
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
     def test_create_skips_emulator_network_for_external_emulator(self, mock_parent_create):
@@ -128,6 +156,7 @@ class TestDurableLambdaContainer(TestCase):
         container.create(Mock())
 
         mock_emulator.get_or_create_network.assert_not_called()
+        self.assertIsNone(container._container_opts)
 
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
     def test_create_on_host_network_reaches_emulator_through_localhost(self, mock_parent_create):
@@ -144,22 +173,6 @@ class TestDurableLambdaContainer(TestCase):
         mock_emulator.get_or_create_network.assert_not_called()
         self.assertEqual(container._env_vars["AWS_ENDPOINT_URL_LAMBDA"], "http://localhost:5000")
         self.assertEqual(container._get_lambda_container_endpoint(), "http://host.docker.internal:8080")
-
-    @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
-    def test_create_removes_container_when_network_connect_fails(self, mock_parent_create):
-        mock_parent_create.return_value = CONTAINER_ID
-        mock_emulator = Mock()
-        mock_emulator._is_external_emulator = Mock(return_value=False)
-        mock_emulator.get_or_create_network.return_value.connect.side_effect = RuntimeError("connect failed")
-        container = self._create_container(mock_emulator)
-        mock_docker_client = Mock()
-
-        with patch.object(DurableLambdaContainer, "docker_client", mock_docker_client):
-            with self.assertRaises(RuntimeError):
-                container.create(Mock())
-
-        mock_docker_client.containers.get.assert_called_once_with(CONTAINER_ID)
-        mock_docker_client.containers.get.return_value.remove.assert_called_once_with(force=True)
 
     @parameterized.expand(
         [
