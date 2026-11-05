@@ -689,8 +689,11 @@ class IntrinsicResolver:
 
         subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
         for sub_item in subable_props:
-            sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
-            result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
+            result = (
+                sanitized_variables[sub_item]
+                if sub_item in sanitized_variables
+                else resolve_sub_attribute(sub_item, self._symbol_resolver)
+            )
             sub_str = sub_str.replace("${" + sub_item + "}", str(result))
         return sub_str
 
