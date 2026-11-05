@@ -74,15 +74,15 @@ class DurableLambdaContainer(LambdaContainer):
         kwargs["extra_hosts"] = extra_hosts
 
     def _uses_emulator_network(self):
-        """Whether this container reaches the emulator over the emulator's network."""
-        # A container on the host network cannot join another network.
-        return not self.emulator_container._is_external_emulator() and self.network_id != "host"
+        """
+        Whether this container reaches the emulator over the emulator's network. That is every case
+        but an external emulator, including --docker-network host: SAM CLI does not run containers in
+        host network mode, it only skips joining a network, so the container is on a bridge network
+        like any other and can join the emulator's.
+        """
+        return not self.emulator_container._is_external_emulator()
 
     def create(self, context):
-        if self.network_id == "host" and not self.emulator_container._is_external_emulator():
-            # The network is only known now. On the host network the container shares the host's
-            # loopback interface, which is where the emulator port is published.
-            self._env_vars["AWS_ENDPOINT_URL_LAMBDA"] = f"http://localhost:{self.emulator_container.port}"
         if not self._uses_emulator_network():
             return super().create(context)
 
@@ -103,13 +103,11 @@ class DurableLambdaContainer(LambdaContainer):
     def _get_lambda_container_endpoint(self):
         """
         Get the Lambda container endpoint URL for the emulator to invoke.
-        Uses the shared network for a containerized emulator, and the host port for an external one
-        (or for a container on the host network, which cannot join the emulator's network).
+        Uses the shared network for a containerized emulator, and the host port for an external one.
         """
         if self._uses_emulator_network():
             return f"http://{self._network_host}:{self.RAPID_PORT_CONTAINER}"
-        lambda_host = "localhost" if self.emulator_container._is_external_emulator() else "host.docker.internal"
-        return f"http://{lambda_host}:{self.get_port()}"
+        return f"http://localhost:{self.get_port()}"
 
     def wait_for_result(
         self,

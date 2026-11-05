@@ -159,20 +159,21 @@ class TestDurableLambdaContainer(TestCase):
         self.assertIsNone(container._container_opts)
 
     @patch("samcli.local.docker.durable_lambda_container.LambdaContainer.create")
-    def test_create_on_host_network_reaches_emulator_through_localhost(self, mock_parent_create):
+    def test_create_with_host_docker_network_joins_emulator_network(self, mock_parent_create):
+        """--docker-network host does not put the container in host network mode, so it still joins the emulator's"""
         mock_emulator = Mock()
-        mock_emulator.port = 5000
         mock_emulator._is_external_emulator = Mock(return_value=False)
+        mock_emulator.network_endpoint = "http://sam-durable-execution-emulator:5000"
+        mock_emulator.get_or_create_network.return_value.name = "sam-durable-execution"
         container = self._create_container(mock_emulator)
         container._network_id = "host"
-        container._env_vars = {}
-        container.get_port = Mock(return_value=8080)
+        container._env_vars = {"AWS_ENDPOINT_URL_LAMBDA": "http://sam-durable-execution-emulator:5000"}
 
         container.create(Mock())
 
-        mock_emulator.get_or_create_network.assert_not_called()
-        self.assertEqual(container._env_vars["AWS_ENDPOINT_URL_LAMBDA"], "http://localhost:5000")
-        self.assertEqual(container._get_lambda_container_endpoint(), "http://host.docker.internal:8080")
+        self.assertEqual(container._container_opts["network"], "sam-durable-execution")
+        self.assertEqual(container._env_vars["AWS_ENDPOINT_URL_LAMBDA"], "http://sam-durable-execution-emulator:5000")
+        self.assertEqual(container._get_lambda_container_endpoint(), f"http://{container._container_opts['name']}:8080")
 
     @parameterized.expand(
         [
