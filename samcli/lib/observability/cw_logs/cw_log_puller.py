@@ -21,6 +21,8 @@ class CWLogPuller(ObservabilityPuller):
     Puller implementation that can pull events from CloudWatch log group
     """
 
+    _MAX_BACKOFF_INTERVAL = 60
+
     def __init__(
         self,
         logs_client: Any,
@@ -29,7 +31,7 @@ class CWLogPuller(ObservabilityPuller):
         resource_name: Optional[str] = None,
         max_retries: int = 1000,
         poll_interval: int = 1,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -45,6 +47,7 @@ class CWLogPuller(ObservabilityPuller):
             Optional parameter to set maximum retries when tailing. Default value is 1000
         poll_interval: int
             Optional parameter to define sleep interval between pulling new log events when tailing. Default value is 1
+            Throttling doubles the interval up to 60 seconds (or this value if larger); successful polls restore it.
         """
         self.logs_client = logs_client
         self.consumer = consumer
@@ -52,11 +55,12 @@ class CWLogPuller(ObservabilityPuller):
         self.resource_name = resource_name
         self._max_retries = max_retries
         self._poll_interval = poll_interval
+        self._initial_poll_interval = poll_interval
         self.latest_event_time = 0
         self.had_data = False
         self._invalid_log_group = False
 
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None) -> None:
         if start_time:
             self.latest_event_time = to_timestamp(start_time)
 
@@ -70,11 +74,9 @@ class CWLogPuller(ObservabilityPuller):
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code == "ThrottlingException":
-                    # if throttled, increase poll interval by 1 second each time
-                    if self._poll_interval == 1:
-                        self._poll_interval += 1
-                    else:
-                        self._poll_interval **= 2
+                    self._poll_interval = min(
+                        self._poll_interval * 2, max(self._initial_poll_interval, self._MAX_BACKOFF_INTERVAL)
+                    )
                     LOG.warning(
                         "Throttled by CloudWatch Logs API, consider pulling logs for certain resources. "
                         "Increasing the poll interval time for resource %s to %s seconds",
@@ -85,6 +87,8 @@ class CWLogPuller(ObservabilityPuller):
                     # if error is other than throttling, re-raise it
                     LOG.error("Failed while fetching new log events", exc_info=err)
                     raise err
+            else:
+                self._poll_interval = self._initial_poll_interval
 
             # This poll fetched logs. Reset the retry counter and set the timestamp for next poll
             if self.had_data:
