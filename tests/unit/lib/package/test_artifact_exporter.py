@@ -3337,6 +3337,54 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
         mock_pre_pass.assert_not_called()
 
 
+class TestNestedStackMicrovmCodeArtifactString(unittest.TestCase):
+    """A plain-string CodeArtifact in a child template's Fn::ForEach is packaged as {Uri: Fn::FindInMap}"""
+
+    def test_child_template_wraps_string_code_artifact(self):
+        child_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, child_dir)
+        child_path = os.path.join(child_dir, "child.yaml")
+        with open(child_path, "w") as child_file:
+            child_file.write(
+                "Transform: AWS::LanguageExtensions\n"
+                "Resources:\n"
+                "  Fn::ForEach::Images:\n"
+                "    - N\n"
+                "    - [Alpha, Beta]\n"
+                "    - ${N}Image:\n"
+                "        Type: AWS::Lambda::MicrovmImage\n"
+                "        Properties:\n"
+                "          CodeArtifact: ./${N}\n"
+            )
+        stack_resource = CloudFormationStackResource(Mock(), Mock())
+        stack_resource.language_extensions_enabled = True
+
+        with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+            # The exporter writes CodeArtifact back as {Uri: <S3 URI>}
+            TemplateMock.return_value.export.return_value = {
+                "Resources": {
+                    f"{name}Image": {
+                        "Type": "AWS::Lambda::MicrovmImage",
+                        "Properties": {"CodeArtifact": {"Uri": f"s3://bucket/{name.lower()}"}},
+                    }
+                    for name in ("Alpha", "Beta")
+                }
+            }
+            exported = stack_resource._do_export_with_language_extensions(
+                "ChildStack", child_path, child_dir, child_path, {"TemplateURL": child_path}
+            )
+
+        body = exported["Resources"]["Fn::ForEach::Images"][2]
+        self.assertEqual(
+            body["${N}Image"]["Properties"]["CodeArtifact"],
+            {"Uri": {"Fn::FindInMap": ["SAMUriImages", {"Ref": "N"}, "Uri"]}},
+        )
+        self.assertEqual(
+            exported["Mappings"]["SAMUriImages"],
+            {"Alpha": {"Uri": "s3://bucket/alpha"}, "Beta": {"Uri": "s3://bucket/beta"}},
+        )
+
+
 class TestMicrovmImageResource(unittest.TestCase):
     """sam package zips a MicrovmImage source directory, uploads it and points the template at the S3 URI."""
 
