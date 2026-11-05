@@ -372,9 +372,16 @@ class InvokeContext:
 
         container_ids = []
 
+        # The runner and runtime are created lazily and without locking. Create them here, before the
+        # containers are initialized in parallel, so that every container shares one runtime. Otherwise
+        # each thread can create its own, and with it its own durable functions emulator and warm
+        # containers that are never cleaned up.
+        local_lambda_runner = self.local_lambda_runner
+        lambda_runtime = self.lambda_runtime
+
         def initialize_function_container(function: Function) -> None:
-            function_config = self.local_lambda_runner.get_invoke_config(function)
-            container = self.lambda_runtime.run(
+            function_config = local_lambda_runner.get_invoke_config(function)
+            container = lambda_runtime.run(
                 container=None,
                 function_config=function_config,
                 debug_context=self._debug_context,
