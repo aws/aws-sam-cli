@@ -488,10 +488,9 @@ class Container:
                 raise PortAlreadyInUse(detail) from ex
 
             if HOST_INTERFACE_MISSING_WORDING in message:
+                # detail is the engine's own text and has no trailing period, so it is wrapped
+                # in parentheses to keep it from running into the sentence that follows.
                 raise ContainerNotStartableException(
-                    # The engine's own detail is parenthesised: it does not end in punctuation,
-                    # so interpolating it bare ran it into the next sentence ("...requested
-                    # address Pass --container-host-interface...").
                     f"The container engine cannot publish the container's port on the requested interface "
                     f"({detail}). Pass --container-host-interface with an address that exists on the "
                     f"machine running the container engine."
