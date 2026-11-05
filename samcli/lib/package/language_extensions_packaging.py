@@ -28,7 +28,6 @@ from samcli.lib.cfn_language_extensions.sam_integration import (
 )
 from samcli.lib.cfn_language_extensions.utils import FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 from samcli.lib.package.packageable_resources import METADATA_EXPORTS
-from samcli.lib.package.utils import is_s3_protocol_url
 from samcli.lib.utils.resources import AWS_LAMBDA_MICROVMIMAGE
 
 LOG = logging.getLogger(__name__)
@@ -44,13 +43,13 @@ _VALID_MAPPING_KEY_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 def wrap_microvm_image_code_artifact_strings(template: Dict[str, Any]) -> None:
     """
-    Rewrite a local AWS::Lambda::MicrovmImage CodeArtifact given as a plain string into {Uri: <string>},
+    Rewrite an AWS::Lambda::MicrovmImage CodeArtifact given as a plain string into {Uri: <string>},
     including resources inside Fn::ForEach. Mutates ``template`` in place.
 
     The exporter writes CodeArtifact back as {Uri: <S3 URI>}. Copying that back into a Fn::ForEach body
     that still holds a string fails, and a dynamic string would become an Fn::FindInMap string, while
     CloudFormation requires the object form. With {Uri: ...} in the original, both paths use the
-    CodeArtifact.Uri property. S3 URIs and intrinsics are left unchanged.
+    CodeArtifact.Uri property. This covers local paths and S3 URIs; intrinsics are left unchanged.
     """
     resources = template.get("Resources") if isinstance(template, dict) else None
     if isinstance(resources, dict):
@@ -69,7 +68,7 @@ def _wrap_microvm_image_code_artifacts_in(resources: Dict[str, Any]) -> None:
         if not isinstance(properties, dict):
             continue
         code_artifact = properties.get("CodeArtifact")
-        if isinstance(code_artifact, str) and code_artifact and not is_s3_protocol_url(code_artifact):
+        if isinstance(code_artifact, str) and code_artifact:
             properties["CodeArtifact"] = {"Uri": code_artifact}
 
 

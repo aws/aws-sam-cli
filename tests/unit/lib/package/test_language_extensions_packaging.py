@@ -115,10 +115,11 @@ class TestWrapMicrovmImageCodeArtifactStrings(TestCase):
     def _image(code_artifact, resource_type="AWS::Lambda::MicrovmImage"):
         return {"Type": resource_type, "Properties": {"CodeArtifact": code_artifact}}
 
-    def test_wraps_local_strings_at_top_level_and_in_nested_foreach(self):
+    def test_wraps_local_and_s3_strings_at_top_level_and_in_nested_foreach(self):
         template = {
             "Resources": {
                 "Plain": self._image("./app"),
+                "OnS3": self._image("s3://bucket/app.zip"),
                 "Fn::ForEach::Outer": [
                     "N",
                     ["Alpha", "Beta"],
@@ -135,6 +136,7 @@ class TestWrapMicrovmImageCodeArtifactStrings(TestCase):
         resources = template["Resources"]
         outer_body = resources["Fn::ForEach::Outer"][2]
         self.assertEqual(resources["Plain"]["Properties"]["CodeArtifact"], {"Uri": "./app"})
+        self.assertEqual(resources["OnS3"]["Properties"]["CodeArtifact"], {"Uri": "s3://bucket/app.zip"})
         self.assertEqual(outer_body["${N}Image"]["Properties"]["CodeArtifact"], {"Uri": "./${N}"})
         self.assertEqual(
             outer_body["Fn::ForEach::Inner"][2]["${N}${M}Image"]["Properties"]["CodeArtifact"], {"Uri": "./${N}/${M}"}
@@ -142,7 +144,6 @@ class TestWrapMicrovmImageCodeArtifactStrings(TestCase):
 
     def test_leaves_other_values_and_resource_types_unchanged(self):
         unchanged = {
-            "OnS3": self._image("s3://bucket/app.zip"),
             "UriForm": self._image({"Uri": "./app"}),
             "Intrinsic": self._image({"Fn::Sub": "./${Env}"}),
             "Function": {"Type": "AWS::Lambda::Function", "Properties": {"Code": "./app"}},

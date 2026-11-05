@@ -768,8 +768,9 @@ class LambdaMicrovmImageResource(ResourceZip):
     """
     AWS::Lambda::MicrovmImage. Like ServerlessMicrovmImageResource, but the code is in CodeArtifact, which
     CloudFormation requires as {Uri: s3://...}. A local path is accepted as {Uri: ./src}, or as a plain string
-    (CDK templates and built templates use that form), and is written back as {Uri: <S3 URI>}.
-    S3 URIs and intrinsics are left unchanged.
+    (CDK templates and built templates use that form), and is written back as {Uri: <S3 URI>}. An S3 URI given
+    as a plain string is written as {Uri: <S3 URI>} too, as Lambda function Code is written as an object.
+    Intrinsics are left unchanged.
     """
 
     RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
@@ -787,8 +788,12 @@ class LambdaMicrovmImageResource(ResourceZip):
         else:
             local_path = code_artifact
             property_path = self.PROPERTY_NAME
-        # Unresolved intrinsics are dicts; leave them, S3 URIs and missing values unchanged
-        if not isinstance(local_path, str) or not local_path or is_s3_protocol_url(local_path):
+        # Unresolved intrinsics are dicts; leave them and missing values unchanged
+        if not isinstance(local_path, str) or not local_path:
+            return
+        if is_s3_protocol_url(local_path):
+            if property_path == self.PROPERTY_NAME:
+                resource_dict[self.PROPERTY_NAME] = {self.URI_PROPERTY: local_path}
             return
 
         _check_microvm_image_source(resource_id, property_path, local_path, parent_dir)

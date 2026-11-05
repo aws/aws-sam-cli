@@ -3443,7 +3443,6 @@ class TestMicrovmImageResource(unittest.TestCase):
             (ServerlessMicrovmImageResource, "s3://bucket/app.zip"),
             (ServerlessMicrovmImageResource, {"Ref": "Src"}),
             (ServerlessMicrovmImageResource, None),
-            (LambdaMicrovmImageResource, "s3://bucket/app.zip"),
             (LambdaMicrovmImageResource, {"Uri": "s3://bucket/app.zip"}),
             (LambdaMicrovmImageResource, {"Uri": {"Ref": "Src"}}),
             (LambdaMicrovmImageResource, {"Fn::Sub": "s3://${Bucket}/app.zip"}),
@@ -3453,6 +3452,13 @@ class TestMicrovmImageResource(unittest.TestCase):
             with self.subTest(exporter=exporter_class.__name__, value=value):
                 resource_dict = self._export(exporter_class, value)
                 self.assertEqual(resource_dict[exporter_class.PROPERTY_NAME], value)
+        self.s3_uploader.upload_with_dedup.assert_not_called()
+
+    def test_lambda_s3_string_is_written_as_uri_dict(self):
+        # CloudFormation requires CodeArtifact as an object, as Lambda function Code is written as {S3Bucket, S3Key}
+        resource_dict = self._export(LambdaMicrovmImageResource, "s3://bucket/app.zip")
+
+        self.assertEqual(resource_dict["CodeArtifact"], {"Uri": "s3://bucket/app.zip"})
         self.s3_uploader.upload_with_dedup.assert_not_called()
 
     def test_missing_source_directory_fails(self):
