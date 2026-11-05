@@ -12,6 +12,13 @@ from click import confirm, prompt
 from samcli.commands.delete.exceptions import CfDeleteFailedStatusError
 from samcli.commands.exceptions import AWSServiceClientError, RegionError
 from samcli.lib.bootstrap.companion_stack.companion_stack_builder import CompanionStack
+from samcli.lib.bootstrap.web_function_code_bucket import (
+    CODE_BUCKET_DELETED,
+    CODE_BUCKET_PROTECTED,
+    delete_web_function_code_bucket,
+    keep_web_function_code_bucket,
+    retained_web_functions,
+)
 from samcli.lib.delete.cfn_utils import CfnUtils
 from samcli.lib.package.artifact_exporter import Template
 from samcli.lib.package.ecr_uploader import ECRUploader
@@ -101,6 +108,8 @@ class DeleteContext:
         self.ecr_uploader = ECRUploader(docker_client=None, ecr_client=ecr_client, ecr_repo=None, ecr_repo_multi=None)
         self.uploaders = Uploaders(self.s3_uploader, self.ecr_uploader)
         self.cf_utils = CfnUtils(cloudformation_client)
+        self.cloudformation_client = cloudformation_client
+        self.s3_client = s3_client
 
         # Set region, this is purely for logging purposes
         # the cloudformation client is able to read from
@@ -287,6 +296,11 @@ class DeleteContext:
         elif self.delete_artifacts_folder:
             self.s3_uploader.delete_prefix_artifacts()
 
+        # Find retained Web Functions now, while nested stacks still exist
+        retained = retained_web_functions(
+            template.template_dict, retain_resources, self.cloudformation_client, self.stack_name
+        )
+
         # Delete the primary input stack
         try:
             click.echo(f"\t- Deleting Cloudformation stack {self.stack_name}")
@@ -302,6 +316,12 @@ class DeleteContext:
                 deployment_config=self._deployment_config,
             )
             self.cf_utils.wait_for_delete(self.stack_name)
+
+        # Delete the code bucket after the stack (revisions read from it), unless a Web Function is retained
+        if retained:
+            keep_web_function_code_bucket(self.stack_name, retained, self.cloudformation_client)
+        else:
+            delete_web_function_code_bucket(self.stack_name, self.cloudformation_client, self.s3_client)
 
         # Warn the user that s3 information is missing and to use --s3 options
         if not self.s3_bucket:
@@ -342,6 +362,13 @@ class DeleteContext:
                     )
             else:
                 LOG.debug("Input stack does not exists on Cloudformation")
+                # Clean up a code bucket stack left by an earlier failed sam delete
+                result = delete_web_function_code_bucket(self.stack_name, self.cloudformation_client, self.s3_client)
+                if result == CODE_BUCKET_DELETED:
+                    click.echo("\nDeleted the Lambda Web Function code bucket stack left by an earlier delete")
+                    return
+                if result == CODE_BUCKET_PROTECTED:
+                    return
                 click.echo(
                     f"Error: The input stack {self.stack_name} does"
                     f" not exist on Cloudformation in the region {self.region}"

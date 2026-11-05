@@ -1,19 +1,13 @@
-import os
 import locale
-import sys
 
-from io import StringIO
 from pathlib import Path
 
 from parameterized import parameterized
 import pytest
 
-from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
-from tests.testing_utils import IS_WINDOWS, RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
 from samcli.commands.local.invoke.cli import cli
-from samcli.cli.context import Context
 
 from click.testing import CliRunner
 

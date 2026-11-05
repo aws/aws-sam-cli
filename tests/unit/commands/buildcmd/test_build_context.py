@@ -1,6 +1,8 @@
 import io
 import json
 import os
+import pathlib
+import tempfile
 from contextlib import redirect_stdout
 from unittest import TestCase
 from unittest.mock import ANY, MagicMock, Mock, call, patch
@@ -19,14 +21,29 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
-from samcli.lib.build.exceptions import InvalidBuildGraphException
+from samcli.lib.build.exceptions import InvalidBuildGraphException, MicrovmImageSourceError
 from samcli.lib.build.workflow_config import UnsupportedBuilderException, UnsupportedRuntimeException
 from samcli.lib.observability.util import OutputOption
-from samcli.lib.providers.provider import Function, ResourcesToBuildCollector, get_function_build_info
+from samcli.lib.providers.provider import Function, MicrovmImage, ResourcesToBuildCollector, get_function_build_info
 from samcli.lib.telemetry.event import EventName, UsedFeature
 from samcli.lib.utils.osutils import BUILD_DIR_PERMISSIONS
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.lambdafn.exceptions import FunctionNotFound, ResourceNotFound
+
+_web_function_provider_patcher = None
+
+
+def setUpModule():
+    # These tests use Mock stacks; SamWebFunctionProvider is tested separately
+    global _web_function_provider_patcher
+    _web_function_provider_patcher = patch("samcli.commands.build.build_context.SamWebFunctionProvider")
+    provider_class_mock = _web_function_provider_patcher.start()
+    provider_class_mock.return_value.get.return_value = None
+    provider_class_mock.return_value.get_all.return_value = []
+
+
+def tearDownModule():
+    _web_function_provider_patcher.stop()
 
 
 class DeepWrap(Exception):
@@ -95,6 +112,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -103,10 +121,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -172,13 +193,14 @@ class TestBuildContext__enter__(TestCase):
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
-        setup_build_dir_mock.assert_called_with("build_dir", True)
+        setup_build_dir_mock.assert_called_with("build_dir", True, "cache_dir", ["basedir", "basedir"])
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get.assert_called_once_with("function_identifier")
 
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -187,10 +209,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -236,6 +261,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -244,10 +270,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -291,6 +320,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -299,10 +329,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -352,6 +385,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -360,10 +394,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -408,6 +445,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -416,10 +454,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         """
         In this unit test, we also verify
         - inlinecode functions are skipped
@@ -511,7 +552,7 @@ class TestBuildContext__enter__(TestCase):
         )
         SamFunctionProviderMock.assert_called_once_with([stack], False, locate_layer_nested=False)
         pathlib_mock.Path.assert_called_once_with("template_file")
-        setup_build_dir_mock.assert_called_with("build_dir", True)
+        setup_build_dir_mock.assert_called_with("build_dir", True, "cache_dir", ["basedir", "basedir"])
         ContainerManagerMock.assert_called_once_with(docker_network_id="network", skip_pull_image=True)
         func_provider_mock.get_all.assert_called_once()
 
@@ -530,6 +571,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -541,10 +583,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         template_dict = "template dict"
         stack = Mock()
         stack.template_dict = template_dict
@@ -614,6 +659,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.get_template_data")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -624,11 +670,14 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         get_buildable_stacks_mock,
         get_template_data_mock,
         log_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         get_buildable_stacks_mock.return_value = ([], remote_stack_full_paths)
 
         context = BuildContext(
@@ -661,6 +710,7 @@ class TestBuildContext__enter__(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -683,10 +733,13 @@ class TestBuildContext__enter__(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         root_stack = Mock()
         root_stack.is_root_stack = True
         auto_dependency_layer = False
@@ -753,6 +806,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         os_patch.listdir.return_value = True
@@ -780,6 +834,7 @@ class TestBuildContext_setup_build_dir(TestCase):
         # must surface as InvalidBuildDirException so --output json still emits a JSON error.
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.exists.return_value = True
         os_patch.listdir.return_value = True
@@ -794,6 +849,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_exists_with_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.listdir.return_value = False
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
@@ -819,6 +875,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_build_dir_does_not_exist(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         path_mock.resolve.return_value = "long/full/path"
@@ -843,6 +900,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_non_clean_build_when_dir_exists_with_non_empty_dir(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/cwd/path"]
         path_mock.cwd.return_value = "/cwd/path"
         os_patch.listdir.return_value = True
@@ -868,6 +926,7 @@ class TestBuildContext_setup_build_dir(TestCase):
     def test_when_build_dir_is_cwd_raises_exception(self, pathlib_patch, os_patch, shutil_patch):
         path_mock = Mock()
         pathlib_patch.Path.return_value = path_mock
+        os_patch.path.join.side_effect = os.path.join
         os_patch.path.abspath.side_effect = ["/somepath", "/somepath"]
         path_mock.cwd.return_value = "/somepath"
         build_dir = "/somepath"
@@ -884,17 +943,125 @@ class TestBuildContext_setup_build_dir(TestCase):
         shutil_patch.rmtree.assert_not_called()
         pathlib_patch.Path.cwd.assert_called_once()
 
+    @parameterized.expand([("..",), (os.path.join("..", ".."),)])
+    def test_when_build_dir_is_parent_of_cwd_raises_and_removes_nothing(self, relative_build_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "workspace", "project")
+            project.mkdir(parents=True)
+            template = project / "template.yaml"
+            template.write_text("Resources: {}")
+            sibling = pathlib.Path(root, "workspace", "sibling.txt")
+            sibling.write_text("unrelated")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with self.assertRaises(InvalidBuildDirException):
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True)
+
+            self.assertTrue(template.exists())
+            self.assertTrue(sibling.exists())
+
+    def test_when_build_dir_contains_template_dir_raises_and_removes_nothing(self):
+        # sam build -t proj/template.yaml --build-dir proj, run from proj's parent
+        with tempfile.TemporaryDirectory() as root:
+            cwd = pathlib.Path(root)
+            template = cwd / "proj" / "template.yaml"
+            template.parent.mkdir()
+            template.write_text("Resources: {}")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=cwd):
+                with self.assertRaises(InvalidBuildDirException):
+                    BuildContext._setup_build_dir(str(cwd / "proj"), True, None, [str(template.parent)])
+
+            self.assertTrue(template.exists())
+
+    @parameterized.expand(
+        [
+            (".aws-sam", None),
+            (os.path.join(".aws-sam", "cache"), os.path.join(".aws-sam", "cache")),
+            (os.path.join(".aws-sam", "deps"), os.path.join(".aws-sam", "cache")),
+            ("out", os.path.join("out", "cache")),
+            ("out", os.path.join("out", "nested", "cache")),
+        ]
+    )
+    def test_when_build_dir_contains_sam_state_warns(self, relative_build_dir, cache_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            (project / relative_build_dir).mkdir(parents=True)
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with self.assertLogs("samcli.commands.build.build_context", level="WARNING") as logs:
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True, cache_dir)
+
+            self.assertIn("will not be supported in a future release", logs.output[0])
+            self.assertTrue((project / relative_build_dir).is_dir())
+
+    def test_when_build_dir_contains_sam_state_without_clean_does_not_warn(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            state_file = project / ".aws-sam" / "cache" / "marker"
+            state_file.parent.mkdir(parents=True)
+            state_file.write_text("state")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with patch("samcli.commands.build.build_context.LOG") as log_mock:
+                    BuildContext._setup_build_dir(str(project / ".aws-sam"), False, os.path.join(".aws-sam", "cache"))
+
+            log_mock.warning.assert_not_called()
+            self.assertTrue(state_file.exists())
+
+    @parameterized.expand(
+        [
+            (os.path.join(".aws-sam", "build"), os.path.join(".aws-sam", "cache")),
+            (os.path.join(".aws-sam", "auto-dependency-layer"), os.path.join(".aws-sam", "cache")),
+            ("out", os.path.join(".aws-sam", "cache")),
+            ("out", None),
+        ]
+    )
+    def test_build_dir_beside_sam_state_is_allowed(self, relative_build_dir, cache_dir):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            project.mkdir()
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                with patch("samcli.commands.build.build_context.LOG") as log_mock:
+                    BuildContext._setup_build_dir(str(project / relative_build_dir), True, cache_dir)
+
+            log_mock.warning.assert_not_called()
+            self.assertTrue((project / relative_build_dir).is_dir())
+
+    def test_build_dir_inside_cwd_is_cleaned(self):
+        with tempfile.TemporaryDirectory() as root:
+            project = pathlib.Path(root, "project")
+            build_dir = project / ".aws-sam" / "build"
+            build_dir.mkdir(parents=True)
+            (build_dir / "stale").write_text("old artifact")
+
+            with patch("samcli.commands.build.build_context.pathlib.Path.cwd", return_value=project):
+                BuildContext._setup_build_dir(str(build_dir), True)
+
+            self.assertTrue(build_dir.is_dir())
+            self.assertEqual(os.listdir(build_dir), [])
+
 
 class TestBuildContext_setup_cached_and_deps_dir(TestCase):
     @parameterized.expand([(True,), (False,)])
     @patch("samcli.commands.build.build_context.pathlib.Path")
     @patch("samcli.commands.build.build_context.SamLocalStackProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     def test_cached_dir_and_deps_dir_creation(
-        self, cached, patched_layer, patched_function, patched_stack, patched_path
+        self,
+        cached,
+        patched_layer,
+        patched_microvm,
+        patched_function,
+        patched_stack,
+        patched_path,
     ):
         patched_stack.get_stacks.return_value = ([], None)
+        patched_microvm.return_value.get.return_value = None
+        patched_microvm.return_value.get_all.return_value = []
         build_context = BuildContext(
             resource_identifier="function_identifier",
             template_file="template_file",
@@ -934,6 +1101,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -961,11 +1129,14 @@ class TestBuildContext_run(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
         nested_stack_manager_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         root_stack = Mock()
         root_stack.is_root_stack = True
         root_stack.get_output_template_path = Mock(return_value="./build_dir/template.yaml")
@@ -975,7 +1146,7 @@ class TestBuildContext_run(TestCase):
             root_stack.stack_path: "./build_dir/template.yaml",
             child_stack.stack_path: "./build_dir/abcd/template.yaml",
         }
-        resources_mock.return_value = Mock(functions=[], layers=[])
+        resources_mock.return_value = Mock(functions=[], layers=[], microvm_images=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = "artifacts"
@@ -1127,7 +1298,9 @@ class TestBuildContext_run(TestCase):
         find_root_stack_mock,
     ):
         """run() in JSON mode must write exactly one parseable JSON document to stdout."""
-        resources_mock.return_value = Mock(functions=[get_function("Fn", runtime="python3.12")], layers=[])
+        resources_mock.return_value = Mock(
+            functions=[get_function("Fn", runtime="python3.12")], layers=[], microvm_images=[]
+        )
         ApplicationBuilderMock.return_value.build.return_value = ApplicationBuildResult(Mock(), "artifacts")
         find_root_stack_mock.return_value.get_output_template_path.return_value = "build_dir/template.yaml"
 
@@ -1178,6 +1351,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -1203,12 +1377,15 @@ class TestBuildContext_run(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         stack = Mock()
-        resources_mock.return_value = Mock(functions=[], layers=[])
+        resources_mock.return_value = Mock(functions=[], layers=[], microvm_images=[])
 
         builder_mock = ApplicationBuilderMock.return_value = Mock()
         artifacts = builder_mock.build.return_value = "artifacts"
@@ -1263,6 +1440,7 @@ class TestBuildContext_run(TestCase):
     @patch("samcli.commands.build.build_context.SamLocalStackProvider.get_stacks")
     @patch("samcli.commands.build.build_context.SamApiProvider")
     @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
     @patch("samcli.commands.build.build_context.SamLayerProvider")
     @patch("samcli.commands.build.build_context.pathlib")
     @patch("samcli.commands.build.build_context.ContainerManager")
@@ -1285,10 +1463,13 @@ class TestBuildContext_run(TestCase):
         ContainerManagerMock,
         pathlib_mock,
         SamLayerProviderMock,
+        SamMicrovmImageProviderMock,
         SamFunctionProviderMock,
         SamApiProviderMock,
         get_buildable_stacks_mock,
     ):
+        SamMicrovmImageProviderMock.return_value.get.return_value = None
+        SamMicrovmImageProviderMock.return_value.get_all.return_value = []
         stack = Mock()
         resources_mock.return_value = Mock()
 
@@ -1557,6 +1738,75 @@ Commands you can use next
         self.assertEqual(msg, expected_msg)
 
 
+class TestBuildContext_gen_success_msg_microvm_images(TestCase):
+    def setUp(self):
+        self.build_context = BuildContext(
+            resource_identifier=None,
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            parallel=False,
+            mode="mode",
+            cached=False,
+        )
+        self.build_context._hook_name = False
+        self.images = [
+            MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64"),
+            MicrovmImage(name="Other", code_uri="./other", architecture="arm64", stack_path="Child"),
+        ]
+        self.build_context._build_result = ApplicationBuildResult(
+            Mock(), {"MyImage": "myimage:latest", "Child/Other": "child-other:latest"}
+        )
+
+    def _collector(self, functions=(), layers=(), images=()):
+        collector = ResourcesToBuildCollector()
+        collector.add_functions(list(functions))
+        collector.add_layers(list(layers))
+        collector.add_microvm_images(list(images))
+        return collector
+
+    def test_lists_built_microvm_images_with_tag_and_platform(self):
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(images=self.images)
+        )
+
+        self.assertIn(
+            "\nBuilt MicrovmImages\n===================\n"
+            f"[*] MyImage -> myimage:latest (linux/arm64){os.linesep}"
+            "[*] Child/Other -> child-other:latest (linux/arm64)\n",
+            msg,
+        )
+
+    def test_image_only_build_drops_local_invoke_but_keeps_sync_and_deploy(self):
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(images=self.images)
+        )
+
+        self.assertNotIn("sam local invoke", msg)
+        self.assertIn("sam validate", msg)
+        self.assertIn("sam sync", msg)
+        self.assertIn("sam deploy --guided", msg)
+
+    def test_mixed_build_keeps_local_invoke(self):
+        function = Mock()
+        msg = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(functions=[function], images=self.images)
+        )
+
+        self.assertIn("sam local invoke", msg)
+        self.assertIn("Built MicrovmImages", msg)
+
+    def test_no_microvm_images_leaves_message_unchanged(self):
+        with_collector = self.build_context._gen_success_msg(
+            "build_dir", "template_file", True, self._collector(functions=[Mock()])
+        )
+        without_collector = self.build_context._gen_success_msg("build_dir", "template_file", True)
+
+        self.assertEqual(with_collector, without_collector)
+        self.assertNotIn("Built MicrovmImages", with_collector)
+
+
 class TestBuildContext_print_build_success(TestCase):
     def setUp(self):
         self.build_dir = ".aws-sam/build"
@@ -1610,6 +1860,30 @@ class TestBuildContext_print_build_success(TestCase):
         self.assertEqual(result["resources"][1]["type"], "layer")
         self.assertEqual(result["resources"][1]["resource_id"], "Lyr")
         self.assertEqual(result["resources"][1]["compatible_runtimes"], ["python3.12", "python3.11"])
+
+    @patch("samcli.commands.build.build_context.click.secho")
+    @patch("samcli.commands.build.build_context.click.echo")
+    def test_json_reports_the_microvm_image_tag(self, echo_mock, secho_mock):
+        collector = self._collector()
+        collector.add_microvm_image(MicrovmImage("MyImage", "src", "arm64", stack_path="Child"))
+        self.build_context._build_result = ApplicationBuildResult(
+            build_graph=Mock(), artifacts={"Child/MyImage": "child-myimage:latest"}
+        )
+
+        self.build_context._print_build_success("artifacts", "out_template", collector)
+
+        result = json.loads(echo_mock.call_args[0][0])
+        self.assertEqual(
+            result["resources"],
+            [
+                {
+                    "resource_id": "Child/MyImage",
+                    "type": "microvm_image",
+                    "architecture": "arm64",
+                    "image_tag": "child-myimage:latest",
+                }
+            ],
+        )
 
     @patch("samcli.commands.build.build_context.click.secho")
     @patch("samcli.commands.build.build_context.click.echo")
@@ -2743,3 +3017,167 @@ class TestBuildContextLanguageExtensions(TestCase):
         with patch.dict(os.environ, {"SAM_CLI_ENABLE_LANGUAGE_EXTENSIONS": "true"}, clear=False):
             ctx = self._ctx(language_extensions=None)
             assert ctx.language_extensions_enabled is True
+
+
+class TestMicrovmImageBuildability(TestCase):
+    """Tests for is_microvm_image_buildable and MicrovmImage collection logic."""
+
+    def test_is_buildable_with_valid_image(self):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64")
+        buildable, reason = BuildContext.is_microvm_image_buildable(image)
+        self.assertTrue(buildable)
+        self.assertEqual(reason, "")
+
+    def test_is_not_buildable_zip_codeuri(self):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="app.zip", architecture="arm64")
+        buildable, reason = BuildContext.is_microvm_image_buildable(image)
+        self.assertFalse(buildable)
+        self.assertIn(".zip", reason)
+
+    def test_is_not_buildable_skip_build(self):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64", metadata={"SkipBuild": True})
+        buildable, reason = BuildContext.is_microvm_image_buildable(image)
+        self.assertFalse(buildable)
+        self.assertIn("SkipBuild", reason)
+
+    def test_is_not_buildable_none_architecture(self):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="./app", architecture=None)
+        buildable, reason = BuildContext.is_microvm_image_buildable(image)
+        self.assertFalse(buildable)
+        self.assertIn("architecture", reason)
+
+
+class TestCollectSingleMicrovmImage(TestCase):
+    """Tests for _collect_single_microvm_image."""
+
+    def _make_context(self):
+        ctx = BuildContext(
+            resource_identifier="MyImage",
+            template_file="template.yaml",
+            base_dir=None,
+            build_dir="build",
+            cache_dir=".cache",
+            cached=False,
+            parallel=False,
+            mode=None,
+        )
+        return ctx
+
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
+    def test_collect_adds_image_unconditionally(self, mock_provider_cls):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="./app", architecture="arm64", metadata={"SkipBuild": True})
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = image
+        ctx._microvm_image_provider = mock_provider
+
+        collector = ResourcesToBuildCollector()
+        ctx._collect_single_microvm_image("MyImage", collector)
+
+        self.assertEqual(len(collector.microvm_images), 1)
+        self.assertEqual(collector.microvm_images[0], image)
+
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
+    def test_collect_raises_build_error_for_none_architecture(self, mock_provider_cls):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        image = MicrovmImage(name="MyImage", code_uri="./app", architecture=None)
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = image
+        ctx._microvm_image_provider = mock_provider
+
+        collector = ResourcesToBuildCollector()
+        with self.assertRaises(BuildError) as cm:
+            ctx._collect_single_microvm_image("MyImage", collector)
+        self.assertIn("unsupported architecture", str(cm.exception))
+
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
+    def test_collect_returns_when_image_not_found(self, mock_provider_cls):
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = None
+        ctx._microvm_image_provider = mock_provider
+
+        collector = ResourcesToBuildCollector()
+        ctx._collect_single_microvm_image("NonExistent", collector)
+
+        self.assertEqual(len(collector.microvm_images), 0)
+
+    def test_collect_reports_why_a_skipped_image_is_not_buildable(self):
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = None
+        mock_provider.get_skip_reason.return_value = "CodeUri is an S3 location; sam build only builds a local source"
+        ctx._microvm_image_provider = mock_provider
+
+        with self.assertRaisesRegex(
+            MicrovmImageSourceError, "MicrovmImage 'MyImage' is not buildable: CodeUri is an S3"
+        ):
+            ctx._collect_single_microvm_image("MyImage", ResourcesToBuildCollector())
+
+    def test_collect_does_not_report_skipped_image_when_a_function_matched(self):
+        ctx = self._make_context()
+        mock_provider = Mock()
+        mock_provider.get.return_value = None
+        mock_provider.get_skip_reason.return_value = "CodeUri is an S3 location"
+        ctx._microvm_image_provider = mock_provider
+        collector = ResourcesToBuildCollector()
+        collector.add_function(Mock())
+
+        ctx._collect_single_microvm_image("MyImage", collector)
+
+        self.assertEqual(len(collector.microvm_images), 0)
+
+
+class TestCollectAllMicrovmImages(TestCase):
+    """Tests for collect_all_build_resources MicrovmImage filtering."""
+
+    @patch("samcli.commands.build.build_context.BuildContext._is_container_runtime_available", return_value=True)
+    @patch("samcli.commands.build.build_context.SamMicrovmImageProvider")
+    @patch("samcli.commands.build.build_context.SamLayerProvider")
+    @patch("samcli.commands.build.build_context.SamFunctionProvider")
+    def test_collect_all_skips_unbuildable_with_warning(
+        self, mock_func_prov, mock_layer_prov, mock_mvm_prov, mock_runtime_available
+    ):
+        from samcli.lib.providers.provider import MicrovmImage
+
+        buildable_image = MicrovmImage(name="Good", code_uri="./app", architecture="arm64")
+        unbuildable_image = MicrovmImage(name="Bad", code_uri="./app", architecture=None)
+
+        ctx = BuildContext(
+            resource_identifier=None,
+            template_file="template.yaml",
+            base_dir=None,
+            build_dir="build",
+            cache_dir=".cache",
+            cached=False,
+            parallel=False,
+            mode=None,
+        )
+        mock_mvm = Mock()
+        mock_mvm.get_all.return_value = [buildable_image, unbuildable_image]
+        ctx._microvm_image_provider = mock_mvm
+
+        mock_func = Mock()
+        mock_func.get_all.return_value = []
+        ctx._function_provider = mock_func
+
+        mock_layer = Mock()
+        mock_layer.get_all.return_value = []
+        ctx._layer_provider = mock_layer
+
+        result = ctx.collect_all_build_resources()
+
+        self.assertEqual(len(result.microvm_images), 1)
+        self.assertEqual(result.microvm_images[0].name, "Good")

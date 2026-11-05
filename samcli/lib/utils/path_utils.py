@@ -42,3 +42,30 @@ def check_path_valid_type(path) -> bool:
         return True
     LOG.debug("Type error when trying to use input {} as Path, not string, int, bytes or os.PathLike ".format(path))
     return False
+
+
+def is_same_or_ancestor(ancestor: str, path: str) -> bool:
+    """
+    Checks whether ``ancestor`` is ``path`` itself or one of its parent directories.
+    Both arguments are expected to be absolute. The comparison is lexical (symlinks are not
+    resolved) and case-insensitive on Windows, where two spellings differing only in case
+    name the same directory.
+    Parameters
+    ----------
+    ancestor: str
+        the candidate parent directory
+    path: str
+        the path that may be inside ``ancestor``
+
+    Returns
+    -------
+    bool
+        True if ``path`` is ``ancestor`` or is located beneath it
+    """
+    ancestor = os.path.normcase(os.path.normpath(ancestor))
+    path = os.path.normcase(os.path.normpath(path))
+    try:
+        return os.path.commonpath([ancestor, path]) == ancestor
+    except ValueError:
+        # Paths on different drives on Windows share no common path
+        return False

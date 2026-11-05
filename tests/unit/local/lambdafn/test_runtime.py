@@ -20,6 +20,7 @@ from samcli.local.lambdafn.config import FunctionConfig
 from samcli.local.docker.container import ContainerContext
 from samcli.commands.local.lib.debug_context import DebugContext
 from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
+from samcli.local.docker.exceptions import ContainerCreationFailedException, ContainerFailureError
 from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 
 
@@ -1907,9 +1908,7 @@ class TestLambdaRuntime_create_exceptions(TestCase):
     @patch("samcli.local.lambdafn.runtime.LOG")
     @patch("samcli.local.lambdafn.runtime.LambdaContainer")
     def test_docker_container_creation_failed_exception_must_raise_and_log(self, LambdaContainerMock, LogMock):
-        """Test DockerContainerCreationFailedException handling - lines 130-131"""
-        from samcli.local.docker.exceptions import DockerContainerCreationFailedException
-
+        """Test ContainerCreationFailedException handling - lines 130-131"""
         code_dir = "some code dir"
         container = Mock()
         debug_options = Mock()
@@ -1920,9 +1919,9 @@ class TestLambdaRuntime_create_exceptions(TestCase):
         self.runtime._get_code_dir.return_value = code_dir
 
         LambdaContainerMock.return_value = container
-        self.manager_mock.create.side_effect = DockerContainerCreationFailedException("Container creation failed")
+        self.manager_mock.create.side_effect = ContainerCreationFailedException("Container creation failed")
 
-        with self.assertRaises(DockerContainerCreationFailedException):
+        with self.assertRaises(ContainerCreationFailedException):
             self.runtime.create(self.func_config, debug_context=debug_options)
 
         # Verify the warning log was called
@@ -1940,8 +1939,6 @@ class TestLambdaRuntime_check_exit_state(TestCase):
     @patch("samcli.local.lambdafn.runtime.ContainerAnalyzer")
     def test_check_exit_state_out_of_memory_raises_exception(self, ContainerAnalyzerMock):
         """Test that out of memory condition raises ContainerFailureError"""
-        from samcli.local.docker.exceptions import ContainerFailureError
-
         container = Mock()
         analyzer_mock = Mock()
         exit_state_mock = Mock()
@@ -2253,8 +2250,6 @@ class TestWarmLambdaRuntime_on_code_change_container_branch(TestCase):
 
     def test_on_code_change_with_image_package_type_logs_image_resource(self):
         """Test _on_code_change logs correct resource type for IMAGE package type"""
-        from samcli.lib.utils.packagetype import IMAGE
-
         # Create function config with IMAGE package type
         image_func_config = FunctionConfig(
             "name",

@@ -2,20 +2,23 @@ import json
 import os.path
 from unittest import skipIf
 
-from samcli.commands._utils.experimental import set_experimental, ExperimentalFlag
+import pytest
+
 from samcli.lib.utils.resources import AWS_LAMBDA_FUNCTION, AWS_LAMBDA_LAYERVERSION
 from tests.integration.sync.sync_integ_base import SyncIntegBase
-from tests.integration.sync.test_sync_code import TestSyncCodeBase, SKIP_SYNC_TESTS, TestSyncCode
+from tests.integration.sync.test_sync_code import TestSyncCodeBase, TestSyncCode
 from tests.integration.sync.test_sync_watch import TestSyncWatchBase
 from tests.testing_utils import run_command_with_input, read_until_string, IS_WINDOWS
 
 
-@skipIf(SKIP_SYNC_TESTS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
     template = "template-python-no-dependencies.yaml"
     folder = "code"
     dependency_layer = True
 
+    # Not rerun-safe: it edits test data in place and the class-scoped infra sync is not redone.
+    @pytest.mark.flaky(reruns=0)
     def test_sync_code_function_without_dependencies(self):
         # CFN Api call here to collect all the stack resources
         self.stack_resources = self._get_stacks(TestSyncCode.stack_name)
@@ -104,7 +107,8 @@ class TestSyncAdlCasesWithCodeParameter(TestSyncCodeBase):
         self.assertIn("extra_message", lambda_response)
 
 
-@skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
+@skipIf(IS_WINDOWS, "Skip sync watch tests on Windows")
 class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
     template_before = os.path.join("code", "before", "template-python-no-dependencies.yaml")
     folder = "code"
@@ -165,7 +169,8 @@ class TestSyncAdlWithWatchStartWithNoDependencies(TestSyncWatchBase):
         self._confirm_lambda_response(self._get_lambda_response(lambda_functions[0]), _verify_lambda_response)
 
 
-@skipIf(SKIP_SYNC_TESTS or IS_WINDOWS, "Skip sync tests in CI/CD only")
+@pytest.mark.requires_credential
+@skipIf(IS_WINDOWS, "Skip sync watch tests on Windows")
 class TestDisableAdlForEsbuildFunctions(SyncIntegBase):
     template_file = "code/before/template-esbuild.yaml"
     dependency_layer = True

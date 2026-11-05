@@ -5,6 +5,7 @@ from unittest.mock import patch, Mock
 from parameterized import parameterized
 
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.providers.provider import Stack
 from tests.testing_utils import IS_WINDOWS
 from tests.unit.commands.buildcmd.test_build_context import DummyStack
 
@@ -170,9 +171,11 @@ class EsbuildBundler_esbuild_configured(TestCase):
         esbuild_manager = EsbuildBundlerManager(stack)
         self.assertEqual(esbuild_manager.esbuild_configured(), expected)
 
+    @patch("samcli.lib.build.bundler.SamWebFunctionProvider")
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider.__init__", return_value=None)
     @patch("samcli.lib.providers.sam_function_provider.SamFunctionProvider.get_all", return_value={})
-    def test_use_raw_codeuri_passed(self, get_all_mock, provider_mock):
+    def test_use_raw_codeuri_passed(self, get_all_mock, provider_mock, web_provider_mock):
+        web_provider_mock.return_value.get_all.return_value = []
         EsbuildBundlerManager([]).esbuild_configured()
         provider_mock.assert_called_with([[]], use_raw_codeuri=True, ignore_code_extraction_warnings=True)
 
@@ -262,3 +265,65 @@ class PostProcessHandler(TestCase):
         result_path = EsbuildBundlerManager(Mock())._get_path_and_filename_from_handler(input_path)
 
         self.assertEqual(result_path, expected_path)
+
+
+class EsbuildBundlerWebFunctions(TestCase):
+    def _stack(self, properties, metadata=None):
+        resource = {"Type": "AWS::Serverless::WebFunction", "Properties": properties}
+        resource["Metadata"] = metadata if metadata is not None else {"BuildMethod": "esbuild"}
+        return Stack("", "", "template.yaml", {}, {"Resources": {"WebFn": resource}})
+
+    def test_esbuild_configured_for_web_functions(self):
+        self.assertTrue(
+            EsbuildBundlerManager(self._stack({"Runtime": "nodejs24.x", "CodeUri": "web"})).esbuild_configured()
+        )
+        self.assertFalse(
+            EsbuildBundlerManager(self._stack({"Runtime": "nodejs24.x", "CodeUri": "web"}, {})).esbuild_configured()
+        )
+
+    @patch("samcli.lib.build.bundler.Path.is_file", return_value=False)
+    def test_entry_point_points_at_the_bundled_file(self, _):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "web", "EntryPoint": "src/server.ts"})
+        template = {"Resources": {"WebFn": {"Properties": {"EntryPoint": "src/server.ts"}}}}
+        processed = EsbuildBundlerManager(stack, template, "build").handle_template_post_processing()
+        self.assertEqual(processed["Resources"]["WebFn"]["Properties"]["EntryPoint"], "server.js")
+
+    @parameterized.expand(
+        [
+            ("./server.ts", "server.js"),
+            ("src/v1.2/server.ts", "server.js"),
+            ("server.config.ts", "server.config.js"),
+        ]
+    )
+    @patch("samcli.lib.build.bundler.Path.is_file", return_value=False)
+    def test_dotted_entry_point_points_at_the_bundled_file(self, entry_point, expected, _):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "web", "EntryPoint": entry_point})
+        template = {"Resources": {"WebFn": {"Properties": {"EntryPoint": entry_point}}}}
+        processed = EsbuildBundlerManager(stack, template, "build").handle_template_post_processing()
+        self.assertEqual(processed["Resources"]["WebFn"]["Properties"]["EntryPoint"], expected)
+
+    @patch("samcli.lib.build.bundler.Path.is_file", return_value=True)
+    def test_entry_point_that_exists_in_the_artifact_is_kept(self, _):
+        stack = self._stack({"Runtime": "nodejs24.x", "CodeUri": "web", "EntryPoint": "server.js"})
+        template = {"Resources": {"WebFn": {"Properties": {"EntryPoint": "server.js"}}}}
+        processed = EsbuildBundlerManager(stack, template, "build").handle_template_post_processing()
+        self.assertEqual(processed["Resources"]["WebFn"]["Properties"]["EntryPoint"], "server.js")
+
+    def test_sourcemap_sets_node_options_in_environment_variables(self):
+        stack = self._stack(
+            {"Runtime": "nodejs24.x", "CodeUri": "web"},
+            {"BuildMethod": "esbuild", "BuildProperties": {"Sourcemap": True}},
+        )
+        template = {"Resources": {"WebFn": {"Properties": {"EnvironmentVariables": {"A": "b"}}}}}
+        processed = EsbuildBundlerManager(stack, template).handle_template_post_processing()
+        variables = processed["Resources"]["WebFn"]["Properties"]["EnvironmentVariables"]
+        self.assertIn("--enable-source-maps", variables["NODE_OPTIONS"])
+        self.assertEqual(variables["A"], "b")
+        self.assertNotIn("Environment", processed["Resources"]["WebFn"]["Properties"])
+
+    def test_node_options_in_web_function_environment_variables_are_detected(self):
+        resource = {
+            "Type": "AWS::Serverless::WebFunction",
+            "Properties": {"EnvironmentVariables": {"NODE_OPTIONS": "--enable-source-maps"}},
+        }
+        self.assertTrue(EsbuildBundlerManager._is_node_option_set(resource))

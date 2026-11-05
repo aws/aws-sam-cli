@@ -3,6 +3,7 @@ Interactive callback handler for durable function executions.
 """
 
 import logging
+import sys
 from typing import Optional
 
 import click
@@ -75,17 +76,20 @@ class DurableCallbackHandler:
         Returns:
             True if callback was sent, False if user chose to continue waiting
         """
-        # Only prompt once per callback ID to avoid blocking on timed-out callbacks
-        if callback_id in self._prompted_callbacks:
+        # Only prompt once per callback ID to avoid blocking on timed-out callbacks, and not after the
+        # execution completed
+        if callback_id in self._prompted_callbacks or (execution_complete and execution_complete.is_set()):
             return False
 
         self._prompted_callbacks.add(callback_id)
 
-        # Check if execution already completed before prompting
-        if execution_complete and execution_complete.is_set():
+        click.echo(f"\n🔄 Execution is waiting for callback: {callback_id}")
+
+        # Only prompt when there is a terminal to answer it. Otherwise the prompt can block on
+        # reading stdin when SAM CLI exits, which aborts the interpreter.
+        if not (sys.stdin and sys.stdin.isatty()):
             return False
 
-        click.echo(f"\n🔄 Execution is waiting for callback: {callback_id}")
         click.echo("Choose an action:")
         click.echo("  1. Send callback success")
         click.echo("  2. Send callback failure")

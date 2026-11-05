@@ -14,6 +14,7 @@ from samcli.lib.utils.durable_formatters import (
     format_event_details,
     format_execution_history_table,
     format_execution_details_summary,
+    format_execution_started,
     format_next_commands_after_invoke,
     format_callback_success_message,
     format_callback_failure_message,
@@ -361,6 +362,21 @@ class TestFormatExecutionDetailsSummary(TestCase):
         execution_details = {"Status": status}
         result = format_execution_details_summary(execution_arn, execution_details)
         self.assertIn(expected_display, result)
+
+
+class TestFormatExecutionStarted(TestCase):
+    """Test cases for format_execution_started function"""
+
+    def test_format_execution_started(self):
+        """Test format_execution_started shows the ARN and nothing else"""
+        execution_arn = "test-arn"
+        result = format_execution_started(execution_arn)
+
+        self.assertIn("Durable execution started", result)
+        self.assertIn(f"ARN: {execution_arn}", result)
+        # Command suggestions belong to the completion output, where they really are the next step
+        self.assertNotIn("Commands you can use next", result)
+        self.assertNotIn("sam local execution", result)
 
 
 class TestFormatNextCommandsAfterInvoke(TestCase):

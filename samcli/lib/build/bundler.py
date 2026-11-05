@@ -5,10 +5,12 @@ Handles bundler properties as needed to modify the build process
 import logging
 from copy import deepcopy
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional, cast
 
 from samcli.lib.providers.provider import Stack
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
+from samcli.lib.providers.sam_web_function_provider import SamWebFunctionProvider
+from samcli.lib.utils.resources import AWS_SERVERLESS_WEBFUNCTION
 
 LOG = logging.getLogger(__name__)
 
@@ -30,7 +32,10 @@ class EsbuildBundlerManager:
         function_provider = SamFunctionProvider(
             [self._stack], use_raw_codeuri=True, ignore_code_extraction_warnings=True
         )
-        functions = list(function_provider.get_all())
+        web_function_provider = SamWebFunctionProvider(
+            [self._stack], use_raw_codeuri=True, ignore_code_extraction_warnings=True
+        )
+        functions: List = list(function_provider.get_all()) + list(web_function_provider.get_all())
         for function in functions:
             if function.metadata and function.metadata.get("BuildMethod", "") == ESBUILD_PROPERTY:
                 return True
@@ -40,6 +45,7 @@ class EsbuildBundlerManager:
         template = deepcopy(self._previous_template)
         template = self._set_sourcemap_env_from_metadata(template)
         template = self._update_function_handler(template)
+        template = self._update_web_function_entry_point(template)
         return template
 
     def set_sourcemap_metadata_from_env(self) -> Stack:
@@ -118,20 +124,14 @@ class EsbuildBundlerManager:
                     name,
                 )
 
-                template_resource.setdefault("Properties", {})
-                template_resource["Properties"].setdefault("Environment", {})
-                template_resource["Properties"]["Environment"].setdefault("Variables", {})
-                existing_options = template_resource["Properties"]["Environment"]["Variables"].setdefault(
-                    "NODE_OPTIONS", ""
-                )
+                variables = self._environment_variables(template_resource, stack_resource.get("Type"))
+                existing_options = variables.setdefault("NODE_OPTIONS", "")
 
                 # make sure the NODE_OPTIONS is a string
                 if not isinstance(existing_options, str):
                     invalid_node_option = True
                 else:
-                    template_resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"] = " ".join(
-                        [existing_options, "--enable-source-maps"]
-                    )
+                    variables["NODE_OPTIONS"] = " ".join([existing_options, "--enable-source-maps"])
 
                 using_source_maps = True
 
@@ -201,6 +201,29 @@ class EsbuildBundlerManager:
                 template_resource["Properties"]["Handler"] = resolved_handler
         return template
 
+    def _update_web_function_entry_point(self, template: Dict) -> Dict:
+        """Point a Web Function's EntryPoint at the bundled file, e.g. src/server.ts becomes server.js"""
+        for name, resource in self._stack.resources.items():
+            if resource.get("Type") != AWS_SERVERLESS_WEBFUNCTION:
+                continue
+            if not self._esbuild_in_metadata(resource.get("Metadata", {})):
+                continue
+            entry_point = resource.get("Properties", {}).get("EntryPoint")
+            if not isinstance(entry_point, str) or not self._should_update_handler(entry_point, name):
+                continue
+            resolved_entry_point = f"{Path(entry_point).stem}.js"
+            template_resource = template.get("Resources", {}).get(name, {})
+            template_resource.setdefault("Properties", {})["EntryPoint"] = resolved_entry_point
+        return template
+
+    @staticmethod
+    def _environment_variables(template_resource: Dict, resource_type: Optional[str]) -> Dict:
+        """Return the resource's environment variables map, creating it if needed"""
+        properties = template_resource.setdefault("Properties", {})
+        if resource_type == AWS_SERVERLESS_WEBFUNCTION:
+            return cast(Dict, properties.setdefault("EnvironmentVariables", {}))
+        return cast(Dict, properties.setdefault("Environment", {}).setdefault("Variables", {}))
+
     @staticmethod
     def _esbuild_in_metadata(metadata: Dict) -> bool:
         """
@@ -226,10 +249,14 @@ class EsbuildBundlerManager:
             True if --enable-source-maps is set, otherwise false
         """
         try:
-            node_options = resource["Properties"]["Environment"]["Variables"]["NODE_OPTIONS"]
+            properties = resource["Properties"]
+            if resource.get("Type") == AWS_SERVERLESS_WEBFUNCTION:
+                node_options = properties["EnvironmentVariables"]["NODE_OPTIONS"]
+            else:
+                node_options = properties["Environment"]["Variables"]["NODE_OPTIONS"]
 
             return "--enable-source-maps" in node_options.split()
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             return False
 
     @staticmethod

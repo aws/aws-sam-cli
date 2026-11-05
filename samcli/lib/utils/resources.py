@@ -9,9 +9,12 @@ from samcli.lib.utils.graphql_api import CODE_ARTIFACT_PROPERTY, SCHEMA_ARTIFACT
 # Lambda
 AWS_SERVERLESS_FUNCTION = "AWS::Serverless::Function"
 AWS_SERVERLESS_LAYERVERSION = "AWS::Serverless::LayerVersion"
+AWS_SERVERLESS_WEBFUNCTION = "AWS::Serverless::WebFunction"
+AWS_SERVERLESS_MICROVMIMAGE = "AWS::Serverless::MicrovmImage"
 
 AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
 AWS_LAMBDA_LAYERVERSION = "AWS::Lambda::LayerVersion"
+AWS_LAMBDA_MICROVMIMAGE = "AWS::Lambda::MicrovmImage"
 
 # APIGW
 AWS_SERVERLESS_API = "AWS::Serverless::Api"
@@ -66,6 +69,7 @@ METADATA_WITH_LOCAL_PATHS = {AWS_SERVERLESSREPO_APPLICATION: ["LicenseUrl", "Rea
 RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_GRAPHQLAPI: [SCHEMA_ARTIFACT_PROPERTY, CODE_ARTIFACT_PROPERTY],
     AWS_SERVERLESS_FUNCTION: ["CodeUri"],
+    AWS_SERVERLESS_WEBFUNCTION: ["CodeUri"],
     AWS_SERVERLESS_API: ["DefinitionUri"],
     AWS_SERVERLESS_HTTPAPI: ["DefinitionUri"],
     AWS_SERVERLESS_STATEMACHINE: ["DefinitionUri"],
@@ -91,6 +95,9 @@ RESOURCES_WITH_LOCAL_PATHS = {
     AWS_SERVERLESS_APPLICATION: ["Location"],
     AWS_LAMBDA_LAYERVERSION: ["Content"],
     AWS_SERVERLESS_LAYERVERSION: ["ContentUri"],
+    AWS_SERVERLESS_MICROVMIMAGE: ["CodeUri"],
+    # "CodeArtifact" covers the bare-string form CDK normalizes to; "CodeArtifact.Uri" the hand-written structure.
+    AWS_LAMBDA_MICROVMIMAGE: ["CodeArtifact", "CodeArtifact.Uri"],
     AWS_GLUE_JOB: ["Command.ScriptLocation"],
     AWS_STEPFUNCTIONS_STATEMACHINE: ["DefinitionS3Location"],
 }
@@ -106,11 +113,13 @@ NESTED_STACKS_RESOURCES = {
     AWS_CLOUDFORMATION_STACK: "TemplateURL",
 }
 
+# Resources zipped with the file permissions Lambda needs
 LAMBDA_LOCAL_RESOURCES = [
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_WEBFUNCTION,
 ]
 
 CODE_SYNCABLE_RESOURCES = [

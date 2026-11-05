@@ -125,7 +125,7 @@ class InvokeContext:
         log_file str
             Path to a file to send container output to. If the file does not exist, it will be created
         skip_pull_image bool
-            Should we skip pulling the Docker container image?
+            Should we skip pulling the container image?
         aws_profile str
             Name of the profile to fetch AWS credentials from
         debug_ports tuple(int)

@@ -14,7 +14,12 @@ from tests.testing_utils import (
     run_command,
     get_sam_command,
     get_build_command_list,
+    kill_process,
 )
+
+# The first durable invoke pulls the emulator image and builds the runtime image, which takes over
+# 30 seconds on the Windows runners
+CALLBACK_ID_TIMEOUT = 120
 
 
 class DurableIntegBase(TestCase):
@@ -72,15 +77,18 @@ class DurableIntegBase(TestCase):
             command.extend(["--error-data", kwargs["error_data"]])
         return command
 
-    def wait_for_callback_id(self, output_lines: List[str], timeout=30):
-        """Extract callback ID from output lines, waiting up to timeout seconds."""
+    def wait_for_callback_id(self, process: Popen, output_lines: List[str], timeout=CALLBACK_ID_TIMEOUT):
+        """Extract callback ID from output lines, waiting up to timeout seconds or until the process exits."""
         end_time = time.time() + timeout
         while time.time() < end_time:
+            exited = process.poll() is not None
             for line in output_lines:
                 if "Waiting for callback:" in line:
                     match = re.search(r"Waiting for callback: (.+)", line)
                     if match:
                         return match.group(1).strip()
+            if exited:
+                return None
             time.sleep(0.1)
         return None
 
@@ -129,6 +137,8 @@ class DurableIntegBase(TestCase):
         process = Popen(
             command_list, stdout=PIPE, stderr=STDOUT, stdin=PIPE, text=True, encoding="utf-8", env=env, cwd=cwd
         )
+        # Stop the command if the test fails before it exits, so that it does not run into the rerun
+        self.addCleanup(self._kill_if_running, process)
         output_lines = []
 
         def log_output():
@@ -140,21 +150,37 @@ class DurableIntegBase(TestCase):
 
         return process, output_lines, thread
 
+    @staticmethod
+    def _kill_if_running(process: Popen):
+        if process.poll() is None:
+            kill_process(process)
+
     def assert_invoke_output(
         self,
         stdout: str,
         input_data: Dict[str, Any] = {},
         execution_name: Optional[str] = None,
         expected_status: str = "SUCCEEDED",
+        stderr: Optional[str] = None,
     ) -> str:
         """Assert invoke output contains expected fields and return execution ARN."""
         stdout_str = stdout.strip()
 
         self.assertIn("Execution Summary:", stdout_str, f"Expected execution summary in output: {stdout_str}")
 
-        arn_match = re.search(r"ARN:\s+(\S+)", stdout_str)
-        self.assertIsNotNone(arn_match, f"Could not find ARN in output: {stdout_str}")
+        # The started banner prints the ARN too, so anchor the lookup to the summary rather than
+        # taking the first match in the output. Callers that merge stderr into stdout see both.
+        summary_start = stdout_str.index("Execution Summary:")
+        arn_match = re.search(r"ARN:\s+(\S+)", stdout_str[summary_start:])
+        self.assertIsNotNone(arn_match, f"Could not find ARN in execution summary: {stdout_str}")
         execution_arn = arn_match.group(1) if arn_match else ""
+
+        # The ARN is also announced when the execution starts, so that it can be inspected while it
+        # is still running. That banner is diagnostic output, so it goes to stderr; callers that
+        # merge the two streams pass the combined output as stdout and no stderr.
+        banner_output = stderr if stderr is not None else stdout_str[:summary_start]
+        self.assertIn("Durable execution started", banner_output, f"Expected started banner in output: {stdout_str}")
+        self.assertIn(execution_arn, banner_output, f"Expected ARN '{execution_arn}' in started banner: {stdout_str}")
 
         if execution_name:
             self.assertIn(

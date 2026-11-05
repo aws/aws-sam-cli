@@ -12,6 +12,7 @@ from typing import Dict, cast
 
 from samcli.lib.build.build_graph import (
     FunctionBuildDefinition,
+    MicrovmImageBuildDefinition,
     _function_build_definition_to_toml_table,
     _layer_build_definition_to_toml_table,
     CODE_URI_FIELD,
@@ -35,7 +36,7 @@ from samcli.lib.build.build_graph import (
     BuildHashingInformation,
     HANDLER_FIELD,
 )
-from samcli.lib.providers.provider import Function, LayerVersion, FunctionBuildInfo
+from samcli.lib.providers.provider import Function, LayerVersion, MicrovmImage, FunctionBuildInfo
 from samcli.lib.utils import osutils
 from samcli.lib.utils.packagetype import ZIP
 
@@ -260,6 +261,7 @@ class TestConversionFunctions(TestCase):
         self.assertEqual(build_definition.manifest_hash, "")
         self.assertEqual(build_definition.env_vars, {})
         self.assertEqual(build_definition.architecture, X86_64)
+        self.assertEqual(build_definition.resource_type, "AWS::Serverless::Function")
 
     def test_minimal_toml_table_to_layer_build_definition(self):
         toml_table = tomlkit.table()
@@ -853,6 +855,27 @@ class TestBuildDefinition(TestCase):
 
         self.assertNotEqual(build_definition1, build_definition2)
 
+    def test_lambda_and_web_function_should_not_reflect_as_same_object(self):
+        lambda_definition = FunctionBuildDefinition("runtime", "codeuri", None, ZIP, X86_64, {}, "index.js")
+        web_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", None, ZIP, X86_64, {}, "index.js", resource_type="AWS::Serverless::WebFunction"
+        )
+
+        self.assertNotEqual(lambda_definition, web_definition)
+
+    @parameterized.expand([("AWS::Serverless::Function", None), ("AWS::Serverless::WebFunction",) * 2])
+    def test_resource_type_round_trips_through_toml(self, resource_type, written_resource_type):
+        build_definition = FunctionBuildDefinition(
+            "runtime", "codeuri", None, ZIP, X86_64, {}, "index.js", resource_type=resource_type
+        )
+
+        toml_table = _function_build_definition_to_toml_table(build_definition)
+        read_definition = _toml_table_to_function_build_definition(build_definition.uuid, toml_table)
+
+        self.assertEqual(toml_table.get("resource_type"), written_resource_type)
+        self.assertEqual(read_definition.resource_type, resource_type)
+        self.assertEqual(read_definition, build_definition)
+
     def test_different_env_vars_should_not_reflect_as_same_object(self):
         build_definition1 = FunctionBuildDefinition(
             "runtime",
@@ -1031,3 +1054,52 @@ class TestBuildDefinition(TestCase):
         self.assertEqual(len(build_definitions), 2)
         self.assertEqual(len(build_definition1.functions), 1)
         self.assertEqual(len(build_definition2.functions), 1)
+
+
+class TestMicrovmImageBuildDefinition(TestCase):
+    def test_eq_same_full_path_and_code_uri(self):
+        d1 = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app", architecture="arm64")
+        d2 = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app", architecture="arm64")
+        self.assertEqual(d1, d2)
+
+    def test_eq_different_full_path(self):
+        d1 = MicrovmImageBuildDefinition(full_path="AgentA", code_uri="./app", architecture="arm64")
+        d2 = MicrovmImageBuildDefinition(full_path="AgentB", code_uri="./app", architecture="arm64")
+        self.assertNotEqual(d1, d2)
+
+    def test_eq_different_code_uri(self):
+        d1 = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app1", architecture="arm64")
+        d2 = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app2", architecture="arm64")
+        self.assertNotEqual(d1, d2)
+
+    def test_get_resource_full_paths_with_image(self):
+        d = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app", architecture="arm64")
+        img = MicrovmImage(name="MyAgent", code_uri="./app", architecture="arm64")
+        d.add_microvm_image(img)
+        self.assertEqual(d.get_resource_full_paths(), "MyAgent")
+
+    def test_microvm_image_not_persisted_to_build_toml(self):
+        """MicrovmImage build definitions are not serialized to build.toml (Docker has its own cache)."""
+        with osutils.mkdir_temp() as temp_base_dir:
+            build_dir = Path(temp_base_dir, ".aws-sam", "build")
+            build_dir.mkdir(parents=True)
+
+            build_graph = BuildGraph(str(build_dir))
+
+            # Add a MicrovmImage definition
+            microvm_def = MicrovmImageBuildDefinition(full_path="MyAgent", code_uri="./app", architecture="arm64")
+            img = MicrovmImage(name="MyAgent", code_uri="./app", architecture="arm64")
+            build_graph.put_microvm_image_build_definition(microvm_def, img)
+
+            # Write to build.toml
+            build_graph.clean_redundant_definitions_and_update(True)
+
+            # Read build.toml content — should not contain MicrovmImage
+            build_toml_path = Path(build_dir.parent, "build.toml")
+            toml_content = build_toml_path.read_text() if build_toml_path.exists() else ""
+            self.assertNotIn("MyAgent", toml_content)
+            self.assertNotIn("microvm", toml_content.lower())
+
+            # Re-read build graph — should have no MicrovmImage definitions
+            build_graph_reloaded = BuildGraph(str(build_dir))
+            self.assertEqual(len(build_graph_reloaded.get_microvm_image_build_definitions()), 0)

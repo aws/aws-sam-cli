@@ -38,6 +38,8 @@ from samcli.lib.package.artifact_exporter import (
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.packageable_resources import (
+    LambdaMicrovmImageResource,
+    ServerlessMicrovmImageResource,
     GraphQLApiCodeResource,
     GraphQLApiSchemaResource,
     is_s3_protocol_url,
@@ -49,6 +51,7 @@ from samcli.lib.package.packageable_resources import (
     ResourceWithS3UrlDict,
     ServerlessApiResource,
     ServerlessFunctionResource,
+    ServerlessWebFunctionResource,
     GraphQLSchemaResource,
     LambdaFunctionResource,
     ApiGatewayRestApiResource,
@@ -82,7 +85,13 @@ from samcli.lib.package.permissions import (
     AdditiveDirPermissionPermissionMapper,
 )
 from samcli.lib.package.uploaders import Destination
-from samcli.lib.package.utils import zip_folder, make_zip, make_zip_with_lambda_permissions, make_zip_with_permissions
+from samcli.lib.package.utils import (
+    zip_folder,
+    make_zip,
+    make_zip_with_lambda_permissions,
+    make_zip_with_permissions,
+    upload_cache_key,
+)
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.resources import LAMBDA_LOCAL_RESOURCES, RESOURCES_WITH_LOCAL_PATHS
 from samcli.yamlhelper import yaml_dump
@@ -125,6 +134,7 @@ class TestArtifactExporter(unittest.TestCase):
 
         setup = [
             {"class": ServerlessFunctionResource, "expected_result": uploaded_s3_url},
+            {"class": ServerlessWebFunctionResource, "expected_result": uploaded_s3_url},
             {"class": ServerlessApiResource, "expected_result": uploaded_s3_url},
             {"class": GraphQLSchemaResource, "expected_result": uploaded_s3_url},
             {"class": AppSyncResolverCodeResource, "expected_result": uploaded_s3_url},
@@ -380,8 +390,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir,
                 self.s3_uploader_mock,
                 previously_uploaded={
-                    absolute_artifact_path: expected_s3_url,
-                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -437,8 +448,9 @@ class TestArtifactExporter(unittest.TestCase):
                 parent_dir,
                 self.s3_uploader_mock,
                 previously_uploaded={
-                    artifact_path: expected_s3_url,
-                    artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -492,10 +504,11 @@ class TestArtifactExporter(unittest.TestCase):
                 resource_dict,
                 property_name,
                 parent_dir,
-                Mock(),
+                self.s3_uploader_mock,
                 previously_uploaded={
-                    absolute_artifact_path: expected_s3_url,
-                    absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                    upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                    + "wrong url",
                 },
             )
             self.assertEqual(result, expected_s3_url)
@@ -556,10 +569,11 @@ class TestArtifactExporter(unittest.TestCase):
                     resource_dict,
                     property_name,
                     parent_dir,
-                    Mock(),
+                    self.s3_uploader_mock,
                     previously_uploaded={
-                        absolute_artifact_path: expected_s3_url,
-                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                        + "wrong url",
                     },
                 )
                 self.assertEqual(result, expected_s3_url)
@@ -620,10 +634,11 @@ class TestArtifactExporter(unittest.TestCase):
                     resource_dict,
                     property_name,
                     parent_dir,
-                    Mock(),
+                    self.s3_uploader_mock,
                     previously_uploaded={
-                        absolute_artifact_path: expected_s3_url,
-                        absolute_artifact_path + "wrong path": expected_s3_url + "wrong url",
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path): expected_s3_url,
+                        upload_cache_key(self.s3_uploader_mock, absolute_artifact_path + "wrong path"): expected_s3_url
+                        + "wrong url",
                     },
                 )
                 self.assertEqual(result, expected_s3_url)
@@ -668,7 +683,10 @@ class TestArtifactExporter(unittest.TestCase):
             property_name,
             parent_dir,
             self.s3_uploader_mock,
-            previously_uploaded={parent_dir: expected_s3_url, parent_dir + "wrong path": expected_s3_url + "wrong url"},
+            previously_uploaded={
+                upload_cache_key(self.s3_uploader_mock, parent_dir): expected_s3_url,
+                upload_cache_key(self.s3_uploader_mock, parent_dir + "wrong path"): expected_s3_url + "wrong url",
+            },
         )
         self.assertEqual(result, expected_s3_url)
 
@@ -3317,3 +3335,50 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
             stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
 
         mock_pre_pass.assert_not_called()
+
+
+class TestMicrovmImageResourcePlaceholder(unittest.TestCase):
+    """Until sam package supports MicrovmImage, a local code path fails instead of being left in place."""
+
+    def setUp(self):
+        self.uploaders = Mock()
+
+    def _export(self, exporter_class, property_value):
+        resource_dict = {exporter_class.PROPERTY_NAME: copy.deepcopy(property_value)}
+        exporter_class(self.uploaders, None).export("MyImage", resource_dict, "/proj")
+        return resource_dict
+
+    def test_local_code_uri_fails(self):
+        with self.assertRaisesRegex(ExportFailedError, "does not support local code for AWS::Serverless::Microvm"):
+            self._export(ServerlessMicrovmImageResource, "./app")
+
+    def test_local_code_artifact_string_and_uri_fail(self):
+        for value in ("./app", {"Uri": "./app"}):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ExportFailedError, "set CodeArtifact to its S3 URI"):
+                    self._export(LambdaMicrovmImageResource, value)
+
+    def test_s3_and_intrinsic_values_are_unchanged(self):
+        cases = [
+            (ServerlessMicrovmImageResource, "s3://bucket/app.zip"),
+            (ServerlessMicrovmImageResource, {"Ref": "Src"}),
+            (LambdaMicrovmImageResource, {"Uri": "s3://bucket/app.zip"}),
+            (LambdaMicrovmImageResource, {"Uri": {"Ref": "Src"}}),
+        ]
+        for exporter_class, value in cases:
+            with self.subTest(exporter=exporter_class.__name__, value=value):
+                resource_dict = self._export(exporter_class, value)
+                self.assertEqual(resource_dict[exporter_class.PROPERTY_NAME], value)
+        self.uploaders.get.assert_not_called()
+
+    def test_template_export_fails_for_local_microvm_image(self):
+        template_dict = {
+            "Resources": {
+                "MyImage": {"Type": "AWS::Serverless::MicrovmImage", "Properties": {"CodeUri": "./app"}},
+            }
+        }
+        template = Template(
+            "template.yaml", os.getcwd(), self.uploaders, Mock(), template_dict=copy.deepcopy(template_dict)
+        )
+        with self.assertRaisesRegex(ExportFailedError, "does not support local code"):
+            template.export()

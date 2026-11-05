@@ -51,7 +51,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
 
         # Wait for callback ID
         LOG.info("Waiting for callback ID from streaming output...")
-        callback_id = self.wait_for_callback_id(output_lines)
+        callback_id = self.wait_for_callback_id(process, output_lines)
         LOG.info("Callback ID result: %s, output_lines collected: %d", callback_id, len(output_lines))
         if not callback_id:
             LOG.error("Failed to get callback ID. Output lines so far: %s", output_lines)
@@ -84,6 +84,7 @@ class TestLocalCallback(DurableIntegBase, InvokeIntegBase):
         if process.stdout:
             process.stdout.close()
         LOG.info("Invoke process completed with returncode=%d", process.returncode)
+        self.assertEqual(process.returncode, 0, f"Invoke failed: {''.join(output_lines)}")
 
         # Try to send another callback (should fail)
         second_command = self.get_callback_command_list(action, callback_id)

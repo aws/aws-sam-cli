@@ -20,9 +20,9 @@ from samcli.local.docker.utils import to_posix_path
 class TestDurableFunctionsEmulatorContainer(TestCase):
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_docker_client = Mock()
+        self.mock_container_client = Mock()
         self.mock_container = Mock()
-        self.mock_docker_client.containers.create.return_value = self.mock_container
+        self.mock_container_client.containers.create.return_value = self.mock_container
 
         self.env_patcher = patch.dict("os.environ", {}, clear=True)
         self.env_patcher.start()
@@ -34,7 +34,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
     def _create_container(self, existing_container=None):
         """Helper to create container with optional existing container"""
         return DurableFunctionsEmulatorContainer(
-            container_client=self.mock_docker_client,
+            container_client=self.mock_container_client,
             existing_container=existing_container,
         )
 
@@ -82,20 +82,20 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         self.assertEqual(container.container, mock_existing)
 
     @patch("samcli.local.docker.durable_functions_emulator_container.get_validated_container_client")
-    def test_docker_client_lazy_loading(self, mock_get_validated_client):
-        """Test that docker client is lazily loaded and cached"""
+    def test_container_client_lazy_loading(self, mock_get_validated_client):
+        """Test that the container client is lazily loaded and cached"""
         mock_validated_client = Mock()
         mock_get_validated_client.return_value = mock_validated_client
 
         container = DurableFunctionsEmulatorContainer()
         mock_get_validated_client.assert_not_called()
 
-        client = container._docker_client
+        client = container._container_client
         mock_get_validated_client.assert_called_once()
         self.assertEqual(client, mock_validated_client)
 
         # Subsequent access uses cached client
-        client2 = container._docker_client
+        client2 = container._container_client
         mock_get_validated_client.assert_called_once()
 
     @parameterized.expand(
@@ -116,10 +116,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container.start()
 
             if should_create:
-                self.mock_docker_client.containers.create.assert_called_once()
+                self.mock_container_client.containers.create.assert_called_once()
                 self.assertEqual(container.container, self.mock_container)
             else:
-                self.mock_docker_client.containers.create.assert_not_called()
+                self.mock_container_client.containers.create.assert_not_called()
                 self.assertIsNone(container.container)
 
             if should_start:
@@ -214,9 +214,9 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             if container_exists:
                 mock_existing = Mock()
                 mock_existing.status = "running" if container_running else "exited"
-                self.mock_docker_client.containers.get.return_value = mock_existing
+                self.mock_container_client.containers.get.return_value = mock_existing
             else:
-                self.mock_docker_client.containers.get.side_effect = Exception("Not found")
+                self.mock_container_client.containers.get.side_effect = Exception("Not found")
 
             container.start = Mock()
             result = container.start_or_attach()
@@ -345,7 +345,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         # Mock image already exists
         mock_image = Mock()
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
 
         with patch.dict("os.environ", env_vars, clear=True):
             container = self._create_container()
@@ -354,8 +354,8 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container.start()
 
             # Verify container was created
-            self.mock_docker_client.containers.create.assert_called_once()
-            call_args = self.mock_docker_client.containers.create.call_args
+            self.mock_container_client.containers.create.assert_called_once()
+            call_args = self.mock_container_client.containers.create.call_args
 
             self.assertEqual(call_args.kwargs["working_dir"], "/tmp/.durable-executions-local")
 
@@ -399,23 +399,23 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         if image_exists:
             mock_image = Mock()
-            self.mock_docker_client.images.get.return_value = mock_image
+            self.mock_container_client.images.get.return_value = mock_image
             mock_is_current.return_value = is_current
         else:
-            self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
+            self.mock_container_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
 
         container._pull_image_if_needed()
 
         if should_pull:
-            self.mock_docker_client.images.pull.assert_called_once()
+            self.mock_container_client.pull_image_and_wait.assert_called_once()
         else:
-            self.mock_docker_client.images.pull.assert_not_called()
+            self.mock_container_client.pull_image_and_wait.assert_not_called()
 
     def test_image_pull_failure_raises_click_exception(self):
         """Test that image pull failures raise ClickException"""
         container = self._create_container()
-        self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
-        self.mock_docker_client.images.pull.side_effect = Exception("Network error")
+        self.mock_container_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
+        self.mock_container_client.pull_image_and_wait.side_effect = Exception("Network error")
 
         with self.assertRaises(ClickException) as context:
             container._pull_image_if_needed()
@@ -426,9 +426,9 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         """Test that image pull failure with existing local image logs debug message before raising exception"""
         container = self._create_container()
         mock_image = Mock()
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
         mock_is_current.return_value = False
-        self.mock_docker_client.images.pull.side_effect = Exception("Network timeout")
+        self.mock_container_client.pull_image_and_wait.side_effect = Exception("Network timeout")
 
         with (self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log,):
             container._pull_image_if_needed()
@@ -655,7 +655,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         mock_existing = Mock()
         mock_existing.status = "exited"
-        self.mock_docker_client.containers.get.return_value = mock_existing
+        self.mock_container_client.containers.get.return_value = mock_existing
 
         container.start = Mock()
         result = container.start_or_attach()
@@ -673,7 +673,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         mock_existing = Mock()
         mock_existing.status = "exited"
         mock_existing.stop.side_effect = Exception("Stop failed")
-        self.mock_docker_client.containers.get.return_value = mock_existing
+        self.mock_container_client.containers.get.return_value = mock_existing
 
         container.start = Mock()
         result = container.start_or_attach()
@@ -712,10 +712,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         container._skip_pull_image = True
         mock_image = Mock()
         mock_is_current.return_value = False
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
 
         with self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log:
             container._pull_image_if_needed()
 
         self.assertTrue(any("Skipping pulling new emulator image" in msg for msg in log.output))
-        self.mock_docker_client.images.pull.assert_not_called()
+        self.mock_container_client.pull_image_and_wait.assert_not_called()

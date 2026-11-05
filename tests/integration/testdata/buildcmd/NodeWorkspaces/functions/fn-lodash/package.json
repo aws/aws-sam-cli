@@ -1,0 +1,9 @@
+{
+  "name": "@mono/fn-lodash",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@mono/shared": "^1.0.0",
+    "lodash": "^4.17.20"
+  }
+}

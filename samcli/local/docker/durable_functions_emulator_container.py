@@ -11,10 +11,11 @@ from typing import Optional
 
 import docker
 import requests
-from click import ClickException
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
+from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.utils import (
     get_validated_container_client,
     is_image_current,
@@ -81,8 +82,8 @@ class DurableFunctionsEmulatorContainer:
     ENV_EMULATOR_IMAGE_TAG = "DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG"
 
     def __init__(self, container_client=None, existing_container=None, skip_pull_image=False):
-        self._docker_client_param = container_client
-        self._validated_docker_client: Optional[docker.DockerClient] = None
+        self._container_client_param = container_client
+        self._validated_container_client: Optional[ContainerClient] = None
         self.container = existing_container
         self.lambda_client: Optional[DurableFunctionsClient] = None
         self._skip_pull_image = skip_pull_image
@@ -186,14 +187,15 @@ class DurableFunctionsEmulatorContainer:
         }
 
     @property
-    def _docker_client(self) -> docker.DockerClient:
+    def _container_client(self) -> ContainerClient:
         """
-        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        Lazy initialization of the container client (Docker or Finch).
+        Only validates the container runtime when actually accessed.
         This prevents unnecessary container runtime validation for builds that don't require containers.
         """
-        if self._validated_docker_client is None:
-            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
-        return self._validated_docker_client
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or get_validated_container_client()
+        return self._validated_container_client
 
     def _get_emulator_binary_name(self):
         """Get the emulator binary name based on current architecture."""
@@ -204,10 +206,10 @@ class DurableFunctionsEmulatorContainer:
         local_image_exists = False
         """Pull the emulator image if it doesn't exist locally or is out of date."""
         try:
-            self._docker_client.images.get(self._get_emulator_image())
+            self._container_client.images.get(self._get_emulator_image())
             local_image_exists = True
             LOG.debug(f"Emulator image {self._get_emulator_image()} exists locally")
-            if is_image_current(self._docker_client, self._get_emulator_image()):
+            if is_image_current(self._container_client, self._get_emulator_image()):
                 LOG.debug("Local emulator image is up-to-date")
                 return
 
@@ -219,7 +221,7 @@ class DurableFunctionsEmulatorContainer:
             if self._skip_pull_image and local_image_exists:
                 LOG.debug("Skipping pulling new emulator image")
                 return
-            self._docker_client.images.pull(self._get_emulator_image())
+            self._container_client.pull_image_and_wait(self._get_emulator_image())
             LOG.info(f"Successfully pulled image {self._get_emulator_image()}")
         except Exception as e:
             if local_image_exists:
@@ -228,7 +230,10 @@ class DurableFunctionsEmulatorContainer:
                     f"{self._get_emulator_image()}: {e}"
                 )
             else:
-                raise ClickException(f"Failed to pull emulator image {self._get_emulator_image()}: {e}")
+                raise UserException(
+                    f"Failed to pull emulator image {self._get_emulator_image()}: {e}",
+                    wrapped_from=e.__class__.__name__,
+                ) from e
 
     def start(self):
         """Start the emulator container."""
@@ -252,7 +257,7 @@ class DurableFunctionsEmulatorContainer:
         self._pull_image_if_needed()
 
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
-        self.container = self._docker_client.containers.create(
+        self.container = self._container_client.containers.create(
             image=self._get_emulator_image(),
             command=[
                 "dex-local-runner",
@@ -304,7 +309,7 @@ class DurableFunctionsEmulatorContainer:
         try:
             # Try to find existing container
             LOG.debug(f"Looking for existing container: {self._container_name}")
-            existing_container = self._docker_client.containers.get(self._container_name)
+            existing_container = self._container_client.containers.get(self._container_name)
             LOG.debug(f"Found existing container {self._container_name} with status: {existing_container.status}")
 
             if existing_container.status == "running":

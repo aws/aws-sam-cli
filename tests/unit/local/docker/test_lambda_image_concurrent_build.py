@@ -204,7 +204,7 @@ class TestLambdaImageConcurrentBuild(TestCase):
 
             with patch("samcli.local.docker.lambda_image.LambdaImage._build_image"):
                 with patch(
-                    "samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version",
+                    "samcli.local.docker.lambda_image.LambdaImage._generate_image_version",
                     return_value="test-version",
                 ):
                     lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
@@ -284,7 +284,7 @@ class TestLambdaImageConcurrentBuild(TestCase):
 
         with patch("samcli.local.docker.lambda_image.LambdaImage._build_image"):
             with patch(
-                "samcli.local.docker.lambda_image.LambdaImage._generate_docker_image_version",
+                "samcli.local.docker.lambda_image.LambdaImage._generate_image_version",
                 return_value="test-version",
             ):
                 with patch(

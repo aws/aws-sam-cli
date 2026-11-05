@@ -1,3 +1,4 @@
+import json
 import os
 import pathlib
 import shutil
@@ -53,6 +54,40 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
             )
         self.assertEqual(os.listdir(self.directory), [self.artifact_name])
+
+    def test_script_output_path_directory_args_file(self):
+        # Verifies the producer/consumer contract for --args-file end-to-end: a valid args file
+        # actually supplies `expression` (and, if present, `target`) to the script, so a key
+        # rename or a precedence regression in file_args.get(...) would be caught here rather
+        # than only being exercised by the makefile_generator unit tests on the producer side.
+        # target is intentionally omitted from the args file: a non-empty target together with
+        # --json trips the existing "Provide either --target or --json" check.
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".args.json", delete=False) as args_file:
+            json.dump({"expression": self.expression}, args_file)
+            args_file_path = args_file.name
+        try:
+            with open(self.input_file, "rb") as f:
+                json_str = f.read().decode("utf-8")
+                command = [
+                    f"{str(sys.executable)}",
+                    f"{str(self.script_location)}",
+                    "--directory",
+                    str(self.directory),
+                    "--args-file",
+                    args_file_path,
+                    "--json",
+                    json_str,
+                ]
+                subprocess.check_call(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    cwd=self.working_dir,
+                )
+            self.assertEqual(os.listdir(self.directory), [self.artifact_name])
+        finally:
+            os.remove(args_file_path)
 
     def test_script_output_path_zip(self):
         input_zip_file = self.testdata_directory.joinpath("build-output-path-zip.json")
@@ -113,6 +148,58 @@ class TestCopyTerraformBuiltArtifacts(TestCase):
             subprocess.check_call(
                 command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
             )
+
+    def test_script_output_path_directory_missing_args_file(self):
+        with open(self.input_file, "rb") as f:
+            json_str = f.read().decode("utf-8")
+            command = [
+                f"{str(sys.executable)}",
+                f"{str(self.script_location)}",
+                "--directory",
+                str(self.directory),
+                "--args-file",
+                str(self.testdata_directory.joinpath("does-not-exist.args.json")),
+                "--json",
+                json_str,
+            ]
+            result = subprocess.run(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=subprocess.PIPE, cwd=self.working_dir
+            )
+        # a missing/unreadable args file should be caught and reported with a clear message and
+        # a clean non-zero exit code (matching this script's existing error-handling convention
+        # for OSError-derived failures, e.g. create_backend_override), rather than propagating as
+        # an *uncaught* exception that aborts the process with an unhandled stack trace.
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b"Reading args file", result.stderr)
+
+    def test_script_output_path_directory_malformed_args_file(self):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".args.json", delete=False) as bad_args_file:
+            bad_args_file.write("not valid json")
+            bad_args_file_path = bad_args_file.name
+        try:
+            with open(self.input_file, "rb") as f:
+                json_str = f.read().decode("utf-8")
+                command = [
+                    f"{str(sys.executable)}",
+                    f"{str(self.script_location)}",
+                    "--directory",
+                    str(self.directory),
+                    "--args-file",
+                    bad_args_file_path,
+                    "--json",
+                    json_str,
+                ]
+                result = subprocess.run(
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    cwd=self.working_dir,
+                )
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"Reading args file", result.stderr)
+        finally:
+            os.remove(bad_args_file_path)
 
     def test_script_output_path_directory_valid_expression_invalid_extracted_path(self):
         expression = (

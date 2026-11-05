@@ -22,7 +22,7 @@ from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
 from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
-from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import ContainerCreationFailedException, ContainerFailureError
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 from samcli.local.lambdafn.zip import unzip
@@ -162,7 +162,7 @@ class LambdaRuntime:
             self._container_manager.create(container, ContainerContext.INVOKE)
             return container
 
-        except DockerContainerCreationFailedException:
+        except ContainerCreationFailedException:
             LOG.warning("Failed to create container for function %s", function_config.full_path)
             raise
 

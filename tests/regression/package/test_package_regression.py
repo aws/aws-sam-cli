@@ -1,20 +1,15 @@
-from unittest import skipIf
-
 import pytest
 from parameterized import parameterized
 
 from tests.regression.package.regression_package_base import PackageRegressionBase
-from tests.testing_utils import RUNNING_ON_CI, RUNNING_TEST_FOR_MASTER_ON_CI, RUN_BY_CANARY
 
-# Package Regression tests require credentials and CI/CD will only add credentials to the env if the PR is from the same repo.
-# This is to restrict package tests to run outside of CI/CD, when the branch is not master and tests are not run by Canary.
-SKIP_PACKAGE_REGRESSION_TESTS = RUNNING_ON_CI and RUNNING_TEST_FOR_MASTER_ON_CI and not RUN_BY_CANARY
+# These tests require AWS credentials; they are gated by the requires_credential marker.
 
 
 # Only tested cases where the output template file changes, adding metadata or kms keys does not change the output.
 
 
-@skipIf(SKIP_PACKAGE_REGRESSION_TESTS, "Skip package regression tests in CI/CD only")
+@pytest.mark.requires_credential
 class TestPackageRegression(PackageRegressionBase):
     def setUp(self):
         super().setUp()

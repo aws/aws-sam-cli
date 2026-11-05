@@ -6,7 +6,7 @@ import logging
 import os
 import shutil
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Type, Union, cast
+from typing import Any, Callable, Dict, List, Optional, Type, Union, cast
 
 import jmespath
 from botocore.utils import set_value_from_jmespath
@@ -41,12 +41,15 @@ from samcli.lib.utils.resources import (
     AWS_GLUE_JOB,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_STATEMACHINE,
+    AWS_SERVERLESS_WEBFUNCTION,
     AWS_SERVERLESSREPO_APPLICATION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
     METADATA_WITH_LOCAL_PATHS,
@@ -398,6 +401,42 @@ class ServerlessFunctionResource(ResourceZip):
     FORCE_ZIP = True
 
 
+class ServerlessWebFunctionResource(ResourceZip):
+    RESOURCE_TYPE = AWS_SERVERLESS_WEBFUNCTION
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
+    FORCE_ZIP = True
+    EXPORT_DESTINATION = Destination.WEB_FUNCTION_S3
+
+    def do_export(
+        self,
+        resource_id,
+        resource_dict,
+        parent_dir,
+        property_path: Optional[str] = None,
+        local_path: Optional[str] = None,
+    ):
+        property_path = property_path or self.PROPERTY_NAME
+        original_value = jmespath.search(property_path, resource_dict)
+        super().do_export(resource_id, resource_dict, parent_dir, property_path, local_path)
+        if isinstance(original_value, str) and is_s3_protocol_url(original_value):
+            # Code already in S3 keeps its location
+            return
+        export_name = getattr(self.uploaders, "web_function_bucket_export", None)
+        uploaded_url = jmespath.search(property_path, resource_dict)
+        if not isinstance(export_name, str) or not export_name or not isinstance(uploaded_url, str):
+            return
+        # Importing the bucket name stops CloudFormation deleting the code bucket stack while this stack uses it
+        location = parse_s3_url(uploaded_url, version_property="Version")
+        code_uri: Dict[str, Any] = {"Bucket": {"Fn::ImportValue": export_name}, "Key": location["Key"]}
+        if location.get("Version"):
+            code_uri["Version"] = location["Version"]
+        set_value_from_jmespath(resource_dict, property_path, code_uri)
+
+    def delete(self, resource_id, resource_dict):
+        # Revisions keep reading this code; sam delete removes the code bucket after the stack
+        pass
+
+
 class ServerlessFunctionImageResource(ResourceImage):
     RESOURCE_TYPE = AWS_SERVERLESS_FUNCTION
     PROPERTY_NAME = RESOURCES_WITH_IMAGE_COMPONENT[RESOURCE_TYPE][0]
@@ -689,9 +728,55 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+class MicrovmImageResource(Resource):
+    """
+    Placeholder until sam package can upload MicrovmImage code.
+
+    MicrovmImage types are in RESOURCES_WITH_LOCAL_PATHS so that sam build rebases their source path, but
+    without an exporter sam package would report success and leave a local path in the packaged template.
+    Fail for a local path instead. S3 URIs and unresolved intrinsics are left unchanged.
+    """
+
+    EXPORT_DESTINATION = Destination.S3
+    ARTIFACT_TYPE = ZIP
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
+        if resource_dict is None or resource_not_packageable(resource_dict):
+            return
+
+        property_value = resource_dict.get(self.PROPERTY_NAME)
+        if isinstance(property_value, dict):
+            # AWS::Lambda::MicrovmImage CodeArtifact: {Uri: ...}
+            property_value = property_value.get("Uri")
+        if not isinstance(property_value, str) or not property_value or is_s3_protocol_url(property_value):
+            return
+
+        raise exceptions.ExportFailedError(
+            resource_id=resource_id,
+            property_name=self.PROPERTY_NAME,
+            property_value=property_value,
+            ex=f"sam package does not support local code for {self.RESOURCE_TYPE} yet. Upload the source "
+            f"directory as a zip to S3 and set {self.PROPERTY_NAME} to its S3 URI.",
+        )
+
+    def get_property_value(self, resource_dict: Optional[Dict]) -> Dict[str, Optional[str]]:
+        return {"Bucket": None, "Key": None}
+
+
+class ServerlessMicrovmImageResource(MicrovmImageResource):
+    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
+
+
+class LambdaMicrovmImageResource(MicrovmImageResource):
+    RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
+    ServerlessWebFunctionResource,
     ServerlessApiResource,
     ServerlessHttpApiResource,
     ServerlessStateMachineResource,
@@ -716,6 +801,8 @@ RESOURCES_EXPORT_LIST = [
     ECRResource,
     GraphQLApiSchemaResource,
     GraphQLApiCodeResource,
+    ServerlessMicrovmImageResource,
+    LambdaMicrovmImageResource,
 ]
 
 

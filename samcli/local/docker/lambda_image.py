@@ -154,8 +154,8 @@ class LambdaImage:
 
         # Store docker_client parameter for lazy initialization
         # Only validate container runtime when Docker client is actually accessed
-        self._docker_client_param = docker_client
-        self._validated_docker_client = None
+        self._container_client_param = docker_client
+        self._validated_container_client = None
         self.invoke_images = invoke_images
 
         # Clean up old lock files on initialization
@@ -167,9 +167,9 @@ class LambdaImage:
         Lazy initialization of Docker client. Only validates container runtime when actually accessed.
         This prevents unnecessary container runtime validation during object creation.
         """
-        if self._validated_docker_client is None:
-            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
-        return self._validated_docker_client
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or get_validated_container_client()
+        return self._validated_container_client
 
     def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
         """
@@ -237,8 +237,8 @@ class LambdaImage:
         if layers and packagetype == ZIP:
             downloaded_layers = self.layer_downloader.download_all(layers, self.force_image_build)
 
-            docker_image_version = self._generate_docker_image_version(downloaded_layers, runtime_image_tag)
-            rapid_image = f"{self._SAM_CLI_REPO_NAME}-{docker_image_version}"
+            image_version = self._generate_image_version(downloaded_layers, runtime_image_tag)
+            rapid_image = f"{self._SAM_CLI_REPO_NAME}-{image_version}"
 
         image_not_found = False
 
@@ -350,9 +350,9 @@ class LambdaImage:
             return config
 
     @staticmethod
-    def _generate_docker_image_version(layers, runtime_image_tag):
+    def _generate_image_version(layers, runtime_image_tag):
         """
-        Generate the Docker TAG that will be used to create the image
+        Generate the image tag that will be used to create the image
 
         Parameters
         ----------
@@ -452,7 +452,7 @@ class LambdaImage:
                             if "error" in log:
                                 error_msg = log["error"]
                                 error_details.append(error_msg)
-                                LOG.error(f"Docker build error: {error_msg}")
+                                LOG.error(f"Container image build error: {error_msg}")
 
                                 # Check for Finch "already exists" pattern immediately
                                 if "already exists" in error_msg.lower() and "image" in error_msg.lower():
@@ -487,11 +487,11 @@ class LambdaImage:
                     # If we have errors that aren't Finch "already exists", raise an exception
                     elif error_details:
                         full_error = "; ".join(error_details)
-                        LOG.error(f"Docker build failed with errors: {full_error}")
-                        raise ImageBuildException(f"Error building docker image: {full_error}")
+                        LOG.error(f"Container image build failed with errors: {full_error}")
+                        raise ImageBuildException(f"Error building container image: {full_error}")
                 except (docker.errors.BuildError, docker.errors.APIError) as ex:
                     stream_writer.write_str(os.linesep)
-                    LOG.exception("Failed to build Docker Image")
+                    LOG.exception("Failed to build container image")
                     raise ImageBuildException("Building Image failed.") from ex
         finally:
             if full_dockerfile_path.exists():

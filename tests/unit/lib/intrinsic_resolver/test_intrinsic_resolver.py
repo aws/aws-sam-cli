@@ -479,6 +479,22 @@ class TestIntrinsicFnSubResolver(TestCase):
             symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template),
         )
 
+    @parameterized.expand([r"C:\project\data", r"\1", r"line\nnext", r"prefix\\suffix"])
+    def test_fn_sub_preserves_backslashes_in_parameter_values(self, value):
+        template = {"Parameters": {"Value": {"Type": "String", "Default": value}}}
+        resolver = IntrinsicResolver(template=template, symbol_resolver=IntrinsicsSymbolTable(template=template))
+
+        result = resolver.intrinsic_property_resolver({"Fn::Sub": "prefix:${Value}:suffix"}, False)
+
+        self.assertEqual(result, "prefix:" + value + ":suffix")
+
+    def test_fn_sub_preserves_backslashes_in_variable_map(self):
+        result = self.resolver.intrinsic_property_resolver(
+            {"Fn::Sub": ["${Path}/${AWS::Region}", {"Path": r"C:\project\data"}]}, False
+        )
+
+        self.assertEqual(result, r"C:\project\data/us-east-1")
+
     def test_fn_sub_basic_uri(self):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"

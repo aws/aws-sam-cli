@@ -130,7 +130,7 @@ class TestBuildUtils(TestCase):
             metadata=metadata1,
         )
 
-        metadata2 = {"BuildMethod": "dotnet7"}
+        metadata2 = {"BuildMethod": "dotnet"}
 
         function = Function(
             stack_path="somepath",

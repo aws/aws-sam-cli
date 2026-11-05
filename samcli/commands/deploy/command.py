@@ -388,6 +388,10 @@ def do_cli(
                 parameter_overrides=context_param_overrides,
                 language_extensions=language_extensions,
                 output=output,
+                # Web Function code goes to the stack's code bucket; guided mode uses the prompted stack name
+                web_function_stack_name=(
+                    guided_context.guided_stack_name if guided else (stack_name if resolve_s3 else None)
+                ),
             ) as package_context:
                 package_context.run()
 

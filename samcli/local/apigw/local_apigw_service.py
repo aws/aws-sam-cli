@@ -32,7 +32,7 @@ from samcli.local.apigw.exceptions import (
 from samcli.local.apigw.path_converter import PathConverter
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.service_error_responses import ServiceErrorResponses
-from samcli.local.docker.exceptions import DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import ContainerCreationFailedException, ContainerImagePullFailedException
 from samcli.local.events.api_event import (
     ContextHTTP,
     ContextIdentity,
@@ -751,8 +751,8 @@ class LocalApigwService(BaseLocalService):
             )
         except LambdaResponseParseException:
             endpoint_service_error = ServiceErrorResponses.lambda_body_failure_response()
-        except DockerContainerCreationFailedException as ex:
-            endpoint_service_error = ServiceErrorResponses.container_creation_failed(ex.message)
+        except (ContainerCreationFailedException, ContainerImagePullFailedException) as ex:
+            endpoint_service_error = ServiceErrorResponses.container_creation_failed(str(ex))
         except MissingFunctionNameException as ex:
             endpoint_service_error = ServiceErrorResponses.lambda_failure_response(
                 f"Failed to execute endpoint. Got an invalid function name ({str(ex)})",
