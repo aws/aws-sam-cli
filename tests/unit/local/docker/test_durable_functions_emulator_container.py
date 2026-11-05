@@ -13,6 +13,7 @@ import docker
 import requests
 from click import ClickException
 
+from samcli.commands.exceptions import UserException
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
 from samcli.local.docker.utils import to_posix_path
 
@@ -262,6 +263,17 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         self.mock_container_client.networks.create.side_effect = docker.errors.APIError("already exists")
 
         self.assertEqual(self._create_container().get_or_create_network(), created_elsewhere)
+
+    def test_get_or_create_network_reports_create_failure(self):
+        self.mock_container_client.networks.get.side_effect = docker.errors.NotFound("missing")
+        create_error = docker.errors.APIError("could not find an available, non-overlapping IPv4 address pool")
+        self.mock_container_client.networks.create.side_effect = create_error
+
+        with self.assertRaises(UserException) as ctx:
+            self._create_container().get_or_create_network()
+
+        self.assertIn("non-overlapping IPv4 address pool", str(ctx.exception))
+        self.assertIs(ctx.exception.__cause__, create_error)
 
     def test_network_endpoint_uses_container_name_and_port(self):
         with patch.dict(

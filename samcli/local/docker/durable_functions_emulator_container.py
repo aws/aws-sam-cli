@@ -125,9 +125,16 @@ class DurableFunctionsEmulatorContainer:
             pass
         try:
             return self._container_client.networks.create(self.NETWORK_NAME, driver="bridge", check_duplicate=True)
-        except docker.errors.APIError:
-            # Another SAM CLI process created it between the lookup and the create.
-            return self._container_client.networks.get(self.NETWORK_NAME)
+        except docker.errors.APIError as create_error:
+            # The create fails if another SAM CLI process created the network after the lookup, in which
+            # case it exists now. Otherwise the create failed for a real reason, so report that one.
+            try:
+                return self._container_client.networks.get(self.NETWORK_NAME)
+            except docker.errors.NotFound:
+                raise UserException(
+                    f"Failed to create the {self.NETWORK_NAME} network for durable functions: {create_error}",
+                    wrapped_from=create_error.__class__.__name__,
+                ) from create_error
 
     def _is_reusable(self, container):
         """
