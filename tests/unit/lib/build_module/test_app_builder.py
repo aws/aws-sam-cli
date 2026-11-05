@@ -4223,14 +4223,18 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         self.mock_is_dir.return_value = False
         builder = self._make_builder()
 
+        is_a_file = "is a file. CodeUri must be a directory containing a Dockerfile, for example '.*"
+        # The zip check reads the content, as sam package does, so a corrupt .zip is reported as a file
         cases = [
-            ("./app.ZIP", "is a .zip file.*point CodeUri at that directory"),
-            ("./app/Dockerfile", "is a file. CodeUri must be a directory containing a Dockerfile, for example '.*app'"),
+            ("./app.ZIP", True, "is a .zip file.*point CodeUri at that directory"),
+            ("./broken.zip", False, is_a_file),
+            ("./app/Dockerfile", False, is_a_file + "app'"),
         ]
-        for code_uri, message in cases:
+        for code_uri, is_zip, message in cases:
             with self.subTest(code_uri=code_uri):
-                with self.assertRaisesRegex(MicrovmImageSourceError, message):
-                    builder._build_microvm_image("MyMicroVM", code_uri, "arm64")
+                with patch("samcli.lib.build.app_builder.zipfile.is_zipfile", return_value=is_zip):
+                    with self.assertRaisesRegex(MicrovmImageSourceError, message):
+                        builder._build_microvm_image("MyMicroVM", code_uri, "arm64")
         builder._image_build_client.build_image.assert_not_called()
 
     @patch("samcli.lib.build.app_builder.pathlib.Path.exists", return_value=True)
