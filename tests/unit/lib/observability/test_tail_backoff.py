@@ -27,9 +27,10 @@ class TestTailBackoff(TestCase):
         puller = factory(max_retries=8)
         throttled = ClientError({"Error": {"Code": "ThrottlingException"}}, "operation")
 
-        with patch.object(puller, "load_time_period", side_effect=throttled) as load, patch(
-            module + ".time.sleep"
-        ) as sleep:
+        with (
+            patch.object(puller, "load_time_period", side_effect=throttled) as load,
+            patch(module + ".time.sleep") as sleep,
+        ):
             puller.tail()
 
         self.assertEqual(load.call_count, 8)
@@ -48,9 +49,10 @@ class TestTailBackoff(TestCase):
             90: [90, 90, 90, 90, 90, 90],
         }
 
-        with patch.object(puller, "load_time_period", side_effect=responses) as load, patch(
-            module + ".time.sleep"
-        ) as sleep:
+        with (
+            patch.object(puller, "load_time_period", side_effect=responses) as load,
+            patch(module + ".time.sleep") as sleep,
+        ):
             puller.tail()
 
         self.assertEqual(load.call_count, 6)
