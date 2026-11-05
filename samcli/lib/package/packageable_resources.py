@@ -753,7 +753,6 @@ class ServerlessMicrovmImageResource(ResourceZip):
 
     RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
-    FORCE_ZIP = True
     # CodeUri is required, so a missing value is left for validation instead of packaging the template directory
     PACKAGE_NULL_PROPERTY = False
 
@@ -776,7 +775,6 @@ class LambdaMicrovmImageResource(ResourceZip):
     RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
     URI_PROPERTY = "Uri"
-    FORCE_ZIP = True
 
     def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
         if resource_dict is None or resource_not_packageable(resource_dict):
