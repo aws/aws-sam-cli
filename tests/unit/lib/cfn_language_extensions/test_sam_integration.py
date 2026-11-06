@@ -697,6 +697,25 @@ class TestExpandLanguageExtensionsEdgeCases:
             with pytest.raises(InvalidSamDocumentException):
                 expand_language_extensions(template, enabled=True)
 
+    def test_unresolved_foreach_collection_preserves_typed_error(self):
+        from samcli.lib.cfn_language_extensions.sam_integration import UnresolvedLanguageExtensionException
+
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Parameters": {"TopicNames": {"Type": "CommaDelimitedList"}},
+            "Resources": {
+                "Fn::ForEach::Topics": [
+                    "TopicName",
+                    {"Ref": "TopicNames"},
+                    {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}},
+                ]
+            },
+        }
+        parameter_values = {"TopicNames": {"Fn::Join": [",", [{"Ref": "ParentTopicNames"}]]}}
+
+        with pytest.raises(UnresolvedLanguageExtensionException, match="collection cannot be resolved locally"):
+            expand_language_extensions(template, parameter_values=parameter_values, enabled=True)
+
     def test_telemetry_tracked_when_language_extensions_used(self):
         """Verify UsedFeature telemetry event is emitted when language extensions are expanded."""
         template = {

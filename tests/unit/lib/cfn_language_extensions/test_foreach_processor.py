@@ -248,6 +248,25 @@ class TestForEachProcessorValidation:
 
         assert "Fn::ForEach::Topics layout is incorrect" in str(exc_info.value)
 
+    def test_unresolved_intrinsic_collection_has_specific_error(
+        self, processor: ForEachProcessor, context: TemplateProcessingContext
+    ):
+        context.fragment = {
+            "Resources": {
+                "Fn::ForEach::Topics": [
+                    "TopicName",
+                    {"Fn::Join": [",", [{"Ref": "TopicNames"}]]},
+                    {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}},
+                ]
+            }
+        }
+
+        with pytest.raises(InvalidTemplateException) as exc_info:
+            processor.process_template(context)
+
+        assert "Fn::ForEach::Topics collection cannot be resolved locally" in str(exc_info.value)
+        assert "layout is incorrect" not in str(exc_info.value)
+
     def test_invalid_foreach_collection_integer(self, processor: ForEachProcessor, context: TemplateProcessingContext):
         """Test that ForEach collection cannot be an integer.
 
@@ -534,8 +553,8 @@ class TestForEachProcessorCollectionResolution:
     def test_ref_to_nonexistent_parameter_raises(self):
         """Test that Ref to non-existent parameter raises exception.
 
-        When a Ref cannot be resolved and doesn't result in a list,
-        validation should fail.
+        An unresolved Ref is distinct from malformed syntax so nested stack
+        discovery can leave it for CloudFormation.
         """
         context = TemplateProcessingContext(
             fragment={
@@ -554,7 +573,7 @@ class TestForEachProcessorCollectionResolution:
         with pytest.raises(InvalidTemplateException) as exc_info:
             processor.process_template(context)
 
-        assert "layout is incorrect" in str(exc_info.value)
+        assert "collection cannot be resolved locally" in str(exc_info.value)
 
     def test_literal_list_collection_expanded(self, processor: ForEachProcessor):
         """Test that literal list collections are expanded correctly."""

@@ -15,7 +15,10 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
-from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException
+from samcli.lib.cfn_language_extensions.exceptions import (
+    InvalidTemplateException,
+    UnresolvedForEachCollectionException,
+)
 from samcli.lib.cfn_language_extensions.models import TemplateProcessingContext
 from samcli.lib.cfn_language_extensions.utils import FOREACH_PREFIX, FOREACH_REQUIRED_ELEMENTS, is_foreach_key
 
@@ -360,6 +363,10 @@ class ForEachProcessor:
 
         # Validate resolved collection: must be a list
         if not isinstance(resolved_collection, list):
+            if isinstance(resolved_collection, dict) and len(resolved_collection) == 1:
+                intrinsic_name = next(iter(resolved_collection))
+                if isinstance(intrinsic_name, str) and (intrinsic_name == "Ref" or intrinsic_name.startswith("Fn::")):
+                    raise UnresolvedForEachCollectionException(key)
             raise InvalidTemplateException(self._LAYOUT_ERROR_FMT.format(key))
 
         return identifier, resolved_collection
