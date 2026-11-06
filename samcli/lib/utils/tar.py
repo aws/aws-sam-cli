@@ -106,9 +106,13 @@ def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, 
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
 
-    prefix = os.path.commonprefix([abs_directory, abs_target])
-
-    return bool(prefix == abs_directory)
+    try:
+        # commonpath compares whole path components; commonprefix compares characters,
+        # which would wrongly treat "/tmp/ab/x" as being inside "/tmp/a".
+        return os.path.commonpath([abs_directory, abs_target]) == abs_directory
+    except ValueError:
+        # Raised for paths on different drives (Windows): they cannot be nested
+        return False
 
 
 def extract_tarfile(

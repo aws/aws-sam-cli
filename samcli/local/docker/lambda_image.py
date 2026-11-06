@@ -53,6 +53,7 @@ class Runtime(Enum):
     python312 = "python3.12"
     python313 = "python3.13"
     python314 = "python3.14"
+    python315 = "python3.15"
     ruby32 = "ruby3.2"
     ruby33 = "ruby3.3"
     ruby34 = "ruby3.4"

@@ -25,6 +25,7 @@ class Test_get_workflow_config(TestCase):
             ("python3.12",),
             ("python3.13",),
             ("python3.14",),
+            ("python3.15",),
         ]
     )
     def test_must_work_for_python(self, runtime):
@@ -79,7 +80,9 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "rust-cargo"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",), ("python3.14",)])
+    @parameterized.expand(
+        [("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",), ("python3.14",), ("python3.15",)]
+    )
     def test_must_work_for_python_with_build_method_uv(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="python-uv")
         self.assertEqual(result.language, "python")

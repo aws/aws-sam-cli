@@ -162,7 +162,7 @@ jobs:
           python-version: ${{ matrix.python }}
           cache-python: false
       - name: Install Python versions
-        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 ${{ matrix.python }}
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 3.15 ${{ matrix.python }}
       - uses: actions/setup-go@v7
         with:
           go-version: '1.19'
@@ -283,7 +283,7 @@ jobs:
           cache-python: false
       - name: Install Python versions
         shell: bash
-        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14
+        run: bash tests/setup-python-uv.sh 3.9 3.10 3.11 3.12 3.13 3.14 3.15
       - name: Stop Docker Linux
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |

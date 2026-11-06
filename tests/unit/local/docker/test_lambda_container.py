@@ -29,6 +29,7 @@ RUNTIMES_WITH_BOOTSTRAP_ENTRYPOINT = [
     Runtime.python312.value,
     Runtime.python313.value,
     Runtime.python314.value,
+    Runtime.python315.value,
     Runtime.dotnet6.value,
     Runtime.dotnet8.value,
     Runtime.dotnet10.value,
