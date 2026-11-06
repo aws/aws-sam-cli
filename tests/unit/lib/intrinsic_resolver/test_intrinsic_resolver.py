@@ -495,6 +495,24 @@ class TestIntrinsicFnSubResolver(TestCase):
 
         self.assertEqual(result, r"C:\project\data/us-east-1")
 
+    @parameterized.expand(["api.example.com", "AWS::Region", "LambdaFunction.Arn"])
+    def test_fn_sub_map_values_are_not_symbol_names(self, value):
+        result = self.resolver.intrinsic_property_resolver(
+            {"Fn::Sub": ["mapped:${Value};region:${AWS::Region}", {"Value": value}]}, False
+        )
+
+        self.assertEqual(result, "mapped:" + value + ";region:us-east-1")
+
+    def test_fn_sub_map_ref_domain(self):
+        template = {"Parameters": {"DomainName": {"Type": "String", "Default": "api.example.com"}}}
+        resolver = IntrinsicResolver(template=template, symbol_resolver=IntrinsicsSymbolTable(template=template))
+
+        result = resolver.intrinsic_property_resolver(
+            {"Fn::Sub": ["https://${Domain}/", {"Domain": {"Ref": "DomainName"}}]}, False
+        )
+
+        self.assertEqual(result, "https://api.example.com/")
+
     def test_fn_sub_basic_uri(self):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
@@ -510,7 +528,7 @@ class TestIntrinsicFnSubResolver(TestCase):
         intrinsic = {
             "Fn::Sub": [
                 "arn:aws:apigateway:${MyItem}:lambda:path/2015-03-31/functions/${MyOtherItem}/invocations",
-                {"MyItem": {"Ref": "AWS::Region"}, "MyOtherItem": "LambdaFunction.Arn"},
+                {"MyItem": {"Ref": "AWS::Region"}, "MyOtherItem": {"Fn::GetAtt": ["LambdaFunction", "Arn"]}},
             ]
         }
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
