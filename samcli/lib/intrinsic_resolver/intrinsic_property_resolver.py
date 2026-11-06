@@ -413,6 +413,13 @@ class IntrinsicResolver:
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_SELECT
         )
 
+        # CloudFormation also accepts the index as a string, e.g. {"Fn::Select": ["1", [...]]}
+        if isinstance(index, str):
+            try:
+                index = int(index)
+            except ValueError:
+                pass  # verify_intrinsic_type_int below reports the invalid type
+
         verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)
 
         list_of_objects = self.intrinsic_property_resolver(
