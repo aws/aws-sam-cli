@@ -2,6 +2,7 @@
 Helper methods that aid interactions within docker containers.
 """
 
+import errno
 import logging
 import os
 import pathlib
@@ -10,7 +11,7 @@ import posixpath
 import random
 import re
 import socket
-from typing import Optional
+from typing import Optional, Set
 
 import docker
 
@@ -22,6 +23,21 @@ from samcli.local.docker.exceptions import (
 )
 
 LOG = logging.getLogger(__name__)
+
+# Winsock's WSAEADDRNOTAVAIL. CPython's winerror_to_errno passes Winsock codes through
+# unchanged, so this - not errno.EADDRNOTAVAIL - is what errno carries on Windows. The value
+# is fixed by the Winsock ABI and the name is absent from errno on POSIX, so it is spelled
+# out here to keep one set that is correct, and testable, on every platform.
+WSAEADDRNOTAVAIL = 10049
+
+# "Address not available": the interface named for publishing does not exist on this machine.
+ADDRESS_NOT_AVAILABLE_ERRNOS = frozenset({errno.EADDRNOTAVAIL, WSAEADDRNOTAVAIL})
+
+# Interfaces already reported as unprobeable. Whether an interface exists in this network
+# namespace does not change while the process runs, but find_free_port is called once per
+# container creation - every invoke in cold-container mode - so the warning is emitted once
+# per interface instead of once per container. A duplicate from racing threads is harmless.
+_UNPROBEABLE_INTERFACES: Set[str] = set()
 
 
 def to_posix_path(code_path):
@@ -55,22 +71,74 @@ def to_posix_path(code_path):
     )
 
 
+def _unprobeable_port(network_interface: str, port: int) -> int:
+    """
+    Returns a port without probing it, warning once per interface.
+
+    :return: int - the port passed in
+    """
+    if network_interface in _UNPROBEABLE_INTERFACES:
+        LOG.debug("Using port %s on %s without checking it", port, network_interface)
+    else:
+        _UNPROBEABLE_INTERFACES.add(network_interface)
+        LOG.warning(
+            "Cannot check whether ports are free on %s: that address does not exist on this "
+            "machine, probably because the container engine runs elsewhere. Using port %s "
+            "without checking it; if that machine already has the port taken, the engine "
+            "refuses the publish and the command fails naming that port. No action is needed "
+            "when the container engine runs on another host or in another network namespace.",
+            network_interface,
+            port,
+        )
+    return port
+
+
 def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -> int:
     """
     Utility function which scans through a port range in a randomized manner
     and finds the first free port a socket can bind to.
+
+    The port is published by the container engine (Docker or Finch), which may run on a
+    different host (or in a different network namespace) than SAM CLI itself. An address that
+    does not exist here cannot be probed here: every candidate fails with EADDRNOTAVAIL, which
+    would otherwise report the whole range as busy. In that case a port is returned unprobed,
+    with a warning, and the engine's own bind decides whether it is actually free.
+
     :raises NoFreePortException if no free ports found in range.
     :return: int - free port
     """
     port_range = [random.randrange(start, end) for _ in range(start, end)]
+
+    # Resolve the address once to pick the socket family, so that an IPv6 value binds on an
+    # IPv6 socket instead of failing address resolution on an AF_INET one, and so that an
+    # IPv6 scope id (fe80::1%eth0) survives into the bind. Resolving once rather than per
+    # candidate also keeps a value that does not resolve at all from costing a whole scan.
+    #
+    # An empty interface becomes None with AI_PASSIVE, which resolves to the wildcard address
+    # and so keeps bind("") semantics - all interfaces, genuinely probed. getaddrinfo("") is
+    # a gaierror even with AI_PASSIVE, which would send the wildcard down the unprobeable
+    # path instead. AI_PASSIVE is ignored for any non-empty host.
+    try:
+        family, socket_type, proto, _, resolved = socket.getaddrinfo(
+            network_interface or None, 0, type=socket.SOCK_STREAM, flags=socket.AI_PASSIVE
+        )[0]
+    except (OSError, ValueError):
+        # socket.gaierror (an OSError subclass) for an address this machine cannot resolve,
+        # and UnicodeError (a ValueError, NOT an OSError) when getaddrinfo's idna encoding
+        # rejects the name - a label over 63 characters, which a mistyped flag value can be.
+        # The answer is the same for every candidate port, so there is nothing to scan.
+        return _unprobeable_port(network_interface, port_range[0])
+
     for port in port_range:
         try:
             LOG.debug("Checking free port on %s:%s", network_interface, port)
-            s = socket.socket()
-            s.bind((network_interface, port))
+            s = socket.socket(family, socket_type, proto)
+            s.bind((resolved[0], port) + tuple(resolved[2:]))
             s.close()
             return port
-        except OSError:
+        except OSError as ex:
+            if ex.errno in ADDRESS_NOT_AVAILABLE_ERRNOS:
+                return _unprobeable_port(network_interface, port)
             continue
     raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
 
