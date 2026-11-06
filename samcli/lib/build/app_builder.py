@@ -1217,7 +1217,8 @@ class ApplicationBuilder:
                 "If CodeUri references a template parameter, provide its value via --parameter-overrides."
             )
         if not docker_context_dir.is_dir():
-            # Check the content, as sam package does, so a corrupt .zip is reported as a file here too
+            # Reached for a .zip only when the image is the build target; building all resources skips a CodeUri
+            # ending in .zip. Check the content, as sam package does, so a corrupt .zip is reported as a file.
             if zipfile.is_zipfile(docker_context_dir):
                 raise MicrovmImageSourceError(
                     f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a .zip file. sam build builds "

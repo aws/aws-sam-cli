@@ -4224,7 +4224,8 @@ class TestApplicationBuilder_build_microvm_image(TestCase):
         builder = self._make_builder()
 
         is_a_file = "is a file. CodeUri must be a directory containing a Dockerfile, for example '.*"
-        # The zip check reads the content, as sam package does, so a corrupt .zip is reported as a file
+        # Only `sam build <image>` reaches this check for a .zip, since building all resources skips any CodeUri
+        # ending in .zip first. The check reads the content, as sam package does, so a corrupt .zip is a file.
         cases = [
             ("./app.ZIP", True, "is a .zip file.*point CodeUri at that directory"),
             ("./broken.zip", False, is_a_file),
