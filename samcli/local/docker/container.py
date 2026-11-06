@@ -482,7 +482,9 @@ class Container:
             real_container.start()
         except docker.errors.APIError as ex:
             message = str(ex)
-            detail = self._api_error_detail(ex)
+            # explanation is the engine's own text. It is empty for an APIError built without
+            # one, so fall back to the full message rather than reporting a blank reason.
+            detail = ex.explanation or message
 
             if any(wording in message for wording in PORT_TAKEN_WORDINGS):
                 raise PortAlreadyInUse(detail) from ex
@@ -497,18 +499,6 @@ class Container:
                 ) from ex
 
             raise ex
-
-    @staticmethod
-    def _api_error_detail(ex: docker.errors.APIError) -> str:
-        """
-        Returns the daemon's own explanation for an APIError, falling back to the full message.
-
-        docker-py hands back a str today and bytes in older versions.
-        """
-        explanation = ex.explanation
-        if isinstance(explanation, bytes):
-            explanation = explanation.decode()
-        return explanation or str(ex)
 
     def _initialize_concurrency_control(self):
         """

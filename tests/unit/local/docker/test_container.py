@@ -842,20 +842,19 @@ class TestContainer_start(TestCase):
         # sentence ("...requested address Pass --container-host-interface...").
         self.assertIn(f"({detail}). Pass", str(raised.exception))
 
-    def test_docker_raises_port_inuse_error_with_bytes_explanation(self):
-        # docker-py hands back a str today; older versions used bytes.
+    def test_raises_port_inuse_error_with_full_message_when_explanation_is_empty(self):
+        # APIError.explanation is None unless it was built from an HTTP response, so the
+        # reported reason falls back to the full message instead of being blank.
         self.container.is_created.return_value = True
 
         container_mock = Mock()
         self.mock_docker_client.containers.get.return_value = container_mock
-        container_mock.start.side_effect = APIError(
-            "500 Server Error: port is already allocated", explanation=b"bytes detail"
-        )
+        container_mock.start.side_effect = APIError("500 Server Error: port is already allocated")
 
         with self.assertRaises(PortAlreadyInUse) as raised:
             self.container.start()
 
-        self.assertEqual(str(raised.exception), "bytes detail")
+        self.assertEqual(str(raised.exception), "500 Server Error: port is already allocated")
 
     def test_docker_raises_api_error(self):
         self.container.is_created.return_value = True
