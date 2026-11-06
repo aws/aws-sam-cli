@@ -90,6 +90,7 @@ class PackageContext:
         resolve_image_repos=False,
         language_extensions=None,
         output="text",
+        parallel_upload=False,
         web_function_stack_name=None,
     ):
         self.template_file = template_file
@@ -101,6 +102,7 @@ class PackageContext:
         self.output_template_file = output_template_file
         self.use_json = use_json
         self.force_upload = force_upload
+        self.parallel_upload = parallel_upload
         self.no_progressbar = no_progressbar
         self.metadata = metadata
         self.region = region
@@ -160,6 +162,9 @@ class PackageContext:
         # Pass None instead of validating Docker client upfront - ECRUploader will validate only when needed
         docker_client = None
 
+        # Progress bars redraw the terminal in place and interleave badly across threads.
+        no_progressbar = self.no_progressbar or self.parallel_upload
+
         web_function_s3_uploader = None
         web_function_bucket_export = None
         if self.web_function_stack_name and stacks_have_web_functions(stacks, local_code_only=True):
@@ -170,12 +175,12 @@ class PackageContext:
             self._check_web_function_code_bucket(stacks, s3_client, region_name)
 
         s3_uploader = S3Uploader(
-            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, self.no_progressbar
+            s3_client, self.s3_bucket, self.s3_prefix, self.kms_key_id, self.force_upload, no_progressbar
         )
         # attach the given metadata to the artifacts to be uploaded
         s3_uploader.artifact_metadata = self.metadata
         ecr_uploader = ECRUploader(
-            docker_client, ecr_client, self.image_repository, self.image_repositories, self.no_progressbar
+            docker_client, ecr_client, self.image_repository, self.image_repositories, no_progressbar
         )
 
         self.uploaders = Uploaders(s3_uploader, ecr_uploader, web_function_s3_uploader, web_function_bucket_export)
@@ -235,6 +240,7 @@ class PackageContext:
             normalize_parameters=True,
             template_dict=original_template_dict,
             language_extensions_enabled=False,
+            parallel_upload=self.parallel_upload,
         )
         return template.export()
 
@@ -282,6 +288,7 @@ class PackageContext:
             template_dict=copy.deepcopy(result.expanded_template),
             parameter_values=parameter_values,
             language_extensions_enabled=True,
+            parallel_upload=self.parallel_upload,
         )
         exported_template = template.export()
 

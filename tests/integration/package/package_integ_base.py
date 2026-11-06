@@ -93,6 +93,7 @@ class PackageIntegBase(TestCase):
         output_template_file=None,
         use_json=False,
         force_upload=False,
+        parallel_upload=False,
         no_progressbar=False,
         kms_key_id=None,
         metadata=None,
@@ -121,6 +122,8 @@ class PackageIntegBase(TestCase):
             command_list = command_list + ["--use-json"]
         if force_upload:
             command_list = command_list + ["--force-upload"]
+        if parallel_upload:
+            command_list = command_list + ["--parallel-upload"]
         if no_progressbar:
             command_list = command_list + ["--no-progressbar"]
         if metadata:

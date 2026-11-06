@@ -16,6 +16,7 @@ from samcli.commands._utils.options import (
     language_extensions_option,
     metadata_option,
     no_progressbar_option,
+    parallel_upload_option,
     resolve_image_repos_option,
     resolve_s3_option,
     s3_bucket_option,
@@ -87,6 +88,7 @@ DESCRIPTION = """
 @kms_key_id_option
 @use_json_option
 @force_upload_option
+@parallel_upload_option("packaging")
 @resolve_s3_option
 @resolve_image_repos_option
 @metadata_option
@@ -115,6 +117,7 @@ def cli(
     output_template_file,
     use_json,
     force_upload,
+    parallel_upload,
     no_progressbar,
     metadata,
     signing_profiles,
@@ -148,6 +151,7 @@ def cli(
         resolve_s3,
         resolve_image_repos,
         language_extensions,
+        parallel_upload,
     )  # pragma: no cover
 
 
@@ -169,6 +173,7 @@ def do_cli(
     resolve_s3,
     resolve_image_repos,
     language_extensions,
+    parallel_upload=False,
 ):
     """
     Implementation of the ``cli`` method
@@ -205,5 +210,6 @@ def do_cli(
         signing_profiles=signing_profiles,
         resolve_image_repos=resolve_image_repos,
         language_extensions=language_extensions,
+        parallel_upload=parallel_upload,
     ) as package_context:
         package_context.run()

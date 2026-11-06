@@ -563,6 +563,35 @@ class TestPackageZip(PackageIntegBase):
         # windows and non-windows
         self.assertIn(warning_keyword, process_stdout)
 
+    def test_package_with_parallel_upload_nested_stack_and_shared_code_uri(self):
+        """
+        Same artifacts as a serial `sam package`: the shared CodeUri is uploaded once and the
+        nested stack template is rewritten to its S3 location.
+        """
+        template_path = self.test_data_path.joinpath("parallel-upload", "template-zip.yaml")
+        output_template = pathlib.Path(tempfile.mkdtemp()).joinpath("packaged.yaml")
+        command_list = PackageIntegBase.get_command_list(
+            s3_bucket=self.s3_bucket.name,
+            s3_prefix=self.s3_prefix,
+            template=template_path,
+            output_template_file=output_template,
+            force_upload=True,
+            parallel_upload=True,
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            _, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0, stderr.decode("utf-8"))
+        packaged = output_template.read_text()
+        self.assertNotIn("CodeUri: SharedCode", packaged)
+        self.assertEqual(1, len(set(re.findall(r"CodeUri: (s3://\S+)", packaged))))
+        self.assertRegex(packaged, r"Location: https?://\S+")
+
     def test_package_with_deep_nested_template(self):
         """
         this template contains two nested stacks:

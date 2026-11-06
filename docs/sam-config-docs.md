@@ -28,6 +28,18 @@ region="us-east-1"
 profile="srirammv"
 ```
 
+### Specifying a Boolean deployment option
+
+```
+[default.deploy.parameters]
+parallel_upload=true
+```
+
+Setting `parallel_upload` to `true` is equivalent to passing `--parallel-upload` on
+`sam deploy`, enabling concurrent S3/ECR uploads during the packaging phase.
+Up to 8 uploads run at once; set the `SAM_CLI_PARALLEL_UPLOAD_WORKERS` environment variable
+to change the number of concurrent uploads.
+
 Version
 -------
 

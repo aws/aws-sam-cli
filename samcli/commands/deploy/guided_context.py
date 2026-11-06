@@ -63,6 +63,7 @@ class GuidedContext:
         config_file=None,
         disable_rollback=None,
         language_extensions_enabled: bool = False,
+        parallel_upload=False,
     ):
         self.template_file = template_file
         self.stack_name = stack_name
@@ -97,6 +98,8 @@ class GuidedContext:
         self.function_provider: Optional[SamFunctionProvider] = None
         self.disable_rollback = disable_rollback
         self._language_extensions_enabled = language_extensions_enabled
+        self.parallel_upload = parallel_upload
+        self.guided_parallel_upload = None
 
     @property
     def guided_capabilities(self):
@@ -207,6 +210,8 @@ class GuidedContext:
         self.guided_s3_prefix = stack_name
         self.guided_region = region
         self.guided_profile = self.profile
+        # Not prompted, so scripted guided deploys keep their answer order; the flag value is saved.
+        self.guided_parallel_upload = self.parallel_upload
         self._capabilities = input_capabilities if input_capabilities else default_capabilities
         self._parameter_overrides = (
             input_parameter_overrides if input_parameter_overrides else self.parameter_overrides_from_cmdline
@@ -590,6 +595,7 @@ class GuidedContext:
                 capabilities=self._capabilities,
                 signing_profiles=self.signing_profiles,
                 disable_rollback=self.disable_rollback,
+                parallel_upload=self.guided_parallel_upload,
             )
 
     @staticmethod

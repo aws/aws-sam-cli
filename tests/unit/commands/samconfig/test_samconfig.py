@@ -848,6 +848,7 @@ class TestSamConfigForAllCommands(TestCase):
             "template_file": "mytemplate.yaml",
             "s3_bucket": "mybucket",
             "force_upload": True,
+            "parallel_upload": True,
             "s3_prefix": "myprefix",
             "image_repository": "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
             "kms_key_id": "mykms",
@@ -889,6 +890,7 @@ class TestSamConfigForAllCommands(TestCase):
                 False,
                 False,
                 None,
+                True,
             )
 
     @patch("samcli.commands._utils.options.get_template_artifacts_format")
@@ -974,6 +976,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 None,
                 True,
+                False,
                 False,
                 "myprefix",
                 "mykms",
@@ -1092,6 +1095,7 @@ class TestSamConfigForAllCommands(TestCase):
                 "123456789012.dkr.ecr.us-east-1.amazonaws.com/test1",
                 None,
                 True,
+                False,
                 False,
                 "myprefix",
                 "mykms",

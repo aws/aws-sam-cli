@@ -67,10 +67,48 @@ class TestPackageCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=self.resolve_image_repos,
             language_extensions=None,
+            parallel_upload=False,
         )
 
         context_mock.run.assert_called_with()
         self.assertEqual(context_mock.run.call_count, 1)
+
+    @patch("samcli.commands.package.command.click")
+    @patch("samcli.commands.package.package_context.PackageContext")
+    def test_parallel_upload_is_passed_to_package_context(self, package_command_context, click_mock):
+        package_command_context.return_value.__enter__.return_value = Mock()
+
+        do_cli(
+            template_file=self.template_file,
+            s3_bucket=self.s3_bucket,
+            s3_prefix=self.s3_prefix,
+            image_repository=self.image_repository,
+            image_repositories=self.image_repositories,
+            kms_key_id=self.kms_key_id,
+            output_template_file=self.output_template_file,
+            use_json=self.use_json,
+            force_upload=self.force_upload,
+            no_progressbar=self.no_progressbar,
+            metadata=self.metadata,
+            region=self.region,
+            profile=self.profile,
+            resolve_s3=self.resolve_s3,
+            resolve_image_repos=self.resolve_image_repos,
+            language_extensions=None,
+            signing_profiles=self.signing_profiles,
+            parallel_upload=True,
+        )
+
+        self.assertTrue(package_command_context.call_args.kwargs["parallel_upload"])
+
+    def test_cli_exposes_parallel_upload_flag(self):
+        from samcli.commands.package.command import cli
+
+        option = next(param for param in cli.params if param.name == "parallel_upload")
+
+        self.assertEqual(["--parallel-upload"], option.opts)
+        self.assertTrue(option.is_flag)
+        self.assertFalse(option.default)
 
     @patch("samcli.commands.package.command.click")
     @patch("samcli.commands.package.package_context.PackageContext")
@@ -117,6 +155,7 @@ class TestPackageCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=False,
             language_extensions=None,
+            parallel_upload=False,
         )
 
         context_mock.run.assert_called_with()
@@ -189,6 +228,7 @@ class TestPackageCliCommand(TestCase):
             signing_profiles=self.signing_profiles,
             resolve_image_repos=True,
             language_extensions=None,
+            parallel_upload=False,
         )
 
         context_mock.run.assert_called_with()
