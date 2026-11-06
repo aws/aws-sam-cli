@@ -411,7 +411,7 @@ class BuildGraph:
         if not self._filepath.exists():
             open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
-        txt = self._filepath.read_text()
+        txt = self._filepath.read_text(encoding="utf-8")
         # .loads() returns a TOMLDocument,
         # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
         # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
@@ -433,7 +433,7 @@ class BuildGraph:
                 layer_build_definition[MANIFEST_HASH_FIELD] = hashing_info.manifest_hash
                 LOG.info("Updated source_hash and manifest_hash field in build.toml for layer with UUID %s", layer_uuid)
 
-        self._filepath.write_text(tomlkit.dumps(cast(TOMLDocument, document)))
+        self._filepath.write_text(tomlkit.dumps(cast(TOMLDocument, document)), encoding="utf-8")
 
     def _read(self) -> None:
         """
@@ -445,7 +445,7 @@ class BuildGraph:
         self._layer_build_definitions = []
         document = {}
         try:
-            txt = self._filepath.read_text()
+            txt = self._filepath.read_text(encoding="utf-8")
             # .loads() returns a TOMLDocument,
             # and it behaves like a standard dictionary according to https://github.com/sdispater/tomlkit.
             # in tomlkit 0.7.2, the types are broken (tomlkit#128, #130, #134) so here we convert it to Dict.
@@ -503,7 +503,7 @@ class BuildGraph:
         if not self._filepath.exists():
             open(self._filepath, "a+").close()  # pylint: disable=consider-using-with
 
-        self._filepath.write_text(tomlkit.dumps(document))
+        self._filepath.write_text(tomlkit.dumps(document), encoding="utf-8")
 
     def _atomic_write(self) -> None:
         """
