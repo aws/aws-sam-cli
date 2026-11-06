@@ -564,15 +564,23 @@ class InvokeContext:
             and not self._resolves_to_loopback(self._container_host)
             and self._resolves_to_loopback(self._container_host_interface)
         ):
+            # Stated as a likely cause rather than a certain one. Whether a loopback-bound port
+            # is reachable through the given container host depends on the engine: it is not on
+            # a Linux engine, where this was measured, but --container-host's own help suggests
+            # host.docker.internal for running SAM CLI in a container on macOS, and that
+            # combination can work on Docker Desktop. Promising a timeout would be wrong there,
+            # and would push those users to 0.0.0.0 for no reason.
             LOG.warning(
-                "--container-host is %s, but the Lambda container's port is published on %s, which is a "
-                "loopback interface of the machine running the container engine. A loopback-bound port is "
-                "not reachable through %s, so invocations will time out while connecting to the container. "
-                "Pass --container-host-interface with an address reachable from %s, such as the bridge "
-                "gateway. 0.0.0.0 also works but publishes the container's unauthenticated invoke endpoint "
-                "on every interface of the machine running the container engine.",
+                "--container-host is %s while the Lambda container's port is published on %s, a loopback "
+                "address of the machine running the container engine. If invocations time out while "
+                "connecting to the container, this is the likely cause: on engines where a loopback-bound "
+                "port is not reachable through %s, the port is published where %s cannot reach it. Passing "
+                "--container-host-interface with an address reachable from %s, such as the bridge gateway, "
+                "resolves it. 0.0.0.0 works too but publishes the container's unauthenticated invoke "
+                "endpoint on every interface of the machine running the container engine.",
                 self._container_host,
                 self._container_host_interface,
+                self._container_host,
                 self._container_host,
                 self._container_host,
             )

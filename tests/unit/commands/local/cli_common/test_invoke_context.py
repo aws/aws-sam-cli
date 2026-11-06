@@ -713,6 +713,11 @@ class TestInvokeContextContainerNetworkingWarnings(TestCase):
         # SAM CLI drives Docker or Finch, so the advice must not be worded for one engine.
         # The "host.docker.internal" above is the user's own flag value, not our prose.
         self.assertFalse(any("Docker daemon" in message or "Docker host" in message for message in log_ctx.output))
+        # Nor may it promise the invoke WILL fail. Whether a loopback-bound port is reachable
+        # through the container host depends on the engine, and this combination is what
+        # --container-host's own help suggests for macOS, where it can work.
+        self.assertFalse(any("will time out" in message for message in log_ctx.output))
+        self.assertTrue(any("If invocations time out" in message for message in log_ctx.output))
 
     @parameterized.expand(
         [
