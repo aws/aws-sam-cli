@@ -605,6 +605,25 @@ class TestIntrinsicFnEqualsResolver(TestCase):
 
     @parameterized.expand(
         [
+            ("true", "true", True),
+            ("true", True, True),
+            ("false", False, True),
+            ("1", 1, True),
+            ("1.5", 1.5, True),
+            ("true", False, False),
+            ("1", 2, False),
+        ]
+    )
+    def test_fn_equals_compares_as_strings(self, parameter_value, literal, expected):
+        # CloudFormation compares as strings, so a YAML literal like `true` equals the parameter value "true"
+        resolver = IntrinsicResolver(
+            template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator={"Flag": parameter_value})
+        )
+        result = resolver.intrinsic_property_resolver({"Fn::Equals": [{"Ref": "Flag"}, literal]}, True)
+        self.assertEqual(result, expected)
+
+    @parameterized.expand(
+        [
             ("Fn::Equals must have arguments that resolve to a string: {}".format(item), item)
             for item in [True, False, {}, 42, None, "test"]
         ]
