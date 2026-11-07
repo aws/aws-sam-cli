@@ -686,7 +686,7 @@ class TestInvokeContext_function_name_property(TestCase):
             context.function_identifier
 
 
-class TestInvokeContext_initialize_all_functions_containers(TestCase):
+class TestInvokeContext_initialize_all_functions_containers_shared_runtime(TestCase):
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
     @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
     @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
