@@ -61,12 +61,32 @@ class TestIntrinsicFnJoinResolver(TestCase):
     @parameterized.expand(
         [
             ("Fn::Join should require that all items in the list_of_objects resolve to string: {}".format(item), item)
-            for item in [True, False, {}, 42, None]
+            for item in [{}, None]
         ]
     )
     def test_fn_join_items_all_str(self, name, single_obj):
         with self.assertRaises(InvalidIntrinsicException, msg=name):
             self.resolver.intrinsic_property_resolver({"Fn::Join": ["", ["test", single_obj, "abcd"]]}, True)
+
+    @parameterized.expand(
+        [
+            ("int", 8080, "host:8080"),
+            ("float", 1.5, "host:1.5"),
+            ("true", True, "host:true"),
+            ("false", False, "host:false"),
+        ]
+    )
+    def test_fn_join_number_and_bool_items(self, name, item, expected):
+        # A Ref to a Number parameter resolves to an int or float
+        result = self.resolver.intrinsic_property_resolver({"Fn::Join": [":", ["host", item]]}, True)
+        self.assertEqual(result, expected)
+
+    def test_fn_join_ref_to_number_parameter(self):
+        resolver = IntrinsicResolver(
+            template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator={"Port": 8080})
+        )
+        result = resolver.intrinsic_property_resolver({"Fn::Join": [":", ["host", {"Ref": "Port"}]]}, True)
+        self.assertEqual(result, "host:8080")
 
 
 class TestIntrinsicFnSplitResolver(TestCase):
