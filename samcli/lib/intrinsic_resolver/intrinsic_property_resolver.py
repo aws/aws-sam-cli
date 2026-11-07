@@ -7,7 +7,7 @@ import copy
 import logging
 import re
 from collections import OrderedDict
-from typing import List, Union
+from typing import Any, List, Union
 
 from samcli.commands._utils.template import get_template_data
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
@@ -781,11 +781,11 @@ class IntrinsicResolver:
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_EQUALS
         )
         # CloudFormation compares the values as strings, so the YAML literal `true` or `1` equals the parameter
-        # value "true" or "1"
+        # value "true" or "1". Keep in sync with ConditionResolver._resolve_equals in cfn_language_extensions.
         return self._equals_as_string(value_1) == self._equals_as_string(value_2)
 
     @staticmethod
-    def _equals_as_string(value):
+    def _equals_as_string(value: Any) -> str:
         return str(value).lower() if isinstance(value, bool) else str(value)
 
     def handle_fn_not(self, intrinsic_value, ignore_errors):

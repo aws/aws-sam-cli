@@ -612,6 +612,10 @@ class TestIntrinsicFnEqualsResolver(TestCase):
             ("1.5", 1.5, True),
             ("true", False, False),
             ("1", 2, False),
+            ("True", True, False),
+            ("Prod", "prod", False),
+            (True, 1, False),
+            (1, 1.0, False),
         ]
     )
     def test_fn_equals_compares_as_strings(self, parameter_value, literal, expected):
