@@ -32,10 +32,9 @@ from samcli.local.docker import utils
 from samcli.local.docker.effective_user import ROOT_USER_ID, EffectiveUser
 from samcli.local.docker.exceptions import (
     ContainerCreationFailedException,
-    ContainerNotStartableException,
     PortAlreadyInUse,
 )
-from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix_path
+from samcli.local.docker.utils import to_posix_path
 
 LOG = logging.getLogger(__name__)
 
@@ -180,10 +179,9 @@ class Container:
         # Runtime properties of the container. They won't have value until container is created or started
         self.id: Optional[str] = None
 
-        # aws-lambda-rie defaults to 8080 as the port, however that's a common port. A port is chosen by
-        # selecting the first free port in a range that's not ephemeral.
-        self._start_port_range = 5000
-        self._end_port_range = 9000
+        # Host port that aws-lambda-rie's port is published on. Docker assigns it when the container starts:
+        # picking a free port up front races with other containers starting at the same time.
+        self.rapid_port_host: Optional[int] = None
 
         self._container_host = container_host
         self._container_host_interface = container_host_interface
@@ -194,13 +192,6 @@ class Container:
         # Container-level concurrency management
         self._concurrency_semaphore: Optional[threading.Semaphore] = None  # Controls concurrent Lambda executions
         self._max_concurrency: int = 1  # Default to 1 for normal functions
-
-        try:
-            self.rapid_port_host = find_free_port(
-                network_interface=self._container_host_interface, start=self._start_port_range, end=self._end_port_range
-            )
-        except NoFreePortsError as ex:
-            raise ContainerNotStartableException(str(ex)) from ex
 
     @property
     def docker_client(self):
@@ -278,7 +269,8 @@ class Container:
         if self._env_vars:
             kwargs["environment"] = self._env_vars
 
-        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, self.rapid_port_host)}
+        # No host port: Docker assigns a free one at start, see _read_rapid_port_host
+        kwargs["ports"] = {self.RAPID_PORT_CONTAINER: (self._container_host_interface, None)}
 
         if self._exposed_ports:
             kwargs["ports"].update(
@@ -500,6 +492,20 @@ class Container:
 
             raise ex
 
+        self._read_rapid_port_host(real_container)
+
+    def _read_rapid_port_host(self, real_container: docker.models.containers.Container) -> None:
+        """
+        Records the host port Docker assigned to aws-lambda-rie's port when the container started.
+        A container that has already exited has no port bindings; the port then stays unset.
+        """
+        # Docker re-assigns host ports on every start: never keep a stale value
+        self.rapid_port_host = None
+        real_container.reload()
+        bindings = real_container.ports.get(f"{self.RAPID_PORT_CONTAINER}/tcp")
+        if bindings:
+            self.rapid_port_host = int(bindings[0]["HostPort"])
+
     def _initialize_concurrency_control(self):
         """
         Initialize concurrency control for this container based on its environment variables.
@@ -683,6 +689,8 @@ class Container:
         """
         Checks if able to connect successully to the socket used to communicate with Docker.
         """
+        if self.rapid_port_host is None:
+            return False
 
         a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         location = (self._container_host, self.rapid_port_host)

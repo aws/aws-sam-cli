@@ -7,9 +7,7 @@ import os
 import pathlib
 import platform
 import posixpath
-import random
 import re
-import socket
 from typing import Optional
 
 import docker
@@ -17,9 +15,6 @@ import docker
 from samcli.lib.utils.architecture import ARM64, validate_architecture
 from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.container_client_factory import ContainerClientFactory
-from samcli.local.docker.exceptions import (
-    NoFreePortsError,
-)
 
 LOG = logging.getLogger(__name__)
 
@@ -53,26 +48,6 @@ def to_posix_path(code_path):
         if os.name == "nt"
         else code_path
     )
-
-
-def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -> int:
-    """
-    Utility function which scans through a port range in a randomized manner
-    and finds the first free port a socket can bind to.
-    :raises NoFreePortException if no free ports found in range.
-    :return: int - free port
-    """
-    port_range = [random.randrange(start, end) for _ in range(start, end)]
-    for port in port_range:
-        try:
-            LOG.debug("Checking free port on %s:%s", network_interface, port)
-            s = socket.socket()
-            s.bind((network_interface, port))
-            s.close()
-            return port
-        except OSError:
-            continue
-    raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
 
 
 def get_rapid_name(architecture: str) -> str:
