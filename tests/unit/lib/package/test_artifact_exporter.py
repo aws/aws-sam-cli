@@ -16,6 +16,8 @@ from typing import Optional, Dict
 from unittest import mock
 from unittest.mock import call, patch, Mock, MagicMock
 
+from parameterized import parameterized
+
 from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.package import exceptions
 from samcli.commands.package.exceptions import ExportFailedError
@@ -2467,6 +2469,64 @@ class TestArtifactExporter(unittest.TestCase):
         resource_type2_instance.delete.assert_called_once_with("Resource2", mock.ANY)
         resource_type3_class.assert_not_called()
         resource_type3_instance.delete.assert_not_called()
+
+    @parameterized.expand(
+        [
+            "https://external-bucket.s3.eu-west-1.amazonaws.com/template.yaml",
+            "https://external-bucket.s3.amazonaws.com/template.yaml",
+            "https://external-bucket.s3-us-west-2.amazonaws.com/template.yaml",
+            "https://external-bucket.s3.cn-north-1.amazonaws.com.cn/template.yaml",
+            "https://external.bucket.s3.us-east-1.amazonaws.com/template.yaml",
+            "https://s3-bucket.s3.us-east-1.amazonaws.com/template.yaml",
+        ]
+    )
+    def test_nested_stack_virtual_hosted_s3_url(self, template_url):
+        template_dict = {
+            "Resources": {
+                "NestedStack": {
+                    "Type": "AWS::CloudFormation::Stack",
+                    "Properties": {"TemplateURL": template_url},
+                },
+                "Function": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"CodeUri": "s3://bucket/prefix/function.zip"},
+                },
+            }
+        }
+        template_exporter = Template(
+            template_path=None,
+            parent_dir=None,
+            uploaders=self.uploaders_mock,
+            code_signer=None,
+            resources_to_export=[CloudFormationStackResource, ServerlessFunctionResource],
+            template_str=json.dumps(template_dict),
+        )
+
+        self.assertEqual(template_exporter.get_s3_info(), {"s3_bucket": "bucket", "s3_prefix": "prefix"})
+        template_exporter.delete(retain_resources=[])
+        self.s3_uploader_mock.delete_artifact.assert_called_once_with("prefix/function.zip", True)
+
+    @parameterized.expand(
+        [
+            "s3://bucket/prefix/template.yaml",
+            "https://s3.eu-west-1.amazonaws.com/bucket/prefix/template.yaml",
+        ]
+    )
+    def test_nested_stack_uploaded_template_s3_info(self, template_url):
+        resource = CloudFormationStackResource(self.uploaders_mock, None)
+        self.assertEqual(
+            resource.get_property_value({"TemplateURL": template_url}),
+            {"Bucket": "bucket", "Key": "prefix/template.yaml"},
+        )
+
+    def test_nested_stack_intrinsic_template_url_s3_info(self):
+        resource = CloudFormationStackResource(self.uploaders_mock, None)
+        self.assertEqual(
+            resource.get_property_value(
+                {"TemplateURL": {"Fn::Sub": "https://external-bucket.s3.eu-west-1.amazonaws.com/template.yaml"}}
+            ),
+            {"Bucket": None, "Key": None},
+        )
 
     def test_get_ecr_repos(self):
         resources_to_export = [ECRResource]
