@@ -1,14 +1,59 @@
 from unittest import TestCase
 from subprocess import Popen, PIPE
+from urllib.parse import unquote_plus
 import os
+import hashlib
 import json
 
 import pytest
+from parameterized import parameterized
 
 from tests.testing_utils import get_sam_command
 
 
 class Test_EventGeneration_Integ(TestCase):
+    @parameterized.expand(
+        [
+            ("defaults", [], "example-bucket", "test/key", "arn:aws:sqs:us-east-1:123456789012:MyQueue"),
+            (
+                "custom",
+                [
+                    "--bucket",
+                    "example-uploads",
+                    "--key",
+                    'incoming/a "quoted"+雪.txt',
+                    "--queue-name",
+                    "object-events",
+                    "--account-id",
+                    "111122223333",
+                    "--region",
+                    "cn-north-1",
+                    "--partition",
+                    "aws-cn",
+                ],
+                "example-uploads",
+                'incoming/a "quoted"+雪.txt',
+                "arn:aws-cn:sqs:cn-north-1:111122223333:object-events",
+            ),
+        ]
+    )
+    def test_generate_sqs_event_from_s3(self, _name: str, options: list, bucket: str, key: str, queue_arn: str) -> None:
+        process = Popen(
+            [get_sam_command(), "local", "generate-event", "sqs", "receive-message-from-s3", *options],
+            stdout=PIPE,
+            stderr=PIPE,
+        )
+        stdout, stderr = process.communicate()
+        self.assertEqual(process.returncode, 0, stderr.decode("utf-8"))
+        record = json.loads(stdout)["Records"][0]
+        self.assertEqual(record["eventSource"], "aws:sqs")
+        self.assertEqual(record["eventSourceARN"], queue_arn)
+        self.assertEqual(record["md5OfBody"], hashlib.md5(record["body"].encode("utf-8")).hexdigest())
+        s3_record = json.loads(record["body"])["Records"][0]
+        self.assertEqual(s3_record["eventName"], "ObjectCreated:Put")
+        self.assertEqual(s3_record["s3"]["bucket"]["name"], bucket)
+        self.assertEqual(unquote_plus(s3_record["s3"]["object"]["key"]), key)
+
     @pytest.mark.tier1
     def test_generate_event_substitution(self):
         process = Popen([get_sam_command(), "local", "generate-event", "s3", "put"])
