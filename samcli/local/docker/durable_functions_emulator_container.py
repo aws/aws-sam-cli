@@ -143,9 +143,16 @@ class DurableFunctionsEmulatorContainer:
         they are replaced instead of reused.
         """
         attrs = container.attrs or {}
-        networks = attrs.get("NetworkSettings", {}).get("Networks") or {}
-        bindings = attrs.get("HostConfig", {}).get("PortBindings") or {}
-        host_ips = [binding.get("HostIp") for port in bindings.values() for binding in (port or [])]
+        network_settings = attrs.get("NetworkSettings") or {}
+        networks = network_settings.get("Networks") or {}
+        # Docker reports the published ports in both places, but Finch on macOS leaves HostConfig empty and
+        # only reports them in NetworkSettings.Ports, so check both
+        host_ips = [
+            binding.get("HostIp")
+            for bindings in (network_settings.get("Ports"), (attrs.get("HostConfig") or {}).get("PortBindings"))
+            for port in (bindings or {}).values()
+            for binding in (port or [])
+        ]
         return self.NETWORK_NAME in networks and bool(host_ips) and all(ip == self._HOST_INTERFACE for ip in host_ips)
 
     def _get_port(self, external_port_env_var, override_port_env_var, default_port):

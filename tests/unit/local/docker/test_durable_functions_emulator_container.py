@@ -213,6 +213,40 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
                 },
                 False,
             ),
+            (
+                # Finch on macOS reports an empty HostConfig and the bindings only in NetworkSettings.Ports
+                "finch_bindings_in_network_settings_only",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]},
+                    },
+                    "HostConfig": {},
+                },
+                True,
+            ),
+            (
+                "network_settings_published_on_all_interfaces",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": [{"HostIp": "0.0.0.0", "HostPort": "9014"}]},
+                    },
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+                },
+                False,
+            ),
+            (
+                "exposed_port_not_published",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": None},
+                    },
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+                },
+                True,
+            ),
             ("no_port_bindings", {"NetworkSettings": {"Networks": {"sam-durable-execution": {}}}}, False),
             ("no_attrs", None, False),
         ]
