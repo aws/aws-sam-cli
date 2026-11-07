@@ -1,10 +1,25 @@
 """Utility Class for Getting Function or Layer Manifest Dependency Hashes"""
 
+import hashlib
 import pathlib
 from typing import Any, Optional
 
 from samcli.lib.build.workflow_config import get_workflow_config
 from samcli.lib.utils.hash import file_checksum
+
+
+# Mapping of dependency managers to their lock file names
+LOCK_FILE_MAPPING = {
+    "npm": "package-lock.json",
+    "npm-esbuild": "package-lock.json",
+    "bundler": "Gemfile.lock",
+    "gradle": "gradle.lockfile",
+    "cli-package": "packages.lock.json",
+    "modules": "go.sum",
+    "cargo": "Cargo.lock",
+    "uv": "uv.lock",
+    "poetry": "poetry.lock",
+}
 
 
 # TODO Expand this class to hash specific sections of the manifest
@@ -50,15 +65,17 @@ class DependencyHashGenerator:
         self._hash = None
 
     def _calculate_dependency_hash(self) -> Optional[str]:
-        """Calculate the manifest file hash
+        """Calculate the manifest file hash, including lock file if applicable
 
         Returns
         -------
         Optional[str]
-            Returns manifest hash. If manifest does not exist or not supported, None will be returned.
+            Returns combined hash of manifest and lock file (if present).
+            If manifest does not exist or not supported, None will be returned.
         """
         if self._manifest_path_override:
             manifest_file = self._manifest_path_override
+            config = None
         else:
             config = get_workflow_config(self._runtime, self._code_dir, self._base_dir)
             manifest_file = config.manifest_name
@@ -70,7 +87,24 @@ class DependencyHashGenerator:
         if not manifest_path.is_file():
             return None
 
-        return file_checksum(str(manifest_path), hash_generator=self._hash_generator)
+        manifest_hash = file_checksum(str(manifest_path), hash_generator=self._hash_generator)
+
+        # Check if there's a lock file for this dependency manager
+        if config and config.dependency_manager in LOCK_FILE_MAPPING:
+            lock_file_name = LOCK_FILE_MAPPING[config.dependency_manager]
+            lock_file_path = pathlib.Path(self._code_dir, lock_file_name).resolve()
+
+            # If lock file exists, combine hashes
+            if lock_file_path.is_file():
+                lock_file_hash = file_checksum(str(lock_file_path), hash_generator=self._hash_generator)
+
+                # Combine both hashes into a single hash
+                combined = f"{manifest_hash}:{lock_file_hash}"
+                hasher = self._hash_generator() if self._hash_generator else hashlib.md5()
+                hasher.update(combined.encode("utf-8"))
+                return hasher.hexdigest()
+
+        return manifest_hash
 
     @property
     def hash(self) -> Optional[str]:
