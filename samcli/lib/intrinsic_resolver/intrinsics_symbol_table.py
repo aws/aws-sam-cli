@@ -167,7 +167,7 @@ class IntrinsicsSymbolTable:
         functionArn = self.arn_resolver(function_id)
         return functionArn
 
-    def get_default_type_resolver(self):
+    def get_default_type_resolver(self) -> dict:
         return {
             "AWS::ApiGateway::RestApi": {
                 "RootResourceId": "/"  # It usually used as a reference to the parent id of the RestApi,
@@ -180,6 +180,12 @@ class IntrinsicsSymbolTable:
             },
             "AWS::Serverless::LayerVersion": {
                 IntrinsicResolver.REF: lambda logical_id: {IntrinsicResolver.REF: logical_id}
+            },
+            "AWS::Serverless::StateMachine": {
+                "Arn": lambda logical_id: self.arn_resolver(logical_id, service_name="states")
+            },
+            "AWS::StepFunctions::StateMachine": {
+                "Arn": lambda logical_id: self.arn_resolver(logical_id, service_name="states")
             },
         }
 
@@ -247,7 +253,7 @@ class IntrinsicsSymbolTable:
             " It is also not a supported pseudo function".format(logical_id + "." + resource_attribute)
         )
 
-    def arn_resolver(self, logical_id, service_name="lambda"):
+    def arn_resolver(self, logical_id: str, service_name: str = "lambda") -> str:
         """
         This function resolves Arn in the format
             arn:{partition_name}:{service_name}:{aws_region}:{account_id}:{function_name}
@@ -257,7 +263,7 @@ class IntrinsicsSymbolTable:
         logical_id: str
             This the reference to the function name used
         service_name: str
-            This is the service name used such as lambda or sns
+            This is the service name used such as lambda, sns, or states
 
         Return
         -------
@@ -273,6 +279,13 @@ class IntrinsicsSymbolTable:
             resource_name = self.logical_id_translator.get(resource_name) or resource_name
 
             str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:function:{resource_name}"
+        elif service_name == "states":
+            resource = self._resources.get(logical_id, {})
+            name_property = "Name" if resource.get("Type") == "AWS::Serverless::StateMachine" else "StateMachineName"
+            configured_name = resource.get("Properties", {}).get(name_property)
+            # Intrinsic names may still be unresolved; use the logical ID as the local placeholder.
+            resource_name = configured_name if isinstance(configured_name, str) and configured_name else logical_id
+            str_format = "arn:{partition_name}:{service_name}:{aws_region}:{account_id}:stateMachine:{resource_name}"
         else:
             resource_name = logical_id
             resource_name = self.logical_id_translator.get(resource_name) or resource_name
