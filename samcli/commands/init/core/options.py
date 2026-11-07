@@ -22,7 +22,7 @@ APPLICATION_OPTIONS: List[str] = [
 ]
 
 # Can be used instead of the options in the first list
-NON_INTERACTIVE_OPTIONS: List[str] = ["no_interactive", "no_input", "extra_context"]
+NON_INTERACTIVE_OPTIONS: List[str] = ["no_interactive", "no_input", "extra_context", "checkout"]
 
 OUTPUT_OPTIONS: List[str] = ["output"]
 
