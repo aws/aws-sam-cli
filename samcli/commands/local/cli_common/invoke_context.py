@@ -558,11 +558,14 @@ class InvokeContext:
         for every Docker setup, and the same flags are already relied upon by working
         configurations that should keep running.
         """
+        # The interface is checked first on purpose: it is normally an IP literal, so it costs
+        # a parse, while the container host is normally a name and costs a DNS lookup. Ordering
+        # them this way skips that lookup on every run whose interface is not loopback.
         if (
             self._container_host
             and self._container_host_interface
-            and not self._resolves_to_loopback(self._container_host)
             and self._resolves_to_loopback(self._container_host_interface)
+            and not self._resolves_to_loopback(self._container_host)
         ):
             # Stated as a likely cause rather than a certain one. Whether a loopback-bound port
             # is reachable through the given container host depends on the engine: it is not on
