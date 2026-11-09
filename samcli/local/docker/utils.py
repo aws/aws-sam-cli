@@ -30,8 +30,12 @@ LOG = logging.getLogger(__name__)
 # out here to keep one set that is correct, and testable, on every platform.
 WSAEADDRNOTAVAIL = 10049
 
-# "Address not available": the interface named for publishing does not exist on this machine.
-ADDRESS_NOT_AVAILABLE_ERRNOS = frozenset({errno.EADDRNOTAVAIL, WSAEADDRNOTAVAIL})
+# Errnos meaning the named address cannot be probed on THIS machine at all, as opposed to a
+# port on it being busy. The answer is the same for every candidate port, so these short the
+# scan instead of continuing it. EADDRNOTAVAIL (and its Winsock spelling) is the interface
+# not existing here; EAFNOSUPPORT is the family being unavailable, which is what creating an
+# AF_INET6 socket raises on a host booted with IPv6 disabled.
+UNPROBEABLE_ERRNOS = frozenset({errno.EADDRNOTAVAIL, WSAEADDRNOTAVAIL, errno.EAFNOSUPPORT})
 
 # Interfaces already reported as unprobeable. Whether an interface exists in this network
 # namespace does not change while the process runs, but find_free_port is called once per
@@ -109,35 +113,42 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
     """
     port_range = [random.randrange(start, end) for _ in range(start, end)]
 
-    # Resolve the address once to pick the socket family, so that an IPv6 value binds on an
-    # IPv6 socket instead of failing address resolution on an AF_INET one, and so that an
-    # IPv6 scope id (fe80::1%eth0) survives into the bind. Resolving once rather than per
-    # candidate also keeps a value that does not resolve at all from costing a whole scan.
-    #
-    # An empty interface becomes None with AI_PASSIVE, which resolves to the wildcard address
-    # and so keeps bind("") semantics - all interfaces, genuinely probed. getaddrinfo("") is
-    # a gaierror even with AI_PASSIVE, which would send the wildcard down the unprobeable
-    # path instead. AI_PASSIVE is ignored for any non-empty host.
-    try:
-        family, socket_type, proto, _, resolved = socket.getaddrinfo(
-            network_interface or None, 0, type=socket.SOCK_STREAM, flags=socket.AI_PASSIVE
-        )[0]
-    except (OSError, ValueError):
-        # socket.gaierror (an OSError subclass) for an address this machine cannot resolve,
-        # and UnicodeError (a ValueError, NOT an OSError) when getaddrinfo's idna encoding
-        # rejects the name - a label over 63 characters, which a mistyped flag value can be.
-        # The answer is the same for every candidate port, so there is nothing to scan.
-        return _unprobeable_port(network_interface, port_range[0])
+    if network_interface:
+        # Resolve a named or literal address once to pick the socket family, so that an IPv6
+        # value binds on an IPv6 socket instead of failing resolution on an AF_INET one, and
+        # so that a scope id (fe80::1%eth0) survives into the bind. Resolving once rather
+        # than per candidate also keeps a value that does not resolve from costing a scan.
+        try:
+            family, socket_type, proto, _, sockaddr = socket.getaddrinfo(network_interface, 0, type=socket.SOCK_STREAM)[
+                0
+            ]
+        except (OSError, ValueError):
+            # socket.gaierror (an OSError subclass) for an address this machine cannot
+            # resolve, and UnicodeError (a ValueError, NOT an OSError) when getaddrinfo's
+            # idna encoding rejects the name - a label over 63 characters, which a mistyped
+            # flag value can be. Same answer for every port, so there is nothing to scan.
+            return _unprobeable_port(network_interface, port_range[0])
+    else:
+        # An empty interface means "all interfaces", and is probed on IPv4 - which is what
+        # bind(("", port)) did before this function resolved anything, and the family the
+        # engine publishes on by default.
+        #
+        # getaddrinfo(None, AI_PASSIVE) is deliberately NOT used to derive this. It returns
+        # both wildcards and their ORDER IS PLATFORM-DEPENDENT: IPv4 first on Linux, IPv6
+        # first on macOS. Taking the first entry therefore probes a different family per
+        # platform, and on a platform whose stacks are separate (macOS defaults to
+        # ip6.v6only=1) a bind on the IPv6 wildcard SUCCEEDS while the IPv4 wildcard is
+        # already taken - reporting free a port the engine then cannot publish.
+        family, socket_type, proto, sockaddr = socket.AF_INET, socket.SOCK_STREAM, 0, ("", 0)
 
     for port in port_range:
         try:
             LOG.debug("Checking free port on %s:%s", network_interface, port)
-            s = socket.socket(family, socket_type, proto)
-            s.bind((resolved[0], port) + tuple(resolved[2:]))
-            s.close()
+            with socket.socket(family, socket_type, proto) as s:
+                s.bind((sockaddr[0], port) + tuple(sockaddr[2:]))
             return port
         except OSError as ex:
-            if ex.errno in ADDRESS_NOT_AVAILABLE_ERRNOS:
+            if ex.errno in UNPROBEABLE_ERRNOS:
                 return _unprobeable_port(network_interface, port)
             continue
     raise NoFreePortsError(f"No free ports on the host machine from {start} to {end}")
