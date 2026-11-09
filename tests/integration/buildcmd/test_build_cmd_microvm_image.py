@@ -100,6 +100,20 @@ class TestBuildMicrovmImage(BuildIntegBase):
 
         self.assertEqual(command_result.process.returncode, 0, command_result.stderr.decode())
 
+    def test_build_x86_64_microvm_image(self):
+        """An X86_64 image is built for linux/amd64."""
+        self.template_path = str(Path(self.test_data_path, "template_microvm_image_x86.yaml"))
+        cmdlist = self.get_command_list(use_buildkit=self.use_buildkit)
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+
+        self.assertEqual(command_result.process.returncode, 0, command_result.stderr.decode())
+        self.assertIn("x86microvmimage:latest (linux/amd64)", command_result.stdout.decode())
+
+        container_client = get_validated_container_client()
+        images = container_client.images.list(name="x86microvmimage:latest")
+        self.assertTrue(images, "Docker image 'x86microvmimage:latest' should exist")
+        self.assertEqual(images[0].attrs["Architecture"], "amd64")
+
     def test_build_foreach_dynamic_code_uri(self):
         """With --language-extensions, each Fn::ForEach image builds from its own directory and the
         built template keeps Fn::ForEach, with per-image paths in a generated Mapping."""
@@ -135,7 +149,7 @@ class TestBuildMicrovmImage(BuildIntegBase):
         # Clean up the image created during the test (works across Docker and Finch)
         try:
             container_client = get_validated_container_client()
-            for tag in ("mymicrovmimage:latest", "alphaimage:latest", "betaimage:latest"):
+            for tag in ("mymicrovmimage:latest", "alphaimage:latest", "betaimage:latest", "x86microvmimage:latest"):
                 container_client.remove_image_safely(tag)
         except Exception:
             pass
