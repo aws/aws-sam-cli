@@ -24,18 +24,21 @@ from samcli.local.docker.exceptions import (
 
 LOG = logging.getLogger(__name__)
 
-# Winsock's WSAEADDRNOTAVAIL. CPython's winerror_to_errno passes Winsock codes through
-# unchanged, so this - not errno.EADDRNOTAVAIL - is what errno carries on Windows. The value
-# is fixed by the Winsock ABI and the name is absent from errno on POSIX, so it is spelled
-# out here to keep one set that is correct, and testable, on every platform.
+# Winsock's spellings. CPython's winerror_to_errno returns a Winsock code (10000-11999)
+# unchanged apart from six low-numbered ones, so these - not the errno constants - are what
+# errno carries on Windows: there errno.EADDRNOTAVAIL is 101 and errno.EAFNOSUPPORT is 102,
+# neither of which a socket error ever reports. The values are fixed by the Winsock ABI and
+# the names are absent from errno on POSIX, so they are spelled out here to keep one set that
+# is correct, and testable, on every platform.
+WSAEAFNOSUPPORT = 10047
 WSAEADDRNOTAVAIL = 10049
 
 # Errnos meaning the named address cannot be probed on THIS machine at all, as opposed to a
 # port on it being busy. The answer is the same for every candidate port, so these short the
-# scan instead of continuing it. EADDRNOTAVAIL (and its Winsock spelling) is the interface
-# not existing here; EAFNOSUPPORT is the family being unavailable, which is what creating an
-# AF_INET6 socket raises on a host booted with IPv6 disabled.
-UNPROBEABLE_ERRNOS = frozenset({errno.EADDRNOTAVAIL, WSAEADDRNOTAVAIL, errno.EAFNOSUPPORT})
+# scan instead of continuing it. EADDRNOTAVAIL is the interface not existing here;
+# EAFNOSUPPORT is the family being unavailable, which is what creating an AF_INET6 socket
+# raises on a host booted with IPv6 disabled. Both need their Winsock spelling alongside.
+UNPROBEABLE_ERRNOS = frozenset({errno.EADDRNOTAVAIL, WSAEADDRNOTAVAIL, errno.EAFNOSUPPORT, WSAEAFNOSUPPORT})
 
 # Interfaces already reported as unprobeable. Whether an interface exists in this network
 # namespace does not change while the process runs, but find_free_port is called once per

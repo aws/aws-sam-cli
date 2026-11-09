@@ -14,6 +14,7 @@ import docker
 from samcli.lib.utils.architecture import InvalidArchitecture
 from samcli.local.docker.utils import (
     WSAEADDRNOTAVAIL,
+    WSAEAFNOSUPPORT,
     to_posix_path,
     find_free_port,
     get_rapid_name,
@@ -139,15 +140,30 @@ class TestFreePorts(TestCase):
         # a merge-base checkout that promise would be false.
         self.assertFalse(any("port allocation error" in message for message in log_ctx.output))
 
+    @parameterized.expand(
+        [
+            # POSIX "Address family not supported by protocol".
+            (errno.EAFNOSUPPORT,),
+            # Winsock WSAEAFNOSUPPORT. On Windows errno.EAFNOSUPPORT is 102 and a socket
+            # error never carries it, so without this value an IPv6 interface on a host
+            # with IPv6 off scanned the whole range and raised NoFreePortsError. Exercised
+            # on every platform.
+            (WSAEAFNOSUPPORT,),
+        ]
+    )
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
-    def test_free_port_returns_unprobed_port_when_address_family_is_unavailable(self, mock_random, mock_socket):
+    def test_free_port_returns_unprobed_port_when_address_family_is_unavailable(
+        self, address_family_unsupported_errno, mock_random, mock_socket
+    ):
         # A host booted with IPv6 off raises EAFNOSUPPORT when the AF_INET6 socket is
         # CREATED, so the error comes from socket.socket() and never reaches bind. The
         # answer is the same for every candidate port, so this reports and hands back a
         # port rather than scanning the range to the same misleading NoFreePortsError.
         mock_socket.getaddrinfo.return_value = resolved_address("::1", family=real_socket.AF_INET6)
-        mock_socket.socket.side_effect = OSError(errno.EAFNOSUPPORT, "Address family not supported by protocol")
+        mock_socket.socket.side_effect = OSError(
+            address_family_unsupported_errno, "Address family not supported by protocol"
+        )
         mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
 
         with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
