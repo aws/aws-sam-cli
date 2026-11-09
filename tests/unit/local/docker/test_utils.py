@@ -141,6 +141,30 @@ class TestFreePorts(TestCase):
 
     @patch("samcli.local.docker.utils.socket")
     @patch("samcli.local.docker.utils.random")
+    def test_free_port_returns_unprobed_port_when_address_family_is_unavailable(self, mock_random, mock_socket):
+        # A host booted with IPv6 off raises EAFNOSUPPORT when the AF_INET6 socket is
+        # CREATED, so the error comes from socket.socket() and never reaches bind. The
+        # answer is the same for every candidate port, so this reports and hands back a
+        # port rather than scanning the range to the same misleading NoFreePortsError.
+        mock_socket.getaddrinfo.return_value = resolved_address("::1", family=real_socket.AF_INET6)
+        mock_socket.socket.side_effect = OSError(errno.EAFNOSUPPORT, "Address family not supported by protocol")
+        mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
+
+        with self.assertLogs("samcli.local.docker.utils", level="WARNING") as log_ctx:
+            port = find_free_port("::1", start=3000, end=4000)
+
+        self.assertEqual(port, 3093)
+        # Exactly one attempt: creating the socket fails identically for every candidate.
+        self.assertEqual(mock_socket.socket.call_count, 1)
+        self.assertTrue(any("::1" in message and "without checking it" in message for message in log_ctx.output))
+        # The warning is shared with the address-not-available path, so it must not name a
+        # cause that is wrong here: IPv6 being off locally is not the engine running
+        # elsewhere, and the address does exist on this machine.
+        self.assertFalse(any("does not exist on this machine" in message for message in log_ctx.output))
+        self.assertFalse(any("runs elsewhere" in message for message in log_ctx.output))
+
+    @patch("samcli.local.docker.utils.socket")
+    @patch("samcli.local.docker.utils.random")
     def test_free_port_probes_ipv6_interface_on_an_ipv6_socket(self, mock_random, mock_socket):
         # An IPv6 value cannot be probed on the AF_INET socket socket.socket() returns: the
         # bind fails during address resolution with a negative gaierror errno, which is not

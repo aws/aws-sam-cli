@@ -86,9 +86,10 @@ def _unprobeable_port(network_interface: str, port: int) -> int:
     else:
         _UNPROBEABLE_INTERFACES.add(network_interface)
         LOG.warning(
-            "Cannot check whether ports are free on %s: that address does not exist on this "
-            "machine, probably because the container engine runs elsewhere. Using port %s "
-            "without checking it; if that machine already has the port taken, the engine "
+            "Cannot check whether ports are free on %s: that address cannot be probed from "
+            "this machine. It is usually an address of the machine running the container "
+            "engine, or an address family this host has turned off. Using port %s without "
+            "checking it; if the port is already taken where the engine runs, the engine "
             "refuses the publish and the command fails naming that port. No action is needed "
             "when the container engine runs on another host or in another network namespace.",
             network_interface,
@@ -103,8 +104,9 @@ def find_free_port(network_interface: str, start: int = 5000, end: int = 9000) -
     and finds the first free port a socket can bind to.
 
     The port is published by the container engine (Docker or Finch), which may run on a
-    different host (or in a different network namespace) than SAM CLI itself. An address that
-    does not exist here cannot be probed here: every candidate fails with EADDRNOTAVAIL, which
+    different host (or in a different network namespace) than SAM CLI itself. An address this
+    machine cannot bind at all - because it belongs elsewhere, or because its address family
+    is turned off here - cannot be probed here: every candidate fails the same way, which
     would otherwise report the whole range as busy. In that case a port is returned unprobed,
     with a warning, and the engine's own bind decides whether it is actually free.
 
