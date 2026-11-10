@@ -925,6 +925,38 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
         )
 
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_python_uv_layer_with_first_compatible_runtime(self, osutils_mock, get_workflow_config_mock):
+        config_mock = Mock()
+        config_mock.manifest_name = None
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+        self.builder._build_function_in_process = build_function_in_process_mock
+
+        self.builder._build_layer(
+            "layer_name", "code_uri", "python-uv", ["python3.13", "python3.12"], ARM64, "full_path"
+        )
+
+        args = build_function_in_process_mock.call_args[0]
+        self.assertEqual(args[2], PathValidator("python"))
+        self.assertEqual(args[5], "python3.13")
+
+    @parameterized.expand([([],), (None,)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_python_uv_layer_without_compatible_runtimes_raises(
+        self, compatible_runtimes, osutils_mock, get_workflow_config_mock
+    ):
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock(return_value=False)
+        get_workflow_config_mock.return_value = Mock(manifest_name=None)
+
+        with self.assertRaisesRegex(UnsupportedRuntimeException, "requires CompatibleRuntimes"):
+            self.builder._build_layer("layer_name", "code_uri", "python-uv", compatible_runtimes, ARM64, "full_path")
+
     @parameterized.expand([([],), (None,)])
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
