@@ -5,6 +5,7 @@ Tests the InvokeContext class
 import errno
 import os
 import tempfile
+import time
 
 from parameterized import parameterized
 
@@ -728,6 +729,35 @@ class TestInvokeContext_function_name_property(TestCase):
 
         with self.assertRaises(NoFunctionIdentifierProvidedException):
             context.function_identifier
+
+
+class TestInvokeContext_initialize_all_functions_containers_shared_runtime(TestCase):
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
+    @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
+    @patch("samcli.commands.local.cli_common.invoke_context.WarmLambdaRuntime")
+    @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
+    def test_parallel_initialization_shares_one_runtime(
+        self, LocalLambdaRunnerMock, WarmLambdaRuntimeMock, LambdaRuntimeMock, LayerDownloaderMock, LambdaImageMock
+    ):
+        """Every container initialized in parallel must use the same runtime, and so the same durable emulator"""
+
+        def slow_runtime(*args, **kwargs):
+            time.sleep(0.05)  # hold open the window in which another thread could create a second runtime
+            runtime = Mock()
+            runtime.run.return_value = None
+            return runtime
+
+        WarmLambdaRuntimeMock.side_effect = slow_runtime
+        invoke_context = InvokeContext(template_file="template.yaml", warm_container_initialization_mode="EAGER")
+        invoke_context._function_provider = Mock()
+        invoke_context._function_provider.get_all.return_value = [Mock() for _ in range(8)]
+
+        invoke_context._initialize_all_functions_containers()
+
+        WarmLambdaRuntimeMock.assert_called_once()
+        LocalLambdaRunnerMock.assert_called_once()
+        self.assertEqual(invoke_context.lambda_runtime.run.call_count, 8)
 
 
 class TestInvokeContext_local_lambda_runner(TestCase):
