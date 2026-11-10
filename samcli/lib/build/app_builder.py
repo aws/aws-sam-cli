@@ -19,6 +19,7 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
+from aws_lambda_builders.workflows.python_uv.utils import detect_uv_manifest
 
 from samcli.commands._utils.experimental import (
     ExperimentalFlag,
@@ -752,6 +753,8 @@ class ApplicationBuilder:
                 if self._manifest_path_override
                 else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
             )
+            if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                manifest_path = detect_uv_manifest(code_dir)
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
@@ -980,6 +983,8 @@ class ApplicationBuilder:
                     if self._manifest_path_override
                     else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
                 )
+                if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                    manifest_path = detect_uv_manifest(code_dir)
                 scratch_dir_path = (
                     LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
                     if self._container_manager
