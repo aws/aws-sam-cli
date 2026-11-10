@@ -1667,7 +1667,7 @@ Commands you can use next
             raise BuildError(
                 wrapped_from="UnsupportedArchitectureError",
                 msg=f"MicrovmImage '{resource_identifier}' is not buildable: "
-                "unsupported architecture; only ARM_64 is supported by the MicroVM service.",
+                "unsupported architecture; supported values are ARM_64 and X86_64.",
             )
         # For explicitly targeted resources, add unconditionally (matching function/layer behavior).
         # SkipBuild and .zip filtering only applies on the build-all path (collect_all_build_resources).
@@ -1699,7 +1699,7 @@ Commands you can use next
         if image.metadata and image.metadata.get("SkipBuild"):
             return False, "Metadata.SkipBuild is set."
         if image.architecture is None:
-            return False, "unsupported architecture; only ARM_64 is supported by the MicroVM service."
+            return False, "unsupported architecture; supported values are ARM_64 and X86_64."
         return True, ""
 
     _EXCLUDE_WARNING_MESSAGE = "Resource expected to be built, but marked as excluded.\nBuilding anyways..."

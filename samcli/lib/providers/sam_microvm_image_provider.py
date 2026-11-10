@@ -6,16 +6,17 @@ from typing import Dict, List, Optional, Set, Tuple
 from samcli.lib.providers.provider import MicrovmImage, Stack, get_full_path
 from samcli.lib.providers.sam_base_provider import SamBaseProvider
 from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
-from samcli.lib.utils.architecture import ARM64
+from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.lib.utils.resources import AWS_LAMBDA_MICROVMIMAGE, AWS_SERVERLESS_MICROVMIMAGE
 
 LOG = logging.getLogger(__name__)
 
 _MICROVMIMAGE_RESOURCE_TYPES = {AWS_SERVERLESS_MICROVMIMAGE, AWS_LAMBDA_MICROVMIMAGE}
 
-# MicrovmImage currently only supports ARM_64.
+# CpuConfigurations Architecture values the MicroVM service supports, mapped to SAM CLI's format.
 _SUPPORTED_ARCHITECTURES = {
     "ARM_64": ARM64,
+    "X86_64": X86_64,
 }
 _DEFAULT_ARCHITECTURE = ARM64
 
@@ -143,7 +144,7 @@ class SamMicrovmImageProvider(SamBaseProvider):
 
         # Extract architecture from CpuConfigurations[0].Architecture, mapping CFN's format
         # (e.g. "ARM_64") to SAM CLI's internal format (e.g. "arm64"). Defaults to arm64 when
-        # CpuConfigurations is not specified, matching the only architecture supported today.
+        # CpuConfigurations is not specified, which is what the service builds for an empty list.
         architecture: Optional[str] = _DEFAULT_ARCHITECTURE
         cpu_configurations = resource_properties.get("CpuConfigurations", [])
         if cpu_configurations and isinstance(cpu_configurations, list) and len(cpu_configurations) > 0:
@@ -154,7 +155,9 @@ class SamMicrovmImageProvider(SamBaseProvider):
                     _SUPPORTED_ARCHITECTURES.get(cfn_architecture) if isinstance(cfn_architecture, str) else None
                 )
                 if architecture is None:
-                    message = "MicrovmImage '%s' has unsupported Architecture %r; only ARM_64 is supported."
+                    message = (
+                        "MicrovmImage '%s' has unsupported Architecture %r; supported values are ARM_64 and X86_64."
+                    )
                     args = [logical_id, cfn_architecture]
                     # An unresolvable !Ref is rewritten by IntrinsicResolver to the parameter name, so a value
                     # equal to a parameter name means the parameter has no value
