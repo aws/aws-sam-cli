@@ -756,6 +756,18 @@ class TestIncrementalBuildStrategy(TestCase):
             ANY, ANY, ANY, ANY, ANY, ANY, ANY, dependency_dir, download_dependencies, ANY
         )
 
+    def test_function_build_method_is_passed_to_hash_generator(self, patched_hash_gen, patched_os):
+        patched_hash_gen.return_value = Mock(hash="hash")
+        given_function_build_def = Mock(
+            codeuri="fn", runtime="python3.12", metadata={"BuildMethod": "python-uv"}, functions=[Mock()]
+        )
+        self.build_graph.get_function_build_definitions.return_value = [given_function_build_def]
+        self.build_graph.get_microvm_image_build_definitions.return_value = []
+        self.build_graph.get_layer_build_definitions.return_value = []
+
+        self.build_strategy.build()
+        patched_hash_gen.assert_called_once_with("fn", ANY, "python3.12", ANY, build_method="python-uv")
+
     def test_manifest_pre_check_failure_is_attributed_to_function(self, patched_hash_gen, patched_os):
         # The manifest pre-check (get_workflow_config) can raise an unsupported-runtime error before the
         # delegate's attribution runs. Ensure that escaping failure still carries the function full paths

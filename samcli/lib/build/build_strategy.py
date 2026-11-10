@@ -597,7 +597,10 @@ class IncrementalBuildStrategy(BuildStrategy):
         # attribution, so wrap both to keep error.resources on --cached/--incremental failures.
         with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             self._check_whether_manifest_is_changed(
-                build_definition, build_definition.codeuri, build_definition.runtime
+                build_definition,
+                build_definition.codeuri,
+                build_definition.runtime,
+                (build_definition.metadata or {}).get("BuildMethod"),
             )
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
@@ -616,13 +619,18 @@ class IncrementalBuildStrategy(BuildStrategy):
         build_definition: AbstractBuildDefinition,
         codeuri: Optional[str],
         runtime: Optional[str],
+        build_method: Optional[str] = None,
     ) -> None:
         """
         Checks whether the manifest file have been changed by comparing its hash with previously stored one and updates
         download_dependencies property of build definition to True, if it is changed
         """
         manifest_hash = DependencyHashGenerator(
-            cast(str, codeuri), self._base_dir, cast(str, runtime), self._manifest_path_override
+            cast(str, codeuri),
+            self._base_dir,
+            cast(str, runtime),
+            self._manifest_path_override,
+            build_method=build_method,
         ).hash
 
         is_manifest_changed = True
