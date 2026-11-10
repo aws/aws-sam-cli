@@ -3470,6 +3470,28 @@ class TestMicrovmImageResource(unittest.TestCase):
                 with self.assertRaises(ExportFailedError):
                     self._export(exporter_class, value)
 
+    def test_warns_when_source_directory_contains_aws_sam_or_git(self):
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app"),
+            (LambdaMicrovmImageResource, {"Uri": "./app"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__):
+                with patch("samcli.lib.package.packageable_resources.LOG") as log:
+                    self._export(exporter_class, value)
+                log.warning.assert_not_called()
+
+        os.makedirs(os.path.join(self.project, "app", ".aws-sam", "build"))
+        os.makedirs(os.path.join(self.project, "app", ".git"))
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app"),
+            (LambdaMicrovmImageResource, {"Uri": "./app"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__):
+                with patch("samcli.lib.package.packageable_resources.LOG") as log:
+                    self._export(exporter_class, value)
+                log.warning.assert_called_once()
+                self.assertEqual(log.warning.call_args[0][4], ".aws-sam and .git")
+
     def test_single_non_zip_file_fails_and_suggests_its_directory(self):
         for exporter_class, value in (
             (ServerlessMicrovmImageResource, "./app/Dockerfile"),

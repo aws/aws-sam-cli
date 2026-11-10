@@ -729,10 +729,17 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+# Directories that are almost never part of a MicrovmImage source, but are uploaded with it because the whole
+# source directory is zipped as is (for example when CodeUri is the project root)
+_MICROVM_IMAGE_UNEXPECTED_SOURCE_DIRS = (".aws-sam", ".git")
+
+
 def _check_microvm_image_source(resource_id: str, property_name: str, local_path: str, parent_dir: str) -> None:
     """
     A MicrovmImage is built from a directory with a Dockerfile at its root, or from a .zip of one. Reject a
     single other file, such as the Dockerfile itself, instead of uploading a zip of just that file.
+
+    The source directory is uploaded as is, so warn when it contains directories such as .aws-sam or .git.
     """
     abs_path = make_abs_path(parent_dir, local_path)
     if is_local_file(abs_path) and not is_zip_file(abs_path):
@@ -743,6 +750,19 @@ def _check_microvm_image_source(resource_id: str, property_name: str, local_path
             ex=f"'{abs_path}' is a file. A MicrovmImage source must be a directory containing a Dockerfile, "
             f"or a .zip of one, for example '{os.path.dirname(abs_path)}'.",
         )
+    if os.path.isdir(abs_path):
+        found = [name for name in _MICROVM_IMAGE_UNEXPECTED_SOURCE_DIRS if os.path.isdir(os.path.join(abs_path, name))]
+        if found:
+            LOG.warning(
+                "MicrovmImage '%s': %s directory '%s' contains %s, and the whole directory is uploaded. Put the "
+                "Dockerfile and application code in a subdirectory and point %s at it, or point %s at a prepared .zip.",
+                resource_id,
+                property_name,
+                abs_path,
+                " and ".join(found),
+                property_name,
+                property_name,
+            )
 
 
 class ServerlessMicrovmImageResource(ResourceZip):
