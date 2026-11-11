@@ -260,3 +260,33 @@ class TestAuthUtils(TestCase):
         self.assertEqual(
             _auth_per_resource, [("HelloWorldFunction", False), ("HelloWorldFunction Function Url", False)]
         )
+
+    def _web_function_template(self, auth_type):
+        return {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Parameters": {"Auth": {"Type": "String"}},
+            "Resources": {
+                "WebApp": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "CodeUri": "web/", "AuthType": auth_type},
+                }
+            },
+        }
+
+    def test_auth_per_resource_public_web_function(self):
+        stacks = [Stack("", "", "", {}, self._web_function_template("ApplicationManaged"))]
+        self.assertEqual(auth_per_resource(stacks), [("WebApp Web Function endpoint", False)])
+
+    def test_auth_per_resource_iam_auth_web_function(self):
+        stacks = [Stack("", "", "", {}, self._web_function_template("IamAuth"))]
+        self.assertEqual(auth_per_resource(stacks), [("WebApp Web Function endpoint", True)])
+
+    def test_auth_per_resource_web_function_auth_type_from_parameter(self):
+        template = self._web_function_template({"Ref": "Auth"})
+        stacks = [Stack("", "", "", {"Auth": "ApplicationManaged"}, template)]
+        self.assertEqual(auth_per_resource(stacks), [("WebApp Web Function endpoint", False)])
+
+    def test_auth_per_resource_web_function_in_nested_stack(self):
+        stacks = [Stack("", "Child", "", {}, self._web_function_template("ApplicationManaged"))]
+        self.assertEqual(auth_per_resource(stacks), [("Child/WebApp Web Function endpoint", False)])
