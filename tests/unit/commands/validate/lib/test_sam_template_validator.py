@@ -298,6 +298,39 @@ class TestSamTemplateValidator(TestCase):
         self.assertNotIn("DefinitionUri", tempalte_resources.get("ServerlessApi").get("Properties"))
         self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
 
+    def test_replace_local_codeuri_of_web_function(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "LocalCode": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "CodeUri": "web/", "AuthType": "IamAuth"},
+                },
+                "S3Code": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {
+                        "Runtime": "nodejs24.x",
+                        "CodeUri": "s3://my-bucket/code.zip",
+                        "AuthType": "IamAuth",
+                    },
+                },
+                "NoCode": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "InlineCode": "code", "AuthType": "IamAuth"},
+                },
+            },
+        }
+
+        validator = SamTemplateValidator(template, Mock())
+        validator._replace_local_codeuri()
+
+        resources = validator.sam_template["Resources"]
+        self.assertEqual(resources["LocalCode"]["Properties"]["CodeUri"], "s3://bucket/value")
+        self.assertEqual(resources["S3Code"]["Properties"]["CodeUri"], "s3://my-bucket/code.zip")
+        # Unlike a Function, a Web Function has no default CodeUri, so don't add one
+        self.assertNotIn("CodeUri", resources["NoCode"]["Properties"])
+
     def test_replace_local_codeuri_with_no_resources(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
