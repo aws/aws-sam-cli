@@ -730,7 +730,7 @@ class LocalApigwService(BaseLocalService):
             # Return the Flask service error if there is one, since these are the only exceptions
             # we are anticipating from the authorizer, anything else indicates a local issue.
             # This is intentionally outside the finally block: returning from a finally block
-            # swallows re-raised exceptions and is a SyntaxError on Python 3.15 (PEP 765).
+            # swallows re-raised exceptions and emits a SyntaxWarning since Python 3.14 (PEP 765).
             return auth_service_error
 
         endpoint_service_error = None

@@ -1,5 +1,8 @@
 import io
-from unittest import TestCase
+import os
+import platform
+import tempfile
+from unittest import TestCase, skipIf
 import tarfile
 from unittest.mock import MagicMock, Mock, patch, call
 from parameterized import parameterized
@@ -300,7 +303,7 @@ class TestTar(TestCase):
     def test_extract_tarfile_allows_outside_symlinks_when_mount_symlinks_enabled(
         self, is_within_directory_patch, tarfile_open_patch
     ):
-        """When mount_symlinks is True, no filter is applied so symlinks are preserved."""
+        """When mount_symlinks is True, the fully_trusted filter is used so symlinks are preserved."""
         tarfile_path = "/test_tarfile_path/"
         unpack_dir = "/test_unpack_dir/"
         is_within_directory_patch.return_value = True
@@ -318,7 +321,23 @@ class TestTar(TestCase):
 
         extract_tarfile(tarfile_path=tarfile_path, unpack_dir=unpack_dir, mount_symlinks=True)
 
-        # No filter applied — symlinks pointing outside are allowed
+        # fully_trusted must be explicit: since Python 3.14 the default filter is 'data'
+        tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir, filter="fully_trusted")
+
+    @patch("samcli.lib.utils.tar.tarfile.open")
+    @patch("samcli.lib.utils.tar._is_within_directory")
+    def test_extract_tarfile_mount_symlinks_without_filter_support(self, is_within_directory_patch, tarfile_open_patch):
+        """On Pythons without extraction filters, extractall is called without a filter."""
+        unpack_dir = "/test_unpack_dir/"
+        is_within_directory_patch.return_value = True
+        tarfile_file_mock = Mock()
+        tarfile_file_mock.getmembers.return_value = []
+        tarfile_open_patch.return_value.__enter__.return_value = tarfile_file_mock
+
+        with patch("samcli.lib.utils.tar.tarfile", spec=[n for n in dir(tarfile) if n != "fully_trusted_filter"]) as t:
+            t.open = tarfile_open_patch
+            extract_tarfile(tarfile_path="/test_tarfile_path/", unpack_dir=unpack_dir, mount_symlinks=True)
+
         tarfile_file_mock.extractall.assert_called_once_with(path=unpack_dir)
 
     @patch("samcli.lib.utils.tar.tarfile.open")
@@ -348,3 +367,39 @@ class TestTar(TestCase):
         finally:
             if data_filter is not None:
                 tarfile.data_filter = data_filter
+
+
+@skipIf(platform.system().lower() == "windows", "Creating symlinks requires extra privileges on Windows")
+class TestExtractTarfileRealSymlinks(TestCase):
+    """Extract a real archive (no mocks) so changes in tarfile's default filter are caught"""
+
+    OUTSIDE_TARGET = "/opt/shared/lib.so"
+
+    def _make_tar(self, directory):
+        tar_path = os.path.join(directory, "archive.tar")
+        with tarfile.open(tar_path, "w") as tar:
+            data = b"hello"
+            file_info = tarfile.TarInfo("file.txt")
+            file_info.size = len(data)
+            tar.addfile(file_info, io.BytesIO(data))
+            link_info = tarfile.TarInfo("outside_link")
+            link_info.type = tarfile.SYMTYPE
+            link_info.linkname = self.OUTSIDE_TARGET
+            tar.addfile(link_info)
+        return tar_path
+
+    def test_mount_symlinks_preserves_symlink_pointing_outside(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            unpack_dir = os.path.join(tmp, "out")
+            extract_tarfile(tarfile_path=self._make_tar(tmp), unpack_dir=unpack_dir, mount_symlinks=True)
+
+            link = os.path.join(unpack_dir, "outside_link")
+            self.assertTrue(os.path.islink(link))
+            self.assertEqual(os.readlink(link), self.OUTSIDE_TARGET)
+            self.assertTrue(os.path.isfile(os.path.join(unpack_dir, "file.txt")))
+
+    def test_default_rejects_symlink_pointing_outside(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            unpack_dir = os.path.join(tmp, "out")
+            with self.assertRaises(tarfile.FilterError):
+                extract_tarfile(tarfile_path=self._make_tar(tmp), unpack_dir=unpack_dir)

@@ -151,8 +151,10 @@ def extract_tarfile(
         # When mount_symlinks is disabled, use filter='data' to let Python's
         # built-in extraction filter handle symlink safety (rejects symlinks
         # pointing outside the extraction directory, among other protections).
-        # When mount_symlinks is enabled, skip the filter so outside-pointing
-        # symlinks are preserved.
+        # When mount_symlinks is enabled, use filter='fully_trusted' so outside-pointing
+        # symlinks are preserved. It must be passed explicitly: since Python 3.14 the
+        # default filter is 'data', which rejects such symlinks. Path traversal of member
+        # names is still prevented by the check above.
         if not mount_symlinks:
             if hasattr(tarfile, "data_filter"):
                 tar.extractall(path=unpack_dir, filter="data")
@@ -161,5 +163,7 @@ def extract_tarfile(
                     "Your Python version does not support tarfile extraction filters. "
                     "Please update to Python 3.9.17+ or newer for safe tarfile extraction."
                 )
+        elif hasattr(tarfile, "fully_trusted_filter"):
+            tar.extractall(path=unpack_dir, filter="fully_trusted")
         else:
             tar.extractall(path=unpack_dir)
