@@ -106,3 +106,26 @@ class TestLogGroupProvider_for_lambda_function(TestCase):
         )
 
         self.assertIsNone(result)
+
+
+class TestLogGroupProvider_for_lambda_web_function(TestCase):
+    def test_default_log_group_name(self):
+        client_provider = Mock()
+        result = LogGroupProvider.for_resource(
+            client_provider,
+            "AWS::Lambda::WebFunction",
+            "arn:aws:lambda:us-east-1:123456789012:web-function/WebApp-1a2b3c4d",
+        )
+        self.assertEqual(result, "/aws/lambda/web/WebApp-1a2b3c4d")
+        # Nothing to look up: there's no SDK API for Web Functions yet
+        client_provider.assert_not_called()
+
+    @parameterized.expand(
+        [
+            ("arn:aws-cn:lambda:cn-north-1:123456789012:web-function/my-app/revision/3", "/aws/lambda/web/my-app"),
+            ("WebApp-1a2b3c4d", None),
+            ("arn:aws:lambda:us-east-1:123456789012:web-function/", None),
+        ]
+    )
+    def test_physical_ids(self, physical_id, expected):
+        self.assertEqual(LogGroupProvider.for_lambda_web_function(physical_id), expected)

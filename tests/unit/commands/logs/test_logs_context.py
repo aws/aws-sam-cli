@@ -63,6 +63,9 @@ class TestLogsCommandContext(TestCase):
 
 
 class TestResourcePhysicalIdResolver(TestCase):
+    def test_web_functions_are_supported(self):
+        self.assertIn("AWS::Lambda::WebFunction", ResourcePhysicalIdResolver.DEFAULT_SUPPORTED_RESOURCES)
+
     def test_get_resource_information_with_resources(self):
         resource_physical_id_resolver = ResourcePhysicalIdResolver(Mock(), Mock(), "stack_name", ["resource_name"])
         with mock.patch(

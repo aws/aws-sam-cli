@@ -12,6 +12,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
     AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_WEBFUNCTION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 from samcli.lib.utils.time import parse_date, to_utc
@@ -77,6 +78,7 @@ class ResourcePhysicalIdResolver:
     # list of resource types that is supported right now for pulling their logs
     DEFAULT_SUPPORTED_RESOURCES: Set[str] = {
         AWS_LAMBDA_FUNCTION,
+        AWS_LAMBDA_WEBFUNCTION,
         AWS_APIGATEWAY_RESTAPI,
         AWS_APIGATEWAY_V2_API,
         AWS_STEPFUNCTIONS_STATEMACHINE,
