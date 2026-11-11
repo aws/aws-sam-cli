@@ -67,7 +67,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
 
     def test_with_invalid_dockerfile_location(self):
         overrides = {
-            "Runtime": "3.10",
+            "Runtime": "3.14",
             "Handler": "handler",
             "DockerFile": "ThisDockerfileDoesNotExist",
             "Tag": uuid4().hex,
@@ -88,7 +88,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
 
     def test_with_invalid_dockerfile_definition(self):
         overrides = {
-            "Runtime": "3.10",
+            "Runtime": "3.14",
             "Handler": "handler",
             "DockerFile": "InvalidDockerfile",
             "Tag": uuid4().hex,

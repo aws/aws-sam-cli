@@ -11,6 +11,6 @@ Resources:
     Properties:
       CodeUri: python_function_no_deps/
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.14
     Metadata:
       SkipBuild: true

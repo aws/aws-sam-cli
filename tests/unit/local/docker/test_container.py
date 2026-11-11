@@ -20,6 +20,7 @@ from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container import (
     Container,
     ContainerContext,
+    ContainerNotStartableException,
     ContainerResponseException,
     ContainerConnectionTimeoutException,
     PortAlreadyInUse,
@@ -754,6 +755,106 @@ class TestContainer_start(TestCase):
 
         with self.assertRaises(PortAlreadyInUse):
             self.container.start()
+
+    @parameterized.expand(
+        [
+            # Docker Desktop.
+            ("500 Server Error: Ports are not available: exposing port TCP 127.0.0.1:3093", "desktop detail"),
+            # Docker Engine, port held by another container: moby's port allocator refuses it.
+            # Verified against Docker 25; the raw APIError used to escape here, and no command
+            # handler converts it into a UserException.
+            (
+                "500 Server Error: driver failed programming external connectivity on endpoint x: "
+                "Bind for 127.0.0.1:3093 failed: port is already allocated",
+                "allocator detail",
+            ),
+            # Docker Engine, port held by an ordinary process: the failure comes from the
+            # userland proxy's bind instead, with different wording. This is the likely shape
+            # on a remote daemon, where the holder is usually not a container.
+            (
+                "500 Server Error: driver failed programming external connectivity on endpoint x: "
+                "Error starting userland proxy: listen tcp4 127.0.0.1:3093: bind: address already in use",
+                "proxy detail",
+            ),
+            # Finch, port held by another container. Measured verbatim against Finch 1.17.2 /
+            # nerdctl 2.3.5: lowercase "bind for", which is why the match is on the fragment
+            # and not on Docker's whole sentence.
+            (
+                '400 Client Error: Bad Request ("failed to parse port mapping '
+                '"127.0.0.1:38199:8080/tcp": bind for 127.0.0.1:38199 failed: port is already allocated")',
+                "finch allocator detail",
+            ),
+            # Finch, bind-level refusal. nerdctl carries Go's bare errno text and has no
+            # "bind: "-prefixed form of it, so a prefixed match would miss this entirely.
+            (
+                "500 Server Error: failed to set up container networking: "
+                "listen tcp 127.0.0.1:3093: address already in use",
+                "finch bind detail",
+            ),
+        ]
+    )
+    def test_raises_port_inuse_error_for_every_engine_wording(self, error_message, explanation):
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError(error_message, explanation=explanation)
+
+        with self.assertRaises(PortAlreadyInUse) as raised:
+            self.container.start()
+
+        self.assertEqual(str(raised.exception), explanation)
+
+    @parameterized.expand(
+        [
+            # Docker Engine: the userland proxy prefixes the errno text with "bind: ".
+            (
+                "Error starting userland proxy: listen tcp4 192.168.99.99:3093: "
+                "bind: cannot assign requested address",
+            ),
+            # Finch: nerdctl carries the bare errno text with no "bind: " prefix, so the
+            # match must be prefix-free or this case escapes as a raw APIError.
+            ("failed to set up container networking: listen tcp 192.168.99.99:3093: cannot assign requested address",),
+        ]
+    )
+    def test_raises_not_startable_when_host_interface_does_not_exist(self, detail):
+        # A stale or mistyped --container-host-interface: the address does not exist on the
+        # machine running the container engine. Not a port conflict, so it must not be
+        # reported as one - but it must still be a UserException rather than a traceback, and
+        # it should name the flag that caused it.
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError(
+            f"500 Server Error: driver failed programming external connectivity on endpoint x: {detail}",
+            explanation=detail,
+        )
+
+        with self.assertRaises(ContainerNotStartableException) as raised:
+            self.container.start()
+
+        self.assertIn("192.168.99.99", str(raised.exception))
+        self.assertIn("--container-host-interface", str(raised.exception))
+        # The message must not name one engine: self.docker_client can be Docker or Finch.
+        self.assertNotIn("Docker", str(raised.exception))
+        # The engine's detail does not end in punctuation, so it must not run into the next
+        # sentence ("...requested address Pass --container-host-interface...").
+        self.assertIn(f"({detail}). Pass", str(raised.exception))
+
+    def test_raises_port_inuse_error_with_full_message_when_explanation_is_empty(self):
+        # APIError.explanation is None unless it was built from an HTTP response, so the
+        # reported reason falls back to the full message instead of being blank.
+        self.container.is_created.return_value = True
+
+        container_mock = Mock()
+        self.mock_docker_client.containers.get.return_value = container_mock
+        container_mock.start.side_effect = APIError("500 Server Error: port is already allocated")
+
+        with self.assertRaises(PortAlreadyInUse) as raised:
+            self.container.start()
+
+        self.assertEqual(str(raised.exception), "500 Server Error: port is already allocated")
 
     def test_docker_raises_api_error(self):
         self.container.is_created.return_value = True

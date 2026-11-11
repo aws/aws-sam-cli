@@ -479,6 +479,22 @@ class TestIntrinsicFnSubResolver(TestCase):
             symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template),
         )
 
+    @parameterized.expand([r"C:\project\data", r"\1", r"line\nnext", r"prefix\\suffix"])
+    def test_fn_sub_preserves_backslashes_in_parameter_values(self, value):
+        template = {"Parameters": {"Value": {"Type": "String", "Default": value}}}
+        resolver = IntrinsicResolver(template=template, symbol_resolver=IntrinsicsSymbolTable(template=template))
+
+        result = resolver.intrinsic_property_resolver({"Fn::Sub": "prefix:${Value}:suffix"}, False)
+
+        self.assertEqual(result, "prefix:" + value + ":suffix")
+
+    def test_fn_sub_preserves_backslashes_in_variable_map(self):
+        result = self.resolver.intrinsic_property_resolver(
+            {"Fn::Sub": ["${Path}/${AWS::Region}", {"Path": r"C:\project\data"}]}, False
+        )
+
+        self.assertEqual(result, r"C:\project\data/us-east-1")
+
     def test_fn_sub_basic_uri(self):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
@@ -586,6 +602,29 @@ class TestIntrinsicFnEqualsResolver(TestCase):
         intrinsic = {"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
+
+    @parameterized.expand(
+        [
+            ("true", "true", True),
+            ("true", True, True),
+            ("false", False, True),
+            ("1", 1, True),
+            ("1.5", 1.5, True),
+            ("true", False, False),
+            ("1", 2, False),
+            ("True", True, False),
+            ("Prod", "prod", False),
+            (True, 1, False),
+            (1, 1.0, False),
+        ]
+    )
+    def test_fn_equals_compares_as_strings(self, parameter_value, literal, expected):
+        # CloudFormation compares as strings, so a YAML literal like `true` equals the parameter value "true"
+        resolver = IntrinsicResolver(
+            template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator={"Flag": parameter_value})
+        )
+        result = resolver.intrinsic_property_resolver({"Fn::Equals": [{"Ref": "Flag"}, literal]}, True)
+        self.assertEqual(result, expected)
 
     @parameterized.expand(
         [

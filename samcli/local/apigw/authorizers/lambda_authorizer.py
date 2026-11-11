@@ -387,8 +387,10 @@ class LambdaAuthorizer(Authorizer):
             resource_list = resource if isinstance(resource, list) else [resource]
 
             for resource_arn in resource_list:
-                # form a regular expression from the possible wildcard resource ARN
-                regex_method_arn = resource_arn.replace("*", ".*").replace("?", ".")
+                # form a regular expression from the possible wildcard resource ARN;
+                # escape it first so that regex syntax in the ARN itself (such as the
+                # "$" in the HTTP API "$default" stage) is matched literally
+                regex_method_arn = re.escape(resource_arn).replace(r"\*", ".*").replace(r"\?", ".")
                 regex_method_arn += "$"
 
                 if re.match(regex_method_arn, method_arn):
