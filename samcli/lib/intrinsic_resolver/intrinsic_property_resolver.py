@@ -332,11 +332,22 @@ class IntrinsicResolver:
             self.intrinsic_property_resolver(item, ignore_errors, parent_function=IntrinsicResolver.FN_JOIN)
             for item in value_list
         ]
+        # A Ref to a Number parameter resolves to an int or float, which CloudFormation joins as a string.
+        # Keep in sync with FnJoinResolver._to_string in cfn_language_extensions.
+        sanitized_value_list = [self._number_as_string(item) for item in sanitized_value_list]
         verify_all_list_intrinsic_type(
             sanitized_value_list, verification_func=verify_intrinsic_type_str, property_type=IntrinsicResolver.FN_JOIN
         )
 
         return delimiter.join(sanitized_value_list)
+
+    @staticmethod
+    def _number_as_string(value: Any) -> Any:
+        if isinstance(value, bool):
+            return str(value).lower()
+        if isinstance(value, (int, float)):
+            return str(value)
+        return value
 
     def handle_fn_split(self, intrinsic_value, ignore_errors):
         """
