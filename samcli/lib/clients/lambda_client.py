@@ -232,18 +232,19 @@ class DurableFunctionsClient:
         # Prepare the request parameters
         params: Dict[str, Any] = {"DurableExecutionArn": durable_execution_arn}
 
-        # Add error object if any error fields are provided
-        if error_message or error_type or error_data or stack_trace:
-            error_object: Dict[str, Any] = {}
-            if error_message:
-                error_object["ErrorMessage"] = error_message
-            if error_type:
-                error_object["ErrorType"] = error_type
-            if error_data:
-                error_object["ErrorData"] = error_data
-            if stack_trace:
-                error_object["StackTrace"] = stack_trace
-            params["Error"] = error_object
+        # Build Error dict if any error fields are provided
+        error_dict: Dict[str, Any] = {}
+        if error_message:
+            error_dict["ErrorMessage"] = error_message
+        if error_type:
+            error_dict["ErrorType"] = error_type
+        if error_data:
+            error_dict["ErrorData"] = error_data
+        if stack_trace:
+            error_dict["StackTrace"] = stack_trace
+
+        if error_dict:
+            params["Error"] = error_dict
 
         try:
             # Call the StopDurableExecution API
