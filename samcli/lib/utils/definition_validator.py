@@ -91,10 +91,11 @@ Please verify that file is in the correct json or yaml format.",
         except OSError as e:
             LOG.warning(
                 "File %s failed to validate because it cannot be read. \
-The change will not be synced until the file is saved again.",
+The change will not be synced until the file is saved again: %s",
                 self._path,
-                exc_info=e,
+                e,
             )
+            LOG.debug("Failed to read %s", self._path, exc_info=e)
             return False
         return True
 
