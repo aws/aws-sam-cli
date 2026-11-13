@@ -1,0 +1,206 @@
+# PR Size Labeler
+#
+# Labels every PR with one of size/XS, size/S, size/M, size/L, size/XL, size/XXL
+# based on additions+deletions across non-excluded files, and fails the check on
+# size/XXL unless a maintainer applies size/override.
+#
+# ONE-TIME SETUP (a maintainer must run these once after this workflow merges):
+#   gh label create size/XS       --color ededed --description "PR size: 0-9 changed lines"
+#   gh label create size/S        --color c2e0c6 --description "PR size: 10-29 changed lines"
+#   gh label create size/M        --color fef2c0 --description "PR size: 30-99 changed lines"
+#   gh label create size/L        --color fbca04 --description "PR size: 100-499 changed lines"
+#   gh label create size/XL       --color e99695 --description "PR size: 500-999 changed lines"
+#   gh label create size/XXL      --color b60205 --description "PR size: 1000+ changed lines"
+#   gh label create size/override --color 0e8a16 --description "Maintainer override for size/XXL gate"
+#
+# Spec: docs/superpowers/specs/2026-06-01-pr-size-labeler-design.md
+
+name: "PR Size Labeler"
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+# Cancel in-flight runs on rapid pushes; the latest push is what matters.
+concurrency:
+  group: pr-size-labeler-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  size-label:
+    name: Size label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - name: Compute size, label, and gate
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            // ---- Buckets (sorted ascending by lower bound). ----
+            const BUCKETS = [
+              { label: 'size/XS',  min: 0,    max: 9 },
+              { label: 'size/S',   min: 10,   max: 29 },
+              { label: 'size/M',   min: 30,   max: 99 },
+              { label: 'size/L',   min: 100,  max: 499 },
+              { label: 'size/XL',  min: 500,  max: 999 },
+              { label: 'size/XXL', min: 1000, max: Infinity },
+            ];
+            const SIZE_LABELS = BUCKETS.map(b => b.label);
+            const OVERRIDE_LABEL = 'size/override';
+            const STICKY_MARKER = '<!-- pr-size-labeler -->';
+
+            // ---- Exclusion globs. Files matching ANY glob are excluded
+            //      from the size count. Edit this list to tune. ----
+            const EXCLUDE_GLOBS = [
+              '**/*.lock',
+              '**/package-lock.json',
+              '**/poetry.lock',
+              '**/yarn.lock',
+              '**/Pipfile.lock',
+              '**/uv.lock',
+              '**/requirements*.txt',
+              'schema/**',
+              '**/__snapshots__/**',
+              '**/*.snap',
+              '**/*.svg',
+              '**/*.png',
+              '**/*.jpg',
+              '**/*.jpeg',
+              '**/*.gif',
+              '**/*.ico',
+              '**/*.pdf',
+            ];
+
+            const minimatch = require('minimatch');
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+
+            function shouldExclude(filename) {
+              return EXCLUDE_GLOBS.some(g => minimatch(filename, g, { dot: true }));
+            }
+            function pickBucket(n) {
+              return BUCKETS.find(b => n >= b.min && n <= b.max);
+            }
+
+            async function upsertStickyComment(body) {
+              const fullBody = `${STICKY_MARKER}\n${body}`;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: pull_number,
+                per_page: 100,
+              });
+              const existing = comments.find(c => c.body && c.body.startsWith(STICKY_MARKER));
+              if (existing) {
+                await github.rest.issues.updateComment({
+                  owner,
+                  repo,
+                  comment_id: existing.id,
+                  body: fullBody,
+                });
+              } else {
+                await github.rest.issues.createComment({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  body: fullBody,
+                });
+              }
+            }
+
+            let bucket;
+            let total = 0;
+            let currentLabels = [];
+
+            try {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner,
+                repo,
+                pull_number,
+                per_page: 100,
+              });
+              const truncated = files.length === 3000;
+              if (truncated) {
+                core.warning('Pull-request files response hit GitHub\'s 3000-file cap; counting partial sum. The PR is XXL regardless.');
+              }
+
+              let excludedFiles = 0;
+              for (const f of files) {
+                if (shouldExclude(f.filename)) {
+                  excludedFiles += 1;
+                  continue;
+                }
+                total += (f.additions || 0) + (f.deletions || 0);
+              }
+
+              bucket = pickBucket(total);
+              core.info(`PR #${pull_number}: ${total} changed lines (excluded ${excludedFiles}/${files.length} files) -> ${bucket.label}`);
+              await core.summary
+                .addHeading('PR size')
+                .addRaw(`**${bucket.label}** — ${total} changed lines (excluded ${excludedFiles}/${files.length} files)${truncated ? ' _(file list was truncated)_' : ''}`)
+                .write();
+
+              currentLabels = (context.payload.pull_request.labels || []).map(l => l.name);
+              const stale = currentLabels.filter(n => SIZE_LABELS.includes(n) && n !== bucket.label);
+              const alreadyApplied = currentLabels.includes(bucket.label);
+
+              if (!alreadyApplied) {
+                await github.rest.issues.addLabels({
+                  owner,
+                  repo,
+                  issue_number: pull_number,
+                  labels: [bucket.label],
+                });
+                core.info(`Applied label ${bucket.label}`);
+              }
+              for (const name of stale) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number: pull_number,
+                    name,
+                  });
+                  core.info(`Removed stale label ${name}`);
+                } catch (err) {
+                  // 404 = label was already removed by another run. Ignore.
+                  if (err.status !== 404) throw err;
+                }
+              }
+            } catch (err) {
+              // Sizing infra should not block PRs when GitHub's API is flaky.
+              // The intentional XXL-without-override failure happens AFTER this
+              // catch and is therefore unaffected.
+              core.warning(`PR size labeler: non-fatal error during sizing/labeling: ${err.message}`);
+              await core.summary
+                .addRaw(`PR size labeler hit a non-fatal error: \`${err.message}\``)
+                .write();
+              return;  // Skip the gate when we can't trust `bucket` / `currentLabels`.
+            }
+
+            // ---- XXL gate (outside try/catch). ----
+            if (bucket.label === 'size/XXL') {
+              const overrideActive = currentLabels.includes(OVERRIDE_LABEL);
+              const overrideParagraph = overrideActive
+                ? `A maintainer applied \`${OVERRIDE_LABEL}\`; this PR is allowed despite its size. Remove the label to re-arm the gate.`
+                : `A maintainer can apply the \`${OVERRIDE_LABEL}\` label to bypass this check.`;
+              const body = [
+                `**PR size: \`XXL\` (${total} changed lines)**`,
+                ``,
+                `This PR exceeds the 1,000-line threshold. Smaller PRs get reviewed faster and are easier to revert.`,
+                ``,
+                overrideParagraph,
+                ``,
+                `_Excluded from the count: lockfiles, schema, snapshots, images. See \`.github/workflows/pr-size-labeler.yml\` to adjust._`,
+              ].join('\n');
+              await upsertStickyComment(body);
+
+              if (!overrideActive) {
+                core.setFailed(
+                  `PR has ${total} changed lines (>= 1000). Apply the \`${OVERRIDE_LABEL}\` label to bypass.`,
+                );
+              }
+            }
