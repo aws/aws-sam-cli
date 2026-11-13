@@ -11,7 +11,6 @@ import docker
 from samcli.lib.utils.architecture import InvalidArchitecture
 from samcli.local.docker.utils import (
     to_posix_path,
-    find_free_port,
     get_rapid_name,
     get_docker_platform,
     get_image_arch,
@@ -19,7 +18,6 @@ from samcli.local.docker.utils import (
     get_local_image_digest,
     get_remote_image_digest,
 )
-from samcli.local.docker.exceptions import NoFreePortsError
 
 
 class TestPosixPath(TestCase):
@@ -37,34 +35,6 @@ class TestPosixPath(TestCase):
     def test_do_not_convert_posix_path(self, mock_os):
         mock_os.name = "posix"
         self.assertEqual(self.current_working_dir, to_posix_path(self.current_working_dir))
-
-
-class TestFreePorts(TestCase):
-    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
-    @patch("samcli.local.docker.utils.socket")
-    @patch("samcli.local.docker.utils.random")
-    def test_free_port_first_attempt(self, network_interface, mock_random, mock_socket):
-        mock_random.randrange = Mock(side_effect=[3093] * 1000)
-        port = find_free_port(network_interface, start=3000, end=4000)
-        self.assertEqual(port, 3093)
-
-    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
-    @patch("samcli.local.docker.utils.socket")
-    @patch("samcli.local.docker.utils.random")
-    def test_free_port_second_attempt(self, network_interface, mock_random, mock_socket):
-        mock_socket.socket.return_value.bind.side_effect = [OSError, None]
-        mock_random.randrange = Mock(side_effect=[3093, 3094] * 1000)
-        port = find_free_port(network_interface, start=3000, end=4000)
-        self.assertEqual(port, 3094)
-
-    @parameterized.expand([("0.0.0.0",), ("127.0.0.1",)])
-    @patch("samcli.local.docker.utils.socket")
-    @patch("samcli.local.docker.utils.random")
-    def test_free_port_no_free_ports(self, network_interface, mock_random, mock_socket):
-        mock_socket.socket.return_value.bind.side_effect = OSError
-        mock_random.randrange = Mock(side_effect=[3093] * 1000)
-        with self.assertRaises(NoFreePortsError):
-            find_free_port(network_interface, start=3000, end=4000)
 
 
 class TestGetRapidName(TestCase):
