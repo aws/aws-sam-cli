@@ -468,6 +468,41 @@ class TestLambdaContainer_init(TestCase):
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
         get_additional_volumes_mock.assert_called_with(self.runtime, self.debug_options)
 
+    @parameterized.expand(
+        [
+            param("function_node_options", "--experimental-loader /var/task/loader.mjs"),
+            param("no_function_node_options", None),
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    def test_debugger_node_options_keep_function_node_options(
+        self, _, function_node_options, get_image_mock, mock_get_validated_client
+    ):
+        debug_node_options = "--inspect-brk=0.0.0.0:1235 --max-http-header-size 81920"
+        env_vars = {"var": "value"}
+        expected_node_options = debug_node_options
+        if function_node_options:
+            env_vars["NODE_OPTIONS"] = function_node_options
+            expected_node_options = f"{debug_node_options} {function_node_options}"
+
+        container = LambdaContainer(
+            image_config=self.image_config,
+            imageuri=self.imageuri,
+            packagetype=self.packagetype,
+            runtime="nodejs22.x",
+            handler=self.handler,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            env_vars=env_vars,
+            debug_options=DebugContext(debug_args=None, debug_ports=[1235]),
+        )
+
+        self.assertEqual(expected_node_options, container._env_vars["NODE_OPTIONS"])
+        self.assertEqual("value", container._env_vars["var"])
+
     @patch("samcli.local.docker.utils.get_validated_container_client")
     def test_must_fail_for_unsupported_runtime(self, mock_get_validated_client):
         runtime = "foo"

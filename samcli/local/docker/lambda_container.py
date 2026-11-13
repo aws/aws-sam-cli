@@ -136,6 +136,14 @@ class LambdaContainer(Container):
                 _entrypoint = _entrypoint + _additional_entrypoint_args
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
 
+        # The debugger configures NODE_OPTIONS (e.g. --inspect-brk). Append the NODE_OPTIONS configured on the
+        # function instead of letting the debugger's value replace it.
+        if container_env_vars.get("NODE_OPTIONS") and env_vars.get("NODE_OPTIONS"):
+            container_env_vars = {
+                **container_env_vars,
+                "NODE_OPTIONS": f"{container_env_vars['NODE_OPTIONS']} {env_vars['NODE_OPTIONS']}",
+            }
+
         env_vars = {**env_vars, **container_env_vars}
 
         # Prepare container labels with SAM CLI defaults
