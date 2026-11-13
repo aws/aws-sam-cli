@@ -37,6 +37,14 @@ class InvalidTemplateException(Exception):
         return str(self.args[0])
 
 
+class UnresolvedForEachCollectionException(InvalidTemplateException):
+    """Raised when a valid Fn::ForEach collection cannot be resolved locally."""
+
+    def __init__(self, foreach_key: str):
+        self.foreach_key = foreach_key
+        super().__init__(f"{foreach_key} collection cannot be resolved locally; CloudFormation must resolve it.")
+
+
 class UnresolvableReferenceError(Exception):
     """
     Raised when a reference cannot be resolved in the current context.

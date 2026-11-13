@@ -2,13 +2,19 @@
 Class that provides all nested stacks from a given SAM template
 """
 
+import copy
 import logging
 import os
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
 from urllib.parse import unquote, urlparse
 
 from samcli.commands._utils.template import TemplateNotFoundException, get_template_data
-from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult, expand_language_extensions
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.sam_integration import (
+    LanguageExtensionResult,
+    expand_language_extensions,
+)
+from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.providers.exceptions import RemoteStackLocationNotSupported
 from samcli.lib.providers.provider import Stack, get_full_path
@@ -278,9 +284,25 @@ class SamLocalStackProvider(SamBaseProvider):
         parameter_values.update(IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES)
         parameter_values.update(merged_params or {})
 
-        lang_ext_result = expand_language_extensions(
-            template_dict, parameter_values=parameter_values, enabled=language_extensions_enabled
-        )
+        try:
+            lang_ext_result = expand_language_extensions(
+                template_dict, parameter_values=parameter_values, enabled=language_extensions_enabled
+            )
+        except InvalidSamDocumentException:
+            if not stack_path:
+                raise
+
+            # Nested templates may depend on values only CloudFormation can resolve
+            # (for example, a child CommaDelimitedList passed from an SSM parameter).
+            # Keep their original template for CloudFormation and omit ForEach blocks
+            # from the local SAM translator's view so stack discovery can continue.
+            expanded_template = SamLocalStackProvider._template_without_foreach_constructs(template_dict)
+            lang_ext_result = LanguageExtensionResult(
+                expanded_template=expanded_template,
+                original_template=copy.deepcopy(template_dict),
+                dynamic_artifact_properties=[],
+                had_language_extensions=True,
+            )
         processed_template_dict = lang_ext_result.expanded_template
 
         # Store the original template (before language extensions processing) for CloudFormation deployment
@@ -326,6 +348,16 @@ class SamLocalStackProvider(SamBaseProvider):
             remote_stack_full_paths.extend(remote_stack_full_paths_in_child)
 
         return stacks, remote_stack_full_paths
+
+    @staticmethod
+    def _template_without_foreach_constructs(template_dict: Dict[str, Any]) -> Dict[str, Any]:
+        """Copy a template while removing top-level Fn::ForEach entries for SAM translation."""
+        result = copy.deepcopy(template_dict)
+        for section_name in ("Resources", "Conditions", "Outputs"):
+            section = result.get(section_name)
+            if isinstance(section, dict):
+                result[section_name] = {key: value for key, value in section.items() if not is_foreach_key(key)}
+        return result
 
     @staticmethod
     def is_remote_url(url: str) -> bool:
