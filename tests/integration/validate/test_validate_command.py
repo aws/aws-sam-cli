@@ -158,6 +158,7 @@ class TestValidate(TestCase):
             ("nodejs20.x"),
             ("provided.al2",),
             ("python3.10",),
+            ("dotnet8",),
         ]
     )
     def test_lint_deprecated_runtimes(self, runtime):
@@ -203,7 +204,6 @@ class TestValidate(TestCase):
         }
         supported_runtimes = [
             "dotnet10",
-            "dotnet8",
             "java25",
             "java21",
             "java17",
