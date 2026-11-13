@@ -1054,6 +1054,32 @@ class TestIntrinsicAttribteResolution(TestCase):
 
 
 class TestResolveTemplate(TestCase):
+    @parameterized.expand(
+        [
+            ("AWS::Serverless::StateMachine", {"Fn::GetAtt": ["MyStateMachine", "Arn"]}),
+            ("AWS::StepFunctions::StateMachine", {"Fn::Sub": "${MyStateMachine.Arn}"}),
+        ]
+    )
+    @patch.dict("os.environ", {"AWS_REGION": "eu-west-1"}, clear=False)
+    def test_state_machine_arn_in_function_environment(self, resource_type, reference):
+        template = {
+            "Resources": {
+                "TestFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"Environment": {"Variables": {"STATE_MACHINE_ARN": reference}}},
+                },
+                "MyStateMachine": {"Type": resource_type},
+            }
+        }
+        resolver = IntrinsicResolver(template=template, symbol_resolver=IntrinsicsSymbolTable(template=template))
+
+        result = resolver.resolve_template()
+
+        self.assertEqual(
+            result["Resources"]["TestFunction"]["Properties"]["Environment"]["Variables"]["STATE_MACHINE_ARN"],
+            "arn:aws:states:eu-west-1:123456789012:stateMachine:MyStateMachine",
+        )
+
     def test_parameter_not_resolved(self):
         template = {
             "Parameters": {"TestStageName": {"Default": "test", "Type": "string"}},
