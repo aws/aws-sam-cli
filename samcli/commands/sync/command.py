@@ -26,6 +26,7 @@ from samcli.commands._utils.options import (
     build_in_source_option,
     capabilities_option,
     container_env_var_file_option,
+    force_upload_option,
     image_repositories_option,
     image_repository_option,
     kms_key_id_option,
@@ -183,6 +184,7 @@ DEFAULT_CAPABILITIES = ("CAPABILITY_NAMED_IAM", "CAPABILITY_AUTO_EXPAND")
 @image_repository_option
 @image_repositories_option
 @s3_bucket_option(disable_callback=True)  # pylint: disable=E1120
+@force_upload_option
 @s3_prefix_option
 @kms_key_id_option
 @role_arn_option
@@ -219,6 +221,7 @@ def cli(
     image_repository: str,
     image_repositories: Optional[List[str]],
     s3_bucket: str,
+    force_upload: bool,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -260,6 +263,7 @@ def cli(
         image_repository,
         image_repositories,
         s3_bucket,
+        force_upload,
         s3_prefix,
         kms_key_id,
         capabilities,
@@ -296,6 +300,7 @@ def do_cli(
     image_repository: str,
     image_repositories: Optional[List[str]],
     s3_bucket: str,
+    force_upload: bool,
     s3_prefix: str,
     kms_key_id: str,
     capabilities: Optional[List[str]],
@@ -394,7 +399,7 @@ def do_cli(
                 region=region,
                 profile=profile,
                 use_json=False,
-                force_upload=True,
+                force_upload=force_upload,
                 language_extensions=language_extensions,
                 # Web Function code goes to this stack's code bucket
                 web_function_stack_name=stack_name if not s3_bucket else None,
@@ -428,7 +433,7 @@ def do_cli(
                     fail_on_empty_changeset=True,
                     confirm_changeset=False,
                     use_changeset=False,
-                    force_upload=True,
+                    force_upload=force_upload,
                     signing_profiles=None,
                     disable_rollback=False,
                     poll_delay=poll_delay,
