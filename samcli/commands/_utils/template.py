@@ -399,11 +399,19 @@ def _resolve_relative_to(path, original_root, new_root):
         return None
 
     # Value is definitely a relative path. Change it relative to the destination directory
-    return os.path.relpath(
-        # Resolve the paths to take care of symlinks
-        os.path.normpath(os.path.join(pathlib.Path(original_root).resolve(), path)),
-        pathlib.Path(new_root).resolve(),  # Absolute original path w.r.t ``original_root``
-    )  # Resolve the original path with respect to ``new_root``
+    # Resolve the paths to take care of symlinks
+    absolute_path = os.path.normpath(os.path.join(pathlib.Path(original_root).resolve(), path))
+    try:
+        return os.path.relpath(
+            absolute_path,
+            pathlib.Path(new_root).resolve(),  # Absolute original path w.r.t ``original_root``
+        )  # Resolve the original path with respect to ``new_root``
+    except ValueError:
+        # os.path.relpath raises ValueError when the two paths are on different drives or
+        # UNC mounts, which happens on Windows when the template and the build directory
+        # are not on the same drive. A relative path cannot express that, so fall back to
+        # the absolute path rather than letting the exception escape.
+        return absolute_path
 
 
 def get_template_parameters(template_file):
