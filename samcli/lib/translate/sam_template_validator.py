@@ -160,8 +160,9 @@ class SamTemplateValidator:
             if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
-            # A Web Function has no default CodeUri, so leave a missing one for the translator to report
-            if resource_type == AWS_SERVERLESS_WEBFUNCTION and "CodeUri" in resource_dict:
+            # Like build and package, treat a missing CodeUri as the template's directory. Leave InlineCode for the
+            # translator to report, since Web Functions don't support it yet
+            if resource_type == AWS_SERVERLESS_WEBFUNCTION and "InlineCode" not in resource_dict:
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
             if resource_type == "AWS::Serverless::LayerVersion":

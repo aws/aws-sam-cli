@@ -315,9 +315,13 @@ class TestSamTemplateValidator(TestCase):
                         "AuthType": "IamAuth",
                     },
                 },
-                "NoCode": {
+                "InlineCode": {
                     "Type": "AWS::Serverless::WebFunction",
                     "Properties": {"Runtime": "nodejs24.x", "InlineCode": "code", "AuthType": "IamAuth"},
+                },
+                "NoCodeUri": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "AuthType": "IamAuth"},
                 },
             },
         }
@@ -328,8 +332,10 @@ class TestSamTemplateValidator(TestCase):
         resources = validator.sam_template["Resources"]
         self.assertEqual(resources["LocalCode"]["Properties"]["CodeUri"], "s3://bucket/value")
         self.assertEqual(resources["S3Code"]["Properties"]["CodeUri"], "s3://my-bucket/code.zip")
-        # Unlike a Function, a Web Function has no default CodeUri, so don't add one
-        self.assertNotIn("CodeUri", resources["NoCode"]["Properties"])
+        # Build and package use the template's directory for a missing CodeUri
+        self.assertEqual(resources["NoCodeUri"]["Properties"]["CodeUri"], "s3://bucket/value")
+        # Left for the translator to report: Web Functions don't support InlineCode yet
+        self.assertNotIn("CodeUri", resources["InlineCode"]["Properties"])
 
     def test_replace_local_codeuri_with_no_resources(self):
         template = {
