@@ -6,9 +6,9 @@ import logging
 from typing import List, Tuple
 
 from samcli.commands.local.lib.swagger.reader import SwaggerReader
-from samcli.lib.providers.provider import Stack
+from samcli.lib.providers.provider import Stack, get_full_path
 from samcli.lib.providers.sam_function_provider import SamFunctionProvider
-from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API
+from samcli.lib.utils.resources import AWS_APIGATEWAY_RESTAPI, AWS_APIGATEWAY_V2_API, AWS_SERVERLESS_WEBFUNCTION
 
 LOG = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 def auth_per_resource(stacks: List[Stack]):
     """
     Check if authentication has been set for the function resources defined in the template that have `Api` Event type
-    or the function property FunctionUrlConfig.
+    or the function property FunctionUrlConfig, and for Web Functions.
 
     Parameters
     ----------
@@ -45,7 +45,30 @@ def auth_per_resource(stacks: List[Stack]):
             function_resource_name = f"{sam_function.name} Function Url"
             _auth_per_resource.append((function_resource_name, bool(authorization_type != "NONE")))
 
+    _auth_per_resource.extend(_web_function_auth(stacks))
+
     return _auth_per_resource
+
+
+def _web_function_auth(stacks: List[Stack]) -> List[Tuple[str, bool]]:
+    """
+    Whether each Web Function's endpoint requires authentication. With AuthType ApplicationManaged the endpoint is
+    public and the function must authorize requests itself, like a Function URL with AuthType NONE.
+    """
+    web_function_auth: List[Tuple[str, bool]] = []
+    for stack in stacks:
+        for logical_id, resource in stack.resources.items():
+            if not isinstance(resource, dict) or resource.get("Type") != AWS_SERVERLESS_WEBFUNCTION:
+                continue
+            properties = resource.get("Properties") or {}
+            auth_type = properties.get("AuthType") if isinstance(properties, dict) else None
+            web_function_auth.append(
+                (
+                    f"{get_full_path(stack.stack_path, logical_id)} Web Function endpoint",
+                    auth_type != "ApplicationManaged",
+                )
+            )
+    return web_function_auth
 
 
 def _auth_resource_event(sam_function_provider: SamFunctionProvider, sam_function, auth_resource_list):

@@ -13,6 +13,7 @@ AWS_SERVERLESS_WEBFUNCTION = "AWS::Serverless::WebFunction"
 AWS_SERVERLESS_MICROVMIMAGE = "AWS::Serverless::MicrovmImage"
 
 AWS_LAMBDA_FUNCTION = "AWS::Lambda::Function"
+AWS_LAMBDA_WEBFUNCTION = "AWS::Lambda::WebFunction"
 AWS_LAMBDA_LAYERVERSION = "AWS::Lambda::LayerVersion"
 AWS_LAMBDA_MICROVMIMAGE = "AWS::Lambda::MicrovmImage"
 

@@ -17,7 +17,7 @@ from samcli.lib.cfn_language_extensions.sam_integration import expand_language_e
 from samcli.lib.cfn_language_extensions.utils import is_foreach_key
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.utils.packagetype import IMAGE, ZIP
-from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
+from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION, AWS_SERVERLESS_WEBFUNCTION
 from samcli.yamlhelper import yaml_dump
 
 LOG = logging.getLogger(__name__)
@@ -129,10 +129,10 @@ class SamTemplateValidator:
 
     def _replace_local_codeuri(self):
         """
-        Replaces the CodeUri in AWS::Serverless::Function and DefinitionUri in AWS::Serverless::Api and
-        AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM Translator with
-        valid values for these fields. If this in not done, the template is invalid in the eyes of SAM
-        Translator (the translator does not support local paths)
+        Replaces the CodeUri in AWS::Serverless::Function and AWS::Serverless::WebFunction and DefinitionUri in
+        AWS::Serverless::Api and AWS::Serverless::HttpApi to a fake S3 Uri. This is to support running the SAM
+        Translator with valid values for these fields. If this in not done, the template is invalid in the eyes of
+        SAM Translator (the translator does not support local paths)
         """
 
         all_resources = self.sam_template.get("Resources", {})
@@ -158,6 +158,11 @@ class SamTemplateValidator:
             resource_dict = resource.get("Properties", {})
 
             if resource_type == "AWS::Serverless::Function" and resource_dict.get("PackageType", ZIP) == ZIP:
+                SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
+
+            # Like build and package, treat a missing CodeUri as the template's directory. Leave InlineCode for the
+            # translator to report, since Web Functions don't support it yet
+            if resource_type == AWS_SERVERLESS_WEBFUNCTION and "InlineCode" not in resource_dict:
                 SamTemplateValidator._update_to_s3_uri("CodeUri", resource_dict)
 
             if resource_type == "AWS::Serverless::LayerVersion":
