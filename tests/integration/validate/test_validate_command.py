@@ -234,6 +234,9 @@ class TestValidate(TestCase):
             template_file = Path(temp, "template.json")
             with open(template_file, "w") as f:
                 f.write(json.dumps(template, indent=4) + "\n")
+            # W2531 fires on a runtime's deprecation date, which would fail this test on a calendar
+            # day with no code change. E2531 (creation blocked) still fails it, as it should.
+            Path(temp, ".cfnlintrc").write_text("ignore_checks:\n  - W2531\n")
             command_result = run_command(self.command_list(lint=True), cwd=str(temp))
             pattern = self.lint_patterns[TemplateFileTypes.JSON]
             output = command_result.stdout.decode("utf-8")
