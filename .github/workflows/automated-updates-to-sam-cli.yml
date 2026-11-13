@@ -14,28 +14,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR already exists
+        id: pr_check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_app_templates_hash --json id --jq length)
           if [ "$PR_COUNT" -ge 1 ]; then
             echo "PR already exists for update_app_templates_hash, skipping workflow"
-            exit 1
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout App Templates
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/aws-sam-cli-app-templates
           path: aws-sam-cli-app-templates
 
       - name: Checkout SAM CLI
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/aws-sam-cli
           path: aws-sam-cli
 
       - name: Update hash & commit
+        if: steps.pr_check.outputs.exists != 'true'
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -54,7 +58,7 @@ jobs:
       - name: Raise PR for SAM CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ env.is_hash_changed == 1 }} # run only if there was a change
+        if: ${{ steps.pr_check.outputs.exists != 'true' && env.is_hash_changed == 1 }} # run only if there was a change
         run: |
           cd aws-sam-cli
           git push --force origin update_app_templates_hash
@@ -69,16 +73,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR already exists
+        id: pr_check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_sam_transform_version --json id --jq length)
           if [ "$PR_COUNT" -ge 1 ]; then
             echo "PR already exists for update_sam_transform_version, skipping workflow"
-            exit 1
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout SAM
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/serverless-application-model
@@ -87,6 +93,7 @@ jobs:
           fetch-depth: 0
       
       - name: Checkout SAM CLI
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/aws-sam-cli
@@ -97,9 +104,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
+        if: steps.pr_check.outputs.exists != 'true'
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
       - name: Update aws-sam-translator & commit
+        if: steps.pr_check.outputs.exists != 'true'
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -123,7 +132,7 @@ jobs:
       - name: Raise PR for SAM CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ env.is_new_sam_t == 1 }} # run only if there was a change
+        if: ${{ steps.pr_check.outputs.exists != 'true' && env.is_new_sam_t == 1 }} # run only if there was a change
         run: |
           cd aws-sam-cli
           git push --force origin update_sam_transform_version
@@ -138,16 +147,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if PR already exists
+        id: pr_check
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_COUNT=$(gh pr list --repo aws/aws-sam-cli --head update_lambda_builders_version --json id --jq length)
           if [ "$PR_COUNT" -ge 1 ]; then
             echo "PR already exists for update_lambda_builders_version, skipping workflow"
-            exit 1
+            echo "exists=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Checkout Lambda Builders
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/aws-lambda-builders
@@ -156,6 +167,7 @@ jobs:
           fetch-depth: 0
 
       - name: Checkout SAM CLI
+        if: steps.pr_check.outputs.exists != 'true'
         uses: actions/checkout@v7
         with:
           repository: aws/aws-sam-cli
@@ -166,9 +178,11 @@ jobs:
           python-version: "3.11"
 
       - name: Install uv
+        if: steps.pr_check.outputs.exists != 'true'
         uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
 
       - name: Upgrade aws_lambda_builders & commit
+        if: steps.pr_check.outputs.exists != 'true'
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -191,7 +205,7 @@ jobs:
       - name: Raise PR for SAM CLI
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ env.is_new_lambda_builders == 1 }} # run only if there was a change
+        if: ${{ steps.pr_check.outputs.exists != 'true' && env.is_new_lambda_builders == 1 }} # run only if there was a change
         run: |
           cd aws-sam-cli
           git push --force origin update_lambda_builders_version
