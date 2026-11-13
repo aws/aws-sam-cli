@@ -24,6 +24,7 @@ INFRASTRUCTURE_OPTION_NAMES: List[str] = [
 
 DEPLOYMENT_OPTIONS: List[str] = [
     "force_upload",
+    "parallel_upload",
 ]
 
 CONFIGURATION_OPTION_NAMES: List[str] = ["config_env", "config_file"] + SAVE_PARAMS_OPTIONS
