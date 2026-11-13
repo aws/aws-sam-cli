@@ -1,0 +1,70 @@
+name: Fetch Public ECR images
+
+# Reusable workflow: pulls container images from Public ECR once and uploads them as an artifact,
+# so test jobs can `docker load` them instead of pulling. Anonymous pulls from GitHub-hosted runners
+# fail with "toomanyrequests: Data limit exceeded" once the runner IP's monthly allowance is spent.
+#
+# Only this workflow mints an OIDC token, and it runs no PR code. Without the role secret (fork PRs)
+# it pulls anonymously.
+
+on:
+  workflow_call:
+    inputs:
+      images:
+        description: Space-separated images to pull
+        required: true
+        type: string
+      artifact-name:
+        description: Name of the uploaded artifact
+        required: true
+        type: string
+    secrets:
+      ECR_PUBLIC_PULL_ROLE_ARN:
+        description: Role allowed only ecr-public:GetAuthorizationToken and sts:GetServiceBearerToken
+        required: false
+
+permissions:
+  id-token: write
+
+jobs:
+  fetch:
+    name: Fetch images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ROLE_ARN: ${{ secrets.ECR_PUBLIC_PULL_ROLE_ARN }}
+      IMAGES: ${{ inputs.images }}
+    steps:
+      - name: Configure AWS credentials via OIDC
+        id: aws
+        if: env.ROLE_ARN != ''
+        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@cbe3b392738ccf3f987d68400dafcf4b0624a56c # v6
+        with:
+          role-to-assume: ${{ env.ROLE_ARN }}
+          aws-region: us-east-1
+      - name: Log in to Public ECR
+        if: steps.aws.outcome == 'success'
+        continue-on-error: true
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+        with:
+          registry-type: public
+      - name: Pull and save the images
+        id: save
+        continue-on-error: true
+        run: |
+          for image in $IMAGES; do
+            for attempt in 1 2 3; do
+              docker pull "$image" && break
+              [ "$attempt" = 3 ] && exit 1
+              sleep 30
+            done
+          done
+          # shellcheck disable=SC2086
+          docker save $IMAGES | gzip > images.tar.gz
+      - uses: actions/upload-artifact@v7
+        if: steps.save.outcome == 'success'
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: images.tar.gz
+          retention-days: 1
