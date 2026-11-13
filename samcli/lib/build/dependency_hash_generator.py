@@ -1,10 +1,36 @@
 """Utility Class for Getting Function or Layer Manifest Dependency Hashes"""
 
+import os
 import pathlib
-from typing import Any, Optional
+from typing import Any, List, Optional
+
+import tomlkit
+from aws_lambda_builders.workflows.python_uv.utils import detect_uv_manifest
+from tomlkit.exceptions import TOMLKitError
 
 from samcli.lib.build.workflow_config import get_workflow_config
-from samcli.lib.utils.hash import file_checksum
+from samcli.lib.utils.hash import file_checksum, str_checksum
+
+PYTHON_UV_BUILD_METHOD = "python-uv"
+
+
+def _find_uv_lock(project_dir: pathlib.Path) -> Optional[pathlib.Path]:
+    """Return the uv.lock uv uses: the project's own, or the one at the nearest uv workspace root above it"""
+    if (project_dir / "uv.lock").is_file():
+        return project_dir / "uv.lock"
+    # shortcut: the workspace's members/exclude globs are not checked; match uv's discovery if that matters
+    for directory in project_dir.parents:
+        pyproject = directory / "pyproject.toml"
+        if not pyproject.is_file():
+            continue
+        try:
+            is_workspace_root = "workspace" in tomlkit.parse(pyproject.read_text()).get("tool", {}).get("uv", {})
+        except (OSError, TOMLKitError):
+            continue
+        if is_workspace_root:
+            lock = directory / "uv.lock"
+            return lock if lock.is_file() else None
+    return None
 
 
 # TODO Expand this class to hash specific sections of the manifest
@@ -13,6 +39,7 @@ class DependencyHashGenerator:
     _base_dir: str
     _code_dir: str
     _runtime: str
+    _build_method: Optional[str]
     _manifest_path_override: Optional[str]
     _hash_generator: Any
     _calculated: bool
@@ -25,6 +52,7 @@ class DependencyHashGenerator:
         runtime: str,
         manifest_path_override: Optional[str] = None,
         hash_generator: Any = None,
+        build_method: Optional[str] = None,
     ):
         """
         Parameters
@@ -39,12 +67,15 @@ class DependencyHashGenerator:
             Override default manifest path for each runtime, by default None
         hash_generator : Any, optional
             Hash generation function. Can be hashlib.md5(), hashlib.sha256(), etc, by default None
+        build_method : Optional[str], optional
+            BuildMethod from the resource metadata, by default None
         """
         self._code_uri = code_uri
         self._base_dir = base_dir
         self._code_dir = str(pathlib.Path(self._base_dir, self._code_uri).resolve())
         self._runtime = runtime
         self._manifest_path_override = manifest_path_override
+        self._build_method = build_method
         self._hash_generator = hash_generator
         self._calculated = False
         self._hash = None
@@ -59,6 +90,8 @@ class DependencyHashGenerator:
         """
         if self._manifest_path_override:
             manifest_file = self._manifest_path_override
+        elif PYTHON_UV_BUILD_METHOD in (self._build_method, self._runtime):
+            return self._calculate_uv_dependency_hash()
         else:
             config = get_workflow_config(self._runtime, self._code_dir, self._base_dir)
             manifest_file = config.manifest_name
@@ -71,6 +104,25 @@ class DependencyHashGenerator:
             return None
 
         return file_checksum(str(manifest_path), hash_generator=self._hash_generator)
+
+    def _calculate_uv_dependency_hash(self) -> Optional[str]:
+        """Hash the manifest Lambda Builders detects and, for pyproject.toml, the uv.lock uv uses"""
+        manifest = detect_uv_manifest(self._code_dir)
+        if not manifest:
+            return None
+
+        files: List[pathlib.Path] = [pathlib.Path(manifest).resolve()]
+        if files[0].name == "pyproject.toml":
+            lock = _find_uv_lock(files[0].parent)
+            if lock:
+                files.append(lock)
+                root_pyproject = lock.parent / "pyproject.toml"
+                if root_pyproject != files[0] and root_pyproject.is_file():
+                    files.append(root_pyproject)
+
+        # relative paths keep the hash stable when the project directory moves
+        checksums = "\n".join(f"{os.path.relpath(path, self._code_dir)}:{file_checksum(str(path))}" for path in files)
+        return str_checksum(checksums, hash_generator=self._hash_generator)
 
     @property
     def hash(self) -> Optional[str]:

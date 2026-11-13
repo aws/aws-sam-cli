@@ -925,6 +925,58 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             is_building_layer=True,
         )
 
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_python_uv_layer_with_first_compatible_runtime(self, osutils_mock, get_workflow_config_mock):
+        config_mock = Mock()
+        config_mock.manifest_name = None
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        get_workflow_config_mock.return_value = config_mock
+        build_function_in_process_mock = Mock()
+        self.builder._build_function_in_process = build_function_in_process_mock
+
+        self.builder._build_layer(
+            "layer_name", "code_uri", "python-uv", ["python3.13", "python3.12"], ARM64, "full_path"
+        )
+
+        args = build_function_in_process_mock.call_args[0]
+        self.assertEqual(args[2], PathValidator("python"))
+        self.assertEqual(args[5], "python3.13")
+
+    @patch("samcli.lib.build.app_builder.detect_uv_manifest")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_python_uv_layer_in_container_with_detected_manifest(
+        self, osutils_mock, get_workflow_config_mock, detect_uv_manifest_mock
+    ):
+        self.builder._container_manager = self.container_manager
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, dependency_manager="uv", language="python")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        detect_uv_manifest_mock.return_value = "/src/layer/pyproject.toml"
+        self.builder._build_function_on_container = Mock()
+
+        self.builder._build_layer("layer_name", "code_uri", "python-uv", ["python3.13"], X86_64, "full_path")
+
+        detect_uv_manifest_mock.assert_called_once_with(PathValidator("code_uri"))
+        args = self.builder._build_function_on_container.call_args[0]
+        self.assertEqual(args[3], "/src/layer/pyproject.toml")
+        self.assertEqual(args[4], "python3.13")
+
+    @parameterized.expand([([],), (None,)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_python_uv_layer_without_compatible_runtimes_raises(
+        self, compatible_runtimes, osutils_mock, get_workflow_config_mock
+    ):
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock(return_value=False)
+        get_workflow_config_mock.return_value = Mock(manifest_name=None)
+
+        with self.assertRaisesRegex(UnsupportedRuntimeException, "requires CompatibleRuntimes"):
+            self.builder._build_layer("layer_name", "code_uri", "python-uv", compatible_runtimes, ARM64, "full_path")
+
     @parameterized.expand([([],), (None,)])
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -3292,6 +3344,30 @@ class TestApplicationBuilder_build_function(TestCase):
             None,
             specified_workflow=None,
         )
+
+    @parameterized.expand([(True, "/src/fn/pyproject.toml"), (False, None)])
+    @patch("samcli.lib.build.app_builder.detect_uv_manifest")
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_uv_manifest_is_detected_only_for_container_builds(
+        self, use_container, expected_manifest, osutils_mock, get_workflow_config_mock, detect_uv_manifest_mock
+    ):
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, dependency_manager="uv", language="python")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        detect_uv_manifest_mock.return_value = "/src/fn/pyproject.toml"
+        self.builder._build_function_on_container = Mock()
+        self.builder._build_function_in_process = Mock()
+        self.builder._container_manager = Mock() if use_container else None
+
+        self.builder._build_function(
+            "function_name", "path/to/source", None, ZIP, "python3.12", X86_64, "app.handler", "artifacts"
+        )
+
+        build_mock = (
+            self.builder._build_function_on_container if use_container else self.builder._build_function_in_process
+        )
+        self.assertEqual(build_mock.call_args[0][3 if use_container else 4], expected_manifest)
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")

@@ -21,7 +21,7 @@ from samcli.lib.build.build_graph import (
     LayerBuildDefinition,
     MicrovmImageBuildDefinition,
 )
-from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
+from samcli.lib.build.dependency_hash_generator import PYTHON_UV_BUILD_METHOD, DependencyHashGenerator
 from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
@@ -595,18 +595,28 @@ class IncrementalBuildStrategy(BuildStrategy):
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         # The manifest pre-check runs before delegating and can raise before the delegate's own
         # attribution, so wrap both to keep error.resources on --cached/--incremental failures.
+        build_method = (build_definition.metadata or {}).get("BuildMethod")
         with _attribute_build_failure_to([function.full_path for function in build_definition.functions]):
             self._check_whether_manifest_is_changed(
-                build_definition, build_definition.codeuri, build_definition.runtime
+                build_definition,
+                build_definition.codeuri,
+                build_definition.runtime,
+                build_method,
             )
-            return self._delegate_build_strategy.build_single_function_definition(build_definition)
+            result = self._delegate_build_strategy.build_single_function_definition(build_definition)
+        self._refresh_uv_manifest_hash(
+            build_definition, build_definition.codeuri, build_definition.runtime, build_method
+        )
+        return result
 
     def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
         with _attribute_build_failure_to([layer_definition.full_path]):
             self._check_whether_manifest_is_changed(
                 layer_definition, layer_definition.codeuri, layer_definition.build_method
             )
-            return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+            result = self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+        self._refresh_uv_manifest_hash(layer_definition, layer_definition.codeuri, layer_definition.build_method)
+        return result
 
     def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
@@ -616,13 +626,18 @@ class IncrementalBuildStrategy(BuildStrategy):
         build_definition: AbstractBuildDefinition,
         codeuri: Optional[str],
         runtime: Optional[str],
+        build_method: Optional[str] = None,
     ) -> None:
         """
         Checks whether the manifest file have been changed by comparing its hash with previously stored one and updates
         download_dependencies property of build definition to True, if it is changed
         """
         manifest_hash = DependencyHashGenerator(
-            cast(str, codeuri), self._base_dir, cast(str, runtime), self._manifest_path_override
+            cast(str, codeuri),
+            self._base_dir,
+            cast(str, runtime),
+            self._manifest_path_override,
+            build_method=build_method,
         ).hash
 
         is_manifest_changed = True
@@ -646,6 +661,29 @@ class IncrementalBuildStrategy(BuildStrategy):
                 )
 
         build_definition.download_dependencies = is_manifest_changed or is_dependencies_dir_missing
+
+    def _refresh_uv_manifest_hash(
+        self,
+        build_definition: AbstractBuildDefinition,
+        codeuri: Optional[str],
+        runtime: Optional[str],
+        build_method: Optional[str] = None,
+    ) -> None:
+        """
+        uv creates uv.lock in the source when a project has none, so store the hash taken after the build;
+        otherwise the next unchanged build sees the new lock and downloads dependencies again
+        """
+        if not build_definition.download_dependencies or PYTHON_UV_BUILD_METHOD not in (build_method, runtime):
+            return
+        manifest_hash = DependencyHashGenerator(
+            cast(str, codeuri),
+            self._base_dir,
+            cast(str, runtime),
+            self._manifest_path_override,
+            build_method=build_method,
+        ).hash
+        if manifest_hash:
+            build_definition.manifest_hash = manifest_hash
 
     def _clean_redundant_dependencies(self) -> None:
         """

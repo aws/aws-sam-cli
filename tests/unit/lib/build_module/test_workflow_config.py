@@ -3,6 +3,7 @@ from parameterized import parameterized
 from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import (
+    get_layer_subfolder,
     get_workflow_config,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
@@ -187,3 +188,15 @@ class Test_get_workflow_config(TestCase):
             get_workflow_config(runtime, self.code_dir, self.project_dir)
 
         self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported")
+
+
+class Test_get_layer_subfolder(TestCase):
+    @parameterized.expand([("python3.12", "python"), ("python-uv", "python"), ("makefile", "")])
+    def test_must_return_subfolder(self, build_workflow, expected):
+        self.assertEqual(get_layer_subfolder(build_workflow), expected)
+
+    def test_must_raise_for_unsupported_workflow(self):
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            get_layer_subfolder("foobar")
+
+        self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported for layers")
