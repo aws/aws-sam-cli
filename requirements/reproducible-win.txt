@@ -206,9 +206,9 @@ cffi==2.1.1 \
     --hash=sha256:fb92203a88b3d3053034db775110081c49d28be6551923805e039924093761e4 \
     --hash=sha256:fcd22650c908d7b7da162bbfaab594a1227a15d1643a98c68b122ac642fa2264
     # via cryptography
-cfn-lint==1.58.0 \
-    --hash=sha256:9d9f06043160756a6158f5c3f92a44ce38254b1c578127461608305bc8262987 \
-    --hash=sha256:ba02cd7f7e06c8bc160936051a03ec931af52943fcc9cc72ad2748caa0f2a103
+cfn-lint==1.60.0 \
+    --hash=sha256:5b3ee70562e034548d707f4b80bd4cc016b7137861a614cd4534751ca4edeea0 \
+    --hash=sha256:8c12142205cdba8b63236cc6e61f06aff6b563ae957c83af76e56940a3a4fe6a
     # via aws-sam-cli (pyproject.toml)
 charset-normalizer==3.5.2 \
     --hash=sha256:01077390b03f7988f11d700a2194e69b119741a86b1a638b1db88891e3eced8e \
@@ -484,13 +484,13 @@ jmespath==1.1.0 \
     #   aws-sam-cli (pyproject.toml)
     #   boto3
     #   botocore
-jsonpatch==1.35 \
-    --hash=sha256:417e05303ebf7aef98d3ebf1e1ae7e7a4de6ec57bc5d243cd3509eff650e959f \
-    --hash=sha256:679ad08672b4663c7ef1e5f3331d940f5e7786661b9acc1530104be1638e7a4f
+jsonpatch==1.45 \
+    --hash=sha256:e170131ff8c5b01216dfe35f034613209ee1fd012abbd849a9791f9139e44cf9 \
+    --hash=sha256:f0975a88d0b26b6ebbcdfc4620483cb56c249115833d51c426cae305b96519ad
     # via cfn-lint
-jsonpointer==3.2.1 \
-    --hash=sha256:47c846513b3a4ec46eecef1105207fba075e2a3659048e362bd7daff0fc33342 \
-    --hash=sha256:b19ee68644e9ffb51440448d8f7811af2b7406eea1db90603e93f5849323119a
+jsonpointer==3.10 \
+    --hash=sha256:3b08b9e5239f1b683e31c9561c350d75ce3fa8cdd407130ca8491fdb0c9e56f3 \
+    --hash=sha256:69349c0e738c93e9efa501397091f49ad302ae686293effd05d7755c06f88ef0
     # via jsonpatch
 jsonschema==4.26.0 \
     --hash=sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326 \
