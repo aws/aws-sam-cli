@@ -138,6 +138,19 @@ class TestDependencyHashGeneratorPythonUv(TestCase):
         self.write("pyproject.toml", '[tool.uv.workspace]\nmembers = ["fn", "lib"]\n')
         self.assertNotEqual(self.uv_hash(), after_lock_change)
 
+    def test_lock_above_the_project_is_ignored_unless_it_is_a_uv_workspace_root(self):
+        self.write("app/fn/pyproject.toml", '[project]\nname = "fn"\ndependencies = ["six"]\n')
+        original = self.uv_hash(code_uri="app/fn")
+
+        # uv never reads a lock outside a workspace root, with or without a pyproject.toml beside it
+        self.write("uv.lock", "unrelated")
+        self.assertEqual(self.uv_hash(code_uri="app/fn"), original)
+        self.write("pyproject.toml", '[project]\nname = "other"\n')
+        self.assertEqual(self.uv_hash(code_uri="app/fn"), original)
+
+        self.write("pyproject.toml", '[tool.uv.workspace]\nmembers = ["app/fn"]\n')
+        self.assertNotEqual(self.uv_hash(code_uri="app/fn"), original)
+
     def test_requirements_manifest_ignores_lock(self):
         self.write("fn/requirements.txt", "six\n")
         self.write("fn/uv.lock", "lock-1")
