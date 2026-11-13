@@ -43,12 +43,12 @@ from samcli.lib.utils.version_checker import check_newer_version
 LOG = logging.getLogger(__name__)
 
 HELP_TEXT = """
-    Build AWS serverless function code.
+    Build AWS serverless function code and MicroVM images.
 """
 
 DESCRIPTION = """
   Build AWS serverless function code to generate artifacts targeting
-  AWS Lambda execution environment.\n
+  AWS Lambda execution environment, and build MicroVM images locally.\n
   \b
   Supported Resource Types
   ------------------------
@@ -56,11 +56,13 @@ DESCRIPTION = """
   2. AWS::Lambda::Function\n
   3. AWS::Serverless::LayerVersion\n
   4. AWS::Lambda::LayerVersion\n
+  5. AWS::Serverless::MicrovmImage\n
+  6. AWS::Lambda::MicrovmImage\n
   \b
   Supported Runtimes
   ------------------
   1. Python 3.8, 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15 using PIP\n
-  2. Nodejs 24.x, 22.x, 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
+  2. Nodejs 26.x, 24.x, 22.x, 20.x, 18.x, 16.x, 14.x, 12.x using NPM\n
   3. Ruby 3.2, 3.3, 3.4, 4.0 using Bundler\n
   4. Java 8, Java 11, Java 17, Java 21, Java 25 using Gradle and Maven\n
   5. Dotnet6, Dotnet8, Dotnet10 using Dotnet CLI\n
@@ -109,7 +111,10 @@ DESCRIPTION = """
     help="Name of the resource(s) to exclude from AWS SAM CLI build.",
 )
 @click.option(
-    "--parallel", "-p", is_flag=True, help="Enable parallel builds for AWS SAM template's functions and layers."
+    "--parallel",
+    "-p",
+    is_flag=True,
+    help="Enable parallel builds for AWS SAM template's functions, layers and MicroVM images.",
 )
 @click.option(
     "--mount-with",

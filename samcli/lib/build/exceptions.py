@@ -45,6 +45,13 @@ class DockerBuildFailed(BuildError):
         BuildError.__init__(self, "DockerBuildFailed", msg)
 
 
+class MicrovmImageSourceError(BuildError):
+    """A MicrovmImage's source can't be built locally; raised before any Docker build runs."""
+
+    def __init__(self, msg: str) -> None:
+        BuildError.__init__(self, "MicrovmImageSourceError", msg)
+
+
 class MissingBuildMethodException(BuildError):
     def __init__(self, msg: str) -> None:
         BuildError.__init__(self, "MissingBuildMethodException", msg)

@@ -287,10 +287,63 @@ def get_build_entry_point(function: BuildableFunction) -> Optional[str]:
     return function.handler
 
 
+class MicrovmImage:
+    """Represents an AWS::Serverless::MicrovmImage resource for building."""
+
+    def __init__(
+        self,
+        name: str,
+        code_uri: str,
+        architecture: Optional[str],
+        microvm_image_name: Optional[str] = None,
+        stack_path: str = "",
+        metadata: Optional[Dict] = None,
+    ) -> None:
+        self.name = name
+        self.microvm_image_name = microvm_image_name
+        self.code_uri = code_uri
+        self.architecture = architecture
+        self.stack_path = stack_path
+        self.metadata = metadata or {}
+
+    @property
+    def microvm_image_id(self) -> str:
+        """
+        Unique id for MicrovmImage resource.
+        For SAM/CFN project, this is the logical id.
+        For CDK project, this is the SamResourceId from metadata, or the logical id if not found.
+        """
+        if self.metadata:
+            sam_resource_id = self.metadata.get("SamResourceId")
+            if isinstance(sam_resource_id, str) and sam_resource_id:
+                return sam_resource_id
+        return self.name
+
+    @property
+    def full_path(self) -> str:
+        """
+        Return the path-like identifier of this MicrovmImage. If it is in root stack, full_path = microvm_image_id.
+        This path is guaranteed to be unique in a multi-stack situation.
+        Example:
+            "MyAgent"
+            "ChildStackA/MyAgent"
+        """
+        return get_full_path(self.stack_path, self.microvm_image_id)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, MicrovmImage):
+            return self.__dict__ == other.__dict__
+        return False
+
+    def __hash__(self) -> int:
+        return hash(self.full_path)
+
+
 class ResourcesToBuildCollector:
     def __init__(self) -> None:
         self._functions: List[BuildableFunction] = []
         self._layers: List["LayerVersion"] = []
+        self._microvm_images: List[MicrovmImage] = []
 
     def add_function(self, function: BuildableFunction) -> None:
         self._functions.append(function)
@@ -304,6 +357,12 @@ class ResourcesToBuildCollector:
     def add_layers(self, layers: List["LayerVersion"]) -> None:
         self._layers.extend(layers)
 
+    def add_microvm_image(self, microvm_image: MicrovmImage) -> None:
+        self._microvm_images.append(microvm_image)
+
+    def add_microvm_images(self, microvm_images: List[MicrovmImage]) -> None:
+        self._microvm_images.extend(microvm_images)
+
     @property
     def functions(self) -> List[BuildableFunction]:
         return self._functions
@@ -311,6 +370,10 @@ class ResourcesToBuildCollector:
     @property
     def layers(self) -> List["LayerVersion"]:
         return self._layers
+
+    @property
+    def microvm_images(self) -> List[MicrovmImage]:
+        return self._microvm_images
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, type(self)):

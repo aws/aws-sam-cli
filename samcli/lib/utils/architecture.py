@@ -20,6 +20,7 @@ SUPPORTED_RUNTIMES: Dict[str, List[str]] = {
     "nodejs20.x": [ARM64, X86_64],
     "nodejs22.x": [ARM64, X86_64],
     "nodejs24.x": [ARM64, X86_64],
+    "nodejs26.x": [ARM64, X86_64],
     "python3.8": [ARM64, X86_64],
     "python3.9": [ARM64, X86_64],
     "python3.10": [ARM64, X86_64],
