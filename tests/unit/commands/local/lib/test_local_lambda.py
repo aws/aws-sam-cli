@@ -1130,3 +1130,66 @@ class TestLocalLambda_tenant_id_validation(TestCase):
             self.local_lambda.invoke("functionname", "{}", tenant_id="customer-123")
         except click.ClickException:
             self.fail("invoke() raised ClickException unexpectedly")
+
+
+class TestLocalLambda_emulation_warning(TestCase):
+    def setUp(self):
+        self.function_provider_mock = Mock()
+        self.local_lambda = LocalLambdaRunner(
+            local_runtime=Mock(),
+            function_provider=self.function_provider_mock,
+            cwd="cwd",
+            real_path="real_path",
+        )
+
+    def _function(self, architectures):
+        return Function(
+            function_id="id",
+            name="name",
+            functionname="functionname",
+            runtime="python3.13",
+            memory=128,
+            timeout=30,
+            handler="app.handler",
+            codeuri=".",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata=None,
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            codesign_config_arn=None,
+            architectures=architectures,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            stack_path="",
+            logging_config=None,
+        )
+
+    @parameterized.expand(
+        [
+            ("arm64", None, 1),  # omitted Architectures defaults to x86_64 -> emulated on ARM
+            ("arm64", [X86_64], 1),
+            ("x86_64", [ARM64], 1),
+            ("arm64", [ARM64], 0),
+            ("aarch64", [ARM64], 0),
+            ("x86_64", None, 0),
+        ]
+    )
+    @patch("samcli.commands.local.lib.local_lambda.LOG")
+    @patch("samcli.lib.build.utils.platform.machine")
+    def test_warns_once_per_function_on_architecture_mismatch(
+        self, machine, architectures, expected_warnings, mock_machine, mock_log
+    ):
+        mock_machine.return_value = machine
+        self.function_provider_mock.get.return_value = self._function(architectures)
+
+        # start-api resolves the function on every request; the warning must not repeat
+        self.local_lambda.get_function("functionname")
+        self.local_lambda.get_function("functionname")
+
+        self.assertEqual(mock_log.warning.call_count, expected_warnings)
