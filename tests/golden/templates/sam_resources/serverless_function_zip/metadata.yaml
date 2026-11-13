@@ -1,0 +1,3 @@
+language_extensions: false
+description: "Sentinel: AWS::Serverless::Function with local CodeUri (ZIP packaging)."
+issue_refs: []

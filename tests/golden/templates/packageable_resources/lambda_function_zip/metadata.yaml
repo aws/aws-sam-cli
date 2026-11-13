@@ -1,0 +1,3 @@
+language_extensions: false
+description: "Sentinel: raw AWS::Lambda::Function with local Code path."
+issue_refs: []
