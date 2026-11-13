@@ -501,6 +501,19 @@ class TestIntrinsicFnSubResolver(TestCase):
 
         self.assertEqual(result, r"C:\project\data/us-east-1")
 
+    @parameterized.expand(
+        [
+            ("${!Literal}", "${Literal}"),
+            ("${!AWS::Region}-${AWS::Region}", "${AWS::Region}-us-east-1"),
+            (["${!Name}-${Name}", {"Name": "value"}], "${Name}-value"),
+            (["${Name}", {"Name": "${!Literal}"}], "${!Literal}"),
+        ]
+    )
+    def test_fn_sub_escaped_literal(self, intrinsic, expected):
+        result = self.resolver.intrinsic_property_resolver({"Fn::Sub": intrinsic}, False)
+
+        self.assertEqual(result, expected)
+
     def test_fn_sub_basic_uri(self):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
