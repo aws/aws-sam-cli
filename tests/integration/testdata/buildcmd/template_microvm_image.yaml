@@ -1,0 +1,16 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  CodeUri:
+    Type: String
+    Default: ./MicrovmImage
+
+Resources:
+  MyMicrovmImage:
+    Type: AWS::Serverless::MicrovmImage
+    Properties:
+      Name: my-microvm-app
+      CodeUri: !Ref CodeUri
+      BaseImageArn: arn:aws:lambda:us-east-2:aws:microvm-image:al2023-1
+      BaseImageVersion: "0"

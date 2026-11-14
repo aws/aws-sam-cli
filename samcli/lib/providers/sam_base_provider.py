@@ -15,8 +15,10 @@ from samcli.lib.samlib.wrapper import SamTranslatorWrapper
 from samcli.lib.utils.resources import (
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
 )
 
 LOG = logging.getLogger(__name__)
@@ -34,6 +36,8 @@ class SamBaseProvider:
         AWS_SERVERLESS_FUNCTION: "CodeUri",
         AWS_LAMBDA_LAYERVERSION: "Content",
         AWS_SERVERLESS_LAYERVERSION: "ContentUri",
+        AWS_LAMBDA_MICROVMIMAGE: "CodeArtifact",
+        AWS_SERVERLESS_MICROVMIMAGE: "CodeUri",
     }
 
     IMAGE_PROPERTY_KEYS = {

@@ -6,6 +6,30 @@ from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymb
 
 
 class TestSamBaseProvider_get_template(TestCase):
+    def test_environment_sub_preserves_backslashes(self):
+        template = {
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Parameters": {"DataRoot": {"Type": "String", "Default": r"C:\project\data"}},
+            "Resources": {
+                "ExampleFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Runtime": "python3.12",
+                        "Handler": "index.handler",
+                        "InlineCode": 'def handler(event, context): return "ok"',
+                        "Environment": {"Variables": {"DATA_PATH": {"Fn::Sub": r"${DataRoot}\cache"}}},
+                    },
+                }
+            },
+        }
+
+        result = SamBaseProvider.get_template(template, {})
+
+        self.assertEqual(
+            result["Resources"]["ExampleFunction"]["Properties"]["Environment"]["Variables"]["DATA_PATH"],
+            r"C:\project\data\cache",
+        )
+
     @patch("samcli.lib.providers.sam_base_provider.ResourceMetadataNormalizer")
     @patch("samcli.lib.providers.sam_base_provider.SamTranslatorWrapper")
     @patch.object(IntrinsicResolver, "resolve_template")

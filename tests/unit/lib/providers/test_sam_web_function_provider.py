@@ -18,7 +18,7 @@ from samcli.lib.providers.sam_web_function_provider import (
     SamWebFunctionProvider,
     stacks_have_web_functions,
 )
-from samcli.lib.utils.architecture import X86_64
+from samcli.lib.utils.architecture import ARM64
 from samcli.lib.utils.packagetype import ZIP
 
 OTHER_RESOURCES = {"Bucket": {"Type": "AWS::S3::Bucket"}}
@@ -45,7 +45,7 @@ class TestSamWebFunctionProvider(TestCase):
         self.assertEqual(web_function.function_build_info, FunctionBuildInfo.BuildableZip)
         self.assertTrue(web_function.codeuri.endswith("web"))
         self.assertEqual(web_function.packagetype, ZIP)
-        self.assertEqual(web_function.architecture, X86_64)
+        self.assertEqual(web_function.architecture, ARM64)
 
     def test_uses_entry_point_and_metadata(self):
         stack = _stack(
@@ -176,7 +176,7 @@ class TestWebFunctionProperties(TestCase):
     def test_build_architecture(self):
         from samcli.lib.build.utils import _get_function_architecture
 
-        self.assertEqual(_get_function_architecture(self._web_function()), X86_64)
+        self.assertEqual(_get_function_architecture(self._web_function()), ARM64)
 
 
 class TestStacksHaveWebFunctions(TestCase):

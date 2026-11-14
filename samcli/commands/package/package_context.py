@@ -40,6 +40,7 @@ from samcli.lib.package.ecr_uploader import ECRUploader
 from samcli.lib.package.language_extensions_packaging import (
     generate_and_apply_artifact_mappings,
     merge_language_extensions_s3_uris,
+    wrap_microvm_image_code_artifact_strings,
 )
 from samcli.lib.package.s3_uploader import S3Uploader
 from samcli.lib.package.uploaders import Destination, Uploaders
@@ -260,6 +261,7 @@ class PackageContext:
             self.uploaders.get(Destination.S3),
             template_dir,
         )
+        wrap_microvm_image_code_artifact_strings(original_template_dict)
 
         parameter_values = {**IntrinsicsSymbolTable.DEFAULT_PSEUDO_PARAM_VALUES}
         if self.parameter_overrides:

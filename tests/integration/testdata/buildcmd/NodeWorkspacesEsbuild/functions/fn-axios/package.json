@@ -1,0 +1,9 @@
+{
+  "name": "@mono/fn-axios",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@mono/shared": "^1.0.0",
+    "axios": "1.6.0"
+  }
+}

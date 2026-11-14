@@ -846,7 +846,7 @@ class BuildIntegPythonBase(BuildIntegBase):
         """
         This method is used to override python version of some of the tests which is run with Makefile
         """
-        return "python3.10"
+        return "python3.14"
 
 
 @pytest.mark.provided

@@ -19,6 +19,7 @@ from samcli.lib.build.build_graph import (
     BuildGraph,
     FunctionBuildDefinition,
     LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
 )
 from samcli.lib.build.dependency_hash_generator import DependencyHashGenerator
 from samcli.lib.build.exceptions import (
@@ -37,9 +38,10 @@ from samcli.lib.utils.packagetype import IMAGE, ZIP
 
 LOG = logging.getLogger(__name__)
 
-# type definition which can be used in generic types for both FunctionBuildDefinition & LayerBuildDefinition
-FunctionOrLayerBuildDefinition = TypeVar(
-    "FunctionOrLayerBuildDefinition", FunctionBuildDefinition, LayerBuildDefinition
+# type definition which can be used in generic types for FunctionBuildDefinition, LayerBuildDefinition,
+# and MicrovmImageBuildDefinition
+BuildDefinitionType = TypeVar(
+    "BuildDefinitionType", FunctionBuildDefinition, LayerBuildDefinition, MicrovmImageBuildDefinition
 )
 
 # Build failures that are attributable to specific resources. When one of these escapes a strategy
@@ -95,7 +97,7 @@ def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
 class BuildStrategy(ABC):
     """
     Base class for BuildStrategy
-    Keeps basic implementation of build, build_functions and build_layers
+    Keeps basic implementation of build, build_functions, build_layers, and build_microvm_images
     """
 
     def __init__(self, build_graph: BuildGraph) -> None:
@@ -109,12 +111,13 @@ class BuildStrategy(ABC):
 
     def build(self) -> Dict[str, str]:
         """
-        Builds all functions and layers in the given build graph
+        Builds all functions, layers, and MicrovmImages in the given build graph
         """
         result = {}
         with self:
             result.update(self._build_layers(self._build_graph))
             result.update(self._build_functions(self._build_graph))
+            result.update(self._build_microvm_images(self._build_graph))
 
         return result
 
@@ -152,10 +155,28 @@ class BuildStrategy(ABC):
         build location as value
         """
 
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        """
+        Iterates through build graph and runs each unique build for MicrovmImage resources
+        """
+        microvm_build_results = {}
+        for microvm_definition in build_graph.get_microvm_image_build_definitions():
+            microvm_build_results.update(self.build_single_microvm_image_definition(microvm_definition))
+
+        return microvm_build_results
+
+    @abstractmethod
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Builds single MicrovmImage definition and returns dictionary which contains MicrovmImage full path as key,
+        Docker image tag as value
+        """
+
 
 class DefaultBuildStrategy(BuildStrategy):
     """
-    Default build strategy, loops over given build graph for each function and layer, and builds each of them one by one
+    Default build strategy, loops over given build graph for each function, layer, and MicrovmImage,
+    and builds each of them one by one
     """
 
     def __init__(
@@ -166,12 +187,14 @@ class DefaultBuildStrategy(BuildStrategy):
             [str, str, Optional[str], str, str, str, Optional[str], str, dict, dict, Optional[str], bool], str
         ],
         build_layer: Callable[[str, str, str, List[str], str, str, dict, Optional[str], bool, Optional[Dict]], str],
+        build_microvm_image: Callable[[str, str, str], str],
         cached: bool = False,
     ) -> None:
         super().__init__(build_graph)
         self._build_dir = build_dir
         self._build_function = build_function
         self._build_layer = build_layer
+        self._build_microvm_image = build_microvm_image
         self._cached = cached
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
@@ -301,6 +324,29 @@ class DefaultBuildStrategy(BuildStrategy):
                 layer.metadata,
             )
         }
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Build a single MicrovmImage definition via docker build.
+        """
+        microvm_image = microvm_definition.microvm_image
+        if not microvm_image or not microvm_image.architecture:
+            LOG.warning(
+                "Skipping MicrovmImage build: missing image or architecture for definition %s",
+                microvm_definition.code_uri,
+            )
+            return {}
+        with _attribute_build_failure_to([microvm_image.full_path]):
+            LOG.info(
+                "Building MicrovmImage: %s from %s",
+                microvm_image.full_path,
+                microvm_definition.code_uri,
+            )
+
+            result = self._build_microvm_image(
+                microvm_image.full_path, microvm_definition.code_uri, microvm_image.architecture
+            )
+        return {microvm_image.full_path: result}
 
 
 class CachedBuildStrategy(BuildStrategy):
@@ -444,6 +490,18 @@ class CachedBuildStrategy(BuildStrategy):
         uuids.update({ld.uuid for ld in self._build_graph.get_layer_build_definitions()})
         clean_redundant_folders(self._cache_dir, uuids)
 
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        """
+        Builds single MicrovmImage definition. Delegates to the underlying build strategy since
+        Docker has its own layer caching.
+        """
+        if microvm_definition.microvm_image:
+            LOG.info(
+                "MicrovmImage %s is not cached by SAM CLI; Docker's layer cache is used",
+                microvm_definition.microvm_image.full_path,
+            )
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
+
 
 class ParallelBuildStrategy(BuildStrategy):
     """
@@ -472,10 +530,15 @@ class ParallelBuildStrategy(BuildStrategy):
             self.build_single_function_definition, build_graph.get_function_build_definitions()
         )
 
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._run_builds_async(
+            self.build_single_microvm_image_definition, build_graph.get_microvm_image_build_definitions()
+        )
+
     @staticmethod
     def _run_builds_async(
-        build_method: Callable[[FunctionOrLayerBuildDefinition], Dict[str, str]],
-        build_definitions: Tuple[FunctionOrLayerBuildDefinition, ...],
+        build_method: Callable[[BuildDefinitionType], Dict[str, str]],
+        build_definitions: Tuple[BuildDefinitionType, ...],
     ) -> Dict[str, str]:
         """Builds given list of build definitions in async and return the result"""
         if not build_definitions:
@@ -496,6 +559,9 @@ class ParallelBuildStrategy(BuildStrategy):
 
     def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
         return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
 
 class IncrementalBuildStrategy(BuildStrategy):
@@ -541,6 +607,9 @@ class IncrementalBuildStrategy(BuildStrategy):
                 layer_definition, layer_definition.codeuri, layer_definition.build_method
             )
             return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
 
     def _check_whether_manifest_is_changed(
         self,
@@ -665,6 +734,9 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
         )
         return self._cached_build_strategy.build_single_layer_definition(layer_definition)
 
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._cached_build_strategy.build_single_microvm_image_definition(microvm_definition)
+
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """
         After build is complete, this method cleans up redundant folders in cached directory as well as in dependencies
@@ -693,3 +765,122 @@ class CachedOrIncrementalBuildStrategyWrapper(BuildStrategy):
                 return True
 
         return False
+
+
+class WorkspaceAwareBuildStrategy(BuildStrategy):
+    """
+    Wraps another build strategy to install nodejs dependencies once per npm workspace root.
+
+    In an npm workspaces monorepo npm keeps ONE dependency tree, hoisted to the workspace root, and
+    every member's install reconciles that whole tree. Building N functions from one monorepo with
+    --build-in-source therefore reconciles the same tree N times. This strategy resolves each nodejs
+    function's npm project root before any function builds, installs each distinct root once through
+    aws-lambda-builders, and marks the grouped functions with download_dependencies=False - the same
+    lever IncrementalBuildStrategy uses - so their builds link the artifacts to the tree that one
+    install wrote.
+
+    A function is grouped only when all of these hold, so anything else keeps today's per-function
+    install:
+
+    - Zip package type, nodejs runtime, npm or esbuild build method
+    - npm resolves the function's project root OUTSIDE its own code directory, which is what
+      distinguishes a workspace member from a standalone package
+    - the shared install itself succeeded; a failed root leaves its functions untouched
+
+    This strategy must wrap OUTSIDE ParallelBuildStrategy, whose _build_functions fires every
+    definition into one AsyncContext: running the install first is the barrier that keeps parallel
+    function builds from racing the shared tree. It is wired only for non-cached builds; --cached
+    supplies dependencies from .aws-sam/deps and manages download_dependencies itself.
+    """
+
+    def __init__(
+        self,
+        build_graph: BuildGraph,
+        delegate_build_strategy: BuildStrategy,
+        base_dir: str,
+        project_root_resolver: Callable[[str], Optional[str]],
+        prepare_shared_project_function: Callable[[str, FunctionBuildDefinition], bool],
+    ) -> None:
+        """
+        Parameters
+        ----------
+        project_root_resolver:
+            Given a function's resolved code directory, returns npm's project root for it, or None
+            when it cannot be resolved (npm missing, too-old aws-lambda-builders, non-npm project).
+        prepare_shared_project_function:
+            Runs the shared install for (project_root, one grouped build definition); returns True
+            on success. Failures must be handled inside and reported with False.
+        """
+        super().__init__(build_graph)
+        self._delegate_build_strategy = delegate_build_strategy
+        self._base_dir = base_dir
+        self._project_root_resolver = project_root_resolver
+        self._prepare_shared_project_function = prepare_shared_project_function
+
+    def build(self) -> Dict[str, str]:
+        with self._delegate_build_strategy:
+            return super().build()
+
+    def _build_layers(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._delegate_build_strategy._build_layers(build_graph)
+
+    def _build_functions(self, build_graph: BuildGraph) -> Dict[str, str]:
+        self._prepare_shared_project_for_workspace_groups(build_graph)
+        return self._delegate_build_strategy._build_functions(build_graph)
+
+    def build_single_function_definition(self, build_definition: FunctionBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_function_definition(build_definition)
+
+    def build_single_layer_definition(self, layer_definition: LayerBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_layer_definition(layer_definition)
+
+    def _build_microvm_images(self, build_graph: BuildGraph) -> Dict[str, str]:
+        return self._delegate_build_strategy._build_microvm_images(build_graph)
+
+    def build_single_microvm_image_definition(self, microvm_definition: MicrovmImageBuildDefinition) -> Dict[str, str]:
+        return self._delegate_build_strategy.build_single_microvm_image_definition(microvm_definition)
+
+    def _prepare_shared_project_for_workspace_groups(self, build_graph: BuildGraph) -> None:
+        groups: Dict[str, List[FunctionBuildDefinition]] = {}
+        for build_definition in build_graph.get_function_build_definitions():
+            project_root = self._workspace_root_for(build_definition)
+            if project_root:
+                groups.setdefault(project_root, []).append(build_definition)
+
+        for project_root, build_definitions in groups.items():
+            LOG.info(
+                "Installing dependencies once for workspace root %s, shared by (%s)",
+                project_root,
+                ", ".join(definition.get_resource_full_paths() for definition in build_definitions),
+            )
+            if self._prepare_shared_project_function(project_root, build_definitions[0]):
+                for build_definition in build_definitions:
+                    build_definition.download_dependencies = False
+
+    def _workspace_root_for(self, build_definition: FunctionBuildDefinition) -> Optional[str]:
+        """
+        The npm project root the function's install would write to, or None when the function is not
+        a workspace member covered by this strategy.
+        """
+        if build_definition.packagetype != ZIP or not build_definition.codeuri:
+            return None
+        runtime = build_definition.runtime or ""
+        if not runtime.startswith("nodejs"):
+            return None
+        # only the npm workflows install through the npm project tree; BuildMethod naming the
+        # runtime is the template's way of spelling the default
+        build_method = (build_definition.metadata or {}).get("BuildMethod")
+        if build_method not in (None, "esbuild", runtime):
+            return None
+
+        code_dir = str(pathlib.Path(self._base_dir, build_definition.codeuri).resolve())
+        project_root = self._project_root_resolver(code_dir)
+        if not project_root:
+            return None
+        # npm answers with the directory itself for anything that is not a workspace member. normcase
+        # because npm's stdout and this path are spelled independently, and on Windows two spellings
+        # differing only in case - a drive letter included - name the same directory; reading those as
+        # different roots would group a project that is not a workspace at all. No-op off Windows.
+        if os.path.normcase(os.path.realpath(project_root)) == os.path.normcase(os.path.realpath(code_dir)):
+            return None
+        return project_root

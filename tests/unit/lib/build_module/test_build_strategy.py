@@ -8,8 +8,13 @@ from parameterized import parameterized
 
 from samcli.lib.utils.architecture import X86_64, ARM64
 from samcli.lib.build.exceptions import MissingBuildMethodException
+from samcli.lib.build.build_graph import (
+    BuildGraph,
+    FunctionBuildDefinition,
+    LayerBuildDefinition,
+    MicrovmImageBuildDefinition,
+)
 from samcli.lib.build.workflow_config import UnsupportedRuntimeException
-from samcli.lib.build.build_graph import BuildGraph, FunctionBuildDefinition, LayerBuildDefinition
 from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     BuildStrategy,
@@ -17,6 +22,7 @@ from samcli.lib.build.build_strategy import (
     CachedBuildStrategy,
     CachedOrIncrementalBuildStrategyWrapper,
     IncrementalBuildStrategy,
+    WorkspaceAwareBuildStrategy,
     clean_redundant_folders,
 )
 from samcli.lib.utils import osutils
@@ -76,6 +82,9 @@ class _TestBuildStrategy(BuildStrategy):
         return {}
 
     def build_single_layer_definition(self, layer_definition):
+        return {}
+
+    def build_single_microvm_image_definition(self, microvm_definition):
         return {}
 
 
@@ -200,11 +209,36 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         build_graph = Mock(spec=BuildGraph)
         build_graph.get_layer_build_definitions.return_value = [layer_build_definition]
         build_graph.get_function_build_definitions.return_value = []
+        build_graph.get_microvm_image_build_definitions.return_value = []
         mock_function = Mock()
         mock_function.inlinecode = None
-        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock())
+        default_build_strategy = DefaultBuildStrategy(build_graph, "build_dir", mock_function, Mock(), Mock())
 
         self.assertRaises(MissingBuildMethodException, default_build_strategy.build)
+
+    def test_build_microvm_image(self, mock_copy_tree):
+        mock_build_microvm_image = Mock(return_value="myagent:latest")
+
+        microvm_image = Mock()
+        microvm_image.full_path = "MyAgent"
+        microvm_image.architecture = "arm64"
+
+        microvm_definition = MicrovmImageBuildDefinition("MyAgent", "./app", "arm64")
+        microvm_definition.microvm_image = microvm_image
+
+        build_graph = Mock(spec=BuildGraph)
+        build_graph.get_function_build_definitions.return_value = []
+        build_graph.get_layer_build_definitions.return_value = []
+        build_graph.get_microvm_image_build_definitions.return_value = [microvm_definition]
+
+        default_build_strategy = DefaultBuildStrategy(
+            build_graph, "build_dir", Mock(), Mock(), mock_build_microvm_image
+        )
+
+        result = default_build_strategy.build()
+
+        mock_build_microvm_image.assert_called_once_with("MyAgent", "./app", "arm64")
+        self.assertEqual(result, {"MyAgent": "myagent:latest"})
 
     def test_build_layers_and_functions(self, mock_copy_tree):
         given_build_function = Mock()
@@ -212,7 +246,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         default_build_strategy.build()
@@ -298,7 +332,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         build_result = default_build_strategy.build()
@@ -318,7 +352,7 @@ class DefaultBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
 
         function1 = Mock()
@@ -382,7 +416,7 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
         given_build_layer = Mock()
         given_build_dir = "build_dir"
         default_build_strategy = DefaultBuildStrategy(
-            self.build_graph, given_build_dir, given_build_function, given_build_layer
+            self.build_graph, given_build_dir, given_build_function, given_build_layer, Mock()
         )
         cache_build_strategy = CachedBuildStrategy(
             self.build_graph, default_build_strategy, "base_dir", given_build_dir, "cache_dir"
@@ -648,7 +682,7 @@ class TestIncrementalBuildStrategy(TestCase):
         self.build_layer = Mock()
         self.build_graph = Mock()
         self.delegate_build_strategy = DefaultBuildStrategy(
-            self.build_graph, Mock(), self.build_function, self.build_layer, cached=True
+            self.build_graph, Mock(), self.build_function, self.build_layer, Mock(), cached=True
         )
         self.build_strategy = IncrementalBuildStrategy(
             self.build_graph,
@@ -679,6 +713,7 @@ class TestIncrementalBuildStrategy(TestCase):
             manifest_hash=build_toml_manifest_hash, functions=[Mock()], dependencies_dir=dependency_dir
         )
         self.build_graph.get_function_build_definitions.return_value = [given_function_build_def]
+        self.build_graph.get_microvm_image_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = []
 
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
@@ -711,6 +746,7 @@ class TestIncrementalBuildStrategy(TestCase):
         )
         given_layer_build_def.layer.compatible_architectures = None
         self.build_graph.get_function_build_definitions.return_value = []
+        self.build_graph.get_microvm_image_build_definitions.return_value = []
         self.build_graph.get_layer_build_definitions.return_value = [given_layer_build_def]
 
         download_dependencies = manifest_hash != build_toml_manifest_hash or not dependency_dir_exist
@@ -818,6 +854,7 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             mocked_build_graph = Mock()
             mocked_build_graph.get_layer_build_definitions.return_value = []
             mocked_build_graph.get_function_build_definitions.return_value = []
+            mocked_build_graph.get_microvm_image_build_definitions.return_value = []
 
             cached_build_strategy = CachedOrIncrementalBuildStrategyWrapper(
                 mocked_build_graph,
@@ -879,3 +916,121 @@ class TestCachedOrIncrementalBuildStrategyWrapper(TestCase):
             else:
                 patched_cached_build_strategy.build_single_function_definition.assert_called_with(build_definition)
                 patched_incremental_build_strategy.assert_not_called()
+
+
+@patch("samcli.lib.build.build_graph.BuildGraph._write")
+@patch("samcli.lib.build.build_graph.BuildGraph._read")
+class WorkspaceAwareBuildStrategyTest(TestCase):
+    BASE_DIR = "/base"
+
+    def setUp(self):
+        self.delegate = MagicMock()
+        self.resolver = Mock(return_value=None)
+        self.installer = Mock(return_value=True)
+
+    def _strategy(self, build_graph):
+        return WorkspaceAwareBuildStrategy(build_graph, self.delegate, self.BASE_DIR, self.resolver, self.installer)
+
+    def _graph(self, *definitions):
+        build_graph = BuildGraph("build_dir")
+        for index, definition in enumerate(definitions):
+            function = Mock()
+            function.inlinecode = None
+            function.full_path = f"function{index}"
+            build_graph.put_function_build_definition(definition, function)
+        return build_graph
+
+    @staticmethod
+    def _definition(runtime="nodejs22.x", codeuri="endpoints/fn", packagetype=ZIP, metadata=None):
+        return FunctionBuildDefinition(runtime, codeuri, None, packagetype, X86_64, metadata or {}, "handler")
+
+    def _code_dir(self, codeuri):
+        return str(Path(self.BASE_DIR, codeuri).resolve())
+
+    def test_functions_sharing_a_workspace_root_install_once_and_skip_their_own_installs(self, _read, _write):
+        definition1 = self._definition(codeuri="endpoints/fn1")
+        definition2 = self._definition(codeuri="endpoints/fn2", metadata={"BuildMethod": "esbuild"})
+        build_graph = self._graph(definition1, definition2)
+        self.resolver.return_value = "/base/mono"
+
+        strategy = self._strategy(build_graph)
+        result = strategy._build_functions(build_graph)
+
+        self.installer.assert_called_once_with("/base/mono", definition1)
+        self.assertFalse(definition1.download_dependencies)
+        self.assertFalse(definition2.download_dependencies)
+        self.delegate._build_functions.assert_called_once_with(build_graph)
+        self.assertEqual(result, self.delegate._build_functions.return_value)
+
+    def test_a_failed_shared_preparation_leaves_per_function_installs(self, _read, _write):
+        definition = self._definition()
+        build_graph = self._graph(definition)
+        self.resolver.return_value = "/base/mono"
+        self.installer.return_value = False
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.assertTrue(definition.download_dependencies)
+        self.delegate._build_functions.assert_called_once_with(build_graph)
+
+    def test_a_standalone_package_is_not_grouped(self, _read, _write):
+        # npm answers with the directory itself for anything that is not a workspace member
+        definition = self._definition(codeuri="standalone")
+        build_graph = self._graph(definition)
+        self.resolver.return_value = self._code_dir("standalone")
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_not_called()
+        self.assertTrue(definition.download_dependencies)
+
+    def test_out_of_scope_functions_never_resolve_a_root(self, _read, _write):
+        out_of_scope = [
+            ("python3.12", ZIP, None),
+            ("nodejs22.x", IMAGE, None),
+            ("nodejs22.x", ZIP, {"BuildMethod": "makefile"}),
+        ]
+        for runtime, packagetype, metadata in out_of_scope:
+            with self.subTest(runtime=runtime, packagetype=packagetype, metadata=metadata):
+                definition = self._definition(runtime=runtime, packagetype=packagetype, metadata=metadata)
+                build_graph = self._graph(definition)
+
+                self._strategy(build_graph)._build_functions(build_graph)
+
+                self.resolver.assert_not_called()
+                self.installer.assert_not_called()
+
+    def test_a_build_method_naming_the_runtime_is_in_scope(self, _read, _write):
+        definition = self._definition(metadata={"BuildMethod": "nodejs22.x"})
+        build_graph = self._graph(definition)
+        self.resolver.return_value = "/base/mono"
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_called_once()
+        self.assertFalse(definition.download_dependencies)
+
+    def test_distinct_workspace_roots_install_separately(self, _read, _write):
+        definition1 = self._definition(codeuri="monoA/endpoints/fn1")
+        definition2 = self._definition(codeuri="monoB/endpoints/fn2")
+        build_graph = self._graph(definition1, definition2)
+        self.resolver.side_effect = ["/base/monoA", "/base/monoB"]
+
+        self._strategy(build_graph)._build_functions(build_graph)
+
+        self.installer.assert_has_calls([call("/base/monoA", definition1), call("/base/monoB", definition2)])
+        self.assertFalse(definition1.download_dependencies)
+        self.assertFalse(definition2.download_dependencies)
+
+    def test_build_enters_the_delegate_context_and_delegates_everything(self, _read, _write):
+        definition = self._definition(runtime="python3.12")
+        build_graph = self._graph(definition)
+        self.delegate._build_layers.return_value = {}
+        self.delegate._build_functions.return_value = {"function0": "artifacts"}
+
+        result = self._strategy(build_graph).build()
+
+        self.delegate.__enter__.assert_called_once()
+        self.delegate.__exit__.assert_called_once()
+        self.delegate._build_layers.assert_called_once_with(build_graph)
+        self.assertEqual(result, {"function0": "artifacts"})

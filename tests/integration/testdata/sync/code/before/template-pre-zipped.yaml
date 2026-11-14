@@ -11,4 +11,4 @@ Resources:
     Properties:
       CodeUri: pre_zipped_function/app.zip
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.14

@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: A MicroVM image.
+
+Resources:
+  HelloWorldImage:
+    Type: AWS::Serverless::MicrovmImage
+    Properties:
+      Name: hello-world-image
+      CodeUri: .
+      BaseImageArn: arn:aws:lambda:us-east-1:aws:microvm-image:al2023-1
+      BaseImageVersion: "2"

@@ -11,6 +11,6 @@ Resources:
     Properties:
       CodeUri: before/Python/function_simple/
       Handler: app.lambda_handler
-      Runtime: python3.10
+      Runtime: python3.14
       Tracing: Active
       MyInvalidProperty: True

@@ -66,6 +66,8 @@ class LambdaRuntime:
         reattachment mechanism so that each instance is using the same underlying container.
         """
         self._durable_execution_emulator_container = None
+        # Warm containers are created in parallel, and only one of them may start the emulator
+        self._emulator_lock = threading.Lock()
 
     def create(
         self,
@@ -494,13 +496,16 @@ class LambdaRuntime:
         Returns:
             DurableFunctionsEmulatorContainer: The singleton emulator container
         """
-        if self._durable_execution_emulator_container is None:
-            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer(
-                skip_pull_image=self._container_manager.skip_pull_image,
-            )
-            self._durable_execution_emulator_container.start_or_attach()
-            LOG.debug("Created and started durable functions emulator container")
-        return self._durable_execution_emulator_container
+        with self._emulator_lock:
+            if self._durable_execution_emulator_container is None:
+                emulator_container = DurableFunctionsEmulatorContainer(
+                    skip_pull_image=self._container_manager.skip_pull_image,
+                )
+                emulator_container.start_or_attach()
+                # Only share the emulator once it started, so a failed start is retried by the next caller
+                self._durable_execution_emulator_container = emulator_container
+                LOG.debug("Created and started durable functions emulator container")
+            return self._durable_execution_emulator_container
 
     def clean_runtime_containers(self):
         """
@@ -521,10 +526,11 @@ class LambdaRuntime:
                 self._container = None
 
         # Clean up durable execution emulator container
-        if self._durable_execution_emulator_container:
-            LOG.debug("Stopping durable functions emulator container")
-            self._durable_execution_emulator_container.stop()
-            self._durable_execution_emulator_container = None
+        with self._emulator_lock:
+            if self._durable_execution_emulator_container:
+                LOG.debug("Stopping durable functions emulator container")
+                self._durable_execution_emulator_container.stop()
+                self._durable_execution_emulator_container = None
 
 
 class WarmLambdaRuntime(LambdaRuntime):

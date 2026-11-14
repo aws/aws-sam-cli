@@ -43,6 +43,9 @@ class TestBuildContextWebFunctions(TestCase):
         context._web_function_provider.get.side_effect = lambda name: next(
             (f for f in web_functions if f.name == name), None
         )
+        context._microvm_image_provider = MagicMock()
+        context._microvm_image_provider.get_all.return_value = []
+        context._microvm_image_provider.get.return_value = None
         return context
 
     def test_collects_buildable_web_functions(self):

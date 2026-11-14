@@ -7,6 +7,7 @@ from samcli.lib.build.utils import (
     _get_function_architecture,
     warn_cross_architecture_build,
 )
+from samcli.lib.providers.provider import FunctionBuildInfo, WebFunction
 from samcli.lib.utils.architecture import ARM64, X86_64
 from tests.unit.lib.build_module.test_build_graph import generate_function
 
@@ -132,6 +133,19 @@ class TestArchitectureDetection(TestCase):
         self.assertEqual(result, ARM64)
 
 
+def _web_function():
+    return WebFunction(
+        function_id="WebFn",
+        name="WebFn",
+        functionname="WebFn",
+        runtime="nodejs24.x",
+        codeuri="web",
+        entry_point="index.js",
+        metadata=None,
+        function_build_info=FunctionBuildInfo.BuildableZip,
+    )
+
+
 class TestCrossArchitectureWarning(TestCase):
     @patch("samcli.lib.build.utils.LOG")
     @patch("samcli.lib.build.utils._get_host_architecture")
@@ -172,6 +186,33 @@ class TestCrossArchitectureWarning(TestCase):
             "docker",
             X86_64,
         )
+
+    @patch("samcli.lib.build.utils.LOG")
+    @patch("samcli.lib.build.utils._get_host_architecture")
+    def test_warns_x86_64_host_web_function_without_suggesting_x86_64(self, mock_get_host_arch, mock_log):
+        """Web Functions run only on arm64, so the warning doesn't suggest changing the architecture."""
+        mock_get_host_arch.return_value = X86_64
+
+        warn_cross_architecture_build([_web_function()], "docker")
+
+        mock_log.warning.assert_called_once_with(
+            "Cross-architecture build detected: Building arm64 Web Function '%s' on %s host. "
+            "This may cause build failures with %s. "
+            "Web Functions run only on arm64, so enable arm64 emulation in %s or build on an arm64 host",
+            "WebFn",
+            X86_64,
+            "docker",
+            "docker",
+        )
+
+    @patch("samcli.lib.build.utils.LOG")
+    @patch("samcli.lib.build.utils._get_host_architecture")
+    def test_no_warning_arm64_host_web_function(self, mock_get_host_arch, mock_log):
+        mock_get_host_arch.return_value = ARM64
+
+        warn_cross_architecture_build([_web_function()], "finch")
+
+        mock_log.warning.assert_not_called()
 
     @patch("samcli.lib.build.utils.LOG")
     @patch("samcli.lib.build.utils._get_host_architecture")

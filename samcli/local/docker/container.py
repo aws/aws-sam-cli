@@ -64,6 +64,10 @@ PORT_TAKEN_WORDINGS = (
     "address already in use",
 )
 
+# Not a port conflict: the address itself does not exist on the machine running the engine,
+# which is what a stale or mistyped --container-host-interface produces. Prefix-free for the
+# same reason as the wordings above.
+HOST_INTERFACE_MISSING_WORDING = "cannot assign requested address"
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
@@ -482,8 +486,23 @@ class Container:
             # Start the container
             real_container.start()
         except docker.errors.APIError as ex:
-            if "Ports are not available" in str(ex):
-                raise PortAlreadyInUse(ex.explanation.decode()) from ex
+            message = str(ex)
+            # explanation is the engine's own text. It is empty for an APIError built without
+            # one, so fall back to the full message rather than reporting a blank reason.
+            detail = ex.explanation or message
+
+            if any(wording in message for wording in PORT_TAKEN_WORDINGS):
+                raise PortAlreadyInUse(detail) from ex
+
+            if HOST_INTERFACE_MISSING_WORDING in message:
+                # detail is the engine's own text and has no trailing period, so it is wrapped
+                # in parentheses to keep it from running into the sentence that follows.
+                raise ContainerNotStartableException(
+                    f"The container engine cannot publish the container's port on the requested interface "
+                    f"({detail}). Pass --container-host-interface with an address that exists on the "
+                    f"machine running the container engine."
+                ) from ex
+
             raise ex
 
     def _initialize_concurrency_control(self):

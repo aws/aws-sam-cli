@@ -5,6 +5,7 @@ Tests the InvokeContext class
 import errno
 import os
 import tempfile
+import time
 
 from parameterized import parameterized
 
@@ -18,8 +19,13 @@ from samcli.commands.local.cli_common.invoke_context import (
     NoFunctionIdentifierProvidedException,
     InvalidEnvironmentVariablesFileException,
 )
+from samcli.commands.exceptions import ContainersInitializationException
 from samcli.local.lambdafn.exceptions import FunctionNotFound
-from samcli.local.docker.exceptions import ContainerNotReachableException
+from samcli.local.docker.exceptions import (
+    ContainerNotReachableException,
+    ContainerNotStartableException,
+    PortAlreadyInUse,
+)
 
 from unittest import TestCase
 from unittest.mock import Mock, patch, ANY, mock_open, call
@@ -584,6 +590,46 @@ class TestInvokeContext__enter__(TestCase):
         self.assertTrue(any("--no-watch" in msg and "warm-containers" in msg for msg in log_ctx.output))
 
 
+class TestInvokeContext_initialize_all_functions_containers(TestCase):
+    """
+    The eager warm-container path wraps failures in a generic message. Exceptions that name the
+    flag the user has to change must survive it instead, and must still release what was created.
+    """
+
+    def _context_failing_with(self, exception, AsyncContextMock):
+        AsyncContextMock.return_value.run_async.side_effect = exception
+        context = InvokeContext(template_file="template")
+        context._function_provider = Mock()
+        context._function_provider.get_all.return_value = []
+        context._clean_running_containers_and_related_resources = Mock()
+        return context
+
+    @parameterized.expand(
+        [
+            (PortAlreadyInUse("port 3001 is in use"),),
+            (ContainerNotStartableException("pass --container-host-interface"),),
+        ]
+    )
+    @patch("samcli.commands.local.cli_common.invoke_context.AsyncContext")
+    def test_actionable_exceptions_are_not_wrapped(self, exception, AsyncContextMock):
+        context = self._context_failing_with(exception, AsyncContextMock)
+
+        with self.assertRaises(type(exception)) as raised:
+            context._initialize_all_functions_containers()
+
+        self.assertIs(raised.exception, exception)
+        context._clean_running_containers_and_related_resources.assert_called_once_with()
+
+    @patch("samcli.commands.local.cli_common.invoke_context.AsyncContext")
+    def test_other_exceptions_are_still_wrapped(self, AsyncContextMock):
+        context = self._context_failing_with(ValueError("something else"), AsyncContextMock)
+
+        with self.assertRaises(ContainersInitializationException):
+            context._initialize_all_functions_containers()
+
+        context._clean_running_containers_and_related_resources.assert_called_once_with()
+
+
 class TestInvokeContext__exit__(TestCase):
     def test_must_close_opened_logfile(self):
         context = InvokeContext(template_file="template")
@@ -683,6 +729,35 @@ class TestInvokeContext_function_name_property(TestCase):
 
         with self.assertRaises(NoFunctionIdentifierProvidedException):
             context.function_identifier
+
+
+class TestInvokeContext_initialize_all_functions_containers_shared_runtime(TestCase):
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaImage")
+    @patch("samcli.commands.local.cli_common.invoke_context.LayerDownloader")
+    @patch("samcli.commands.local.cli_common.invoke_context.LambdaRuntime")
+    @patch("samcli.commands.local.cli_common.invoke_context.WarmLambdaRuntime")
+    @patch("samcli.commands.local.cli_common.invoke_context.LocalLambdaRunner")
+    def test_parallel_initialization_shares_one_runtime(
+        self, LocalLambdaRunnerMock, WarmLambdaRuntimeMock, LambdaRuntimeMock, LayerDownloaderMock, LambdaImageMock
+    ):
+        """Every container initialized in parallel must use the same runtime, and so the same durable emulator"""
+
+        def slow_runtime(*args, **kwargs):
+            time.sleep(0.05)  # hold open the window in which another thread could create a second runtime
+            runtime = Mock()
+            runtime.run.return_value = None
+            return runtime
+
+        WarmLambdaRuntimeMock.side_effect = slow_runtime
+        invoke_context = InvokeContext(template_file="template.yaml", warm_container_initialization_mode="EAGER")
+        invoke_context._function_provider = Mock()
+        invoke_context._function_provider.get_all.return_value = [Mock() for _ in range(8)]
+
+        invoke_context._initialize_all_functions_containers()
+
+        WarmLambdaRuntimeMock.assert_called_once()
+        LocalLambdaRunnerMock.assert_called_once()
+        self.assertEqual(invoke_context.lambda_runtime.run.call_count, 8)
 
 
 class TestInvokeContext_local_lambda_runner(TestCase):

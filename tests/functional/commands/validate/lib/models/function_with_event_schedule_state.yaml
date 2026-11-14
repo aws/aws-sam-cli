@@ -12,7 +12,7 @@ Resources:
     Properties:
       CodeUri: s3://sam-demo-bucket/hello.zip?versionId=3Tcgv52_0GaDvhDva4YciYeqRyPnpIcO
       Handler: hello.handler
-      Runtime: python3.10
+      Runtime: python3.14
       Events:
         Schedule1:
           Type: Schedule

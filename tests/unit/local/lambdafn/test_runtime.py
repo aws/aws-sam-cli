@@ -2,6 +2,8 @@
 Unit tests for Lambda runtime
 """
 
+import threading
+import time
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, ANY, call, PropertyMock
 from parameterized import parameterized
@@ -1926,6 +1928,50 @@ class TestLambdaRuntime_create_exceptions(TestCase):
 
         # Verify the warning log was called
         LogMock.warning.assert_called_once_with("Failed to create container for function %s", self.full_path)
+
+
+class TestLambdaRuntime_get_or_create_emulator_container(TestCase):
+    def setUp(self):
+        self.runtime = LambdaRuntime(Mock(), Mock())
+
+    @patch("samcli.local.lambdafn.runtime.DurableFunctionsEmulatorContainer")
+    def test_concurrent_callers_start_one_emulator(self, emulator_class_mock):
+        """EAGER warm containers are created in parallel; only one may create the named emulator container"""
+        callers = 8
+        all_waiting = threading.Barrier(callers)
+        start_calls = []
+
+        def slow_start():
+            start_calls.append(threading.get_ident())
+            time.sleep(0.05)  # hold the window between "no emulator yet" and "emulator started" open
+
+        emulator_class_mock.return_value.start_or_attach.side_effect = slow_start
+        results = []
+
+        def get_emulator():
+            all_waiting.wait()
+            results.append(self.runtime.get_or_create_emulator_container())
+
+        threads = [threading.Thread(target=get_emulator) for _ in range(callers)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        self.assertEqual(len(start_calls), 1)
+        emulator_class_mock.assert_called_once()
+        self.assertEqual(results, [emulator_class_mock.return_value] * callers)
+
+    @patch("samcli.local.lambdafn.runtime.DurableFunctionsEmulatorContainer")
+    def test_failed_start_is_retried_by_next_caller(self, emulator_class_mock):
+        failed, started = Mock(), Mock()
+        failed.start_or_attach.side_effect = RuntimeError("start failed")
+        emulator_class_mock.side_effect = [failed, started]
+
+        with self.assertRaises(RuntimeError):
+            self.runtime.get_or_create_emulator_container()
+
+        self.assertIs(self.runtime.get_or_create_emulator_container(), started)
 
 
 class TestLambdaRuntime_check_exit_state(TestCase):

@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  X86MicrovmImage:
+    Type: AWS::Serverless::MicrovmImage
+    Properties:
+      Name: my-x86-microvm-app
+      CodeUri: ./MicrovmImageX86
+      BaseImageArn: arn:aws:lambda:us-east-2:aws:microvm-image:al2023-1
+      BaseImageVersion: "3"
+      CpuConfigurations:
+        - Architecture: X86_64

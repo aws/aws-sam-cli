@@ -22,6 +22,7 @@ from samcli.lib.package.utils import (
     is_path_value_valid,
     is_s3_protocol_url,
     is_zip_file,
+    make_abs_path,
     resource_not_packageable,
     upload_local_artifacts,
     upload_local_image_artifacts,
@@ -41,11 +42,13 @@ from samcli.lib.utils.resources import (
     AWS_GLUE_JOB,
     AWS_LAMBDA_FUNCTION,
     AWS_LAMBDA_LAYERVERSION,
+    AWS_LAMBDA_MICROVMIMAGE,
     AWS_SERVERLESS_API,
     AWS_SERVERLESS_FUNCTION,
     AWS_SERVERLESS_GRAPHQLAPI,
     AWS_SERVERLESS_HTTPAPI,
     AWS_SERVERLESS_LAYERVERSION,
+    AWS_SERVERLESS_MICROVMIMAGE,
     AWS_SERVERLESS_STATEMACHINE,
     AWS_SERVERLESS_WEBFUNCTION,
     AWS_SERVERLESSREPO_APPLICATION,
@@ -726,6 +729,116 @@ class GraphQLApiCodeResource(ResourceZip):
                     shutil.rmtree(temp_dir)
 
 
+# Directories that are almost never part of a MicrovmImage source, but are uploaded with it because the whole
+# source directory is zipped as is (for example when CodeUri is the project root)
+_MICROVM_IMAGE_UNEXPECTED_SOURCE_DIRS = (".aws-sam", ".git")
+
+
+def _check_microvm_image_source(resource_id: str, property_name: str, local_path: str, parent_dir: str) -> None:
+    """
+    A MicrovmImage is built from a directory with a Dockerfile at its root, or from a .zip of one. Reject a
+    single other file, such as the Dockerfile itself, instead of uploading a zip of just that file.
+
+    The source directory is uploaded as is, so warn when it contains directories such as .aws-sam or .git.
+    """
+    abs_path = make_abs_path(parent_dir, local_path)
+    if is_local_file(abs_path) and not is_zip_file(abs_path):
+        raise exceptions.ExportFailedError(
+            resource_id=resource_id,
+            property_name=property_name,
+            property_value=local_path,
+            ex=f"'{abs_path}' is a file. A MicrovmImage source must be a directory containing a Dockerfile, "
+            f"or a .zip of one, for example '{os.path.dirname(abs_path)}'.",
+        )
+    if os.path.isdir(abs_path):
+        found = [name for name in _MICROVM_IMAGE_UNEXPECTED_SOURCE_DIRS if os.path.isdir(os.path.join(abs_path, name))]
+        if found:
+            LOG.warning(
+                "MicrovmImage '%s': %s directory '%s' contains %s, and the whole directory is uploaded. Put the "
+                "Dockerfile and application code in a subdirectory and point %s at it, or point %s at a prepared .zip.",
+                resource_id,
+                property_name,
+                abs_path,
+                " and ".join(found),
+                property_name,
+                property_name,
+            )
+
+
+class ServerlessMicrovmImageResource(ResourceZip):
+    """
+    AWS::Serverless::MicrovmImage. The source directory, which holds the Dockerfile, is zipped and uploaded,
+    and CodeUri is set to its S3 URI. The MicroVM service builds the image from that zip.
+    """
+
+    RESOURCE_TYPE = AWS_SERVERLESS_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_SERVERLESS_MICROVMIMAGE][0]
+    # CodeUri is required, so a missing value is left for validation instead of packaging the template directory
+    PACKAGE_NULL_PROPERTY = False
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
+        if resource_dict is not None and not resource_not_packageable(resource_dict):
+            code_uri = resource_dict.get(self.PROPERTY_NAME)
+            if isinstance(code_uri, str) and code_uri and not is_s3_protocol_url(code_uri):
+                _check_microvm_image_source(resource_id, self.PROPERTY_NAME, code_uri, parent_dir)
+        super().export(resource_id, resource_dict, parent_dir)
+
+
+class LambdaMicrovmImageResource(ResourceZip):
+    """
+    AWS::Lambda::MicrovmImage. Like ServerlessMicrovmImageResource, but the code is in CodeArtifact, which
+    CloudFormation requires as {Uri: s3://...}. A local path is accepted as {Uri: ./src}, or as a plain string
+    (CDK templates and built templates use that form), and is written back as {Uri: <S3 URI>}. An S3 URI given
+    as a plain string is written as {Uri: <S3 URI>} too, as Lambda function Code is written as an object.
+    Intrinsics are left unchanged.
+    """
+
+    RESOURCE_TYPE = AWS_LAMBDA_MICROVMIMAGE
+    PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[AWS_LAMBDA_MICROVMIMAGE][0]
+    URI_PROPERTY = "Uri"
+
+    def export(self, resource_id: str, resource_dict: Optional[Dict], parent_dir: str) -> None:
+        if resource_dict is None or resource_not_packageable(resource_dict):
+            return
+
+        code_artifact = resource_dict.get(self.PROPERTY_NAME)
+        if isinstance(code_artifact, dict):
+            local_path = code_artifact.get(self.URI_PROPERTY)
+            property_path = f"{self.PROPERTY_NAME}.{self.URI_PROPERTY}"
+        else:
+            local_path = code_artifact
+            property_path = self.PROPERTY_NAME
+        # Unresolved intrinsics are dicts; leave them and missing values unchanged
+        if not isinstance(local_path, str) or not local_path:
+            return
+        if is_s3_protocol_url(local_path):
+            if property_path == self.PROPERTY_NAME:
+                resource_dict[self.PROPERTY_NAME] = {self.URI_PROPERTY: local_path}
+            return
+
+        _check_microvm_image_source(resource_id, property_path, local_path, parent_dir)
+
+        try:
+            self.do_export(resource_id, resource_dict, parent_dir, property_path=property_path)
+            if property_path == self.PROPERTY_NAME:
+                resource_dict[self.PROPERTY_NAME] = {self.URI_PROPERTY: resource_dict[self.PROPERTY_NAME]}
+        except Exception as ex:
+            LOG.debug("Unable to export", exc_info=ex)
+            raise exceptions.ExportFailedError(
+                resource_id=resource_id, property_name=property_path, property_value=local_path, ex=ex
+            )
+
+    def get_property_value(self, resource_dict: Optional[Dict]) -> Dict[str, Optional[str]]:
+        if resource_dict is None:
+            return {"Bucket": None, "Key": None}
+
+        code_artifact = resource_dict.get(self.PROPERTY_NAME)
+        uri = code_artifact.get(self.URI_PROPERTY) if isinstance(code_artifact, dict) else code_artifact
+        if isinstance(uri, str) and is_s3_protocol_url(uri):
+            return parse_s3_url(uri)
+        return {"Bucket": None, "Key": None}
+
+
 RESOURCES_EXPORT_LIST = [
     ServerlessFunctionResource,
     ServerlessFunctionImageResource,
@@ -754,6 +867,8 @@ RESOURCES_EXPORT_LIST = [
     ECRResource,
     GraphQLApiSchemaResource,
     GraphQLApiCodeResource,
+    ServerlessMicrovmImageResource,
+    LambdaMicrovmImageResource,
 ]
 
 

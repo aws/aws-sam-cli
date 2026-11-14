@@ -1,0 +1,13 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Description: A MicroVM image.
+
+Resources:
+  MyMicrovmImage:
+    Type: AWS::Lambda::MicrovmImage
+    Properties:
+      Name: my-microvm-image
+      CodeArtifact:
+        Uri: .
+      BaseImageArn: arn:aws:lambda:us-east-1:aws:microvm-image:al2023-1
+      BaseImageVersion: "2"
+      BuildRoleArn: arn:aws:iam::123456789012:role/MicrovmImageBuildRole

@@ -7,6 +7,7 @@ import copy
 import logging
 import re
 from collections import OrderedDict
+from typing import Any, List, Union
 
 from samcli.commands._utils.template import get_template_data
 from samcli.lib.intrinsic_resolver.invalid_intrinsic_exception import InvalidIntrinsicException, InvalidSymbolException
@@ -271,7 +272,12 @@ class IntrinsicResolver:
         """
         processed_dict = OrderedDict()
         for key, val in cloud_formation_property.items():
-            processed_key = self._symbol_resolver.get_translation(key) or key
+            translated_key = self._symbol_resolver.get_translation(key)
+            # Only use the translated key when it is a string. get_translation()
+            # can return a list when a CommaDelimitedList parameter shares its
+            # name with a Resource/Output logical ID; using that list as a dict
+            # key would raise TypeError: unhashable type: 'list'.
+            processed_key = translated_key if isinstance(translated_key, str) else key
             try:
                 processed_resource = self.intrinsic_property_resolver(val, ignore_errors, parent_function=processed_key)
                 processed_dict[processed_key] = processed_resource
@@ -411,6 +417,13 @@ class IntrinsicResolver:
         index = self.intrinsic_property_resolver(
             arguments[0], ignore_errors, parent_function=IntrinsicResolver.FN_SELECT
         )
+
+        # CloudFormation also accepts the index as a string, e.g. {"Fn::Select": ["1", [...]]}
+        if isinstance(index, str):
+            try:
+                index = int(index)
+            except ValueError:
+                pass  # verify_intrinsic_type_int below reports the invalid type
 
         verify_intrinsic_type_int(index, IntrinsicResolver.FN_SELECT)
 
@@ -641,7 +654,7 @@ class IntrinsicResolver:
 
         return self._symbol_resolver.resolve_symbols(arguments, IntrinsicResolver.REF)
 
-    def handle_fn_sub(self, intrinsic_value, ignore_errors):
+    def handle_fn_sub(self, intrinsic_value: Union[str, List], ignore_errors: bool) -> str:
         """
         { "Fn::Sub" : [ String, { Var1Name: Var1Value, Var2Name: Var2Value } ] } or { "Fn::Sub" : String }
         This intrinsic function will substitute the variables specified in the list into the string provided. The string
@@ -674,7 +687,7 @@ class IntrinsicResolver:
 
         verify_number_arguments(intrinsic_value, IntrinsicResolver.FN_SUB, num=2)
 
-        sub_str = self.intrinsic_property_resolver(
+        sub_str: str = self.intrinsic_property_resolver(
             intrinsic_value[0], ignore_errors, parent_function=IntrinsicResolver.FN_SUB
         )
         verify_intrinsic_type_str(sub_str, IntrinsicResolver.FN_SUB, position_in_list="first")
@@ -690,7 +703,7 @@ class IntrinsicResolver:
         for sub_item in subable_props:
             sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
             result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
-            sub_str = re.sub(pattern=r"\$\{" + sub_item + r"\}", string=sub_str, repl=str(result))
+            sub_str = sub_str.replace("${" + sub_item + "}", str(result))
         return sub_str
 
     def handle_fn_if(self, intrinsic_value, ignore_errors):
@@ -779,7 +792,13 @@ class IntrinsicResolver:
         value_2 = self.intrinsic_property_resolver(
             arguments[1], ignore_errors, parent_function=IntrinsicResolver.FN_EQUALS
         )
-        return value_1 == value_2
+        # CloudFormation compares the values as strings, so the YAML literal `true` or `1` equals the parameter
+        # value "true" or "1". Keep in sync with ConditionResolver._resolve_equals in cfn_language_extensions.
+        return self._equals_as_string(value_1) == self._equals_as_string(value_2)
+
+    @staticmethod
+    def _equals_as_string(value: Any) -> str:
+        return str(value).lower() if isinstance(value, bool) else str(value)
 
     def handle_fn_not(self, intrinsic_value, ignore_errors):
         """
