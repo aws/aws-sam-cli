@@ -18,6 +18,7 @@ import copy
 import logging
 import os
 from typing import Any, Dict, List, Optional, Sequence, cast
+from urllib.parse import urlparse
 
 from botocore.utils import set_value_from_jmespath
 
@@ -214,6 +215,19 @@ class CloudFormationStackResource(ResourceZip):
     PROPERTY_NAME = RESOURCES_WITH_LOCAL_PATHS[RESOURCE_TYPE][0]
     parent_parameter_values: Optional[Dict] = None
     language_extensions_enabled: bool = False
+
+    def get_property_value(self, resource_dict: Optional[Dict]) -> Dict:
+        """Get the S3 artifact location, skipping virtual-hosted remote templates."""
+        template_url = (resource_dict or {}).get(self.PROPERTY_NAME)
+        if (
+            isinstance(template_url, str)
+            and template_url.startswith(("http://", "https://"))
+            and is_s3_url(template_url)
+            and ".s3" in (urlparse(template_url).hostname or "")
+        ):
+            # Packaging leaves virtual-hosted URLs unchanged and uploads local templates using path-style URLs.
+            return {"Bucket": None, "Key": None}
+        return cast(Dict, super().get_property_value(resource_dict))
 
     def do_export(self, resource_id, resource_dict, parent_dir):
         """
