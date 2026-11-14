@@ -54,11 +54,9 @@ class AbstractXRayPuller(ObservabilityPuller):
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code in ("ThrottlingException", "ThrottledException"):
-                    # if throttled, increase poll interval by 1 second each time
-                    if self._poll_interval == 1:
-                        self._poll_interval += 1
-                    else:
-                        self._poll_interval **= 2
+                    self._poll_interval = min(
+                        self._poll_interval * 2, max(self._initial_poll_interval, self._MAX_BACKOFF_INTERVAL)
+                    )
                     LOG.warning(
                         "Throttled by XRay API. Next poll in %s seconds",
                         self._poll_interval,
