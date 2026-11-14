@@ -207,6 +207,9 @@ class CompanionStackManager:
         """
         repos = self.get_unreferenced_repos()
         for repo in repos:
+            if not repo.physical_id:
+                LOG.debug("Image repo [%s] has no physical ID. Skipping deletion.", repo.logical_id)
+                continue
             try:
                 self._ecr_client.delete_repository(repositoryName=repo.physical_id, force=True)
             except self._ecr_client.exceptions.RepositoryNotFoundException:

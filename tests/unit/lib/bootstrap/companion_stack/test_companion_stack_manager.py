@@ -154,9 +154,7 @@ class TestCompanionStackManager(TestCase):
         self.manager._role_arn = "role-arn"
         self.manager._delete_companion_stack()
 
-        self.cfn_client.delete_stack.assert_called_once_with(
-            StackName=self.companion_stack_name, RoleARN="role-arn"
-        )
+        self.cfn_client.delete_stack.assert_called_once_with(StackName=self.companion_stack_name, RoleARN="role-arn")
 
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.ECRRepo")
     @patch("samcli.lib.bootstrap.companion_stack.companion_stack_manager.boto3.resource")
@@ -265,6 +263,18 @@ class TestCompanionStackManager(TestCase):
 
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_a_id, force=True)
         self.ecr_client.delete_repository.assert_any_call(repositoryName=repo_b_id, force=True)
+
+    def test_delete_unreferenced_repos_skips_repo_without_physical_id(self):
+        repo_a = Mock()
+        repo_a.physical_id = None
+        repo_b = Mock()
+        repo_b.physical_id = "ECRRepoB"
+
+        self.manager.get_unreferenced_repos = lambda: [repo_a, repo_b]
+
+        self.manager.delete_unreferenced_repos()
+
+        self.ecr_client.delete_repository.assert_called_once_with(repositoryName="ECRRepoB", force=True)
 
     def test_delete_unreferenced_repos_access_denied(self):
         repo_a = Mock()
