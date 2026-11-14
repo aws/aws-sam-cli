@@ -57,6 +57,7 @@ class ExperimentalFlag:
     UvPackageManager = ExperimentalEntry(
         "experimentalUvPackageManager", EXPERIMENTAL_ENV_VAR_PREFIX + "UV_PACKAGE_MANAGER"
     )
+    NodejsMonorepo = ExperimentalEntry("experimentalNodejsMonorepo", EXPERIMENTAL_ENV_VAR_PREFIX + "NODEJS_MONOREPO")
 
 
 def is_experimental_enabled(config_entry: ExperimentalEntry) -> bool:

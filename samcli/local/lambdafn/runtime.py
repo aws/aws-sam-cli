@@ -22,7 +22,7 @@ from samcli.local.docker.container import Container, ContainerContext
 from samcli.local.docker.container_analyzer import ContainerAnalyzer
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
 from samcli.local.docker.durable_lambda_container import DurableLambdaContainer
-from samcli.local.docker.exceptions import ContainerFailureError, DockerContainerCreationFailedException
+from samcli.local.docker.exceptions import ContainerCreationFailedException, ContainerFailureError
 from samcli.local.docker.lambda_container import LambdaContainer
 from samcli.local.lambdafn.exceptions import UnsupportedInvocationType
 from samcli.local.lambdafn.zip import unzip
@@ -66,6 +66,8 @@ class LambdaRuntime:
         reattachment mechanism so that each instance is using the same underlying container.
         """
         self._durable_execution_emulator_container = None
+        # Warm containers are created in parallel, and only one of them may start the emulator
+        self._emulator_lock = threading.Lock()
 
     def create(
         self,
@@ -162,7 +164,7 @@ class LambdaRuntime:
             self._container_manager.create(container, ContainerContext.INVOKE)
             return container
 
-        except DockerContainerCreationFailedException:
+        except ContainerCreationFailedException:
             LOG.warning("Failed to create container for function %s", function_config.full_path)
             raise
 
@@ -494,13 +496,16 @@ class LambdaRuntime:
         Returns:
             DurableFunctionsEmulatorContainer: The singleton emulator container
         """
-        if self._durable_execution_emulator_container is None:
-            self._durable_execution_emulator_container = DurableFunctionsEmulatorContainer(
-                skip_pull_image=self._container_manager.skip_pull_image,
-            )
-            self._durable_execution_emulator_container.start_or_attach()
-            LOG.debug("Created and started durable functions emulator container")
-        return self._durable_execution_emulator_container
+        with self._emulator_lock:
+            if self._durable_execution_emulator_container is None:
+                emulator_container = DurableFunctionsEmulatorContainer(
+                    skip_pull_image=self._container_manager.skip_pull_image,
+                )
+                emulator_container.start_or_attach()
+                # Only share the emulator once it started, so a failed start is retried by the next caller
+                self._durable_execution_emulator_container = emulator_container
+                LOG.debug("Created and started durable functions emulator container")
+            return self._durable_execution_emulator_container
 
     def clean_runtime_containers(self):
         """
@@ -521,10 +526,11 @@ class LambdaRuntime:
                 self._container = None
 
         # Clean up durable execution emulator container
-        if self._durable_execution_emulator_container:
-            LOG.debug("Stopping durable functions emulator container")
-            self._durable_execution_emulator_container.stop()
-            self._durable_execution_emulator_container = None
+        with self._emulator_lock:
+            if self._durable_execution_emulator_container:
+                LOG.debug("Stopping durable functions emulator container")
+                self._durable_execution_emulator_container.stop()
+                self._durable_execution_emulator_container = None
 
 
 class WarmLambdaRuntime(LambdaRuntime):

@@ -38,6 +38,8 @@ from samcli.lib.package.artifact_exporter import (
 from samcli.lib.package.language_extensions_packaging import merge_language_extensions_s3_uris
 from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymbolTable
 from samcli.lib.package.packageable_resources import (
+    LambdaMicrovmImageResource,
+    ServerlessMicrovmImageResource,
     GraphQLApiCodeResource,
     GraphQLApiSchemaResource,
     is_s3_protocol_url,
@@ -3333,3 +3335,198 @@ class TestDoExportLanguageExtensionsStructuralGate(unittest.TestCase):
             stack_resource.do_export("ChildStack", {"TemplateURL": child_path}, parent_dir)
 
         mock_pre_pass.assert_not_called()
+
+
+class TestNestedStackMicrovmCodeArtifactString(unittest.TestCase):
+    """A plain-string CodeArtifact in a child template's Fn::ForEach is packaged as {Uri: Fn::FindInMap}"""
+
+    def test_child_template_wraps_string_code_artifact(self):
+        child_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, child_dir)
+        child_path = os.path.join(child_dir, "child.yaml")
+        with open(child_path, "w") as child_file:
+            child_file.write(
+                "Transform: AWS::LanguageExtensions\n"
+                "Resources:\n"
+                "  Fn::ForEach::Images:\n"
+                "    - N\n"
+                "    - [Alpha, Beta]\n"
+                "    - ${N}Image:\n"
+                "        Type: AWS::Lambda::MicrovmImage\n"
+                "        Properties:\n"
+                "          CodeArtifact: ./${N}\n"
+            )
+        stack_resource = CloudFormationStackResource(Mock(), Mock())
+        stack_resource.language_extensions_enabled = True
+
+        with patch("samcli.lib.package.artifact_exporter.Template") as TemplateMock:
+            # The exporter writes CodeArtifact back as {Uri: <S3 URI>}
+            TemplateMock.return_value.export.return_value = {
+                "Resources": {
+                    f"{name}Image": {
+                        "Type": "AWS::Lambda::MicrovmImage",
+                        "Properties": {"CodeArtifact": {"Uri": f"s3://bucket/{name.lower()}"}},
+                    }
+                    for name in ("Alpha", "Beta")
+                }
+            }
+            exported = stack_resource._do_export_with_language_extensions(
+                "ChildStack", child_path, child_dir, child_path, {"TemplateURL": child_path}
+            )
+
+        body = exported["Resources"]["Fn::ForEach::Images"][2]
+        self.assertEqual(
+            body["${N}Image"]["Properties"]["CodeArtifact"],
+            {"Uri": {"Fn::FindInMap": ["SAMUriImages", {"Ref": "N"}, "Uri"]}},
+        )
+        self.assertEqual(
+            exported["Mappings"]["SAMUriImages"],
+            {"Alpha": {"Uri": "s3://bucket/alpha"}, "Beta": {"Uri": "s3://bucket/beta"}},
+        )
+
+
+class TestMicrovmImageResource(unittest.TestCase):
+    """sam package zips a MicrovmImage source directory, uploads it and points the template at the S3 URI."""
+
+    S3_URL = "s3://bucket/abc123"
+
+    def setUp(self):
+        self.s3_uploader = Mock(bucket_name="bucket", prefix=None)
+        self.s3_uploader.upload_with_dedup.return_value = self.S3_URL
+        self.s3_uploader.get_version_of_artifact.return_value = None
+        self.uploaders = Mock()
+        self.uploaders.get.return_value = self.s3_uploader
+        self.code_signer = Mock()
+        self.code_signer.should_sign_package.return_value = False
+        self.project = tempfile.mkdtemp()
+        os.makedirs(os.path.join(self.project, "app"))
+        with open(os.path.join(self.project, "app", "Dockerfile"), "w") as dockerfile:
+            dockerfile.write("FROM python:3.12-slim\n")
+        self.addCleanup(shutil.rmtree, self.project)
+
+    def _export(self, exporter_class, property_value):
+        resource_dict = {exporter_class.PROPERTY_NAME: copy.deepcopy(property_value)}
+        exporter_class(self.uploaders, self.code_signer).export("MyImage", resource_dict, self.project)
+        return resource_dict
+
+    def test_serverless_code_uri_is_uploaded(self):
+        resource_dict = self._export(ServerlessMicrovmImageResource, "./app")
+
+        self.assertEqual(resource_dict["CodeUri"], self.S3_URL)
+        self.s3_uploader.upload_with_dedup.assert_called_once()
+
+    def test_lambda_code_artifact_is_written_as_uri_dict(self):
+        # {Uri: ./app} is the CloudFormation form; a plain string is what CDK and sam build write
+        for value in ({"Uri": "./app"}, "./app"):
+            with self.subTest(value=value):
+                resource_dict = self._export(LambdaMicrovmImageResource, value)
+                self.assertEqual(resource_dict["CodeArtifact"], {"Uri": self.S3_URL})
+
+    def test_local_zip_file_is_uploaded_without_rezipping(self):
+        zip_path = os.path.join(self.project, "app.zip")
+        with zipfile.ZipFile(zip_path, "w") as zip_file:
+            zip_file.writestr("Dockerfile", "FROM python:3.12-slim\n")
+
+        cases = [
+            (ServerlessMicrovmImageResource, "app.zip", self.S3_URL),
+            (LambdaMicrovmImageResource, {"Uri": "app.zip"}, {"Uri": self.S3_URL}),
+        ]
+        for exporter_class, value, expected in cases:
+            with self.subTest(exporter=exporter_class.__name__):
+                self.s3_uploader.upload_with_dedup.reset_mock()
+                resource_dict = self._export(exporter_class, value)
+                self.assertEqual(resource_dict[exporter_class.PROPERTY_NAME], expected)
+                self.assertEqual(self.s3_uploader.upload_with_dedup.call_args[0][0], zip_path)
+
+    def test_s3_intrinsic_and_missing_values_are_unchanged(self):
+        cases = [
+            (ServerlessMicrovmImageResource, "s3://bucket/app.zip"),
+            (ServerlessMicrovmImageResource, {"Ref": "Src"}),
+            (ServerlessMicrovmImageResource, None),
+            (LambdaMicrovmImageResource, {"Uri": "s3://bucket/app.zip"}),
+            (LambdaMicrovmImageResource, {"Uri": {"Ref": "Src"}}),
+            (LambdaMicrovmImageResource, {"Fn::Sub": "s3://${Bucket}/app.zip"}),
+            (LambdaMicrovmImageResource, None),
+        ]
+        for exporter_class, value in cases:
+            with self.subTest(exporter=exporter_class.__name__, value=value):
+                resource_dict = self._export(exporter_class, value)
+                self.assertEqual(resource_dict[exporter_class.PROPERTY_NAME], value)
+        self.s3_uploader.upload_with_dedup.assert_not_called()
+
+    def test_lambda_s3_string_is_written_as_uri_dict(self):
+        # CloudFormation requires CodeArtifact as an object, as Lambda function Code is written as {S3Bucket, S3Key}
+        resource_dict = self._export(LambdaMicrovmImageResource, "s3://bucket/app.zip")
+
+        self.assertEqual(resource_dict["CodeArtifact"], {"Uri": "s3://bucket/app.zip"})
+        self.s3_uploader.upload_with_dedup.assert_not_called()
+
+    def test_missing_source_directory_fails(self):
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./missing"),
+            (LambdaMicrovmImageResource, {"Uri": "./missing"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__):
+                with self.assertRaises(ExportFailedError):
+                    self._export(exporter_class, value)
+
+    def test_warns_when_source_directory_contains_aws_sam_or_git(self):
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app"),
+            (LambdaMicrovmImageResource, {"Uri": "./app"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__):
+                with patch("samcli.lib.package.packageable_resources.LOG") as log:
+                    self._export(exporter_class, value)
+                log.warning.assert_not_called()
+
+        os.makedirs(os.path.join(self.project, "app", ".aws-sam", "build"))
+        os.makedirs(os.path.join(self.project, "app", ".git"))
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app"),
+            (LambdaMicrovmImageResource, {"Uri": "./app"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__):
+                with patch("samcli.lib.package.packageable_resources.LOG") as log:
+                    self._export(exporter_class, value)
+                log.warning.assert_called_once()
+                self.assertEqual(log.warning.call_args[0][4], ".aws-sam and .git")
+
+    def test_single_non_zip_file_fails_and_suggests_its_directory(self):
+        for exporter_class, value in (
+            (ServerlessMicrovmImageResource, "./app/Dockerfile"),
+            (LambdaMicrovmImageResource, "./app/Dockerfile"),
+            (LambdaMicrovmImageResource, {"Uri": "./app/Dockerfile"}),
+        ):
+            with self.subTest(exporter=exporter_class.__name__, value=value):
+                with self.assertRaisesRegex(ExportFailedError, "is a file.*directory containing a Dockerfile.*app'"):
+                    self._export(exporter_class, value)
+        self.s3_uploader.upload_with_dedup.assert_not_called()
+
+    def test_get_property_value_reads_the_s3_uri(self):
+        exporter = LambdaMicrovmImageResource(self.uploaders, self.code_signer)
+        for value in ({"Uri": "s3://bucket/key"}, "s3://bucket/key"):
+            with self.subTest(value=value):
+                self.assertEqual(
+                    exporter.get_property_value({"CodeArtifact": value}),
+                    {"Bucket": "bucket", "Key": "key"},
+                )
+        self.assertEqual(
+            exporter.get_property_value({"CodeArtifact": {"Uri": {"Ref": "Src"}}}), {"Bucket": None, "Key": None}
+        )
+
+    def test_template_export_uploads_both_types(self):
+        template_dict = {
+            "Resources": {
+                "SamImage": {"Type": "AWS::Serverless::MicrovmImage", "Properties": {"CodeUri": "./app"}},
+                "CfnImage": {"Type": "AWS::Lambda::MicrovmImage", "Properties": {"CodeArtifact": {"Uri": "./app"}}},
+            }
+        }
+        template = Template(
+            "template.yaml", self.project, self.uploaders, self.code_signer, template_dict=copy.deepcopy(template_dict)
+        )
+
+        exported = template.export()
+
+        self.assertEqual(exported["Resources"]["SamImage"]["Properties"]["CodeUri"], self.S3_URL)
+        self.assertEqual(exported["Resources"]["CfnImage"]["Properties"]["CodeArtifact"], {"Uri": self.S3_URL})

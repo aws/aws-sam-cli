@@ -12,8 +12,8 @@ class UnsupportedBuilderLibraryVersionError(Exception):
 
     def __init__(self, container_name: str, error_msg: str) -> None:
         msg = (
-            "You are running an outdated version of Docker container '{container_name}' that is not compatible with"
-            "this version of SAM CLI. Please upgrade to continue to continue with build. Reason: '{error_msg}'"
+            "You are running an outdated version of container '{container_name}' that is not compatible with "
+            "this version of SAM CLI. Please upgrade to continue with build. Reason: '{error_msg}'"
         )
         Exception.__init__(self, msg.format(container_name=container_name, error_msg=error_msg))
 
@@ -43,6 +43,13 @@ class DockerfileOutSideOfContext(BuildError):
 class DockerBuildFailed(BuildError):
     def __init__(self, msg: str) -> None:
         BuildError.__init__(self, "DockerBuildFailed", msg)
+
+
+class MicrovmImageSourceError(BuildError):
+    """A MicrovmImage's source can't be built locally; raised before any Docker build runs."""
+
+    def __init__(self, msg: str) -> None:
+        BuildError.__init__(self, "MicrovmImageSourceError", msg)
 
 
 class MissingBuildMethodException(BuildError):

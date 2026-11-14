@@ -41,7 +41,7 @@ class TestLocalExecution(DurableIntegBase, InvokeIntegBase):
         stderr_str = stderr_str.replace("\r\n", "\n")
 
         self.assertNotEqual(result.process.returncode, 0)
-        expected_message = f"Error: An error occurred (404) when calling the {operation_name} operation: Execution {nonexistent_arn} not found\n"
+        expected_message = f"Error: An error occurred (404) when calling the {operation_name} operation: Durable Execution does not exist\n"
         self.assertEqual(stderr_str, expected_message)
 
     def test_execution_stop_already_completed(self):

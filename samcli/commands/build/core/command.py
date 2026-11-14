@@ -74,6 +74,18 @@ class BuildCommand(CoreCommand):
                         ),
                     ]
                 )
+            with formatter.indented_section(
+                name="Build an npm workspaces monorepo, installing once at the workspace root (beta)",
+                extra_indents=1,
+            ):
+                formatter.write_text_rows(
+                    [
+                        RowDefinition(
+                            name=style(f"$ {ctx.command_path} --build-in-source --beta-features"),
+                            extra_row_modifiers=[ShowcaseRowModifier()],
+                        ),
+                    ]
+                )
             with formatter.indented_section(name="Build sam project and deploy", extra_indents=1):
                 formatter.write_text_rows(
                     [

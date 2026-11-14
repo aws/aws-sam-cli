@@ -67,7 +67,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
 
     def test_with_invalid_dockerfile_location(self):
         overrides = {
-            "Runtime": "3.10",
+            "Runtime": "3.14",
             "Handler": "handler",
             "DockerFile": "ThisDockerfileDoesNotExist",
             "Tag": uuid4().hex,
@@ -88,7 +88,7 @@ class TestBuildingImageTypeLambdaDockerFileFailuresContainer(BuildIntegBase):
 
     def test_with_invalid_dockerfile_definition(self):
         overrides = {
-            "Runtime": "3.10",
+            "Runtime": "3.14",
             "Handler": "handler",
             "DockerFile": "InvalidDockerfile",
             "Tag": uuid4().hex,
@@ -193,6 +193,7 @@ class TestSkipBuildingFunctionsWithLocalImageUriContainer(BuildIntegBase):
             if not is_available:
                 self.skipTest(f"Buildkit not available: {error_msg}")
 
+    # add "3.15" once public.ecr.aws/lambda/python:3.15 is released
     @parameterized.expand(["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
     def test_with_default_requirements(self, runtime):
         _tag = uuid4().hex

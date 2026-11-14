@@ -13,16 +13,22 @@ import docker
 import requests
 from click import ClickException
 
+from samcli.commands.exceptions import UserException
 from samcli.local.docker.durable_functions_emulator_container import DurableFunctionsEmulatorContainer
 from samcli.local.docker.utils import to_posix_path
+
+REUSABLE_CONTAINER_ATTRS = {
+    "NetworkSettings": {"Networks": {"sam-durable-execution": {}}},
+    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+}
 
 
 class TestDurableFunctionsEmulatorContainer(TestCase):
     def setUp(self):
         """Set up test fixtures"""
-        self.mock_docker_client = Mock()
+        self.mock_container_client = Mock()
         self.mock_container = Mock()
-        self.mock_docker_client.containers.create.return_value = self.mock_container
+        self.mock_container_client.containers.create.return_value = self.mock_container
 
         self.env_patcher = patch.dict("os.environ", {}, clear=True)
         self.env_patcher.start()
@@ -34,7 +40,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
     def _create_container(self, existing_container=None):
         """Helper to create container with optional existing container"""
         return DurableFunctionsEmulatorContainer(
-            container_client=self.mock_docker_client,
+            container_client=self.mock_container_client,
             existing_container=existing_container,
         )
 
@@ -82,20 +88,20 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         self.assertEqual(container.container, mock_existing)
 
     @patch("samcli.local.docker.durable_functions_emulator_container.get_validated_container_client")
-    def test_docker_client_lazy_loading(self, mock_get_validated_client):
-        """Test that docker client is lazily loaded and cached"""
+    def test_container_client_lazy_loading(self, mock_get_validated_client):
+        """Test that the container client is lazily loaded and cached"""
         mock_validated_client = Mock()
         mock_get_validated_client.return_value = mock_validated_client
 
         container = DurableFunctionsEmulatorContainer()
         mock_get_validated_client.assert_not_called()
 
-        client = container._docker_client
+        client = container._container_client
         mock_get_validated_client.assert_called_once()
         self.assertEqual(client, mock_validated_client)
 
         # Subsequent access uses cached client
-        client2 = container._docker_client
+        client2 = container._container_client
         mock_get_validated_client.assert_called_once()
 
     @parameterized.expand(
@@ -116,10 +122,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container.start()
 
             if should_create:
-                self.mock_docker_client.containers.create.assert_called_once()
+                self.mock_container_client.containers.create.assert_called_once()
                 self.assertEqual(container.container, self.mock_container)
             else:
-                self.mock_docker_client.containers.create.assert_not_called()
+                self.mock_container_client.containers.create.assert_not_called()
                 self.assertIsNone(container.container)
 
             if should_start:
@@ -190,6 +196,130 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
     @parameterized.expand(
         [
+            ("reusable", REUSABLE_CONTAINER_ATTRS, True),
+            (
+                "published_on_all_interfaces",
+                {
+                    "NetworkSettings": {"Networks": {"sam-durable-execution": {}}},
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "", "HostPort": "9014"}]}},
+                },
+                False,
+            ),
+            (
+                "not_on_emulator_network",
+                {
+                    "NetworkSettings": {"Networks": {"bridge": {}}},
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+                },
+                False,
+            ),
+            (
+                # Finch on macOS reports an empty HostConfig and the bindings only in NetworkSettings.Ports
+                "finch_bindings_in_network_settings_only",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]},
+                    },
+                    "HostConfig": {},
+                },
+                True,
+            ),
+            (
+                "network_settings_published_on_all_interfaces",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": [{"HostIp": "0.0.0.0", "HostPort": "9014"}]},
+                    },
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+                },
+                False,
+            ),
+            (
+                "exposed_port_not_published",
+                {
+                    "NetworkSettings": {
+                        "Networks": {"sam-durable-execution": {}},
+                        "Ports": {"9014/tcp": None},
+                    },
+                    "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "127.0.0.1", "HostPort": "9014"}]}},
+                },
+                True,
+            ),
+            ("no_port_bindings", {"NetworkSettings": {"Networks": {"sam-durable-execution": {}}}}, False),
+            ("no_attrs", None, False),
+        ]
+    )
+    def test_is_reusable(self, name, attrs, expected):
+        existing = Mock()
+        existing.attrs = attrs
+        self.assertEqual(self._create_container()._is_reusable(existing), expected)
+
+    @patch("samcli.local.docker.durable_functions_emulator_container.DurableFunctionsClient")
+    def test_start_or_attach_replaces_running_container_that_is_not_reusable(self, mock_client_class):
+        existing = Mock()
+        existing.status = "running"
+        existing.attrs = {
+            "NetworkSettings": {"Networks": {"bridge": {}}},
+            "HostConfig": {"PortBindings": {"9014/tcp": [{"HostIp": "", "HostPort": "9014"}]}},
+        }
+        self.mock_container_client.containers.get.return_value = existing
+        container = self._create_container()
+        container.start = Mock()
+
+        self.assertFalse(container.start_or_attach())
+
+        existing.stop.assert_called_once()
+        existing.remove.assert_called_once()
+        container.start.assert_called_once()
+
+    def test_get_or_create_network_returns_existing_network(self):
+        network = self._create_container().get_or_create_network()
+
+        self.assertEqual(network, self.mock_container_client.networks.get.return_value)
+        self.mock_container_client.networks.get.assert_called_once_with("sam-durable-execution")
+        self.mock_container_client.networks.create.assert_not_called()
+
+    def test_get_or_create_network_creates_missing_network(self):
+        self.mock_container_client.networks.get.side_effect = docker.errors.NotFound("missing")
+
+        network = self._create_container().get_or_create_network()
+
+        self.assertEqual(network, self.mock_container_client.networks.create.return_value)
+        self.mock_container_client.networks.create.assert_called_once_with(
+            "sam-durable-execution", driver="bridge", check_duplicate=True
+        )
+
+    def test_get_or_create_network_handles_concurrent_create(self):
+        created_elsewhere = Mock()
+        self.mock_container_client.networks.get.side_effect = [docker.errors.NotFound("missing"), created_elsewhere]
+        self.mock_container_client.networks.create.side_effect = docker.errors.APIError("already exists")
+
+        self.assertEqual(self._create_container().get_or_create_network(), created_elsewhere)
+
+    def test_get_or_create_network_reports_create_failure(self):
+        self.mock_container_client.networks.get.side_effect = docker.errors.NotFound("missing")
+        create_error = docker.errors.APIError("could not find an available, non-overlapping IPv4 address pool")
+        self.mock_container_client.networks.create.side_effect = create_error
+
+        with self.assertRaises(UserException) as ctx:
+            self._create_container().get_or_create_network()
+
+        self.assertIn("non-overlapping IPv4 address pool", str(ctx.exception))
+        self.assertIs(ctx.exception.__cause__, create_error)
+
+    def test_network_endpoint_uses_container_name_and_port(self):
+        with patch.dict(
+            "os.environ",
+            {"DURABLE_EXECUTIONS_CONTAINER_NAME": "my-emulator", "DURABLE_EXECUTIONS_EMULATOR_PORT": "9999"},
+        ):
+            container = self._create_container()
+
+        self.assertEqual(container.network_endpoint, "http://my-emulator:9999")
+
+    @parameterized.expand(
+        [
             # (name, env_vars, container_exists, container_running, expected_reused, should_create_new)
             ("reuses_running_container", {}, True, True, True, False),
             ("creates_new_when_none_exists", {}, False, False, False, True),
@@ -214,9 +344,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             if container_exists:
                 mock_existing = Mock()
                 mock_existing.status = "running" if container_running else "exited"
-                self.mock_docker_client.containers.get.return_value = mock_existing
+                mock_existing.attrs = REUSABLE_CONTAINER_ATTRS
+                self.mock_container_client.containers.get.return_value = mock_existing
             else:
-                self.mock_docker_client.containers.get.side_effect = Exception("Not found")
+                self.mock_container_client.containers.get.side_effect = Exception("Not found")
 
             container.start = Mock()
             result = container.start_or_attach()
@@ -345,7 +476,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         # Mock image already exists
         mock_image = Mock()
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
 
         with patch.dict("os.environ", env_vars, clear=True):
             container = self._create_container()
@@ -354,13 +485,14 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
             container.start()
 
             # Verify container was created
-            self.mock_docker_client.containers.create.assert_called_once()
-            call_args = self.mock_docker_client.containers.create.call_args
+            self.mock_container_client.containers.create.assert_called_once()
+            call_args = self.mock_container_client.containers.create.call_args
 
             self.assertEqual(call_args.kwargs["working_dir"], "/tmp/.durable-executions-local")
 
             # Verify port configuration
-            self.assertEqual(call_args.kwargs["ports"], {f"{expected_port}/tcp": expected_port})
+            self.assertEqual(call_args.kwargs["ports"], {f"{expected_port}/tcp": ("127.0.0.1", expected_port)})
+            self.assertEqual(call_args.kwargs["network"], "sam-durable-execution")
 
             # Verify environment variables
             environment = call_args.kwargs["environment"]
@@ -399,23 +531,23 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         if image_exists:
             mock_image = Mock()
-            self.mock_docker_client.images.get.return_value = mock_image
+            self.mock_container_client.images.get.return_value = mock_image
             mock_is_current.return_value = is_current
         else:
-            self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
+            self.mock_container_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
 
         container._pull_image_if_needed()
 
         if should_pull:
-            self.mock_docker_client.images.pull.assert_called_once()
+            self.mock_container_client.pull_image_and_wait.assert_called_once()
         else:
-            self.mock_docker_client.images.pull.assert_not_called()
+            self.mock_container_client.pull_image_and_wait.assert_not_called()
 
     def test_image_pull_failure_raises_click_exception(self):
         """Test that image pull failures raise ClickException"""
         container = self._create_container()
-        self.mock_docker_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
-        self.mock_docker_client.images.pull.side_effect = Exception("Network error")
+        self.mock_container_client.images.get.side_effect = docker.errors.ImageNotFound("Not found")
+        self.mock_container_client.pull_image_and_wait.side_effect = Exception("Network error")
 
         with self.assertRaises(ClickException) as context:
             container._pull_image_if_needed()
@@ -426,9 +558,9 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         """Test that image pull failure with existing local image logs debug message before raising exception"""
         container = self._create_container()
         mock_image = Mock()
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
         mock_is_current.return_value = False
-        self.mock_docker_client.images.pull.side_effect = Exception("Network timeout")
+        self.mock_container_client.pull_image_and_wait.side_effect = Exception("Network timeout")
 
         with (self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log,):
             container._pull_image_if_needed()
@@ -655,7 +787,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
 
         mock_existing = Mock()
         mock_existing.status = "exited"
-        self.mock_docker_client.containers.get.return_value = mock_existing
+        self.mock_container_client.containers.get.return_value = mock_existing
 
         container.start = Mock()
         result = container.start_or_attach()
@@ -673,7 +805,7 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         mock_existing = Mock()
         mock_existing.status = "exited"
         mock_existing.stop.side_effect = Exception("Stop failed")
-        self.mock_docker_client.containers.get.return_value = mock_existing
+        self.mock_container_client.containers.get.return_value = mock_existing
 
         container.start = Mock()
         result = container.start_or_attach()
@@ -712,10 +844,10 @@ class TestDurableFunctionsEmulatorContainer(TestCase):
         container._skip_pull_image = True
         mock_image = Mock()
         mock_is_current.return_value = False
-        self.mock_docker_client.images.get.return_value = mock_image
+        self.mock_container_client.images.get.return_value = mock_image
 
         with self.assertLogs("samcli.local.docker.durable_functions_emulator_container", level="DEBUG") as log:
             container._pull_image_if_needed()
 
         self.assertTrue(any("Skipping pulling new emulator image" in msg for msg in log.output))
-        self.mock_docker_client.images.pull.assert_not_called()
+        self.mock_container_client.pull_image_and_wait.assert_not_called()

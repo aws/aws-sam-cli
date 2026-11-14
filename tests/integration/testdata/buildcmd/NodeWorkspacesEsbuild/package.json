@@ -1,0 +1,12 @@
+{
+  "name": "node-workspaces-esbuild-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "functions/*"
+  ],
+  "devDependencies": {
+    "esbuild": "^0.14.14"
+  }
+}

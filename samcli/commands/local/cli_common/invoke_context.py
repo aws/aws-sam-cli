@@ -27,7 +27,7 @@ from samcli.lib.utils.boto_utils import get_boto_client_provider_with_config
 from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.local.docker.container_client import ContainerClient
-from samcli.local.docker.exceptions import PortAlreadyInUse
+from samcli.local.docker.exceptions import ContainerNotStartableException, PortAlreadyInUse
 from samcli.local.docker.lambda_image import LambdaImage
 from samcli.local.docker.manager import ContainerManager
 from samcli.local.lambdafn.exceptions import FunctionNotFound
@@ -125,7 +125,7 @@ class InvokeContext:
         log_file str
             Path to a file to send container output to. If the file does not exist, it will be created
         skip_pull_image bool
-            Should we skip pulling the Docker container image?
+            Should we skip pulling the container image?
         aws_profile str
             Name of the profile to fetch AWS credentials from
         debug_ports tuple(int)
@@ -370,11 +370,11 @@ class InvokeContext:
         """
         LOG.info("Initializing the lambda functions containers.")
 
-        container_ids = []
+        container_ids: List[str] = []
 
         def initialize_function_container(function: Function) -> None:
-            function_config = self.local_lambda_runner.get_invoke_config(function)
-            container = self.lambda_runtime.run(
+            function_config = local_lambda_runner.get_invoke_config(function)
+            container = lambda_runtime.run(
                 container=None,
                 function_config=function_config,
                 debug_context=self._debug_context,
@@ -389,8 +389,17 @@ class InvokeContext:
                 container_ids.append(container.id)
 
         try:
+            functions = list(self._function_provider.get_all())
+            if functions:
+                # The runner and runtime are created lazily and without locking. Create them here, before
+                # the containers are initialized in parallel, so that every container shares one runtime.
+                # Otherwise each thread can create its own, and with it its own durable functions emulator
+                # and warm containers that are never cleaned up.
+                local_lambda_runner = self.local_lambda_runner
+                lambda_runtime = self.lambda_runtime
+
             async_context = AsyncContext()
-            for function in self._function_provider.get_all():
+            for function in functions:
                 async_context.add_async_task(initialize_function_container, function)
 
             async_context.run_async(default_executor=False)
@@ -409,8 +418,12 @@ class InvokeContext:
             LOG.debug("Ctrl+C was pressed. Aborting containers initialization")
             self._clean_running_containers_and_related_resources()
             raise
-        except PortAlreadyInUse as port_inuse_ex:
-            raise port_inuse_ex
+        except (PortAlreadyInUse, ContainerNotStartableException) as ex:
+            # Both name the flag the user has to change, so surface them instead of the generic
+            # wrapper below. The containers created before the failure still have to be released:
+            # this runs from __enter__, so __exit__ never gets the chance to clean them up.
+            self._clean_running_containers_and_related_resources()
+            raise ex
         except Exception as ex:
             LOG.error("Lambda functions containers initialization failed because of %s", ex)
             self._clean_running_containers_and_related_resources()

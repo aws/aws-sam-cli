@@ -40,6 +40,14 @@ class PlatformHandler(ABC):
         """
         pass
 
+    def get_finch_registry_config_path(self) -> Optional[str]:
+        """
+        Returns the path of the registry config file that ``finch login`` writes on this platform,
+        or None when Finch keeps its registry credentials in the default Docker client config
+        (which docker-py already reads) or the platform does not support Finch.
+        """
+        return None
+
     @abstractmethod
     def supports_finch(self) -> bool:
         """
@@ -84,6 +92,16 @@ class MacOSHandler(PlatformHandler):
         Returns the socket path for the macOS.
         """
         return "unix:////Applications/Finch/lima/data/finch/sock/finch.sock"
+
+    def get_finch_registry_config_path(self) -> Optional[str]:
+        """
+        Returns the registry config file ``finch login`` writes on macOS.
+
+        Finch on macOS writes ``$DOCKER_CONFIG/config.json`` when DOCKER_CONFIG is set and
+        ``~/.finch/config.json`` otherwise, never the default ``~/.docker/config.json``.
+        """
+        config_dir = os.environ.get("DOCKER_CONFIG") or os.path.join(os.path.expanduser("~"), ".finch")
+        return os.path.join(config_dir, "config.json")
 
     def supports_finch(self) -> bool:
         """
@@ -215,3 +233,18 @@ def get_finch_socket_path() -> Optional[str]:
     if not handler or not handler.supports_finch():
         return None
     return handler.get_finch_socket_path()
+
+
+def get_finch_registry_config_path() -> Optional[str]:
+    """
+    Get the registry config file that ``finch login`` writes on the current platform.
+
+    Returns:
+        Optional[str]: The config file path when Finch keeps its registry credentials outside the
+        default Docker client config (macOS), None otherwise. On Linux ``finch login`` is a plain
+        nerdctl login into ``$DOCKER_CONFIG`` or ``~/.docker``, which docker-py already reads.
+    """
+    handler = get_platform_handler()
+    if not handler or not handler.supports_finch():
+        return None
+    return handler.get_finch_registry_config_path()

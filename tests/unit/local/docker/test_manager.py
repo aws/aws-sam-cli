@@ -12,7 +12,8 @@ from docker.errors import APIError, ImageNotFound
 
 import docker
 
-from samcli.local.docker.manager import ContainerManager, DockerImagePullFailedException
+from samcli.local.docker.exceptions import ContainerImagePullFailedException
+from samcli.local.docker.manager import ContainerManager
 from samcli.local.docker.container import ContainerContext
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 
@@ -82,7 +83,7 @@ class TestContainerManager_runtime_failures(TestCase):
 
     def test_pull_image_fails_on_connection_error(self):
         """Test pull_image method fails when connection error occurs"""
-        self.manager.container_client.api.pull.side_effect = requests.exceptions.ConnectionError("Connection failed")
+        self.manager.container_client.pull_image.side_effect = requests.exceptions.ConnectionError("Connection failed")
 
         with self.assertRaises(requests.exceptions.ConnectionError):
             self.manager.pull_image("test-image")
@@ -263,7 +264,7 @@ class TestContainerManager_run(TestCase):
         context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
-        self.manager.pull_image = Mock(side_effect=DockerImagePullFailedException("Failed to pull image"))
+        self.manager.pull_image = Mock(side_effect=ContainerImagePullFailedException("Failed to pull image"))
 
         # Assume the image exist.
         self.manager.has_image.return_value = False
@@ -271,9 +272,11 @@ class TestContainerManager_run(TestCase):
         self.manager.skip_pull_image = False
         self.container_mock.is_created.return_value = False
 
-        with self.assertRaises(DockerImagePullFailedException):
+        with self.assertRaises(ContainerImagePullFailedException) as context_manager:
             self.manager.run(self.container_mock, context, input_data)
 
+        # The pull failure's own message (e.g. a registry rate limit) must reach the user
+        self.assertIn("failed to pull it: Failed to pull image", str(context_manager.exception))
         self.manager.has_image.assert_called_with(self.image_name)
         self.manager.pull_image.assert_called_with(self.image_name)
         self.container_mock.start.assert_not_called()
@@ -283,7 +286,7 @@ class TestContainerManager_run(TestCase):
         context = ContainerContext.BUILD
 
         self.manager.has_image = Mock()
-        self.manager.pull_image = Mock(side_effect=DockerImagePullFailedException("Failed to pull image"))
+        self.manager.pull_image = Mock(side_effect=ContainerImagePullFailedException("Failed to pull image"))
 
         # Assume the image exist.
         self.manager.has_image.return_value = True
@@ -332,8 +335,6 @@ class TestContainerManager_pull_image(TestCase):
         self.image_name = "image name"
 
         self.mock_docker_client = Mock()
-        self.mock_docker_client.api = Mock()
-        self.mock_docker_client.api.pull = Mock()
         mock_get_client.return_value = self.mock_docker_client
 
         with patch(
@@ -345,9 +346,9 @@ class TestContainerManager_pull_image(TestCase):
     def test_must_pull_and_print_progress_dots(self):
         stream = Mock()
         pull_result = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
-        self.mock_docker_client.api.pull.return_value = pull_result
+        self.mock_docker_client.pull_image.return_value = iter(pull_result)
         expected_stream_calls = [
-            call(f"\nFetching {self.image_name}:latest Docker container image..."),
+            call(f"\nFetching {self.image_name}:latest container image..."),
             call("."),
             call("."),
             call("."),
@@ -363,23 +364,35 @@ class TestContainerManager_pull_image(TestCase):
 
         self.manager.pull_image(self.image_name, stream=stream)
 
-        self.mock_docker_client.api.pull.assert_called_with(self.image_name, stream=True, decode=True, tag="latest")
+        self.mock_docker_client.pull_image.assert_called_with(self.image_name, tag="latest")
 
         stream.write_str.assert_has_calls(expected_stream_calls)
 
     def test_must_raise_if_image_not_found(self):
         msg = "some error"
-        self.mock_docker_client.api.pull.side_effect = APIError(msg)
+        self.mock_docker_client.pull_image.side_effect = ContainerImagePullFailedException(msg)
 
-        with self.assertRaises(DockerImagePullFailedException) as context:
+        with self.assertRaises(ContainerImagePullFailedException) as context:
             self.manager.pull_image("imagename")
 
         ex = context.exception
         self.assertEqual(str(ex), msg)
 
+    def test_must_raise_if_pull_reports_error_while_streaming(self):
+        def progress():
+            yield {"status": "Pulling"}
+            raise ContainerImagePullFailedException("toomanyrequests: rate limit exceeded")
+
+        self.mock_docker_client.pull_image.return_value = progress()
+
+        with self.assertRaises(ContainerImagePullFailedException) as context:
+            self.manager.pull_image("imagename")
+
+        self.assertIn("toomanyrequests", str(context.exception))
+
     @patch("samcli.local.docker.manager.threading")
     def test_multiple_image_pulls_must_use_locks(self, mock_threading):
-        self.mock_docker_client.api.pull.return_value = [1, 2, 3]
+        self.mock_docker_client.pull_image.side_effect = lambda *args, **kwargs: iter([1, 2, 3])
 
         # mock general lock
         mock_lock = MagicMock()

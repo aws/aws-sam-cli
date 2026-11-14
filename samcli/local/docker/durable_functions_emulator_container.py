@@ -11,10 +11,11 @@ from typing import Optional
 
 import docker
 import requests
-from click import ClickException
 
+from samcli.commands.exceptions import UserException
 from samcli.lib.build.utils import _get_host_architecture
 from samcli.lib.clients.lambda_client import DurableFunctionsClient
+from samcli.local.docker.container_client import ContainerClient
 from samcli.local.docker.utils import (
     get_validated_container_client,
     is_image_current,
@@ -35,6 +36,13 @@ class DurableFunctionsEmulatorContainer:
     _EMULATOR_DATA_DIR_NAME = ".durable-executions-local"
     _EMULATOR_DEFAULT_STORE_TYPE = "sqlite"
     EMULATOR_PORT = 9014
+
+    """
+    The emulator and the durable Lambda containers talk to each other over this network by container
+    name, so neither has to publish a port on anything but the loopback interface of the host.
+    """
+    NETWORK_NAME = "sam-durable-execution"
+    _HOST_INTERFACE = "127.0.0.1"
 
     """
     Allow overriding the emulator to a local instance of the emulator server.
@@ -81,8 +89,8 @@ class DurableFunctionsEmulatorContainer:
     ENV_EMULATOR_IMAGE_TAG = "DURABLE_EXECUTIONS_EMULATOR_IMAGE_TAG"
 
     def __init__(self, container_client=None, existing_container=None, skip_pull_image=False):
-        self._docker_client_param = container_client
-        self._validated_docker_client: Optional[docker.DockerClient] = None
+        self._container_client_param = container_client
+        self._validated_container_client: Optional[ContainerClient] = None
         self.container = existing_container
         self.lambda_client: Optional[DurableFunctionsClient] = None
         self._skip_pull_image = skip_pull_image
@@ -103,6 +111,49 @@ class DurableFunctionsEmulatorContainer:
     def _get_emulator_container_name(self):
         """Get container name from environment variable or use default."""
         return os.environ.get(self.ENV_CONTAINER_NAME, self._CONTAINER_NAME)
+
+    @property
+    def network_endpoint(self):
+        """URL that containers on NETWORK_NAME use to reach the emulator."""
+        return f"http://{self._container_name}:{self.port}"
+
+    def get_or_create_network(self):
+        """Get the network shared with the durable Lambda containers, creating it if needed."""
+        try:
+            return self._container_client.networks.get(self.NETWORK_NAME)
+        except docker.errors.NotFound:
+            pass
+        try:
+            return self._container_client.networks.create(self.NETWORK_NAME, driver="bridge", check_duplicate=True)
+        except docker.errors.APIError as create_error:
+            # The create fails if another SAM CLI process created the network after the lookup, in which
+            # case it exists now. Otherwise the create failed for a real reason, so report that one.
+            try:
+                return self._container_client.networks.get(self.NETWORK_NAME)
+            except docker.errors.NotFound:
+                raise UserException(
+                    f"Failed to create the {self.NETWORK_NAME} network for durable functions: {create_error}",
+                    wrapped_from=create_error.__class__.__name__,
+                ) from create_error
+
+    def _is_reusable(self, container):
+        """
+        Whether a running emulator container can be attached to. Containers started by older SAM CLI
+        versions published the emulator port on every host interface and are not on NETWORK_NAME, so
+        they are replaced instead of reused.
+        """
+        attrs = container.attrs or {}
+        network_settings = attrs.get("NetworkSettings") or {}
+        networks = network_settings.get("Networks") or {}
+        # Docker reports the published ports in both places, but Finch on macOS leaves HostConfig empty and
+        # only reports them in NetworkSettings.Ports, so check both
+        host_ips = [
+            binding.get("HostIp")
+            for bindings in (network_settings.get("Ports"), (attrs.get("HostConfig") or {}).get("PortBindings"))
+            for port in (bindings or {}).values()
+            for binding in (port or [])
+        ]
+        return self.NETWORK_NAME in networks and bool(host_ips) and all(ip == self._HOST_INTERFACE for ip in host_ips)
 
     def _get_port(self, external_port_env_var, override_port_env_var, default_port):
         """
@@ -186,14 +237,15 @@ class DurableFunctionsEmulatorContainer:
         }
 
     @property
-    def _docker_client(self) -> docker.DockerClient:
+    def _container_client(self) -> ContainerClient:
         """
-        Lazy initialization of Docker client. Only validates container runtime when actually accessed.
+        Lazy initialization of the container client (Docker or Finch).
+        Only validates the container runtime when actually accessed.
         This prevents unnecessary container runtime validation for builds that don't require containers.
         """
-        if self._validated_docker_client is None:
-            self._validated_docker_client = self._docker_client_param or get_validated_container_client()
-        return self._validated_docker_client
+        if self._validated_container_client is None:
+            self._validated_container_client = self._container_client_param or get_validated_container_client()
+        return self._validated_container_client
 
     def _get_emulator_binary_name(self):
         """Get the emulator binary name based on current architecture."""
@@ -204,10 +256,10 @@ class DurableFunctionsEmulatorContainer:
         local_image_exists = False
         """Pull the emulator image if it doesn't exist locally or is out of date."""
         try:
-            self._docker_client.images.get(self._get_emulator_image())
+            self._container_client.images.get(self._get_emulator_image())
             local_image_exists = True
             LOG.debug(f"Emulator image {self._get_emulator_image()} exists locally")
-            if is_image_current(self._docker_client, self._get_emulator_image()):
+            if is_image_current(self._container_client, self._get_emulator_image()):
                 LOG.debug("Local emulator image is up-to-date")
                 return
 
@@ -219,7 +271,7 @@ class DurableFunctionsEmulatorContainer:
             if self._skip_pull_image and local_image_exists:
                 LOG.debug("Skipping pulling new emulator image")
                 return
-            self._docker_client.images.pull(self._get_emulator_image())
+            self._container_client.pull_image_and_wait(self._get_emulator_image())
             LOG.info(f"Successfully pulled image {self._get_emulator_image()}")
         except Exception as e:
             if local_image_exists:
@@ -228,7 +280,10 @@ class DurableFunctionsEmulatorContainer:
                     f"{self._get_emulator_image()}: {e}"
                 )
             else:
-                raise ClickException(f"Failed to pull emulator image {self._get_emulator_image()}: {e}")
+                raise UserException(
+                    f"Failed to pull emulator image {self._get_emulator_image()}: {e}",
+                    wrapped_from=e.__class__.__name__,
+                ) from e
 
     def start(self):
         """Start the emulator container."""
@@ -250,9 +305,10 @@ class DurableFunctionsEmulatorContainer:
         }
 
         self._pull_image_if_needed()
+        self.get_or_create_network()
 
         LOG.debug(f"Creating container with name={self._container_name}, port={self.port}")
-        self.container = self._docker_client.containers.create(
+        self.container = self._container_client.containers.create(
             image=self._get_emulator_image(),
             command=[
                 "dex-local-runner",
@@ -271,7 +327,9 @@ class DurableFunctionsEmulatorContainer:
                 "/tmp/.durable-executions-local/durable-executions.db",  # this is the path within the container
             ],
             name=self._container_name,
-            ports={f"{self.port}/tcp": self.port},
+            # Only SAM CLI on this host talks to the published port; containers use NETWORK_NAME.
+            ports={f"{self.port}/tcp": (self._HOST_INTERFACE, self.port)},
+            network=self.NETWORK_NAME,
             volumes=volumes,
             environment=self._get_emulator_environment(),
             working_dir="/tmp/.durable-executions-local",
@@ -304,15 +362,17 @@ class DurableFunctionsEmulatorContainer:
         try:
             # Try to find existing container
             LOG.debug(f"Looking for existing container: {self._container_name}")
-            existing_container = self._docker_client.containers.get(self._container_name)
+            existing_container = self._container_client.containers.get(self._container_name)
             LOG.debug(f"Found existing container {self._container_name} with status: {existing_container.status}")
 
-            if existing_container.status == "running":
+            if existing_container.status == "running" and self._is_reusable(existing_container):
                 LOG.debug("Reusing existing running emulator container")
                 self.container = existing_container
                 self.lambda_client = DurableFunctionsClient.create(host="localhost", port=self.port)
                 return True
             else:
+                if existing_container.status == "running":
+                    LOG.info("Replacing durable functions emulator container started with an outdated configuration")
                 try:
                     existing_container.stop()
                     existing_container.remove()

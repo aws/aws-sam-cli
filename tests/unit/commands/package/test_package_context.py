@@ -311,7 +311,7 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # ECR uploader should be created but Docker client not validated yet
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
@@ -384,8 +384,8 @@ class TestPackageContextDockerLazyInitialization(TestCase):
 
             # Verify ECRUploader was created with None docker_client parameter
             ecr_uploader = package_command_context.uploaders.ecr
-            self.assertIsNone(ecr_uploader._docker_client_param)
-            self.assertIsNone(ecr_uploader._validated_docker_client)
+            self.assertIsNone(ecr_uploader._container_client_param)
+            self.assertIsNone(ecr_uploader._validated_container_client)
 
     @patch("samcli.lib.package.ecr_uploader.get_validated_container_client")
     @patch.object(ResourceMetadataNormalizer, "normalize", MagicMock())
@@ -2630,6 +2630,67 @@ class TestPackageContextExportIntegration(TestCase):
         )
         self.assertEqual(
             output_template["Mappings"]["SAMCodeUriServices"]["Orders"]["CodeUri"], "s3://bucket/orders-def456.zip"
+        )
+
+    @patch("samcli.commands.package.package_context.Template")
+    @patch("builtins.open", create=True)
+    @patch("samcli.commands.package.package_context.yaml_parse")
+    def test_export_wraps_string_microvm_code_artifact_in_foreach(
+        self, mock_yaml_parse, mock_open, mock_template_class
+    ):
+        """A plain-string CodeArtifact in Fn::ForEach is packaged as {Uri: Fn::FindInMap} instead of failing"""
+        package_context = PackageContext(
+            template_file="template.yaml",
+            s3_bucket="s3-bucket",
+            s3_prefix="s3-prefix",
+            image_repository=None,
+            image_repositories=None,
+            kms_key_id=None,
+            output_template_file=None,
+            use_json=False,
+            force_upload=False,
+            no_progressbar=False,
+            metadata={},
+            region=None,
+            profile=None,
+            language_extensions=True,
+        )
+        package_context.uploaders = Mock()
+        package_context.code_signer = Mock()
+        mock_yaml_parse.return_value = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Images": [
+                    "N",
+                    ["Alpha", "Beta"],
+                    {"${N}Image": {"Type": "AWS::Lambda::MicrovmImage", "Properties": {"CodeArtifact": "./${N}"}}},
+                ]
+            },
+        }
+        # The exporter writes CodeArtifact back as {Uri: <S3 URI>}
+        mock_template_class.return_value.export.return_value = {
+            "Resources": {
+                f"{name}Image": {
+                    "Type": "AWS::Lambda::MicrovmImage",
+                    "Properties": {"CodeArtifact": {"Uri": f"s3://bucket/{name.lower()}"}},
+                }
+                for name in ("Alpha", "Beta")
+            }
+        }
+        mock_open.return_value.__enter__.return_value.read.return_value = ""
+
+        from samcli.yamlhelper import yaml_parse as real_yaml_parse
+
+        output_template = real_yaml_parse(package_context._export("template.yaml", use_json=False))
+
+        body = output_template["Resources"]["Fn::ForEach::Images"][2]
+        self.assertEqual(
+            body["${N}Image"]["Properties"]["CodeArtifact"],
+            {"Uri": {"Fn::FindInMap": ["SAMUriImages", {"Ref": "N"}, "Uri"]}},
+        )
+        self.assertEqual(
+            output_template["Mappings"]["SAMUriImages"],
+            {"Alpha": {"Uri": "s3://bucket/alpha"}, "Beta": {"Uri": "s3://bucket/beta"}},
         )
 
     @patch("samcli.commands.package.package_context.Template")

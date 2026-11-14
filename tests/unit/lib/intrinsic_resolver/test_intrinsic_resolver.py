@@ -157,6 +157,12 @@ class TestIntrinsicFnSelectResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "c")
 
+    def test_fn_select_string_index(self):
+        # The index may be a string, as in the example of the CloudFormation documentation
+        intrinsic = {"Fn::Select": ["1", ["apples", "grapes", "oranges", "mangoes"]]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
+        self.assertEqual(result, "grapes")
+
     def test_nested_fn_select(self):
         intrinsic_base_1 = {"Fn::Select": [0, ["a", "b", "c", "d"]]}
         intrinsic_base_2 = {"Fn::Join": [";", ["g", "h", "i", intrinsic_base_1]]}
@@ -177,7 +183,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     @parameterized.expand(
         [
             ("Fn::Select should fail if the first argument does not resolve to a int: {}".format(item), item)
-            for item in [True, False, {}, "3", None]
+            for item in [True, False, {}, "three", None]
         ]
     )
     def test_fn_select_index_invalid_index_type(self, name, index):
@@ -479,6 +485,22 @@ class TestIntrinsicFnSubResolver(TestCase):
             symbol_resolver=IntrinsicsSymbolTable(logical_id_translator=logical_id_translator, template=template),
         )
 
+    @parameterized.expand([r"C:\project\data", r"\1", r"line\nnext", r"prefix\\suffix"])
+    def test_fn_sub_preserves_backslashes_in_parameter_values(self, value):
+        template = {"Parameters": {"Value": {"Type": "String", "Default": value}}}
+        resolver = IntrinsicResolver(template=template, symbol_resolver=IntrinsicsSymbolTable(template=template))
+
+        result = resolver.intrinsic_property_resolver({"Fn::Sub": "prefix:${Value}:suffix"}, False)
+
+        self.assertEqual(result, "prefix:" + value + ":suffix")
+
+    def test_fn_sub_preserves_backslashes_in_variable_map(self):
+        result = self.resolver.intrinsic_property_resolver(
+            {"Fn::Sub": ["${Path}/${AWS::Region}", {"Path": r"C:\project\data"}]}, False
+        )
+
+        self.assertEqual(result, r"C:\project\data/us-east-1")
+
     def test_fn_sub_basic_uri(self):
         intrinsic = {
             "Fn::Sub": "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaFunction.Arn}/invocations"
@@ -586,6 +608,29 @@ class TestIntrinsicFnEqualsResolver(TestCase):
         intrinsic = {"Fn::Equals": [intrinsic_base_1, intrinsic_base_2]}
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertFalse(result)
+
+    @parameterized.expand(
+        [
+            ("true", "true", True),
+            ("true", True, True),
+            ("false", False, True),
+            ("1", 1, True),
+            ("1.5", 1.5, True),
+            ("true", False, False),
+            ("1", 2, False),
+            ("True", True, False),
+            ("Prod", "prod", False),
+            (True, 1, False),
+            (1, 1.0, False),
+        ]
+    )
+    def test_fn_equals_compares_as_strings(self, parameter_value, literal, expected):
+        # CloudFormation compares as strings, so a YAML literal like `true` equals the parameter value "true"
+        resolver = IntrinsicResolver(
+            template={}, symbol_resolver=IntrinsicsSymbolTable(logical_id_translator={"Flag": parameter_value})
+        )
+        result = resolver.intrinsic_property_resolver({"Fn::Equals": [{"Ref": "Flag"}, literal]}, True)
+        self.assertEqual(result, expected)
 
     @parameterized.expand(
         [
@@ -1076,6 +1121,75 @@ class TestResolveTemplate(TestCase):
         symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={})
         resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
         self.assertEqual(resolver.resolve_template(), expected_template)
+
+    def test_output_name_collides_with_comma_delimited_list_parameter(self):
+        # Regression test for https://github.com/aws/aws-sam-cli/issues/8627
+        # When an Output's logical name matches the name of a CommaDelimitedList
+        # parameter, get_translation() returns a list for that name. Previously
+        # this list was used as a dict key in resolve_attribute() and raised
+        # TypeError: unhashable type: 'list'. The processed template must
+        # preserve the original Output key.
+        template = {
+            "Parameters": {"AppName": {"Type": "CommaDelimitedList", "Default": "hello, world"}},
+            "Resources": {
+                "MyFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {"Runtime": "python3.12", "Handler": "index.handler"},
+                }
+            },
+            "Outputs": {"AppName": {"Value": {"Ref": "AppName"}}},
+        }
+
+        # Real call sites (e.g. SamBaseProvider) pass resolved parameter
+        # values into logical_id_translator. Mirror that here so
+        # get_translation() actually returns the list form that triggers the
+        # crash on the unfixed code path.
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"AppName": "hello, world"})
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("AppName", processed_template["Outputs"])
+        self.assertEqual(processed_template["Outputs"]["AppName"], {"Value": ["hello", "world"]})
+
+    def test_resource_name_collides_with_comma_delimited_list_parameter(self):
+        # Same root cause as the Output collision above, but exercised against
+        # the Resources branch of resolve_attribute to ensure both call sites
+        # are protected from the unhashable-key crash.
+        template = {
+            "Parameters": {"VpcSubnetIds": {"Type": "CommaDelimitedList", "Default": "subnet-a, subnet-b"}},
+            "Resources": {
+                "VpcSubnetIds": {
+                    "Type": "AWS::SSM::Parameter",
+                    "Properties": {"Type": "StringList", "Value": {"Ref": "VpcSubnetIds"}},
+                }
+            },
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(
+            template=template, logical_id_translator={"VpcSubnetIds": "subnet-a, subnet-b"}
+        )
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("VpcSubnetIds", processed_template["Resources"])
+
+    def test_resource_logical_id_renaming_still_works(self):
+        # Guard against regressing the legitimate logical-ID renaming that
+        # resolve_attribute relies on. When logical_id_translator maps a
+        # resource key to a string, that string should still become the new
+        # key in the processed template.
+        template = {
+            "Resources": {
+                "OldName": {"Type": "AWS::ApiGateway::RestApi", "Properties": {"Name": "api"}},
+            }
+        }
+
+        symbol_resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"OldName": "NewName"})
+        resolver = IntrinsicResolver(template=template, symbol_resolver=symbol_resolver)
+        processed_template = resolver.resolve_template()
+
+        self.assertIn("NewName", processed_template["Resources"])
+        self.assertNotIn("OldName", processed_template["Resources"])
 
     def load_test_data(self, template_path):
         integration_path = str(Path(__file__).resolve().parents[0].joinpath("test_data", template_path))

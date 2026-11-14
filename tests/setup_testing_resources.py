@@ -90,18 +90,49 @@ def get_ecr_public_password() -> str:
     return token_result.stdout.strip()
 
 
+def ensure_user_docker_config() -> str:
+    """
+    Create the runner's own Docker client config if it does not exist yet.
+
+    A user who already has a Docker config keeps owning it when a root-privileged `finch login`
+    rewrites it (docker/cli preserves the owner and mode of an existing config.json). Only a
+    first-time login creates a root-owned file that SAM CLI, running as the user, cannot read.
+    """
+    config_dir = os.environ.get("DOCKER_CONFIG") or os.path.join(os.path.expanduser("~"), ".docker")
+    config_file = os.path.join(config_dir, "config.json")
+    os.makedirs(config_dir, mode=0o700, exist_ok=True)
+    try:
+        # Create atomically with owner-only permissions; keep an existing config untouched
+        fd = os.open(config_file, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        return config_file
+    with os.fdopen(fd, "w") as f:
+        f.write("{}")
+    return config_file
+
+
 def ecr_login(container_runtime: str, retries: int = 3, delay: int = 10):
     """Log in to Public ECR with retry logic."""
+    docker_config_file = ensure_user_docker_config() if container_runtime == "finch" else None
+
     for attempt in range(1, retries + 1):
         try:
             token = get_ecr_public_password()
+            mask_value(token)
 
             if container_runtime == "finch":
-                login_cmd = ["sudo", "finch", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
+                # Log in as the runner, the user SAM CLI runs as. On Linux `finch login` writes the
+                # Docker client config ($DOCKER_CONFIG or ~/.docker), which SAM CLI reads; `sudo`
+                # would write root's config instead. setup_finch.sh makes `finch` usable without sudo.
+                login_cmd = ["finch", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
             else:
                 login_cmd = ["docker", "login", "--username", "AWS", "--password-stdin", "public.ecr.aws"]
 
             subprocess.run(login_cmd, input=token, text=True, check=True)
+            if docker_config_file and not os.access(docker_config_file, os.R_OK):
+                # SAM CLI runs as this user and would silently pull anonymously
+                print(f"FATAL: {docker_config_file} is not readable after finch login.", file=sys.stderr)
+                sys.exit(1)
             print(f"Successfully logged in to Public ECR via {container_runtime}.")
             return
         except subprocess.CalledProcessError as e:
