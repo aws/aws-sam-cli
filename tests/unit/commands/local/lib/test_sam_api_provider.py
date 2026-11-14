@@ -2256,6 +2256,47 @@ class TestSamApiUsingAuthorizers(TestCase):
         )
 
 
+class TestSamApiRestApiPathValidation(TestCase):
+    @parameterized.expand(
+        [
+            ("/",),
+            ("/hello",),
+            ("/users/{id}",),
+            ("/{proxy+}",),
+            ("/files/{name}/data.json",),
+            ("/items/v1:batch-get",),
+            ("/items/a,b",),
+            ("/api/{version}/under_score/{proxy+}",),
+            ("/trailing/slash/",),
+        ]
+    )
+    def test_valid_rest_api_path(self, path):
+        _, route = SamApiProvider._convert_event_route("", "MyFunction", {"Path": path, "Method": "get"}, Route.API)
+
+        self.assertEqual(route.path, path)
+
+    @parameterized.expand(
+        [
+            ("/api/map/{z}/{x}/{y}.png", "path part '{y}.png'"),
+            ("/users/id-{id}", "path part 'id-{id}'"),
+            ("/users/{first}{last}", "path part '{first}{last}'"),
+            ("/hello world", "path part 'hello world'"),
+            ("/{}", "path part '{}'"),
+            ("/{proxy+}/items", "greedy path variable '{proxy\\+}' must be the last part"),
+        ]
+    )
+    def test_invalid_rest_api_path_raises(self, path, expected_message):
+        with self.assertRaisesRegex(InvalidSamDocumentException, expected_message):
+            SamApiProvider._convert_event_route("", "MyFunction", {"Path": path, "Method": "get"}, Route.API)
+
+    def test_http_api_path_is_not_validated(self):
+        _, route = SamApiProvider._convert_event_route(
+            "", "MyFunction", {"Path": "/api/map/{y}.png", "Method": "get"}, Route.HTTP
+        )
+
+        self.assertEqual(route.path, "/api/map/{y}.png")
+
+
 def make_swagger(routes, binary_media_types=None):
     """
     Given a list of API configurations named tuples, returns a Swagger document
