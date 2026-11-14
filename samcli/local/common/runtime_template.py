@@ -17,6 +17,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     "python": [
         {
             "runtimes": [
+                "python3.15",
                 "python3.14",
                 "python3.13",
                 "python3.12",
@@ -40,7 +41,7 @@ RUNTIME_DEP_TEMPLATE_MAPPING = {
     ],
     "nodejs": [
         {
-            "runtimes": ["nodejs24.x", "nodejs22.x", "nodejs20.x", "nodejs18.x", "nodejs16.x"],
+            "runtimes": ["nodejs26.x", "nodejs24.x", "nodejs22.x", "nodejs20.x", "nodejs18.x", "nodejs16.x"],
             "dependency_manager": "npm",
             "init_location": os.path.join(_templates, "cookiecutter-aws-sam-hello-nodejs"),
             "build": True,
@@ -140,6 +141,7 @@ INIT_RUNTIMES = [
     "java8.al2023",
     "java8.al2",
     # nodejs runtimes in descending order
+    "nodejs26.x",
     "nodejs24.x",
     "nodejs22.x",
     "nodejs20.x",
@@ -150,6 +152,7 @@ INIT_RUNTIMES = [
     "provided.al2",
     "provided",
     # python runtimes in descending order
+    "python3.15",
     "python3.14",
     "python3.13",
     "python3.12",
@@ -180,11 +183,13 @@ LAMBDA_IMAGES_RUNTIMES_MAP = {
     "java11.al2023": "amazon/java11.al2023-base",
     "java8.al2": "amazon/java8.al2-base",
     "java8.al2023": "amazon/java8.al2023-base",
+    "nodejs26.x": "amazon/nodejs26.x-base",
     "nodejs24.x": "amazon/nodejs24.x-base",
     "nodejs22.x": "amazon/nodejs22.x-base",
     "nodejs20.x": "amazon/nodejs20.x-base",
     "nodejs18.x": "amazon/nodejs18.x-base",
     "nodejs16.x": "amazon/nodejs16.x-base",
+    "python3.15": "amazon/python3.15-base",
     "python3.14": "amazon/python3.14-base",
     "python3.13": "amazon/python3.13-base",
     "python3.12": "amazon/python3.12-base",
@@ -219,6 +224,7 @@ SAM_RUNTIME_TO_SCHEMAS_CODE_LANG_MAPPING = {
     "python3.12": "Python36",
     "python3.13": "Python36",
     "python3.14": "Python36",
+    "python3.15": "Python36",
     "dotnet6": "dotnet6",
     "dotnet8": "dotnet6",
     "dotnet10": "dotnet6",

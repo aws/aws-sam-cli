@@ -204,13 +204,14 @@ class TestXrayTracePuller(TestCase):
 
                 patched_load_time_period.assert_has_calls([call(ANY, ANY) for _ in range(self.max_retries + 1)])
 
+    @parameterized.expand([("ThrottlingException",), ("ThrottledException",)])
     @patch("samcli.lib.observability.xray_traces.xray_event_puller.time")
-    def test_with_throttling(self, patched_time):
+    def test_with_throttling(self, error_code: str, patched_time: Mock) -> None:
         with patch.object(
             self.xray_trace_puller, "load_time_period", wraps=self.xray_trace_puller.load_time_period
         ) as patched_load_time_period:
             patched_load_time_period.side_effect = [
-                ClientError({"Error": {"Code": "ThrottlingException"}}, "operation") for _ in range(self.max_retries)
+                ClientError({"Error": {"Code": error_code}}, "operation") for _ in range(self.max_retries)
             ]
 
             self.xray_trace_puller.tail()

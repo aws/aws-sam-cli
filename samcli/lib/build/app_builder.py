@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import re
+import zipfile
 from pathlib import Path
 from typing import Dict, List, NamedTuple, Optional, cast
 
@@ -1216,9 +1217,17 @@ class ApplicationBuilder:
                 "If CodeUri references a template parameter, provide its value via --parameter-overrides."
             )
         if not docker_context_dir.is_dir():
+            # Reached for a .zip only when the image is the build target; building all resources skips a CodeUri
+            # ending in .zip. Check the content, as sam package does, so a corrupt .zip is reported as a file.
+            if zipfile.is_zipfile(docker_context_dir):
+                raise MicrovmImageSourceError(
+                    f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a .zip file. sam build builds "
+                    "MicrovmImages from a source directory containing a Dockerfile; point CodeUri at that directory "
+                    "to build locally. sam package uploads a .zip as is."
+                )
             raise MicrovmImageSourceError(
                 f"CodeUri '{docker_context_dir}' for MicrovmImage '{full_path}' is a file. CodeUri must be a "
-                "directory containing a Dockerfile; sam build cannot build a MicrovmImage from a .zip file."
+                f"directory containing a Dockerfile, for example '{docker_context_dir.parent}'."
             )
         if not dockerfile_path.exists():
             raise MicrovmImageSourceError(

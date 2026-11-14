@@ -58,6 +58,16 @@ class TestSamMicrovmImageProvider(TestCase):
                     "CpuConfigurations": [{"Architecture": "ARM_64"}],
                 },
             },
+            "MicrovmImageWithX86Arch": {
+                "Type": "AWS::Serverless::MicrovmImage",
+                "Properties": {
+                    "Name": "x86-arch-app",
+                    "CodeUri": "./app-x86-arch",
+                    "BaseImageArn": "arn:aws:lambda:::microvm-image:base",
+                    "BaseImageVersion": "3",
+                    "CpuConfigurations": [{"Architecture": "X86_64"}],
+                },
+            },
             "SamFunc": {
                 "Type": "AWS::Serverless::Function",
                 "Properties": {
@@ -123,6 +133,7 @@ class TestSamMicrovmImageProvider(TestCase):
             "ServerlessMicrovmImageWithMetadata",
             "LambdaMicrovmImage",
             "MicrovmImageWithArch",
+            "MicrovmImageWithX86Arch",
             posixpath.join("ChildStack", "MicrovmImageInChild"),
         ]
         self.assertEqual(expected, result)
@@ -153,6 +164,10 @@ class TestSamMicrovmImageProvider(TestCase):
     def test_architecture_extracted_from_cpu_configurations(self):
         image = self.provider.get("MicrovmImageWithArch")
         self.assertEqual(image.architecture, "arm64")
+
+    def test_x86_64_architecture_extracted_from_cpu_configurations(self):
+        image = self.provider.get("MicrovmImageWithX86Arch")
+        self.assertEqual(image.architecture, "x86_64")
 
     def test_architecture_defaults_to_arm64_when_not_specified(self):
         image = self.provider.get("ServerlessMicrovmImage")

@@ -5,6 +5,7 @@ Represents Durable Lambda runtime containers.
 import logging
 import threading
 import time
+import uuid
 from typing import Optional
 
 import click
@@ -37,6 +38,9 @@ class DurableLambdaContainer(LambdaContainer):
         """
         self._is_warm_runtime = is_warm_runtime
 
+        # Name the emulator reaches this container by on the emulator's network, set on create
+        self._network_host: Optional[str] = None
+
         self._update_lambda_environment_with_emulator_endpoint(kwargs)
         super().__init__(*args, **kwargs)
 
@@ -51,12 +55,17 @@ class DurableLambdaContainer(LambdaContainer):
         """
         Set up environment variables for Lambda container to communicate with emulator.
 
-        This is done by setting the AWS_ENDPOINT_URL_LAMBDA to be the emulator port, allowing
+        This is done by setting the AWS_ENDPOINT_URL_LAMBDA to be the emulator, allowing
         calls from the customer code to CheckpointDurableExecution and GetDurableExecutionState
-        to be routed to the emulator container.
+        to be routed to the emulator. A containerized emulator is reached over the network the two
+        containers share; an external emulator runs on the host, so it is reached through
+        host.docker.internal.
         """
         env_vars = kwargs.get("env_vars", {}) or {}
-        env_vars["AWS_ENDPOINT_URL_LAMBDA"] = f"http://host.docker.internal:{self.emulator_container.port}"
+        if self.emulator_container._is_external_emulator():
+            env_vars["AWS_ENDPOINT_URL_LAMBDA"] = f"http://host.docker.internal:{self.emulator_container.port}"
+        else:
+            env_vars["AWS_ENDPOINT_URL_LAMBDA"] = self.emulator_container.network_endpoint
         kwargs["env_vars"] = env_vars
 
         # Add extra_hosts to allow Lambda container to resolve host.docker.internal
@@ -64,16 +73,41 @@ class DurableLambdaContainer(LambdaContainer):
         extra_hosts["host.docker.internal"] = "host-gateway"
         kwargs["extra_hosts"] = extra_hosts
 
-        # Bind to 0.0.0.0 so emulator can reach Lambda via host.docker.internal
-        kwargs["container_host_interface"] = "0.0.0.0"
+    def _uses_emulator_network(self):
+        """
+        Whether this container reaches the emulator over the emulator's network. That is every case
+        but an external emulator, including --docker-network host: SAM CLI does not run containers in
+        host network mode, it only skips joining a network, so the container is on a bridge network
+        like any other and can join the emulator's.
+        """
+        return not self.emulator_container._is_external_emulator()
+
+    def create(self, context):
+        if not self._uses_emulator_network():
+            return super().create(context)
+
+        # Create the container directly on the emulator's network, under a name the emulator can resolve.
+        # Attaching it afterwards with an alias does not work on every runtime: Finch only makes a
+        # container resolvable by its name and hostname, and only for containers that joined the
+        # network when they were created.
+        network = self.emulator_container.get_or_create_network()
+        self._network_host = f"sam-durable-function-{uuid.uuid4().hex[:12]}"
+        self._container_opts = {
+            **(self._container_opts or {}),
+            "name": self._network_host,
+            "hostname": self._network_host,
+            "network": network.name,
+        }
+        return super().create(context)
 
     def _get_lambda_container_endpoint(self):
         """
         Get the Lambda container endpoint URL for the emulator to invoke.
-        Uses localhost for external emulator, host.docker.internal for containerized emulator.
+        Uses the shared network for a containerized emulator, and the host port for an external one.
         """
-        lambda_host = "localhost" if self.emulator_container._is_external_emulator() else "host.docker.internal"
-        return f"http://{lambda_host}:{self.get_port()}"
+        if self._uses_emulator_network():
+            return f"http://{self._network_host}:{self.RAPID_PORT_CONTAINER}"
+        return f"http://localhost:{self.get_port()}"
 
     def wait_for_result(
         self,
