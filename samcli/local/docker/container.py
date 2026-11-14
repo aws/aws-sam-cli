@@ -40,6 +40,30 @@ from samcli.local.docker.utils import NoFreePortsError, find_free_port, to_posix
 LOG = logging.getLogger(__name__)
 
 CONTAINER_CONNECTION_TIMEOUT = float(os.environ.get("SAM_CLI_CONTAINER_CONNECTION_TIMEOUT", "20"))
+
+# A container engine reports a taken host port in several ways, depending on which layer
+# refuses it and which engine is answering. self.docker_client can be either a Docker or a
+# Finch client (utils.get_validated_container_client), so these match the layer-independent
+# fragment rather than one engine's whole sentence:
+#
+#   "Ports are not available"     Docker Desktop.
+#   "port is already allocated"   the port allocator, when another container holds the port.
+#                                 Docker formats it "Bind for 127.0.0.1:3093 failed: ...",
+#                                 nerdctl "bind for 127.0.0.1:3093 failed: ...".
+#   "address already in use"      any bind-level refusal, when something other than a
+#                                 container holds the port. Docker's userland proxy prefixes
+#                                 this with "bind: "; nerdctl surfaces the bare errno text,
+#                                 so the prefix is deliberately left out of the match.
+#
+# Measured against Docker 25.0.16 and Finch 1.17.2 / nerdctl 2.3.5 on Linux; the Docker
+# Desktop wording is as reported. The nerdctl strings above are present in the nerdctl
+# binary, which carries no "bind: "-prefixed form of either errno message.
+PORT_TAKEN_WORDINGS = (
+    "Ports are not available",
+    "port is already allocated",
+    "address already in use",
+)
+
 DEFAULT_CONTAINER_HOST_INTERFACE = "127.0.0.1"
 
 
@@ -289,7 +313,7 @@ class Container:
         try:
             real_container = self.docker_client.containers.create(self._image, **kwargs)
         except DockerAPIError as ex:
-            if "port is already allocated" in str(ex):
+            if any(wording in str(ex) for wording in PORT_TAKEN_WORDINGS):
                 raise ContainerCreationFailedException(
                     f"Container creation failed: {ex.explanation}. A host port that SAM CLI publishes for this "
                     "container is already in use, stop the process or container using it and try again"

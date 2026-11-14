@@ -375,15 +375,30 @@ class TestContainer_create(TestCase):
             container.create(self.container_context)
         self.assertIsNone(container._concurrency_semaphore)
 
-    def test_create_reports_port_in_use_when_port_allocated(self):
-        """Test that create() keeps ContainerCreationFailedException but explains the port conflict"""
+    @parameterized.expand(
+        [
+            (
+                "500 Server Error: Ports are not available: exposing port TCP 127.0.0.1:7311",
+                "Ports are not available detail",
+            ),
+            (
+                'failed to parse port mapping "0.0.0.0:7311:8080/tcp": bind for 0.0.0.0:7311 failed: '
+                "port is already allocated",
+                "port is already allocated detail",
+            ),
+            (
+                "Error starting userland proxy: listen tcp4 127.0.0.1:7311: bind: address already in use",
+                "address already in use detail",
+            ),
+        ]
+    )
+    def test_create_reports_port_in_use_for_every_engine_wording(self, error_msg, explanation):
+        """create() keeps ContainerCreationFailedException but explains the port conflict"""
         container = Container(
             self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
         )
 
-        # Mock APIError with "port is already allocated" message (as reported by Finch)
-        error_msg = 'failed to parse port mapping "0.0.0.0:7311:8080/tcp": bind for 0.0.0.0:7311 failed: port is already allocated'
-        mock_error = APIError(error_msg, explanation=error_msg)
+        mock_error = APIError(error_msg, explanation=explanation)
         self.mock_docker_client.containers.create.side_effect = mock_error
 
         with self.assertRaises(ContainerCreationFailedException) as context:
