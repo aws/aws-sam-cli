@@ -4180,6 +4180,54 @@ class TestApplicationBuilder_get_build_options(TestCase):
         )
         self.assertEqual(options, {"parent_python_packages": expected_parent_packages})
 
+    @parameterized.expand(
+        [
+            ("UvGroups", ["dev"], "uv_groups"),
+            ("UvExtras", ["fast"], "uv_extras"),
+            ("UvAllExtras", True, "uv_all_extras"),
+            ("UvPrune", ["boto3"], "uv_prune"),
+        ]
+    )
+    def test_python_uv_build_property_mapped(self, prop, value, option):
+        metadata = {"BuildMethod": "python-uv", "BuildProperties": {prop: value}}
+        options = ApplicationBuilder._get_build_options("Function", "python", "base_dir", "handler", "uv", metadata)
+        self.assertEqual(options, {option: value})
+
+    def test_python_uv_build_properties_merge_with_parent_package_mode(self):
+        build_properties = {
+            "ParentPackageMode": "explicit",
+            "ParentPackages": "src.function",
+            "UvGroups": ["dev"],
+            "UvPrune": ["boto3"],
+        }
+        metadata = {"BuildMethod": "python-uv", "BuildProperties": build_properties}
+        options = ApplicationBuilder._get_build_options("Function", "python", "base_dir", "handler", "uv", metadata)
+        self.assertEqual(
+            options, {"parent_python_packages": "src.function", "uv_groups": ["dev"], "uv_prune": ["boto3"]}
+        )
+
+    @parameterized.expand([(None,), ({"BuildMethod": "python-uv"},), ({"BuildProperties": {}},)])
+    def test_python_uv_without_build_properties(self, metadata):
+        options = ApplicationBuilder._get_build_options("Function", "python", "base_dir", "handler", "uv", metadata)
+        self.assertIsNone(options)
+
+    @parameterized.expand(
+        [
+            ("python", "pip"),
+            ("nodejs", "npm"),
+            ("esbuild", "npm-esbuild"),
+            ("python", None),
+        ]
+    )
+    def test_uv_build_properties_rejected_without_python_uv(self, language, dependency_manager):
+        metadata = {"BuildProperties": {"UvPrune": ["boto3"], "UvGroups": ["dev"]}}
+        with self.assertRaises(BuildError) as ctx:
+            ApplicationBuilder._get_build_options(
+                "MyFunction", language, "base_dir", "app.handler", dependency_manager, metadata
+            )
+        self.assertIn("MyFunction sets UvGroups, UvPrune", str(ctx.exception))
+        self.assertIn("BuildMethod: python-uv", str(ctx.exception))
+
 
 class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
     def test_empty_metadata(self):

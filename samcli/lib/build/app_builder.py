@@ -106,6 +106,14 @@ HTTP_500 = 500
 HTTP_505 = 505
 JSON_RPC_CODE = -32601
 
+# Metadata.BuildProperties keys for BuildMethod: python-uv, mapped to Lambda Builders' python_uv workflow options
+UV_BUILD_PROPERTIES = {
+    "UvGroups": "uv_groups",
+    "UvExtras": "uv_extras",
+    "UvAllExtras": "uv_all_extras",
+    "UvPrune": "uv_prune",
+}
+
 
 class ApplicationBuildResult(NamedTuple):
     """
@@ -1081,6 +1089,14 @@ class ApplicationBuilder:
         if metadata and isinstance(metadata, dict):
             build_props = metadata.get(BUILD_PROPERTIES, {})
 
+        uv_props = [key for key in UV_BUILD_PROPERTIES if key in build_props]
+        if uv_props and dependency_manager != "uv":
+            raise BuildError(
+                "InvalidBuildProperties",
+                f"{function_name} sets {', '.join(uv_props)} in Metadata.BuildProperties, but these only apply "
+                "when it is built with BuildMethod: python-uv",
+            )
+
         if metadata and dependency_manager and dependency_manager == "npm-esbuild":
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
@@ -1121,6 +1137,11 @@ class ApplicationBuilder:
                 )
             elif package_root_mode == "explicit":
                 options["parent_python_packages"] = build_props.get("ParentPackages", None)
+
+        if uv_props:
+            # Values pass through as-is; Lambda Builders validates their types
+            options = options if options else {}
+            options.update({UV_BUILD_PROPERTIES[key]: build_props[key] for key in uv_props})
 
         return options
 
