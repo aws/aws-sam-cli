@@ -77,7 +77,7 @@ class CWLogPuller(ObservabilityPuller):
                         self._poll_interval **= 2
                     LOG.warning(
                         "Throttled by CloudWatch Logs API, consider pulling logs for certain resources. "
-                        "Increasing the poll interval time for resource %s to %s seconds",
+                        "Next poll for resource %s in %s seconds",
                         self.cw_log_group,
                         self._poll_interval,
                     )

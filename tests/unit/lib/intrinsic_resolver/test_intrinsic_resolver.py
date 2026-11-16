@@ -157,6 +157,12 @@ class TestIntrinsicFnSelectResolver(TestCase):
         result = self.resolver.intrinsic_property_resolver(intrinsic, True)
         self.assertEqual(result, "c")
 
+    def test_fn_select_string_index(self):
+        # The index may be a string, as in the example of the CloudFormation documentation
+        intrinsic = {"Fn::Select": ["1", ["apples", "grapes", "oranges", "mangoes"]]}
+        result = self.resolver.intrinsic_property_resolver(intrinsic, True)
+        self.assertEqual(result, "grapes")
+
     def test_nested_fn_select(self):
         intrinsic_base_1 = {"Fn::Select": [0, ["a", "b", "c", "d"]]}
         intrinsic_base_2 = {"Fn::Join": [";", ["g", "h", "i", intrinsic_base_1]]}
@@ -177,7 +183,7 @@ class TestIntrinsicFnSelectResolver(TestCase):
     @parameterized.expand(
         [
             ("Fn::Select should fail if the first argument does not resolve to a int: {}".format(item), item)
-            for item in [True, False, {}, "3", None]
+            for item in [True, False, {}, "three", None]
         ]
     )
     def test_fn_select_index_invalid_index_type(self, name, index):
