@@ -770,6 +770,29 @@ class TestContainer_start(TestCase):
         container_mock.reload.assert_called_once_with()
         self.assertEqual(self.container.rapid_port_host, 50724)
 
+    def test_must_keep_previous_rapid_host_port_while_reading_new_one(self):
+        # Concurrent invokes on a warm container read the port while start() talks to Docker
+        self.container.is_created.return_value = True
+        self.container.rapid_port_host = 50724
+        container_mock = Mock(ports={"8080/tcp": [{"HostIp": "127.0.0.1", "HostPort": "50725"}]})
+        ports_seen_during_reload = []
+        container_mock.reload.side_effect = lambda: ports_seen_during_reload.append(self.container.rapid_port_host)
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        self.container.start()
+
+        self.assertEqual(ports_seen_during_reload, [50724])
+        self.assertEqual(self.container.rapid_port_host, 50725)
+
+    def test_must_prefer_rapid_binding_on_requested_interface(self):
+        self.container.is_created.return_value = True
+        bindings = [{"HostIp": "::", "HostPort": "50724"}, {"HostIp": "127.0.0.1", "HostPort": "50725"}]
+        self.mock_docker_client.containers.get.return_value = Mock(ports={"8080/tcp": bindings})
+
+        self.container.start()
+
+        self.assertEqual(self.container.rapid_port_host, 50725)
+
     def test_must_not_keep_previous_rapid_host_port_on_restart(self):
         # Docker assigns a new host port on each start; an exited container has none
         self.container.is_created.return_value = True

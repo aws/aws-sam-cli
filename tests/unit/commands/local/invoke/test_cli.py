@@ -294,8 +294,8 @@ class TestCli(TestCase):
     @parameterized.expand(
         [
             param(
-                ContainerNotStartableException("Container cannot be started, no free ports on host"),
-                "Container cannot be started, no free ports on host",
+                ContainerNotStartableException("Container cannot be started"),
+                "Container cannot be started",
             ),
             param(
                 PortAlreadyInUse("Container cannot be started, provided port already in use"),
@@ -309,7 +309,7 @@ class TestCli(TestCase):
     )
     @patch("samcli.commands.local.cli_common.invoke_context.InvokeContext")
     @patch("samcli.commands.local.invoke.cli._get_event")
-    def test_must_raise_user_exception_on_function_no_free_ports(
+    def test_must_raise_user_exception_when_function_container_cannot_start(
         self, side_effect_exception, expected_exception_message, get_event_mock, InvokeContextMock
     ):
         event_data = "data"

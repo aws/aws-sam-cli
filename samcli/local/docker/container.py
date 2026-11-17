@@ -500,12 +500,17 @@ class Container:
         Records the host port Docker assigned to aws-lambda-rie's port when the container started.
         A container that has already exited has no port bindings; the port then stays unset.
         """
-        # Docker re-assigns host ports on every start: never keep a stale value
-        self.rapid_port_host = None
         real_container.reload()
-        bindings = real_container.ports.get(f"{self.RAPID_PORT_CONTAINER}/tcp")
-        if bindings:
-            self.rapid_port_host = int(bindings[0]["HostPort"])
+        bindings = real_container.ports.get(f"{self.RAPID_PORT_CONTAINER}/tcp") or []
+        # Prefer the binding on the requested interface in case the engine lists other families too
+        on_interface = [b for b in bindings if b.get("HostIp") == self._container_host_interface]
+        binding = (on_interface or bindings or [None])[0]
+        if binding is None:
+            LOG.debug(
+                "Container %s has no binding for port %s; it has likely exited", self.id, self.RAPID_PORT_CONTAINER
+            )
+        # Assigned once, after the Docker call: concurrent invokes on a warm container read this port
+        self.rapid_port_host = int(binding["HostPort"]) if binding else None
 
     def _initialize_concurrency_control(self):
         """
