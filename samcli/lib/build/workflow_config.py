@@ -94,6 +94,7 @@ def get_layer_subfolder(build_workflow: str) -> str:
         "python3.13": "python",
         "python3.14": "python",
         "python3.15": "python",
+        "python-uv": "python",
         "nodejs8.10": "nodejs",
         "nodejs16.x": "nodejs",
         "nodejs18.x": "nodejs",

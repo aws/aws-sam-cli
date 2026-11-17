@@ -19,6 +19,7 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
+from aws_lambda_builders.workflows.python_uv.utils import detect_uv_manifest
 
 from samcli.commands._utils.experimental import (
     ExperimentalFlag,
@@ -39,6 +40,7 @@ from samcli.lib.build.build_strategy import (
     WorkspaceAwareBuildStrategy,
 )
 from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
+from samcli.lib.build.dependency_hash_generator import PYTHON_UV_BUILD_METHOD
 from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
@@ -751,6 +753,8 @@ class ApplicationBuilder:
                 if self._manifest_path_override
                 else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
             )
+            if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                manifest_path = detect_uv_manifest(code_dir)
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
@@ -759,6 +763,13 @@ class ApplicationBuilder:
                 else scratch_dir
             )
             build_runtime = specified_workflow
+            if specified_workflow == PYTHON_UV_BUILD_METHOD:
+                # uv needs a Python runtime to pick the target version
+                if not compatible_runtimes:
+                    raise UnsupportedRuntimeException(
+                        f"Layer '{layer_name}' with BuildMethod {PYTHON_UV_BUILD_METHOD} requires CompatibleRuntimes"
+                    )
+                build_runtime = compatible_runtimes[FIRST_COMPATIBLE_RUNTIME_INDEX]
             options = ApplicationBuilder._get_build_options(
                 layer_name,
                 config.language,
@@ -972,6 +983,8 @@ class ApplicationBuilder:
                     if self._manifest_path_override
                     else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
                 )
+                if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                    manifest_path = detect_uv_manifest(code_dir)
                 scratch_dir_path = (
                     LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
                     if self._container_manager
