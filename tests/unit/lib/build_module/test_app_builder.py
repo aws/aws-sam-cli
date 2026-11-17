@@ -944,6 +944,38 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         self.assertEqual(args[2], PathValidator("python"))
         self.assertEqual(args[5], "python3.13")
 
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_python_uv_layer_passes_uv_build_properties(self, osutils_mock, get_workflow_config_mock):
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, dependency_manager="uv", language="python")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+        self.builder._build_function_in_process = Mock()
+        metadata = {"BuildMethod": "python-uv", "BuildProperties": {"UvGroups": ["layer"], "UvPrune": ["boto3"]}}
+
+        self.builder._build_layer(
+            "layer_name", "code_uri", "python-uv", ["python3.13"], X86_64, "full_path", layer_metadata=metadata
+        )
+
+        options = self.builder._build_function_in_process.call_args[0][7]
+        self.assertEqual(options["uv_groups"], ["layer"])
+        self.assertEqual(options["uv_prune"], ["boto3"])
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_non_uv_layer_with_uv_build_properties_raises(self, osutils_mock, get_workflow_config_mock):
+        get_workflow_config_mock.return_value = Mock(manifest_name=None, dependency_manager="pip", language="python")
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock(return_value=False)
+        metadata = {"BuildMethod": "python3.13", "BuildProperties": {"UvGroups": ["layer"]}}
+
+        with self.assertRaises(BuildError) as ctx:
+            self.builder._build_layer(
+                "layer_name", "code_uri", "python3.13", ["python3.13"], X86_64, "full_path", layer_metadata=metadata
+            )
+
+        self.assertIn("UvGroups", str(ctx.exception))
+
     @patch("samcli.lib.build.app_builder.detect_uv_manifest")
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -1080,6 +1112,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator(os.path.join("basedir", "code_uri")),
             scratch_dir="scratch",
@@ -1151,6 +1184,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
@@ -1224,6 +1258,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
@@ -1294,6 +1329,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator("code_uri"),
             scratch_dir="scratch",
@@ -1364,6 +1400,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator(os.path.join("src", "code", "path")),
             scratch_dir="scratch",
@@ -1432,6 +1469,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
             "provided",
             "basedir",
             None,
+            dependency_manager=None,
             metadata=metadata,
             source_code_path=PathValidator("code_uri"),
             scratch_dir="scratch",

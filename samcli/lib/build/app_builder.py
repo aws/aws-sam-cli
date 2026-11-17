@@ -783,6 +783,8 @@ class ApplicationBuilder:
                 config.language,
                 self._base_dir,
                 None,
+                # Only uv layers take dependency-manager-specific options (the Uv* build properties)
+                dependency_manager=config.dependency_manager if config.dependency_manager == "uv" else None,
                 metadata=layer_metadata,
                 source_code_path=code_dir,
                 scratch_dir=scratch_dir_path,
