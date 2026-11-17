@@ -118,6 +118,15 @@ class LambdaRuntime:
                 "`sam sync -–help`. Learn more here: %s",
                 sam_accelerate_link,
             )
+        if function_config.accelerator_config:
+            # Warned on create so a warm container (`--warm-containers`) warns once per container
+            # rather than once per request; cold mode calls create() from invoke() per invocation.
+            LOG.warning(
+                "Function '%s' declares AcceleratorConfig, but the local Lambda runtime does not emulate "
+                "accelerator (GPU) hardware. The function will run locally on CPU and its behavior may differ "
+                "from AWS. To test accelerator behavior, deploy and test the function on AWS.",
+                function_config.full_path,
+            )
 
         container_args = (
             function_config.runtime,
