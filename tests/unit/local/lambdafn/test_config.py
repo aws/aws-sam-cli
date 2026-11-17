@@ -65,6 +65,27 @@ class TestFunctionConfig(TestCase):
 
         self.assertEqual(config.runtime_management_config, self.runtime_management_config)
 
+    def test_init_with_accelerator_config(self):
+        accelerator_config = {"AcceleratorMemorySize": 24}
+        config = FunctionConfig(
+            self.name,
+            self.full_path,
+            self.runtime,
+            self.handler,
+            self.imageuri,
+            self.imageconfig,
+            self.packagetype,
+            self.code_path,
+            self.layers,
+            self.architecture,
+            memory=self.memory,
+            timeout=self.timeout,
+            env_vars=self.env_vars_mock,
+            accelerator_config=accelerator_config,
+        )
+
+        self.assertEqual(config.accelerator_config, accelerator_config)
+
     def test_init_without_optional_values(self):
         config = FunctionConfig(
             self.name,
@@ -96,6 +117,7 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(config.env_vars.memory, self.DEFAULT_MEMORY)
         self.assertEqual(config.env_vars.timeout, self.DEFAULT_TIMEOUT)
         self.assertEqual(config.runtime_management_config, None)
+        self.assertEqual(config.accelerator_config, None)
 
     def test_init_with_timeout_of_int_string(self):
         config = FunctionConfig(

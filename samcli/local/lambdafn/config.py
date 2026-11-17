@@ -33,6 +33,7 @@ class FunctionConfig:
         env_vars=None,
         code_real_path=None,
         capacity_provider_configuration=None,
+        accelerator_config=None,
         durable_config=None,
     ):
         """
@@ -70,6 +71,8 @@ class FunctionConfig:
              If it not provided, this class will generate one for you based on the function properties
         capacity_provider_configuration : object, optional
             Capacity provider configuration for lmi functions, by default None
+        accelerator_config : dict, optional
+            Accelerator (GPU) configuration for lmi functions, by default None
 
         Raises
         ------
@@ -93,6 +96,7 @@ class FunctionConfig:
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
         self.runtime_management_config = runtime_management_config
         self.capacity_provider_configuration = capacity_provider_configuration
+        self.accelerator_config = accelerator_config
         self.durable_config = durable_config
 
         if not isinstance(self.timeout, int):

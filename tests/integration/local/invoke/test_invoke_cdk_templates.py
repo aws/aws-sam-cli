@@ -1,6 +1,7 @@
 import json
 import shutil
 from pathlib import Path
+from subprocess import Popen, PIPE, TimeoutExpired
 
 import pytest
 from docker.errors import APIError
@@ -11,7 +12,7 @@ from samcli import __version__ as version
 from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from samcli.lib.utils.architecture import X86_64
 from samcli.local.docker.utils import get_validated_container_client
-from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase
+from tests.integration.local.invoke.invoke_integ_base import InvokeIntegBase, TIMEOUT
 from tests.integration.local.invoke.test_integrations_cli import TestLayerVersionBase
 from tests.testing_utils import get_build_command_list, run_command
 
@@ -250,3 +251,32 @@ class TestCDKLayerVersion(TestLayerVersionBase):
         expected_output = '"This is a Layer Ping from simple_python"'
 
         self.assertEqual(process_stdout.decode("utf-8"), expected_output)
+
+
+class TestCDKAcceleratorFunction(InvokeIntegBase):
+    """
+    SAM CLI consumes `cdk synth` output, so a CDK accelerator function arrives as an ordinary
+    CloudFormation template. It must invoke locally on CPU and warn that accelerator hardware
+    is not emulated.
+    """
+
+    template = Path("cdk/cdk_accelerator_template.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_cdk_accelerator_function(self):
+        command_list = InvokeIntegBase.get_command_list(
+            "acceleratorfunctionE1E1E1E1", event_path=self.event_path, template_path=self.template_path
+        )
+
+        process = Popen(command_list, stdout=PIPE, stderr=PIPE)
+        try:
+            stdout, stderr = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+
+        process_stderr = stderr.decode("utf-8")
+        self.assertIn("AcceleratorConfig", process_stderr)
+        self.assertIn("does not emulate", process_stderr)

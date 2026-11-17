@@ -1,0 +1,40 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Template for testing accelerator (GPU) functionality.
+
+Parameters:
+  SecurityGroupId:
+    Type: String
+    Default: "sg-12345"
+
+  SubnetId:
+    Type: String
+    Default: "subnet-12345"
+
+Resources:
+  HelloWorldAcceleratorCapacityProvider:
+    Type: AWS::Serverless::CapacityProvider
+    Properties:
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref SecurityGroupId
+        SubnetIds:
+          - !Ref SubnetId
+      InstanceRequirements:
+        Architectures:
+          - x86_64
+      ScalingConfig:
+        MaxVCpuCount: 100
+
+  HelloWorldAcceleratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.accelerator_handler
+      Runtime: python3.13
+      CodeUri: .
+      Timeout: 600
+      CapacityProviderConfig:
+        Arn: !GetAtt HelloWorldAcceleratorCapacityProvider.Arn
+        PerExecutionEnvironmentMaxConcurrency: 10
+      AcceleratorConfig:
+        AcceleratorMemorySize: 24

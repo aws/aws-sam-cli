@@ -156,6 +156,8 @@ class Function(NamedTuple):
     capacity_provider_config: Optional[Dict] = None
     # PublishToLatestPublished configuration
     publish_to_latest_published: Optional[bool] = None
+    # AcceleratorConfig for GPU/accelerator resources (pass-through property)
+    accelerator_config: Optional[Dict] = None
 
     @property
     def capacity_provider_configuration(self) -> Optional[CapacityProviderConfig]:
