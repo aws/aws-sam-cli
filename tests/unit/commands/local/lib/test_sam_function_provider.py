@@ -1965,6 +1965,50 @@ class TestSamFunctionProvider_durable_config_integration(TestCase):
         self.assertIsNone(result.durable_config)
 
 
+class TestSamFunctionProvider_accelerator_config_integration(TestCase):
+    def test_convert_sam_function_with_accelerator_config(self):
+        """Test that SAM function conversion includes accelerator configuration"""
+        name = "AcceleratorFunction"
+        properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "AcceleratorConfig": {"AcceleratorMemorySize": 24},
+        }
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertIsNotNone(result.accelerator_config)
+        self.assertEqual(result.accelerator_config["AcceleratorMemorySize"], 24)
+
+    def test_convert_lambda_function_with_accelerator_config(self):
+        """Test that Lambda function conversion includes accelerator configuration"""
+        name = "AcceleratorFunction"
+        properties = {
+            "Code": {"ZipFile": "def handler(event, context): return 'Hello'"},
+            "Runtime": "python3.11",
+            "Handler": "index.handler",
+            "AcceleratorConfig": {"AcceleratorMemorySize": 48},
+        }
+
+        result = SamFunctionProvider._convert_lambda_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertIsNotNone(result.accelerator_config)
+        self.assertEqual(result.accelerator_config["AcceleratorMemorySize"], 48)
+
+    def test_convert_function_without_accelerator_config(self):
+        """Test that functions without accelerator config have None for accelerator_config"""
+        name = "RegularFunction"
+        properties = {"CodeUri": "/usr/local", "Runtime": "python3.11", "Handler": "index.handler"}
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.name, name)
+        self.assertIsNone(result.accelerator_config)
+
+
 class TestSamFunctionProvider_parse_layer_info(TestCase):
     @parameterized.expand(
         [

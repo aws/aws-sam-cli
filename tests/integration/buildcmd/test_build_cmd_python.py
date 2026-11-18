@@ -76,6 +76,7 @@ class TestBuildCommand_PythonFunctions_Images(BuildIntegBase):
 
     @parameterized.expand(
         [
+            # add "3.15" once public.ecr.aws/lambda/python:3.15 is released
             *[(runtime, "Dockerfile") for runtime in ["3.12", "3.13", "3.14"]],
             *[(runtime, "Dockerfile.production") for runtime in ["3.12", "3.13", "3.14"]],
         ]
@@ -358,6 +359,14 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
             "python3.14",
             "PythonPEP600",
         ),
+        (
+            "python3.15",
+            "Python",
+        ),
+        (
+            "python3.15",
+            "PythonPEP600",
+        ),
         ("python3.12", "Python", "template_uv.yaml"),
         ("python3.12", "PythonPEP600", "template_uv.yaml"),
         ("python3.12", "PythonPyProject", "template_uv.yaml"),
@@ -367,6 +376,9 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
         ("python3.14", "Python", "template_uv.yaml"),
         ("python3.14", "PythonPEP600", "template_uv.yaml"),
         ("python3.14", "PythonPyProject", "template_uv.yaml"),
+        ("python3.15", "Python", "template_uv.yaml"),
+        ("python3.15", "PythonPEP600", "template_uv.yaml"),
+        ("python3.15", "PythonPyProject", "template_uv.yaml"),
     ],
 )
 @pytest.mark.al2023
@@ -433,6 +445,8 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             ("python3.12", "Python"),
             ("python3.13", "Python"),
             ("python3.14", "Python"),
+            # skip this test until python 3.15 build image is released
+            # ("python3.15", "Python"),
             # Enable when build images with uv are released
             # ("python3.12", "Python", "template_uv.yaml"),
             # ("python3.13", "Python", "template_uv.yaml"),
@@ -575,6 +589,10 @@ class TestBuildCommand_PythonFunctions_With_Specified_Architecture(BuildIntegPyt
             ("python3.14", "PythonPEP600", False, "x86_64"),
             # skip this test until python 3.14 build image is released
             # ("python3.14", "Python", "use_container", "x86_64"),
+            ("python3.15", "Python", False, "x86_64"),
+            ("python3.15", "PythonPEP600", False, "x86_64"),
+            # skip this test until python 3.15 build image is released
+            # ("python3.15", "Python", "use_container", "x86_64"),
         ],
         name_func=show_container_in_test_name,
     )

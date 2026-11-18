@@ -3,6 +3,7 @@ from parameterized import parameterized
 from unittest.mock import patch
 
 from samcli.lib.build.workflow_config import (
+    get_layer_subfolder,
     get_workflow_config,
     UnsupportedRuntimeException,
     UnsupportedBuilderException,
@@ -25,6 +26,7 @@ class Test_get_workflow_config(TestCase):
             ("python3.12",),
             ("python3.13",),
             ("python3.14",),
+            ("python3.15",),
         ]
     )
     def test_must_work_for_python(self, runtime):
@@ -38,7 +40,9 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "python-pip"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",), ("nodejs24.x",)])
+    @parameterized.expand(
+        [("nodejs16.x",), ("nodejs18.x",), ("nodejs20.x",), ("nodejs22.x",), ("nodejs24.x",), ("nodejs26.x",)]
+    )
     def test_must_work_for_nodejs(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir)
         self.assertEqual(result.language, "nodejs")
@@ -79,7 +83,9 @@ class Test_get_workflow_config(TestCase):
         self.assertIn(Event("BuildWorkflowUsed", "rust-cargo"), EventTracker.get_tracked_events())
         self.assertFalse(result.must_mount_with_write_in_container)
 
-    @parameterized.expand([("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",), ("python3.14",)])
+    @parameterized.expand(
+        [("python3.10",), ("python3.11",), ("python3.12",), ("python3.13",), ("python3.14",), ("python3.15",)]
+    )
     def test_must_work_for_python_with_build_method_uv(self, runtime):
         result = get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="python-uv")
         self.assertEqual(result.language, "python")
@@ -187,3 +193,15 @@ class Test_get_workflow_config(TestCase):
             get_workflow_config(runtime, self.code_dir, self.project_dir)
 
         self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported")
+
+
+class Test_get_layer_subfolder(TestCase):
+    @parameterized.expand([("python3.12", "python"), ("python-uv", "python"), ("makefile", "")])
+    def test_must_return_subfolder(self, build_workflow, expected):
+        self.assertEqual(get_layer_subfolder(build_workflow), expected)
+
+    def test_must_raise_for_unsupported_workflow(self):
+        with self.assertRaises(UnsupportedRuntimeException) as ctx:
+            get_layer_subfolder("foobar")
+
+        self.assertEqual(str(ctx.exception), "'foobar' runtime is not supported for layers")

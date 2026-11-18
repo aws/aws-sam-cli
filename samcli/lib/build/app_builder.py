@@ -19,6 +19,7 @@ from aws_lambda_builders import (
 )
 from aws_lambda_builders.builder import LambdaBuilder
 from aws_lambda_builders.exceptions import LambdaBuilderError
+from aws_lambda_builders.workflows.python_uv.utils import detect_uv_manifest
 
 from samcli.commands._utils.experimental import (
     ExperimentalFlag,
@@ -39,6 +40,7 @@ from samcli.lib.build.build_strategy import (
     WorkspaceAwareBuildStrategy,
 )
 from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
+from samcli.lib.build.dependency_hash_generator import PYTHON_UV_BUILD_METHOD
 from samcli.lib.build.exceptions import (
     BuildError,
     BuildInsideContainerError,
@@ -103,6 +105,14 @@ HTTP_400 = 400
 HTTP_500 = 500
 HTTP_505 = 505
 JSON_RPC_CODE = -32601
+
+# Metadata.BuildProperties keys for BuildMethod: python-uv, mapped to Lambda Builders' python_uv workflow options
+UV_BUILD_PROPERTIES = {
+    "UvGroups": "uv_groups",
+    "UvExtras": "uv_extras",
+    "UvAllExtras": "uv_all_extras",
+    "UvPrune": "uv_prune",
+}
 
 
 class ApplicationBuildResult(NamedTuple):
@@ -751,6 +761,8 @@ class ApplicationBuilder:
                 if self._manifest_path_override
                 else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
             )
+            if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                manifest_path = detect_uv_manifest(code_dir)
 
             # By default prefer to build in-process for speed
             scratch_dir_path = (
@@ -759,11 +771,20 @@ class ApplicationBuilder:
                 else scratch_dir
             )
             build_runtime = specified_workflow
+            if specified_workflow == PYTHON_UV_BUILD_METHOD:
+                # uv needs a Python runtime to pick the target version
+                if not compatible_runtimes:
+                    raise UnsupportedRuntimeException(
+                        f"Layer '{layer_name}' with BuildMethod {PYTHON_UV_BUILD_METHOD} requires CompatibleRuntimes"
+                    )
+                build_runtime = compatible_runtimes[FIRST_COMPATIBLE_RUNTIME_INDEX]
             options = ApplicationBuilder._get_build_options(
                 layer_name,
                 config.language,
                 self._base_dir,
                 None,
+                # Only uv layers take dependency-manager-specific options (the Uv* build properties)
+                dependency_manager=config.dependency_manager if config.dependency_manager == "uv" else None,
                 metadata=layer_metadata,
                 source_code_path=code_dir,
                 scratch_dir=scratch_dir_path,
@@ -972,6 +993,8 @@ class ApplicationBuilder:
                     if self._manifest_path_override
                     else (os.path.join(manifest_context_path, config.manifest_name) if config.manifest_name else None)
                 )
+                if manifest_path is None and self._container_manager and config.dependency_manager == "uv":
+                    manifest_path = detect_uv_manifest(code_dir)
                 scratch_dir_path = (
                     LambdaBuildContainer.get_container_dirs(code_dir, manifest_path)["scratch_dir"]
                     if self._container_manager
@@ -1068,6 +1091,14 @@ class ApplicationBuilder:
         if metadata and isinstance(metadata, dict):
             build_props = metadata.get(BUILD_PROPERTIES, {})
 
+        uv_props = [key for key in UV_BUILD_PROPERTIES if key in build_props]
+        if uv_props and dependency_manager != "uv":
+            raise BuildError(
+                "InvalidBuildProperties",
+                f"{function_name} sets {', '.join(uv_props)} in Metadata.BuildProperties, but these only apply "
+                "when it is built with BuildMethod: python-uv",
+            )
+
         if metadata and dependency_manager and dependency_manager == "npm-esbuild":
             # Esbuild takes an array of entry points from which to start bundling
             # as a required argument. This corresponds to the lambda function handler.
@@ -1108,6 +1139,11 @@ class ApplicationBuilder:
                 )
             elif package_root_mode == "explicit":
                 options["parent_python_packages"] = build_props.get("ParentPackages", None)
+
+        if uv_props:
+            # Values pass through as-is; Lambda Builders validates their types
+            options = options if options else {}
+            options.update({UV_BUILD_PROPERTIES[key]: build_props[key] for key in uv_props})
 
         return options
 

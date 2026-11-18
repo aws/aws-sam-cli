@@ -529,6 +529,7 @@ class SamFunctionProvider(SamBaseProvider):
             publish_to_latest_published=resource_properties.get("PublishToLatestPublished", None),
             tenancy_config=resource_properties.get("TenancyConfig"),
             durable_config=resource_properties.get("DurableConfig", None),
+            accelerator_config=resource_properties.get("AcceleratorConfig", None),
         )
 
     @staticmethod
