@@ -317,7 +317,6 @@ class TestBuildCommand_PythonFunctions_WithoutDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(self.template == "template_uv.yaml"),
         )
 
 
@@ -401,7 +400,6 @@ class TestBuildCommand_PythonFunctions_WithoutDocker_al2023(BuildIntegPythonBase
             manifest=("pyproject.toml" if self.codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(self.template == "template_uv.yaml"),
         )
 
 
@@ -437,7 +435,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(template == "template_uv.yaml"),
         )
 
     @parameterized.expand(
@@ -467,7 +464,6 @@ class TestBuildCommand_PythonFunctions_WithDocker(BuildIntegPythonBase):
             manifest=("pyproject.toml" if codeuri == "PythonPyProject" else "requirements.txt"),
             do_override=self.overrides,
             check_function_only=self.check_function_only,
-            beta_features=(template == "template_uv.yaml"),
         )
 
 
