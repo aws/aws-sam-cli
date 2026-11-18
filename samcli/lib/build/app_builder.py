@@ -112,6 +112,7 @@ UV_BUILD_PROPERTIES = {
     "UvExtras": "uv_extras",
     "UvAllExtras": "uv_all_extras",
     "UvPrune": "uv_prune",
+    "UvCompileBytecode": "uv_compile_bytecode",
 }
 
 
