@@ -613,3 +613,41 @@ class TestWatchExcludeOption(TestCase):
     def test_merging_values(self, input, expected):
         results = watch_exclude_option_callback(Mock(), Mock(), input)
         self.assertEqual(results, expected)
+
+
+class TestParameterOverridesMerge(TestCase):
+    SAMCONFIG = 'version = 0.1\n[default.build.parameters]\nparameter_overrides = "A=config B=config"\n'
+
+    def _run(self, samconfig, args):
+        from click.testing import CliRunner
+
+        from samcli.cli.cli_config_file import ConfigProvider, configuration_option
+        from samcli.commands._utils.options import parameter_override_option
+
+        @click.command("build")
+        @configuration_option(provider=ConfigProvider(section="parameters"))
+        @parameter_override_option
+        def build(parameter_overrides, **_):
+            click.echo(sorted(parameter_overrides.items()))
+
+        runner = CliRunner()
+        with runner.isolated_filesystem():
+            with open("samconfig.toml", "w") as f:
+                f.write(samconfig)
+            result = runner.invoke(build, args)
+        self.assertEqual(result.exit_code, 0, result.output)
+        return result.output.strip()
+
+    def test_command_line_replaces_config_by_default(self):
+        output = self._run(self.SAMCONFIG, ["--parameter-overrides", "B=cli C=cli"])
+        self.assertEqual(output, "[('B', 'cli'), ('C', 'cli')]")
+
+    def test_merges_per_key_when_opted_in(self):
+        samconfig = self.SAMCONFIG + "parameter_overrides_merge = true\n"
+        output = self._run(samconfig, ["--parameter-overrides", "B=cli C=cli"])
+        self.assertEqual(output, "[('A', 'config'), ('B', 'cli'), ('C', 'cli')]")
+
+    def test_config_value_used_alone_when_opted_in(self):
+        samconfig = self.SAMCONFIG + "parameter_overrides_merge = true\n"
+        output = self._run(samconfig, [])
+        self.assertEqual(output, "[('A', 'config'), ('B', 'config')]")
