@@ -9,6 +9,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from parameterized import parameterized
 
+from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.build.utils import MountMode
@@ -2037,9 +2038,23 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
-    def test_check_build_method_experimental_flag_python_uv(self, mock_get_resources, mock_prompt):
+    def test_python_uv_is_not_a_beta_build_method(self, mock_get_resources, mock_prompt):
         mock_function = Mock()
         mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch.object(BuildContext, "EXPERIMENTAL_BUILD_METHODS", {"some-beta-method": ExperimentalFlag.All})
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_prompts_for_beta_method(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "some-beta-method"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources
@@ -2074,6 +2089,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
         mock_prompt.assert_not_called()
 
+    @patch.object(BuildContext, "EXPERIMENTAL_BUILD_METHODS", {"some-beta-method": ExperimentalFlag.All})
     @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
@@ -2083,7 +2099,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         # to update telemetry context - covered by is_experimental_enabled=False here.
         self.build_context._output = OutputOption.json
         mock_function = Mock()
-        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_function.metadata = {"BuildMethod": "some-beta-method"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources
