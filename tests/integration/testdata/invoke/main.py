@@ -43,6 +43,18 @@ def accelerator_handler(event, context):
         })
     }
 
+def customer_managed_runtime_handler(event, context):
+    print ("value1 = " + event["key1"])
+    print ("value2 = " + event["key2"])
+    print ("value3 = " + event["key3"])
+
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'message': 'Hello world customer managed runtime'
+        })
+    }
+
 def intrinsics_handler(event, context):
     return os.environ.get("ApplicationId")
 

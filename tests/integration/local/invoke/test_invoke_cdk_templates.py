@@ -280,3 +280,27 @@ class TestCDKAcceleratorFunction(InvokeIntegBase):
         process_stderr = stderr.decode("utf-8")
         self.assertIn("AcceleratorConfig", process_stderr)
         self.assertIn("does not emulate", process_stderr)
+
+
+class TestCDKCustomerManagedRuntimeFunction(InvokeIntegBase):
+    """
+    SAM CLI consumes `cdk synth` output, so a CDK function on a customer-managed runtime arrives as an
+    ordinary CloudFormation template. With --invoke-image naming the runtime image, it must invoke locally.
+    """
+
+    template = Path("cdk/cdk_customer_managed_runtime_template.yaml")
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_cdk_customer_managed_runtime_function(self):
+        # A Lambda base image is a valid runtime image, so it stands in for the published one.
+        command_list = InvokeIntegBase.get_command_list(
+            "customermanagedruntimefunctionE1E1E1E1",
+            event_path=self.event_path,
+            template_path=self.template_path,
+            invoke_image="public.ecr.aws/lambda/python:3.13",
+        )
+
+        stdout, _, return_code = self.run_command(command_list)
+
+        self.assertEqual(return_code, 0)
+        self.assertEqual(stdout.strip().decode("utf-8"), '"Hello world"')

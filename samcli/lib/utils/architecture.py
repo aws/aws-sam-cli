@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Dict, List, cast
 
 from samcli.commands.exceptions import UserException
 from samcli.commands.local.lib.exceptions import UnsupportedRuntimeArchitectureError
+from samcli.lib.build.constants import CUSTOM_RUNTIME
 from samcli.lib.utils.packagetype import IMAGE
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -66,6 +67,12 @@ def validate_architecture_runtime(function: "Function") -> None:
         If the runtime and architecture are not compatible
     """
     if function.packagetype == IMAGE:
+        return
+
+    # 'custom' (customer-managed runtime) is not in SUPPORTED_RUNTIMES: it carries no language of
+    # its own and the service validates architecture compatibility at deploy time, so skip the
+    # local arch/runtime check here (mirrors the IMAGE early-return above).
+    if function.runtime == CUSTOM_RUNTIME:
         return
 
     runtime_architectures = SUPPORTED_RUNTIMES.get(cast(str, function.runtime), [])

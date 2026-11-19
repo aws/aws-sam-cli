@@ -1,12 +1,14 @@
 from unittest import TestCase
-from parameterized import parameterized
 from unittest.mock import patch
 
+from parameterized import parameterized
+
+from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.workflow_config import (
+    UnsupportedBuilderException,
+    UnsupportedRuntimeException,
     get_layer_subfolder,
     get_workflow_config,
-    UnsupportedRuntimeException,
-    UnsupportedBuilderException,
 )
 from samcli.lib.telemetry.event import Event, EventTracker
 
@@ -114,6 +116,54 @@ class Test_get_workflow_config(TestCase):
     def test_raise_exception_for_bad_specified_workflow(self, runtime):
         with self.assertRaises(UnsupportedBuilderException):
             get_workflow_config(runtime, self.code_dir, self.project_dir, specified_workflow="Wrong")
+
+    @parameterized.expand(
+        [
+            ("python3.12", "python", "pip", "requirements.txt", "python-pip"),
+            ("nodejs20.x", "nodejs", "npm", "package.json", "nodejs-npm"),
+        ]
+    )
+    def test_must_work_for_custom_runtime_with_build_method(
+        self, specified_workflow, language, dependency_manager, manifest_name, workflow_event
+    ):
+        # 'custom' (customer-managed runtime) selects its build workflow through
+        # Metadata.BuildMethod (specified_workflow) rather than the runtime name.
+        result = get_workflow_config("custom", self.code_dir, self.project_dir, specified_workflow=specified_workflow)
+        self.assertEqual(result.language, language)
+        self.assertEqual(result.dependency_manager, dependency_manager)
+        self.assertEqual(result.application_framework, None)
+        self.assertEqual(result.manifest_name, manifest_name)
+        self.assertEqual(len(EventTracker.get_tracked_events()), 1)
+        self.assertIn(Event("BuildWorkflowUsed", workflow_event), EventTracker.get_tracked_events())
+
+    @parameterized.expand([("makefile",)])
+    def test_must_work_for_custom_runtime_with_makefile_build_method(self, specified_workflow):
+        result = get_workflow_config("custom", self.code_dir, self.project_dir, specified_workflow=specified_workflow)
+        self.assertEqual(result.language, "provided")
+        self.assertEqual(result.dependency_manager, None)
+        self.assertEqual(result.manifest_name, "Makefile")
+        self.assertIn(Event("BuildWorkflowUsed", "provided-None"), EventTracker.get_tracked_events())
+
+    def test_must_raise_for_custom_runtime_without_build_method(self):
+        with self.assertRaises(MissingBuildMethodException) as ctx:
+            get_workflow_config("custom", self.code_dir, self.project_dir)
+
+        self.assertEqual(
+            str(ctx.exception),
+            "Runtime 'custom' requires Metadata.BuildMethod to select a build workflow "
+            "(e.g. python3.12, nodejs20.x, makefile)",
+        )
+
+    @parameterized.expand([("esbuild",), ("python-uv",), ("rust-cargolambda",), ("dotnet7",)])
+    def test_must_raise_for_custom_runtime_with_build_method_that_names_no_runtime(self, specified_workflow):
+        with self.assertRaises(UnsupportedBuilderException) as ctx:
+            get_workflow_config("custom", self.code_dir, self.project_dir, specified_workflow=specified_workflow)
+
+        self.assertEqual(
+            str(ctx.exception),
+            "Metadata.BuildMethod '{}' is not supported for Runtime 'custom'. Use a runtime name "
+            "(e.g. python3.12, nodejs20.x) or makefile".format(specified_workflow),
+        )
 
     @parameterized.expand([("ruby3.2",), ("ruby3.3",), ("ruby3.4",), ("ruby4.0",)])
     def test_must_work_for_ruby(self, runtime):

@@ -983,6 +983,22 @@ class TestContainer_wait_for_result(TestCase):
         self.socket_mock = Mock()
         self.socket_mock.connect_ex.return_value = 0
 
+    @patch("samcli.local.docker.container.requests")
+    def test_make_http_request_passes_raw_response_to_hook(self, mock_requests):
+        response = Mock()
+        response.status_code = 502
+        response.content = b""
+        response.headers = {}
+        mock_requests.post.return_value = response
+        self.container._on_http_response = Mock()
+
+        self.container._make_http_request(self.event)
+
+        self.container._on_http_response.assert_called_once_with(502, b"")
+
+    def test_on_http_response_does_nothing_by_default(self):
+        self.assertIsNone(self.container._on_http_response(502, b""))
+
     @patch("socket.socket")
     @patch("samcli.local.docker.container.requests")
     def test_wait_for_result_no_error_image_response(self, mock_requests, patched_socket):

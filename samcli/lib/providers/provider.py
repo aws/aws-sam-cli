@@ -146,6 +146,9 @@ class Function(NamedTuple):
     stack_path: str = ""
     # Configuration for runtime management. Includes the fields `UpdateRuntimeOn` and `RuntimeVersionArn` (optional).
     runtime_management_config: Optional[Dict] = None
+    # Configuration for a customer-managed runtime (CMR). Carries the RuntimeConfig template property
+    # (e.g. the RuntimeArn/RuntimeAlias identifying the published runtime image) opaquely.
+    runtime_config: Optional[Dict] = None
     # LoggingConfig for Advanced logging
     logging_config: Optional[Dict] = None
     # Function Tenancy Configuration for multi-tenant functions

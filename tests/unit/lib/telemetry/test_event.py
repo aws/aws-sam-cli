@@ -13,7 +13,15 @@ from parameterized import parameterized
 from samcli.cli.context import Context
 from uuid import UUID, uuid4
 
-from samcli.lib.telemetry.event import Event, EventCreationError, EventTracker, track_long_event
+from samcli.lib.telemetry.event import (
+    Event,
+    EventCreationError,
+    EventName,
+    EventTracker,
+    UsedFeature,
+    track_long_event,
+)
+from samcli.local.common.runtime_template import INIT_RUNTIMES
 
 
 class DummyEventName(Enum):
@@ -97,6 +105,22 @@ class TestEventCreation(TestCase):
                 "exception_name": None,
             },
         )
+
+
+class TestCustomerManagedRuntimeEventValues(TestCase):
+    def test_build_function_runtime_accepts_custom(self):
+        event = Event(EventName.BUILD_FUNCTION_RUNTIME.value, "custom")
+
+        self.assertEqual(event.event_value, "custom")
+
+    def test_used_feature_accepts_customer_managed_runtime(self):
+        event = Event(EventName.USED_FEATURE.value, UsedFeature.CUSTOMER_MANAGED_RUNTIME.value)
+
+        self.assertEqual(event.event_value, "CustomerManagedRuntime")
+
+    def test_custom_is_not_an_init_runtime(self):
+        # The build event accepts 'custom' without offering it to sam init or sam local invoke --runtime.
+        self.assertNotIn("custom", INIT_RUNTIMES)
 
 
 class TestEventTracker(TestCase):
