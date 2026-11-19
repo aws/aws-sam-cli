@@ -72,6 +72,20 @@ class TestArchitecture(TestCase):
 
         self.assertEqual(str(ex.exception), f"Runtime {runtime} is not supported on '{arch}' architecture")
 
+    @parameterized.expand(
+        [
+            (ARM64,),
+            (X86_64,),
+        ]
+    )
+    def test_must_pass_for_custom_runtime_with_explicit_architecture(self, arch):
+        # 'custom' (customer-managed runtime) is not in SUPPORTED_RUNTIMES, so an explicit
+        # Architectures declaration must not raise -- the service validates arch at deploy time.
+        function = Mock(
+            functionname="name", handler="app.handler", runtime="custom", packagetype=ZIP, architectures=[arch]
+        )
+        validate_architecture_runtime(function)
+
     @parameterized.expand([("python3.8", True), ("python3.9", True)])
     def test_multi_arch_image(self, runtime, result):
         self.assertEqual(has_runtime_multi_arch_image(runtime), result)

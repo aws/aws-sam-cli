@@ -30,6 +30,8 @@ class FunctionConfig:
         memory=None,
         timeout=None,
         runtime_management_config=None,
+        runtime_config=None,
+        build_method=None,
         env_vars=None,
         code_real_path=None,
         capacity_provider_configuration=None,
@@ -66,6 +68,10 @@ class FunctionConfig:
             Function timeout in seconds, by default None
         runtime_management_config: str, optional
             Function's runtime management config
+        runtime_config: dict, optional
+            Function's customer-managed runtime (CMR) configuration
+        build_method: str, optional
+            Function's Metadata.BuildMethod, used to select debug settings for a customer-managed runtime (CMR)
         env_vars : str, optional
             Environment variables, by default None
              If it not provided, this class will generate one for you based on the function properties
@@ -95,6 +101,8 @@ class FunctionConfig:
 
         self.timeout = timeout or self._DEFAULT_TIMEOUT_SECONDS
         self.runtime_management_config = runtime_management_config
+        self.runtime_config = runtime_config
+        self.build_method = build_method
         self.capacity_provider_configuration = capacity_provider_configuration
         self.accelerator_config = accelerator_config
         self.durable_config = durable_config

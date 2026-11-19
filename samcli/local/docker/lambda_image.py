@@ -21,11 +21,14 @@ from samcli.commands.local.cli_common.user_exceptions import (
     ImageBuildException,
 )
 from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
+from samcli.lib.build.constants import CUSTOM_RUNTIME
+from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
 from samcli.lib.utils.architecture import has_runtime_multi_arch_image
 from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.lib.utils.stream_writer import StreamWriter
 from samcli.lib.utils.tar import create_tarball
 from samcli.local.common.file_lock import FileLock, cleanup_stale_locks
+from samcli.local.docker.runtime_resolver import resolve_custom_runtime_image
 from samcli.local.docker.utils import (
     get_docker_platform,
     get_rapid_name,
@@ -173,7 +176,9 @@ class LambdaImage:
             self._validated_container_client = self._container_client_param or get_validated_container_client()
         return self._validated_container_client
 
-    def build(self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None):
+    def build(  # noqa: PLR0912, PLR0915
+        self, runtime, packagetype, image, layers, architecture, stream=None, function_name=None, runtime_config=None
+    ):
         """
         Build the image if one is not already on the system that matches the runtime and layers
 
@@ -193,6 +198,9 @@ class LambdaImage:
             stream to write
         function_name : str
             The name of the function that the image is building for
+        runtime_config : dict
+            The function's RuntimeConfig (customer-managed runtime). Used to resolve the invoke
+            image for a 'custom' runtime when no image is supplied.
 
         Returns
         -------
@@ -207,6 +215,20 @@ class LambdaImage:
                 base_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
             if not base_image:
                 base_image = image
+        elif packagetype == ZIP and runtime == CUSTOM_RUNTIME:
+            EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CUSTOMER_MANAGED_RUNTIME.value)
+            # 'custom' (customer-managed runtime) has no language-specific base image. Resolve the
+            # invoke image from --invoke-image, else from RuntimeConfig.
+            supplied_image = None
+            if self.invoke_images:
+                supplied_image = self.invoke_images.get(function_name, self.invoke_images.get(None))
+            # Either way the image is pulled with Docker's own credentials, as for any other image.
+            base_image = resolve_custom_runtime_image(runtime_config, supplied_image)
+            # 'custom' has no runtime version to name the local image after, so name it after the runtime image
+            # instead; two runtime images (or two tags of one) then never share a build.
+            base_image_hash = hashlib.sha256(base_image.encode("utf-8")).hexdigest()[0:12]
+            runtime_image_tag = f"{CUSTOM_RUNTIME}:{base_image_hash}-{architecture}"
+            tag_prefix = f"{base_image_hash}-"
         elif packagetype == ZIP:
             is_preview = runtime in TEST_RUNTIMES
             runtime_image_tag = Runtime.get_image_name_tag(runtime, architecture, is_preview=is_preview)
@@ -267,8 +289,13 @@ class LambdaImage:
             else:
                 raise DockerDistributionAPIError(str(e)) from e
 
-        # If building a new rapid image, delete older rapid images
-        if image_not_found and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}":
+        # If building a new rapid image, delete older rapid images. Not for 'custom': SAM CLI never built old-format
+        # images for it, and the old-format check matches any tag that starts with "rapid-", runtime images included.
+        if (
+            image_not_found
+            and runtime != CUSTOM_RUNTIME
+            and rapid_image == f"{image_repo}:{tag_prefix}{RAPID_IMAGE_TAG_PREFIX}-{architecture}"
+        ):
             if tag_prefix:
                 # ZIP functions with new RAPID format. Delete images from the old ecr/sam repository
                 self._remove_rapid_images(f"{self._SAM_INVOKE_REPO_PREFIX}-{runtime}")

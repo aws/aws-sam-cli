@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 import os
@@ -6,6 +7,7 @@ import copy
 import tempfile
 from unittest import skipIf
 
+from docker.errors import APIError, ImageNotFound
 from parameterized import parameterized, parameterized_class
 from subprocess import Popen, PIPE, TimeoutExpired
 from timeit import default_timer as timer
@@ -16,6 +18,8 @@ from pathlib import Path
 from tests.integration.local.invoke.layer_utils import LayerUtils
 from tests.integration.local.invoke.invoke_integ_base import IntegrationCliIntegBase, InvokeIntegBase
 from tests.testing_utils import IS_WINDOWS, run_command
+from samcli.lib.utils.architecture import X86_64
+from samcli.local.docker.lambda_image import RAPID_IMAGE_TAG_PREFIX
 from samcli.local.docker.utils import get_validated_container_client
 
 # Layers tests require AWS credentials; they are gated by the requires_credential marker.
@@ -92,6 +96,100 @@ class TestSamPythonHelloWorldAcceleratorIntegration(IntegrationCliIntegBase):
         process_stderr = stderr.decode("utf-8")
         self.assertIn("AcceleratorConfig", process_stderr)
         self.assertIn("does not emulate", process_stderr)
+
+
+@parameterized_class(
+    ("template",),
+    [
+        (Path("template-customer-managed-runtime.yaml"),),
+    ],
+)
+class TestSamPythonHelloWorldCustomerManagedRuntimeIntegration(IntegrationCliIntegBase):
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_customer_managed_runtime_function(self):
+        """
+        A Runtime: custom function invokes locally on the runtime image that --invoke-image names.
+        A Lambda base image is a valid runtime image, so it stands in for the published one.
+        """
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldCustomerManagedRuntimeFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image="public.ecr.aws/lambda/python:3.13",
+        )
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        response = json.loads(stdout.strip().decode("utf-8"))
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(body["message"], "Hello world customer managed runtime")
+
+
+@parameterized_class(
+    ("template",),
+    [
+        (Path("template-customer-managed-runtime.yaml"),),
+    ],
+)
+class TestSamPythonHelloWorldCustomerManagedRuntimeOwnEntrypointIntegration(IntegrationCliIntegBase):
+    @classmethod
+    def setUpClass(cls):
+        super(TestSamPythonHelloWorldCustomerManagedRuntimeOwnEntrypointIntegration, cls).setUpClass()
+        cls.client = get_validated_container_client()
+        cls.image_name = "sam-test-cmr-own-entrypoint"
+        cls.docker_tag = f"{cls.image_name}:v1"
+        for log in cls.client.api.build(
+            path=str(cls.test_data_path.joinpath("invoke", "customer-managed-runtime-own-entrypoint")),
+            dockerfile="Dockerfile",
+            tag=cls.docker_tag,
+            decode=True,
+        ):
+            print(log)
+
+    @classmethod
+    def tearDownClass(cls):
+        # SAM CLI names its local build of a customer-managed runtime image after a hash of the image URI.
+        image_hash = hashlib.sha256(cls.docker_tag.encode("utf-8")).hexdigest()[0:12]
+        for image in (cls.docker_tag, f"{cls.image_name}:{image_hash}-{RAPID_IMAGE_TAG_PREFIX}-{X86_64}"):
+            try:
+                cls.client.api.remove_image(image, force=True)
+            except (APIError, ImageNotFound):
+                pass
+
+    @pytest.mark.flaky(reruns=3)
+    def test_invoke_customer_managed_runtime_with_own_entrypoint(self):
+        """
+        A runtime image can start only from its own ENTRYPOINT, as this one does: it has no /var/runtime/bootstrap.
+        Lambda runs that ENTRYPOINT with the function handler as its argument, and so must the local invoke.
+        """
+        command_list = InvokeIntegBase.get_command_list(
+            "HelloWorldCustomerManagedRuntimeFunction",
+            template_path=self.template_path,
+            event_path=self.event_path,
+            invoke_image=self.docker_tag,
+        )
+        # The runtime image only exists locally, so there is no registry to check it against.
+        command_list = command_list + ["--skip-pull-image"]
+
+        process = Popen(command_list, stdout=PIPE)
+        try:
+            stdout, _ = process.communicate(timeout=TIMEOUT)
+        except TimeoutExpired:
+            process.kill()
+            raise
+
+        self.assertEqual(process.returncode, 0)
+        response = json.loads(stdout.strip().decode("utf-8"))
+        self.assertEqual(response["statusCode"], 200)
+        body = json.loads(response["body"])
+        self.assertEqual(body["message"], "Hello world customer managed runtime")
 
 
 @parameterized_class(

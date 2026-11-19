@@ -108,6 +108,8 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -176,6 +178,8 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -227,6 +231,8 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -300,6 +306,8 @@ class LambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=True,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
         # Run the container and get results
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -516,6 +524,8 @@ class LambdaRuntime_invoke(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
 
         # Run the container and get results
@@ -1039,6 +1049,8 @@ class TestWarmLambdaRuntime_invoke(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
 
         # Run the container and get results
@@ -1143,6 +1155,8 @@ class TestWarmLambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
 
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
@@ -1192,6 +1206,8 @@ class TestWarmLambdaRuntime_create(TestCase):
                     function_full_path=self.full_path,
                     mount_symlinks=False,
                     container_dns=None,
+                    runtime_config=self.func_config.runtime_config,
+                    build_method=self.func_config.build_method,
                 ),
                 call(
                     self.lang,
@@ -1212,6 +1228,8 @@ class TestWarmLambdaRuntime_create(TestCase):
                     function_full_path=self.full_path,
                     mount_symlinks=False,
                     container_dns=None,
+                    runtime_config=self.func_config.runtime_config,
+                    build_method=self.func_config.build_method,
                 ),
             ]
         )
@@ -1323,6 +1341,8 @@ class TestWarmLambdaRuntime_create(TestCase):
             function_full_path=self.full_path,
             mount_symlinks=False,
             container_dns=None,
+            runtime_config=self.func_config.runtime_config,
+            build_method=self.func_config.build_method,
         )
         self.manager_mock.create.assert_called_with(container, ContainerContext.INVOKE)
         # validate that the created container got cached

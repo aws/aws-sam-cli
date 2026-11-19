@@ -37,6 +37,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.build.constants import CUSTOM_RUNTIME
 from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     InvalidBuildGraphException,
@@ -365,6 +366,8 @@ class BuildContext:
 
             for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
+                if f.runtime == CUSTOM_RUNTIME:
+                    EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CUSTOMER_MANAGED_RUNTIME.value)
             if resources_to_build.microvm_images:
                 EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.MICROVM_IMAGE_BUILD.value)
 

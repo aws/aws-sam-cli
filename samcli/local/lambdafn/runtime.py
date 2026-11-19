@@ -150,6 +150,8 @@ class LambdaRuntime:
             "function_full_path": function_config.full_path,
             "mount_symlinks": self._mount_symlinks,
             "container_dns": container_dns,
+            "runtime_config": function_config.runtime_config,
+            "build_method": function_config.build_method,
         }
 
         # Check if this is a durable function and create appropriate container type

@@ -3288,6 +3288,174 @@ class TestApplicationBuilder_build_function(TestCase):
             True,
         )
 
+    @parameterized.expand([("python3.12",), ("nodejs20.x",), ("makefile",)])
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_custom_runtime_in_process_for_build_method(
+        self, build_method, osutils_mock, get_workflow_config_mock
+    ):
+        scratch_dir = "scratch"
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value=scratch_dir)
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_in_process = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_full_path"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        self.builder._build_function(
+            "function_name",
+            "path/to/source",
+            None,
+            ZIP,
+            "custom",
+            X86_64,
+            "handler.handle",
+            artifacts_dir,
+            metadata={"BuildMethod": build_method},
+        )
+
+        # 'custom' names no language, so the builder gets the runtime that BuildMethod names
+        self.builder._build_function_in_process.assert_called_with(
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            scratch_dir,
+            manifest_path,
+            build_method,
+            X86_64,
+            None,
+            None,
+            True,
+            True,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_custom_runtime_in_container_for_build_method(self, osutils_mock, get_workflow_config_mock):
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "manifest_name"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        # Setting the container manager will make us use the container
+        self.builder._container_manager = Mock()
+        self.builder._build_function(
+            "function_name",
+            "path/to/source",
+            None,
+            ZIP,
+            "custom",
+            X86_64,
+            "handler.handle",
+            artifacts_dir,
+            metadata={"BuildMethod": "python3.12"},
+        )
+
+        # The container picks its build image from this runtime (build-python3.12)
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            "python3.12",
+            X86_64,
+            None,
+            None,
+            None,
+            specified_workflow=None,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_build_custom_runtime_makefile_in_container_with_build_image(
+        self, osutils_mock, get_workflow_config_mock
+    ):
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "Makefile"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
+
+        self.builder._build_function_on_container = Mock()
+
+        code_dir = str(Path("/base/dir/path/to/source").resolve())
+        artifacts_dir = str(Path("/build/dir/function_name"))
+        manifest_path = str(Path(os.path.join(code_dir, config_mock.manifest_name)).resolve())
+
+        self.builder._container_manager = Mock()
+        self.builder._build_images = {"function_name": "my-build-image"}
+        self.builder._build_function(
+            "function_name",
+            "path/to/source",
+            None,
+            ZIP,
+            "custom",
+            X86_64,
+            "handler.handle",
+            artifacts_dir,
+            metadata={"BuildMethod": "makefile"},
+        )
+
+        self.builder._build_function_on_container.assert_called_with(
+            config_mock,
+            code_dir,
+            artifacts_dir,
+            manifest_path,
+            "makefile",
+            X86_64,
+            None,
+            None,
+            "my-build-image",
+            specified_workflow=None,
+        )
+
+    @patch("samcli.lib.build.app_builder.get_workflow_config")
+    @patch("samcli.lib.build.app_builder.osutils")
+    def test_must_raise_for_custom_runtime_makefile_in_container_without_build_image(
+        self, osutils_mock, get_workflow_config_mock
+    ):
+        config_mock = get_workflow_config_mock.return_value = Mock()
+        config_mock.manifest_name = "Makefile"
+
+        osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
+        # A truthy __exit__ would swallow the error raised inside the with block
+        osutils_mock.mkdir_temp.return_value.__exit__ = Mock(return_value=False)
+
+        self.builder._build_function_on_container = Mock()
+        self.builder._container_manager = Mock()
+
+        with self.assertRaises(BuildInsideContainerError) as ctx:
+            self.builder._build_function(
+                "function_name",
+                "path/to/source",
+                None,
+                ZIP,
+                "custom",
+                X86_64,
+                "handler.handle",
+                str(Path("/build/dir/function_name")),
+                metadata={"BuildMethod": "makefile"},
+            )
+
+        self.assertEqual(
+            str(ctx.exception),
+            "Runtime 'custom' with Metadata.BuildMethod makefile has no default build image for "
+            "--use-container. Supply one with --build-image",
+        )
+        self.builder._build_function_on_container.assert_not_called()
+
     @patch("samcli.lib.build.app_builder.ApplicationBuilder._get_build_options")
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")

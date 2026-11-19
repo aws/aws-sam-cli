@@ -1599,6 +1599,29 @@ class TestSamFunctionProvider_convert_sam_function_resource(TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_must_convert_with_runtime_config(self):
+        name = "myname"
+        runtime_config = {"RuntimeArn": "arn:aws:lambda:us-east-1:123456789012:runtime:my-runtime"}
+        properties = {
+            "CodeUri": "/usr/local",
+            "Runtime": "custom",
+            "Handler": "myhandler",
+            "RuntimeConfig": runtime_config,
+        }
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertEqual(result.runtime_config, runtime_config)
+        self.assertEqual(result.runtime, "custom")
+
+    def test_runtime_config_defaults_to_none(self):
+        name = "myname"
+        properties = {"CodeUri": "/usr/local", "Runtime": "myruntime", "Handler": "myhandler"}
+
+        result = SamFunctionProvider._convert_sam_function_resource(STACK, name, properties, [])
+
+        self.assertIsNone(result.runtime_config)
+
     def test_must_convert_image(self):
         name = "myname"
         properties = {

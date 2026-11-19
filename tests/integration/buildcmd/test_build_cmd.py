@@ -37,6 +37,7 @@ from tests.integration.buildcmd.build_integ_base import (
     IntrinsicIntegBase,
     BuildIntegGoBase,
     BuildIntegPythonBase,
+    BuildIntegProvidedBase,
     show_container_in_test_name,
 )
 
@@ -1083,6 +1084,39 @@ class TestBuildWithBuildMethod(BuildIntegBase):
 
     def _get_python_version(self):
         return "python{}.{}".format(sys.version_info.major, sys.version_info.minor)
+
+
+class TestBuildWithBuildMethodCustomerManagedRuntime(BuildIntegProvidedBase):
+    # Runtime: custom names no language, so sam build builds the code for the runtime that BuildMethod names.
+
+    template = "custom-build-function-customer-managed-runtime.yaml"
+
+    @parameterized.expand([(False,), ("use_container",)], name_func=show_container_in_test_name)
+    def test_with_native_builder_specified_for_custom_runtime(self, use_container):
+        if use_container and (SKIP_DOCKER_TESTS or SKIP_DOCKER_BUILD):
+            self.skipTest(SKIP_DOCKER_MESSAGE)
+
+        # BuildMethod is chosen based off current python version.
+        build_method = self._get_python_version()
+        overrides = {"CodeUri": "Provided", "Handler": "main.handler", "BuildMethod": build_method}
+        manifest_path = os.path.join(self.test_data_path, "Provided", "requirements.txt")
+
+        cmdlist = self.get_command_list(
+            use_container=use_container, parameter_overrides=overrides, manifest_path=manifest_path
+        )
+
+        # Built using the `native` python-pip builder that BuildMethod names.
+        command_result = run_command(cmdlist, cwd=self.working_dir)
+        self.assertEqual(command_result.process.returncode, 0)
+
+        self._verify_built_artifact(
+            self.default_build_dir, self.FUNCTION_LOGICAL_ID, self.EXPECTED_FILES_PROJECT_MANIFEST
+        )
+
+        if use_container:
+            # The build image is the one for the BuildMethod runtime.
+            self.verify_docker_container_cleanedup(build_method)
+            self.verify_pulled_image(build_method)
 
 
 @skipIf(

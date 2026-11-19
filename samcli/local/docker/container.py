@@ -593,6 +593,7 @@ class Container:
             headers=headers,
             timeout=(self.RAPID_CONNECTION_TIMEOUT, None),
         )
+        self._on_http_response(resp.status_code, resp.content)
 
         try:
             # if response is an image then json.loads/dumps will throw a UnicodeDecodeError so return raw content
@@ -602,6 +603,11 @@ class Container:
         except json.JSONDecodeError:
             LOG.debug("Failed to deserialize response from RIE, returning the raw response as is")
             return resp.content, False
+
+    def _on_http_response(self, status_code: int, content: bytes) -> None:
+        """
+        Hook for subclasses to inspect the emulator's raw response to an invoke. Does nothing by default.
+        """
 
     def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
         # NOTE(sriram-mv): Let logging happen in its own thread, so that a http request can be sent.

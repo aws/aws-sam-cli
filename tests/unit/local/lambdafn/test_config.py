@@ -27,6 +27,8 @@ class TestFunctionConfig(TestCase):
         self.layers = ["layer1"]
         self.architecture = "arm64"
         self.runtime_management_config = {"key": "value"}
+        self.runtime_config = {"RuntimeArn": "arn:aws:lambda:us-east-1:123456789012:runtime:my-runtime"}
+        self.build_method = "python3.12"
 
     def test_init_with_env_vars(self):
         config = FunctionConfig(
@@ -44,6 +46,8 @@ class TestFunctionConfig(TestCase):
             timeout=self.timeout,
             env_vars=self.env_vars_mock,
             runtime_management_config=self.runtime_management_config,
+            runtime_config=self.runtime_config,
+            build_method=self.build_method,
         )
 
         self.assertEqual(config.name, self.name)
@@ -64,6 +68,8 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(self.env_vars_mock.timeout, self.timeout)
 
         self.assertEqual(config.runtime_management_config, self.runtime_management_config)
+        self.assertEqual(config.runtime_config, self.runtime_config)
+        self.assertEqual(config.build_method, self.build_method)
 
     def test_init_with_accelerator_config(self):
         accelerator_config = {"AcceleratorMemorySize": 24}
@@ -118,6 +124,8 @@ class TestFunctionConfig(TestCase):
         self.assertEqual(config.env_vars.timeout, self.DEFAULT_TIMEOUT)
         self.assertEqual(config.runtime_management_config, None)
         self.assertEqual(config.accelerator_config, None)
+        self.assertEqual(config.runtime_config, None)
+        self.assertEqual(config.build_method, None)
 
     def test_init_with_timeout_of_int_string(self):
         config = FunctionConfig(

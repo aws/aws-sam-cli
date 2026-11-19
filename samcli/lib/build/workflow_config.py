@@ -6,6 +6,8 @@ import logging
 import os
 from typing import Dict, List, Optional, Union, cast
 
+from samcli.lib.build.constants import CUSTOM_RUNTIME
+from samcli.lib.build.exceptions import MissingBuildMethodException
 from samcli.lib.build.workflows import (
     CONFIG,
     DOTNET_CLIPACKAGE_CONFIG,
@@ -268,7 +270,22 @@ def get_workflow_config(
     # If runtime is present it should be in selectors_by_runtime, however for layers there will be no runtime
     # so in that case we move ahead and resolve to any matching workflow from both types.
     if runtime and runtime not in selectors_by_runtime:
-        raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
+        # 'custom' (customer-managed runtime) carries no language of its own, so it selects its build
+        # workflow through Metadata.BuildMethod (resolved as specified_workflow) rather than the runtime name.
+        if runtime == CUSTOM_RUNTIME:
+            if not specified_workflow:
+                raise MissingBuildMethodException(
+                    "Runtime 'custom' requires Metadata.BuildMethod to select a build workflow "
+                    "(e.g. python3.12, nodejs20.x, makefile)"
+                )
+            # The code is built for the runtime that BuildMethod names, so it must be a runtime name or makefile.
+            if specified_workflow != "makefile" and specified_workflow not in selectors_by_runtime:
+                raise UnsupportedBuilderException(
+                    "Metadata.BuildMethod '{}' is not supported for Runtime 'custom'. Use a runtime name "
+                    "(e.g. python3.12, nodejs20.x) or makefile".format(specified_workflow)
+                )
+        else:
+            raise UnsupportedRuntimeException("'{}' runtime is not supported".format(runtime))
 
     try:
         # Identify appropriate workflow selector.

@@ -1,0 +1,14 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Template for testing customer-managed runtime (CMR) functionality.
+
+Resources:
+  HelloWorldCustomerManagedRuntimeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: main.customer_managed_runtime_handler
+      Runtime: custom
+      CodeUri: .
+      RuntimeConfig:
+        RuntimeArn: arn:aws:lambda:us-east-1:123456789012:runtime/fake
+        RuntimeAlias: fake

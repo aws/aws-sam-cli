@@ -46,6 +46,12 @@ class InvalidRuntimeException(UserException):
     """
 
 
+class RuntimeResolutionException(UserException):
+    """
+    Raised when a customer-managed runtime (CMR) image cannot be resolved for local invoke
+    """
+
+
 class ContainerCreationFailedException(UserException):
     """
     Container creation failed. It could be due to invalid template

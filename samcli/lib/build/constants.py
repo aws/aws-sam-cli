@@ -22,3 +22,6 @@ DEPRECATED_RUNTIMES: Set[str] = {
     "ruby2.7",
 }
 BUILD_PROPERTIES = "BuildProperties"
+
+# Runtime value that identifies a customer-managed runtime (CMR) function.
+CUSTOM_RUNTIME = "custom"
