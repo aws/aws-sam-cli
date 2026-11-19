@@ -951,7 +951,10 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         osutils_mock.mkdir_temp.return_value.__enter__ = Mock(return_value="scratch")
         osutils_mock.mkdir_temp.return_value.__exit__ = Mock()
         self.builder._build_function_in_process = Mock()
-        metadata = {"BuildMethod": "python-uv", "BuildProperties": {"UvGroups": ["layer"], "UvPrune": ["boto3"]}}
+        metadata = {
+            "BuildMethod": "python-uv",
+            "BuildProperties": {"UvGroups": ["layer"], "UvPrune": ["boto3"], "UvCompileBytecode": True},
+        }
 
         self.builder._build_layer(
             "layer_name", "code_uri", "python-uv", ["python3.13"], X86_64, "full_path", layer_metadata=metadata
@@ -960,6 +963,7 @@ class TestApplicationBuilderForLayerBuild(TestCase):
         options = self.builder._build_function_in_process.call_args[0][7]
         self.assertEqual(options["uv_groups"], ["layer"])
         self.assertEqual(options["uv_prune"], ["boto3"])
+        self.assertEqual(options["uv_compile_bytecode"], True)
 
     @patch("samcli.lib.build.app_builder.get_workflow_config")
     @patch("samcli.lib.build.app_builder.osutils")
@@ -4224,6 +4228,7 @@ class TestApplicationBuilder_get_build_options(TestCase):
             ("UvExtras", ["fast"], "uv_extras"),
             ("UvAllExtras", True, "uv_all_extras"),
             ("UvPrune", ["boto3"], "uv_prune"),
+            ("UvCompileBytecode", True, "uv_compile_bytecode"),
         ]
     )
     def test_python_uv_build_property_mapped(self, prop, value, option):
@@ -4265,6 +4270,12 @@ class TestApplicationBuilder_get_build_options(TestCase):
             )
         self.assertIn("MyFunction sets UvGroups, UvPrune", str(ctx.exception))
         self.assertIn("BuildMethod: python-uv", str(ctx.exception))
+
+    def test_uv_compile_bytecode_rejected_without_python_uv(self):
+        metadata = {"BuildProperties": {"UvCompileBytecode": True}}
+        with self.assertRaises(BuildError) as ctx:
+            ApplicationBuilder._get_build_options("MyFunction", "python", "base_dir", "app.handler", "pip", metadata)
+        self.assertIn("MyFunction sets UvCompileBytecode", str(ctx.exception))
 
 
 class TestApplicationBuilderGetWorkingDirectoryPath(TestCase):
