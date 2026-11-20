@@ -95,3 +95,18 @@ stack_name="using_config_file"
 debug=true
 ```
 
+
+### Merging `parameter_overrides` with the command line
+
+By default, `--parameter-overrides` given on the command line replaces `parameter_overrides`
+from the config file. Set `parameter_overrides_merge=true` to merge them per key instead;
+the command line wins for keys present in both.
+
+```
+[default.deploy.parameters]
+parameter_overrides="Env=prod Owner=team-a"
+parameter_overrides_merge=true
+```
+
+`sam deploy --parameter-overrides Env=staging Commit=abc` then deploys with
+`Env=staging Owner=team-a Commit=abc`.
