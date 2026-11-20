@@ -84,38 +84,37 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_non_json_data(self):
-        expected_error_message = (
-            "An error occurred (InvalidRequestContent) when calling the Invoke operation: "
-            "Could not parse request body into json: No JSON object could be decoded"
-        )
+        expected_error_code = "InvalidRequestContent"
+        expected_error_message = "Could not parse request body into json: No JSON object could be decoded"
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload="notat:asdfasdf")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_log_type_not_None(self):
-        expected_error_message = (
-            "An error occurred (NotImplemented) when calling the Invoke operation: "
-            "log-type: Tail is not supported. None is only supported."
-        )
+        expected_error_code = "NotImplemented"
+        expected_error_message = "log-type: Tail is not supported. None is only supported."
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="Tail")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_invocation_type_not_RequestResponse(self):
+        expected_error_code = "NotImplemented"
         expected_error_message = (
-            "An error occurred (NotImplemented) when calling the Invoke operation: "
             "invocation-type: DryRun is not supported. Only Event and RequestResponse are supported."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="CDKEchoEventFunction", InvocationType="DryRun")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
