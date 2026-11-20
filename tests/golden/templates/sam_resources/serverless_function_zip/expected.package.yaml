@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  HelloFunction:
+    Metadata:
+      SamResourceId: HelloFunction
+    Properties:
+      CodeUri: s3://golden-bucket/22186578b8d9d69e7157330653df80d6801d2e1bc7af9c2a7622640de339ae63
+      Handler: app.handler
+      MemorySize: 128
+      Runtime: python3.11
+    Type: AWS::Serverless::Function
+Transform: AWS::Serverless-2016-10-31
