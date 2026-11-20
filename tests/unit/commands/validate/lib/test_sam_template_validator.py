@@ -298,6 +298,45 @@ class TestSamTemplateValidator(TestCase):
         self.assertNotIn("DefinitionUri", tempalte_resources.get("ServerlessApi").get("Properties"))
         self.assertIn("DefinitionBody", tempalte_resources.get("ServerlessApi").get("Properties"))
 
+    def test_replace_local_codeuri_of_web_function(self):
+        template = {
+            "AWSTemplateFormatVersion": "2010-09-09",
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "LocalCode": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "CodeUri": "web/", "AuthType": "IamAuth"},
+                },
+                "S3Code": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {
+                        "Runtime": "nodejs24.x",
+                        "CodeUri": "s3://my-bucket/code.zip",
+                        "AuthType": "IamAuth",
+                    },
+                },
+                "InlineCode": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "InlineCode": "code", "AuthType": "IamAuth"},
+                },
+                "NoCodeUri": {
+                    "Type": "AWS::Serverless::WebFunction",
+                    "Properties": {"Runtime": "nodejs24.x", "AuthType": "IamAuth"},
+                },
+            },
+        }
+
+        validator = SamTemplateValidator(template, Mock())
+        validator._replace_local_codeuri()
+
+        resources = validator.sam_template["Resources"]
+        self.assertEqual(resources["LocalCode"]["Properties"]["CodeUri"], "s3://bucket/value")
+        self.assertEqual(resources["S3Code"]["Properties"]["CodeUri"], "s3://my-bucket/code.zip")
+        # Build and package use the template's directory for a missing CodeUri
+        self.assertEqual(resources["NoCodeUri"]["Properties"]["CodeUri"], "s3://bucket/value")
+        # Left for the translator to report: Web Functions don't support InlineCode yet
+        self.assertNotIn("CodeUri", resources["InlineCode"]["Properties"])
+
     def test_replace_local_codeuri_with_no_resources(self):
         template = {
             "AWSTemplateFormatVersion": "2010-09-09",
