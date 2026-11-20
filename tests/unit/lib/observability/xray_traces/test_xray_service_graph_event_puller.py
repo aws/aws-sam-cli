@@ -142,6 +142,6 @@ class TestXRayServiceGraphPuller(TestCase):
 
             patched_load_time_period.assert_has_calls([call(ANY, ANY) for _ in range(self.max_retries)])
 
-            patched_time.sleep.assert_has_calls([call(2), call(4), call(16), call(256)])
+            patched_time.sleep.assert_has_calls([call(2), call(4), call(8), call(16)])
 
-            self.assertEqual(self.xray_service_graph_puller._poll_interval, 256)
+            self.assertEqual(self.xray_service_graph_puller._poll_interval, 16)

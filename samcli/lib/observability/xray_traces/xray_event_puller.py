@@ -18,11 +18,13 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractXRayPuller(ObservabilityPuller):
+    _MAX_BACKOFF_INTERVAL = 60
+
     def __init__(
         self,
         max_retries: int = 1000,
         poll_interval: int = 1,
-    ):
+    ) -> None:
         """
         Parameters
         ----------
@@ -30,13 +32,15 @@ class AbstractXRayPuller(ObservabilityPuller):
             Optional maximum number of retries which can be used to pull information. Default value is 1000
         poll_interval : int
             Optional interval value that will be used to wait between calls in tail operation. Default value is 1
+            Throttling doubles the interval up to 60 seconds (or this value if larger); successful polls restore it.
         """
         self._max_retries = max_retries
         self._poll_interval = poll_interval
+        self._initial_poll_interval = poll_interval
         self._had_data = False
         self.latest_event_time = 0
 
-    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None):
+    def tail(self, start_time: Optional[datetime] = None, filter_pattern: Optional[str] = None) -> None:
         if start_time:
             self.latest_event_time = to_timestamp(start_time)
 
@@ -50,11 +54,9 @@ class AbstractXRayPuller(ObservabilityPuller):
             except ClientError as err:
                 error_code = err.response.get("Error", {}).get("Code")
                 if error_code in ("ThrottlingException", "ThrottledException"):
-                    # if throttled, increase poll interval by 1 second each time
-                    if self._poll_interval == 1:
-                        self._poll_interval += 1
-                    else:
-                        self._poll_interval **= 2
+                    self._poll_interval = min(
+                        self._poll_interval * 2, max(self._initial_poll_interval, self._MAX_BACKOFF_INTERVAL)
+                    )
                     LOG.warning(
                         "Throttled by XRay API. Next poll in %s seconds",
                         self._poll_interval,
@@ -63,6 +65,8 @@ class AbstractXRayPuller(ObservabilityPuller):
                     # if exception is other than throttling re-raise
                     LOG.error("Failed while fetching new AWS X-Ray events", exc_info=err)
                     raise err
+            else:
+                self._poll_interval = self._initial_poll_interval
 
             if self._had_data:
                 counter = self._max_retries
