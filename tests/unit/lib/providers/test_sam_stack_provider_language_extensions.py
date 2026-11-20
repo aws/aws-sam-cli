@@ -8,7 +8,11 @@ and uses LanguageExtensionResult to populate Stack objects.
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from samcli.lib.cfn_language_extensions.sam_integration import LanguageExtensionResult
+from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
+from samcli.lib.cfn_language_extensions.sam_integration import (
+    LanguageExtensionResult,
+    UnresolvedLanguageExtensionException,
+)
 
 
 class TestGetStacksLanguageExtensions(TestCase):
@@ -109,6 +113,66 @@ class TestGetStacksLanguageExtensions(TestCase):
 
         # original_template_dict should be None when no language extensions
         self.assertIsNone(stacks[0].original_template_dict)
+
+    def test_nested_unresolved_foreach_is_preserved_for_cloudformation(self):
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {
+                "Fn::ForEach::Topics": [
+                    "TopicName",
+                    {"Fn::Join": [",", [{"Ref": "TopicNames"}]]},
+                    {"Topic${TopicName}": {"Type": "AWS::SNS::Topic"}},
+                ],
+                "ExistingBucket": {"Type": "AWS::S3::Bucket"},
+            },
+        }
+
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            template_dictionary=template,
+            stack_path="Root/Child",
+            parameter_overrides={"TopicNames": {"Fn::Join": [",", [{"Ref": "ParentTopicNames"}]]}},
+            language_extensions_enabled=True,
+        )
+
+        self.assertNotIn("Fn::ForEach::Topics", stacks[0].template_dict["Resources"])
+        self.assertIn("ExistingBucket", stacks[0].template_dict["Resources"])
+        self.assertEqual(stacks[0].original_template_dict, template)
+
+    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
+    def test_nested_language_extension_error_falls_back(self, mock_expand, mock_get_template):
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {
+            "Transform": "AWS::LanguageExtensions",
+            "Resources": {"Fn::ForEach::Topics": ["Topic", {"Ref": "Topics"}, {"Topic${Topic}": {}}]},
+        }
+        mock_get_template.return_value = template
+        mock_expand.side_effect = InvalidSamDocumentException("collection cannot be resolved locally")
+
+        stacks, _ = SamLocalStackProvider.get_stacks(
+            template_dictionary=template,
+            stack_path="Root/Child",
+            use_sam_transform=False,
+            language_extensions_enabled=True,
+        )
+
+        self.assertNotIn("Fn::ForEach::Topics", stacks[0].template_dict["Resources"])
+        self.assertEqual(stacks[0].original_template_dict, template)
+
+    @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
+    @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")
+    def test_root_unresolved_foreach_still_fails(self, mock_expand, mock_get_template):
+        from samcli.lib.providers.sam_stack_provider import SamLocalStackProvider
+
+        template = {"Transform": "AWS::LanguageExtensions", "Resources": {}}
+        mock_get_template.return_value = template
+        mock_expand.side_effect = UnresolvedLanguageExtensionException("unresolved", "Fn::ForEach::Topics")
+
+        with self.assertRaises(UnresolvedLanguageExtensionException):
+            SamLocalStackProvider.get_stacks(template_dictionary=template, language_extensions_enabled=True)
 
     @patch("samcli.lib.providers.sam_stack_provider.get_template_data")
     @patch("samcli.lib.providers.sam_stack_provider.expand_language_extensions")

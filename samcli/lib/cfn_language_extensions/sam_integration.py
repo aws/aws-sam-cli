@@ -19,7 +19,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from samcli.commands.validate.lib.exceptions import InvalidSamDocumentException
 from samcli.lib.cfn_language_extensions.api import create_default_pipeline
-from samcli.lib.cfn_language_extensions.exceptions import InvalidTemplateException as LangExtInvalidTemplateException
+from samcli.lib.cfn_language_extensions.exceptions import (
+    InvalidTemplateException as LangExtInvalidTemplateException,
+)
+from samcli.lib.cfn_language_extensions.exceptions import (
+    UnresolvedForEachCollectionException,
+)
 from samcli.lib.cfn_language_extensions.models import (
     PseudoParameterValues,
     ResolutionMode,
@@ -32,6 +37,15 @@ from samcli.lib.cfn_language_extensions.utils import (
 )
 
 LOG = logging.getLogger(__name__)
+
+
+class UnresolvedLanguageExtensionException(InvalidSamDocumentException):
+    """A language extension is valid but requires CloudFormation context to expand."""
+
+    def __init__(self, message: str, foreach_key: str):
+        self.foreach_key = foreach_key
+        super().__init__(message)
+
 
 # Transform name for AWS Language Extensions
 AWS_LANGUAGE_EXTENSIONS_TRANSFORM = "AWS::LanguageExtensions"
@@ -600,6 +614,9 @@ def expand_language_extensions(
         return result
 
     except LangExtInvalidTemplateException as e:
+        if isinstance(e, UnresolvedForEachCollectionException):
+            LOG.debug("Unable to expand CloudFormation Language Extensions locally: %s", str(e))
+            raise UnresolvedLanguageExtensionException(str(e), e.foreach_key) from e
         LOG.error("Failed to expand CloudFormation Language Extensions: %s", str(e))
         raise InvalidSamDocumentException(str(e)) from e
 
