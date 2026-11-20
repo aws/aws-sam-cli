@@ -3,6 +3,7 @@ Test the common CLI options
 """
 
 import os
+from typing import List
 from datetime import datetime
 
 from unittest import TestCase
@@ -618,7 +619,7 @@ class TestWatchExcludeOption(TestCase):
 class TestParameterOverridesMerge(TestCase):
     SAMCONFIG = 'version = 0.1\n[default.build.parameters]\nparameter_overrides = "A=config B=config"\n'
 
-    def _run(self, samconfig, args):
+    def _run(self, samconfig: str, args: List[str]) -> str:
         from click.testing import CliRunner
 
         from samcli.cli.cli_config_file import ConfigProvider, configuration_option
