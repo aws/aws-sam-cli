@@ -4,9 +4,11 @@ Represents Lambda runtime containers.
 
 import logging
 import os
-from typing import List
+from http import HTTPStatus
+from typing import Dict, List, Optional
 
-from samcli.lib.utils.packagetype import IMAGE
+from samcli.lib.build.constants import CUSTOM_RUNTIME
+from samcli.lib.utils.packagetype import IMAGE, ZIP
 from samcli.local.docker.container import DEFAULT_CONTAINER_HOST_INTERFACE, Container
 from samcli.local.docker.exceptions import InvalidRuntimeException
 from samcli.local.docker.lambda_debug_settings import LambdaDebugSettings
@@ -26,6 +28,11 @@ class LambdaContainer(Container):
     """
 
     _WORKING_DIR = "/var/task"
+
+    # What a customer-managed runtime starts with when its image sets no ENTRYPOINT, as in Lambda.
+    _CMR_DEFAULT_ENTRYPOINT = ["/var/runtime/bootstrap"]
+    _debug_replaces_runtime_entrypoint = False
+    _runtime_never_started = False
 
     # The Volume Mount path for debug files in docker
     _DEBUGGER_VOLUME_MOUNT_PATH = "/tmp/lambci_debug_files"
@@ -57,6 +64,8 @@ class LambdaContainer(Container):
         function_full_path=None,
         mount_symlinks=False,
         container_dns=None,
+        runtime_config=None,
+        build_method=None,
     ):
         """
         Initializes the class
@@ -101,18 +110,35 @@ class LambdaContainer(Container):
             Optional. True is symlinks should be mounted in the container
         container_dns tuple
             Optional. Tuple of DNS server IP addresses for the container
+        runtime_config dict
+            Optional. The function's RuntimeConfig (customer-managed runtime), used to resolve the
+            invoke image for a 'custom' runtime.
+        build_method str
+            Optional. The function's Metadata.BuildMethod, used to select debug settings for a 'custom' runtime.
         """
-        if not Runtime.has_value(runtime) and not packagetype == IMAGE:
+        # 'custom' (customer-managed runtime) is not a known Runtime enum value; its image comes from
+        # --invoke-image or RuntimeConfig, so allow it through here as IMAGE is allowed.
+        if not Runtime.has_value(runtime) and not packagetype == IMAGE and runtime != CUSTOM_RUNTIME:
             raise InvalidRuntimeException(INVALID_RUNTIME_MESSAGE.format(runtime=runtime))
 
         image = LambdaContainer._get_image(
-            lambda_image, runtime, packagetype, imageuri, layers, architecture, function_full_path
+            lambda_image, runtime, packagetype, imageuri, layers, architecture, function_full_path, runtime_config
         )
         ports = LambdaContainer._get_exposed_ports(debug_options)
         config = LambdaContainer._get_config(lambda_image, image)
-        entry, container_env_vars = LambdaContainer._get_debug_settings(runtime, debug_options)
-        additional_options = LambdaContainer._get_additional_options(runtime, debug_options)
-        additional_volumes = LambdaContainer._get_additional_volumes(runtime, debug_options)
+        # 'custom' (customer-managed runtime) names no language, so its debug settings are those of the runtime
+        # that Metadata.BuildMethod names, the same runtime sam build builds the code for.
+        debug_runtime = build_method if runtime == CUSTOM_RUNTIME and Runtime.has_value(build_method) else runtime
+        entry, container_env_vars = LambdaContainer._get_debug_settings(debug_runtime, debug_options)
+        # Debug settings that replace the runtime image's own ENTRYPOINT (Python, Node.js, .NET) start the
+        # runtime from the paths of a Lambda language base image. Java's keep the ENTRYPOINT, so they work on
+        # any runtime image. Same test as below, where the ENTRYPOINT is kept or not.
+        self._debug_replaces_runtime_entrypoint = (
+            bool(debug_options) and runtime == CUSTOM_RUNTIME and entry != self._get_default_entry_point()
+        )
+        self._runtime_never_started = False
+        additional_options = LambdaContainer._get_additional_options(debug_runtime, debug_options)
+        additional_volumes = LambdaContainer._get_additional_volumes(debug_runtime, debug_options)
 
         _work_dir = self._WORKING_DIR
         _entrypoint = None
@@ -135,6 +161,14 @@ class LambdaContainer(Container):
             if isinstance(_additional_entrypoint_args, list) and entry == self._get_default_entry_point():
                 _entrypoint = _entrypoint + _additional_entrypoint_args
             _work_dir = (image_config.get("WorkingDirectory") if image_config else None) or config.get("WorkingDir")
+        elif packagetype == ZIP and runtime == CUSTOM_RUNTIME:
+            # Lambda sets these for every customer-managed runtime; an image built from scratch may not.
+            env_vars = {**env_vars, "LAMBDA_TASK_ROOT": self._WORKING_DIR, "LAMBDA_RUNTIME_DIR": "/var/runtime"}
+            # A CMR runtime starts the way Lambda starts it: the runtime image's ENTRYPOINT with the
+            # function handler as its only argument, in place of the image's CMD.
+            if entry == self._get_default_entry_point():
+                _entrypoint = entry + ((config or {}).get("Entrypoint") or self._CMR_DEFAULT_ENTRYPOINT)
+                _command = [handler]
 
         env_vars = {**env_vars, **container_env_vars}
 
@@ -166,6 +200,21 @@ class LambdaContainer(Container):
             container_dns=container_dns,
             debug_options=debug_options,
         )
+
+    def _on_http_response(self, status_code: int, content: bytes) -> None:
+        # The emulator answers 502 with an empty body when the runtime process never started. An error in
+        # the function's own code also answers 502, but with an error payload such as Runtime.ImportModuleError.
+        self._runtime_never_started = status_code == HTTPStatus.BAD_GATEWAY and not content
+
+    def wait_for_result(self, full_path, event, stdout, stderr, start_timer=None, tenant_id=None):
+        super().wait_for_result(full_path, event, stdout, stderr, start_timer=start_timer, tenant_id=tenant_id)
+        if self._debug_replaces_runtime_entrypoint and self._runtime_never_started:
+            # Logged after the emulator's own output, which on its own only says Runtime.InvalidEntrypoint.
+            LOG.warning(
+                "Warning: the runtime exited before it started. Debugging a '%s' runtime is only supported for "
+                "runtime images built from a Lambda language base image, such as public.ecr.aws/lambda/python:3.12.",
+                CUSTOM_RUNTIME,
+            )
 
     @staticmethod
     def _get_default_entry_point() -> List[str]:
@@ -247,6 +296,7 @@ class LambdaContainer(Container):
         layers: List[str],
         architecture: str,
         function_name: str,
+        runtime_config: Optional[Dict] = None,
     ):
         """
 
@@ -267,13 +317,24 @@ class LambdaContainer(Container):
             Architecture type either x86_64 or arm64 on AWS lambda
         function_name: str
             The name of the lambda function that the container is to invoke
+        runtime_config: dict
+            The function's RuntimeConfig (customer-managed runtime), used to resolve the invoke
+            image for a 'custom' runtime.
 
         Returns
         -------
         str
             Name of Docker Image for the given runtime
         """
-        return lambda_image.build(runtime, packagetype, image, layers, architecture, function_name=function_name)
+        return lambda_image.build(
+            runtime,
+            packagetype,
+            image,
+            layers,
+            architecture,
+            function_name=function_name,
+            runtime_config=runtime_config,
+        )
 
     @staticmethod
     def _get_config(lambda_image, image):

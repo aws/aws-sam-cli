@@ -1,3 +1,4 @@
+import hashlib
 import tempfile
 
 from unittest import TestCase
@@ -11,6 +12,7 @@ from samcli.commands.local.lib.exceptions import InvalidIntermediateImageError
 from samcli.lib.utils.packagetype import ZIP, IMAGE
 from samcli.lib.utils.architecture import ARM64, X86_64
 from samcli.local.docker.lambda_image import LambdaImage, RAPID_IMAGE_TAG_PREFIX, Runtime
+from samcli.local.docker.exceptions import RuntimeResolutionException
 from samcli.commands.local.cli_common.user_exceptions import DockerDistributionAPIError, ImageBuildException
 from samcli import __version__ as version
 
@@ -225,6 +227,208 @@ class TestLambdaImage(TestCase):
             f"amazon/aws-sam-cli-emulation-image-python3.9:{RAPID_IMAGE_TAG_PREFIX}-x86_64",
         )
         build_image_patch.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_with_invoke_image(self, build_image_patch, is_base_image_current_patch):
+        # 'custom' (customer-managed runtime) resolves its invoke image from --invoke-image, and names the
+        # local image after it.
+        supplied_image = "my-cmr-image:local"
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        docker_client_mock.api.build.return_value = ["mock"]
+        is_base_image_current_patch.return_value = True
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={None: supplied_image},
+        )
+        image_hash = hashlib.sha256(supplied_image.encode("utf-8")).hexdigest()[0:12]
+        self.assertEqual(
+            lambda_image.build("custom", ZIP, None, [], X86_64, function_name="Function1"),
+            f"my-cmr-image:{image_hash}-{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+        build_image_patch.assert_not_called()
+
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_tracks_feature(
+        self, build_image_patch, is_base_image_current_patch, track_event_patch
+    ):
+        # A 'custom' (customer-managed runtime) invoke records the CustomerManagedRuntime feature.
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+        lambda_image = LambdaImage(
+            layer_downloader_mock, False, False, docker_client=Mock(), invoke_images={None: "my-cmr-image:local"}
+        )
+
+        lambda_image.build("custom", ZIP, None, [], X86_64, function_name="Function1")
+
+        track_event_patch.assert_called_once_with("UsedFeature", "CustomerManagedRuntime")
+
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_lambda_runtime_does_not_track_customer_managed_runtime(
+        self, build_image_patch, is_base_image_current_patch, track_event_patch
+    ):
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=Mock())
+
+        lambda_image.build("python3.12", ZIP, None, [], X86_64, function_name="Function1")
+
+        track_event_patch.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._generate_image_version")
+    def test_building_image_for_custom_runtime_with_layers(
+        self, generate_docker_image_version_patch, build_image_patch, is_base_image_current_patch
+    ):
+        # A 'custom' function with layers names its local image after the runtime image and the layers.
+        supplied_image = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-runtime:v1"
+        layer_mock = Mock()
+        layer_mock.name = "layers1"
+        layer_mock.is_defined_within_template = False
+        layer_downloader_mock = Mock()
+        layer_downloader_mock.download_all.return_value = [layer_mock]
+        generate_docker_image_version_patch.return_value = "custom:image-version"
+        is_base_image_current_patch.return_value = True
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock, False, False, docker_client=Mock(), invoke_images={None: supplied_image}
+        )
+        actual_image_id = lambda_image.build("custom", ZIP, None, [layer_mock], X86_64, function_name="Function1")
+
+        image_hash = hashlib.sha256(supplied_image.encode("utf-8")).hexdigest()[0:12]
+        generate_docker_image_version_patch.assert_called_once_with([layer_mock], f"custom:{image_hash}-x86_64")
+        self.assertEqual(actual_image_id, "samcli/lambda-custom:image-version")
+
+    @parameterized.expand(
+        [
+            ("tags", "my-runtime:v1", "my-runtime:v2"),
+            ("digests", "my-runtime@sha256:" + "a" * 64, "my-runtime@sha256:" + "b" * 64),
+        ]
+    )
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_gives_each_runtime_image_its_own_local_image(
+        self, _name, first_image, second_image, build_image_patch, is_base_image_current_patch
+    ):
+        # Two versions of a runtime image must not share a local image, or switching between them would reuse
+        # the old build.
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+
+        image_ids = [
+            LambdaImage(layer_downloader_mock, False, False, docker_client=Mock(), invoke_images={None: image}).build(
+                "custom", ZIP, None, [], X86_64, function_name="Function1"
+            )
+            for image in (first_image, second_image)
+        ]
+
+        self.assertNotEqual(image_ids[0], image_ids[1])
+
+    @parameterized.expand([("supplied", False), ("supplied", True), ("resolved", False), ("resolved", True)])
+    @patch("samcli.local.docker.lambda_image.resolve_custom_runtime_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_never_logs_docker_in(
+        self, how, skip_pull_image, build_image_patch, is_base_image_current_patch, resolve_patch
+    ):
+        # Whether the user supplied the runtime image or SAM resolved it from RuntimeConfig, it is pulled with
+        # Docker's own credentials, as for any other image.
+        ecr_image = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-runtime:v1"
+        resolve_patch.return_value = ecr_image
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            skip_pull_image,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={None: ecr_image} if how == "supplied" else None,
+        )
+        lambda_image.build(
+            "custom",
+            ZIP,
+            None,
+            [],
+            X86_64,
+            function_name="Function1",
+            runtime_config={"RuntimeArn": "arn", "RuntimeAlias": "live"},
+        )
+
+        docker_client_mock.login.assert_not_called()
+
+    @patch("samcli.local.docker.lambda_image.resolve_custom_runtime_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_uses_resolved_image(
+        self, build_image_patch, is_base_image_current_patch, resolve_patch
+    ):
+        # With no supplied image, the image resolved from RuntimeConfig is used as the base image.
+        resolved_image = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-runtime:v1"
+        resolve_patch.return_value = resolved_image
+        runtime_config = {"RuntimeArn": "arn", "RuntimeAlias": "live"}
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=Mock())
+        actual_image_id = lambda_image.build(
+            "custom", ZIP, None, [], X86_64, function_name="Function1", runtime_config=runtime_config
+        )
+
+        resolve_patch.assert_called_once_with(runtime_config, None)
+        image_hash = hashlib.sha256(resolved_image.encode("utf-8")).hexdigest()[0:12]
+        self.assertEqual(
+            actual_image_id,
+            f"123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-runtime:{image_hash}-{RAPID_IMAGE_TAG_PREFIX}-x86_64",
+        )
+
+    @patch("samcli.local.docker.lambda_image.resolve_custom_runtime_image")
+    @patch("samcli.local.docker.lambda_image.LambdaImage.is_base_image_current")
+    @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
+    def test_building_image_for_custom_runtime_ignores_image_uri(
+        self, build_image_patch, is_base_image_current_patch, resolve_patch
+    ):
+        # A zip function has no ImageUri of its own, so a stray one is never taken for the runtime image.
+        resolve_patch.return_value = "123456789012.dkr.ecr.eu-west-1.amazonaws.com/my-runtime:v1"
+        runtime_config = {"RuntimeArn": "arn", "RuntimeAlias": "live"}
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+        is_base_image_current_patch.return_value = True
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=Mock())
+        lambda_image.build(
+            "custom", ZIP, "function-image:latest", [], X86_64, function_name="Function1", runtime_config=runtime_config
+        )
+
+        resolve_patch.assert_called_once_with(runtime_config, None)
+
+    def test_building_image_for_custom_runtime_without_image_raises(self):
+        # 'custom' with no supplied image and no RuntimeConfig cannot be resolved -> clear error.
+        docker_client_mock = Mock()
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(layer_downloader_mock, False, False, docker_client=docker_client_mock)
+
+        with self.assertRaises(RuntimeResolutionException):
+            lambda_image.build("custom", ZIP, None, [], X86_64, function_name="Function1")
 
     @patch("samcli.local.docker.lambda_image.LambdaImage._build_image")
     def test_building_image_function_with_invoke_image_global(self, build_image_patch):
@@ -778,6 +982,32 @@ class TestLambdaImage(TestCase):
                 call("old3", force=True),
             ]
         )
+
+    def test_building_new_rapid_image_for_custom_runtime_does_not_remove_old_rapid_images(self):
+        # 'custom' never had old-format local images, so nothing is cleaned, not even a tag that merely starts
+        # with "rapid-" (which could be the runtime image itself).
+        image_repo = "my-runtime"
+        docker_client_mock = Mock()
+        docker_client_mock.api.build.return_value = ["mock"]
+        docker_client_mock.images.get.side_effect = ImageNotFound("image not found")
+        docker_client_mock.images.list.return_value = [
+            Mock(id="old", tags=[f"{image_repo}:{RAPID_IMAGE_TAG_PREFIX}-x86_64"]),
+            Mock(id="current", tags=[f"{image_repo}:0123456789ab-{RAPID_IMAGE_TAG_PREFIX}-x86_64"]),
+        ]
+        layer_downloader_mock = Mock()
+        setattr(layer_downloader_mock, "layer_cache", self.layer_cache_dir)
+
+        lambda_image = LambdaImage(
+            layer_downloader_mock,
+            False,
+            False,
+            docker_client=docker_client_mock,
+            invoke_images={None: f"{image_repo}:v1"},
+        )
+        lambda_image.build("custom", ZIP, None, [], X86_64, function_name="Function1")
+
+        docker_client_mock.images.list.assert_not_called()
+        docker_client_mock.images.remove.assert_not_called()
 
     def test_building_existing_rapid_image_does_not_remove_old_rapid_images(self):
         old_repo = "public.ecr.aws/sam/emulation-python3.9"

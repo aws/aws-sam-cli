@@ -9,6 +9,7 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from parameterized import parameterized
 
+from samcli.commands._utils.experimental import ExperimentalFlag
 from samcli.commands.build.build_context import BuildContext
 from samcli.commands.build.exceptions import InvalidBuildDirException, MissingBuildMethodException
 from samcli.commands.build.utils import MountMode
@@ -1562,6 +1563,54 @@ class TestBuildContext_run(TestCase):
             EventName.USED_FEATURE.value, UsedFeature.BUILD_IN_SOURCE.value, "FunctionNotFound"
         )
 
+    @patch("samcli.lib.build.app_builder.get_validated_container_client")
+    @patch("samcli.commands.build.build_context.BuildContext._is_sam_template")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    @patch("samcli.commands.build.build_context.BuildContext._check_exclude_warning")
+    @patch("samcli.commands.build.build_context.BuildContext._check_build_method_experimental_flag")
+    @patch("samcli.lib.build.app_builder.ApplicationBuilder.build")
+    @patch("samcli.lib.telemetry.event.EventTracker.track_event")
+    def test_customer_managed_runtime_event_sent(
+        self,
+        mock_track_event,
+        mock_builder,
+        mock_experimental,
+        mock_warning,
+        mock_get_resources,
+        mock_is_sam_template,
+        mock_get_validated_client,
+    ):
+        # Each 'custom' (customer-managed runtime) function records its runtime and the CustomerManagedRuntime
+        # feature; other functions record only their runtime.
+        mock_builder.side_effect = [FunctionNotFound()]
+        mock_get_validated_client.return_value = Mock()
+        mock_get_resources.return_value = MagicMock(functions=[Mock(runtime="custom"), Mock(runtime="python3.12")])
+
+        context = BuildContext(
+            resource_identifier="",
+            template_file="template_file",
+            base_dir="base_dir",
+            build_dir="build_dir",
+            cache_dir="cache_dir",
+            cached=False,
+            clean=False,
+            parallel=False,
+            mode="mode",
+        )
+
+        with self.assertRaises(UserException):
+            context.run()
+
+        cmr_feature = call(EventName.USED_FEATURE.value, UsedFeature.CUSTOMER_MANAGED_RUNTIME.value)
+        mock_track_event.assert_has_calls(
+            [
+                call(EventName.BUILD_FUNCTION_RUNTIME.value, "custom"),
+                cmr_feature,
+                call(EventName.BUILD_FUNCTION_RUNTIME.value, "python3.12"),
+            ]
+        )
+        self.assertEqual(mock_track_event.call_args_list.count(cmr_feature), 1)
+
     @patch("samcli.commands.build.build_context.prompt_user_to_enable_mount_with_write_if_needed")
     @patch("samcli.commands.build.build_context.BuildContext._is_sam_template", return_value=False)
     @patch("samcli.commands.build.build_context.BuildContext._handle_build_pre_processing")
@@ -2037,9 +2086,23 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
-    def test_check_build_method_experimental_flag_python_uv(self, mock_get_resources, mock_prompt):
+    def test_python_uv_is_not_a_beta_build_method(self, mock_get_resources, mock_prompt):
         mock_function = Mock()
         mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_resources = Mock()
+        mock_resources.functions = [mock_function]
+        mock_get_resources.return_value = mock_resources
+
+        self.build_context._check_build_method_experimental_flag()
+
+        mock_prompt.assert_not_called()
+
+    @patch.object(BuildContext, "EXPERIMENTAL_BUILD_METHODS", {"some-beta-method": ExperimentalFlag.All})
+    @patch("samcli.commands.build.build_context.prompt_experimental")
+    @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
+    def test_check_build_method_experimental_flag_prompts_for_beta_method(self, mock_get_resources, mock_prompt):
+        mock_function = Mock()
+        mock_function.metadata = {"BuildMethod": "some-beta-method"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources
@@ -2074,6 +2137,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
 
         mock_prompt.assert_not_called()
 
+    @patch.object(BuildContext, "EXPERIMENTAL_BUILD_METHODS", {"some-beta-method": ExperimentalFlag.All})
     @patch("samcli.commands.build.build_context.is_experimental_enabled", return_value=False)
     @patch("samcli.commands.build.build_context.prompt_experimental")
     @patch("samcli.commands.build.build_context.BuildContext.get_resources_to_build")
@@ -2083,7 +2147,7 @@ class TestBuildContext_check_build_method_experimental_flag(TestCase):
         # to update telemetry context - covered by is_experimental_enabled=False here.
         self.build_context._output = OutputOption.json
         mock_function = Mock()
-        mock_function.metadata = {"BuildMethod": "python-uv"}
+        mock_function.metadata = {"BuildMethod": "some-beta-method"}
         mock_resources = Mock()
         mock_resources.functions = [mock_function]
         mock_get_resources.return_value = mock_resources

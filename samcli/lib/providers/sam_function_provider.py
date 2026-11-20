@@ -523,6 +523,7 @@ class SamFunctionProvider(SamBaseProvider):
             architectures=resource_properties.get("Architectures", None),
             function_url_config=resource_properties.get("FunctionUrlConfig"),
             runtime_management_config=resource_properties.get("RuntimeManagementConfig"),
+            runtime_config=resource_properties.get("RuntimeConfig"),
             function_build_info=function_build_info,
             logging_config=resource_properties.get("LoggingConfig"),
             capacity_provider_config=resource_properties.get("CapacityProviderConfig", None),

@@ -325,6 +325,8 @@ class LocalLambdaRunner:
             timeout=function_timeout,
             env_vars=env_vars,
             runtime_management_config=function.runtime_management_config,
+            runtime_config=function.runtime_config,
+            build_method=function.metadata.get("BuildMethod") if function.metadata else None,
             code_real_path=code_real_path,
             capacity_provider_configuration=function.capacity_provider_configuration,
             accelerator_config=function.accelerator_config,

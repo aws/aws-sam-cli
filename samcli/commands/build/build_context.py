@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple, cast
 import click
 
 from samcli.commands._utils.constants import DEFAULT_BUILD_DIR, DEFAULT_SAM_DIR
-from samcli.commands._utils.experimental import ExperimentalFlag, is_experimental_enabled, prompt_experimental
+from samcli.commands._utils.experimental import ExperimentalEntry, is_experimental_enabled, prompt_experimental
 from samcli.commands._utils.template import (
     FOREACH_REQUIRED_ELEMENTS,
     get_template_data,
@@ -37,6 +37,7 @@ from samcli.lib.build.app_builder import (
 )
 from samcli.lib.build.build_graph import DEFAULT_DEPENDENCIES_DIR
 from samcli.lib.build.bundler import EsbuildBundlerManager
+from samcli.lib.build.constants import CUSTOM_RUNTIME
 from samcli.lib.build.exceptions import (
     BuildInsideContainerError,
     InvalidBuildGraphException,
@@ -365,6 +366,8 @@ class BuildContext:
 
             for f in resources_to_build.functions:
                 EventTracker.track_event(EventName.BUILD_FUNCTION_RUNTIME.value, f.runtime)
+                if f.runtime == CUSTOM_RUNTIME:
+                    EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.CUSTOMER_MANAGED_RUNTIME.value)
             if resources_to_build.microvm_images:
                 EventTracker.track_event(EventName.USED_FEATURE.value, UsedFeature.MICROVM_IMAGE_BUILD.value)
 
@@ -1712,6 +1715,9 @@ Commands you can use next
         if self._resource_identifier in excludes:
             LOG.warning(self._EXCLUDE_WARNING_MESSAGE)
 
+    # BuildMethod values that are still in beta, mapped to their beta flag. Empty while none are.
+    EXPERIMENTAL_BUILD_METHODS: Dict[str, ExperimentalEntry] = {}
+
     def _check_build_method_experimental_flag(
         self, resources_to_build: Optional[ResourcesToBuildCollector] = None
     ) -> None:
@@ -1724,16 +1730,12 @@ Commands you can use next
             The resources already collected for this build. Passing them avoids collecting again, which
             would repeat the collection's warnings (such as skipped MicrovmImages).
         """
-        EXPERIMENTAL_BUILD_METHODS = {
-            "python-uv": ExperimentalFlag.UvPackageManager,
-        }
-
         if resources_to_build is None:
             resources_to_build = self.get_resources_to_build()
         for function in resources_to_build.functions:
-            if function.metadata and function.metadata.get("BuildMethod", "") in EXPERIMENTAL_BUILD_METHODS:
+            if function.metadata and function.metadata.get("BuildMethod", "") in self.EXPERIMENTAL_BUILD_METHODS:
                 build_method = function.metadata.get("BuildMethod", "")
-                experimental_flag = EXPERIMENTAL_BUILD_METHODS[build_method]
+                experimental_flag = self.EXPERIMENTAL_BUILD_METHODS[build_method]
                 # Can't prompt for beta confirmation in JSON mode, so skip it - unless the feature is
                 # already enabled, where prompt_experimental only updates telemetry and doesn't prompt.
                 if self._output is OutputOption.json and not is_experimental_enabled(experimental_flag):

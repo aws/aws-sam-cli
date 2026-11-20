@@ -62,15 +62,14 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_non_json_data(self):
-        expected_error_message = (
-            "An error occurred (InvalidRequestContent) when calling the Invoke operation: "
-            "Could not parse request body into json: No JSON object could be decoded"
-        )
+        expected_error_code = "InvalidRequestContent"
+        expected_error_message = "Could not parse request body into json: No JSON object could be decoded"
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", Payload="notat:asdfasdf")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(
@@ -79,46 +78,48 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
                 InvocationType="Event",
             )
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_log_type_not_None(self):
-        expected_error_message = (
-            "An error occurred (NotImplemented) when calling the Invoke operation: "
-            "log-type: Tail is not supported. None is only supported."
-        )
+        expected_error_code = "NotImplemented"
+        expected_error_message = "log-type: Tail is not supported. None is only supported."
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", LogType="Tail")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_with_invocation_type_not_RequestResponse(self):
+        expected_error_code = "NotImplemented"
         expected_error_message = (
-            "An error occurred (NotImplemented) when calling the Invoke operation: "
             "invocation-type: DryRun is not supported. Only Event and RequestResponse are supported."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="EchoEventFunction", InvocationType="DryRun")
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_image_uri_missing(self):
+        expected_error_code = "ValidationException"
         expected_error_message = (
-            "An error occurred (ValidationException) when calling the Invoke operation:"
-            " ImageUri not provided for Function: HelloWorldFunctionMissingImageUri of PackageType: Image"
+            "ImageUri not provided for Function: HelloWorldFunctionMissingImageUri of PackageType: Image"
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="HelloWorldFunctionMissingImageUri", Payload='"This is json data"')
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(
@@ -127,42 +128,42 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
                 InvocationType="Event",
             )
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_missing_tenant_id(self):
-        expected_error_message = (
-            "An error occurred (ValidationException) when calling the Invoke operation:"
-            " The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
-        )
+        expected_error_code = "ValidationException"
+        expected_error_message = "The invoked function is enabled with tenancy configuration. Add a valid tenant ID in your request and try again."
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="MultiTenantFunction", Payload='"This is json data"')
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(
                 FunctionName="MultiTenantFunction", InvocationType="Event", Payload='"This is json data"'
             )
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_tenant_id(self):
-        expected_error_message = (
-            "An error occurred (ValidationException) when calling the Invoke operation:"
-            " The invoked function is not enabled with tenancy configuration. Remove the tenant ID from your request and try again."
-        )
+        expected_error_code = "ValidationException"
+        expected_error_message = "The invoked function is not enabled with tenancy configuration. Remove the tenant ID from your request and try again."
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(
                 FunctionName="EchoEventFunction", TenantId="tenant-123", Payload='"This is json data"'
             )
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(
@@ -172,7 +173,8 @@ class TestLambdaServiceErrorCases(StartLambdaIntegBaseClass):
                 InvocationType="Event",
             )
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
 
 class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
@@ -184,15 +186,16 @@ class TestLambdaServiceWithInlineCode(StartLambdaIntegBaseClass):
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")
     def test_invoke_function_with_inline_code(self):
+        expected_error_code = "NotImplemented"
         expected_error_message = (
-            "An error occurred (NotImplemented) when calling the Invoke operation:"
-            " Inline code is not supported for sam local commands. Please write your code in a separate file."
+            "Inline code is not supported for sam local commands. Please write your code in a separate file."
         )
 
         with self.assertRaises(ClientError) as error:
             self.lambda_client.invoke(FunctionName="InlineCodeServerlessFunction", Payload='"This is json data"')
 
-        self.assertEqual(str(error.exception), expected_error_message)
+        self.assertEqual(error.exception.response["Error"]["Code"], expected_error_code)
+        self.assertEqual(error.exception.response["Error"]["Message"], expected_error_message)
 
     @pytest.mark.flaky(reruns=3)
     @pytest.mark.timeout(timeout=300, method="thread")

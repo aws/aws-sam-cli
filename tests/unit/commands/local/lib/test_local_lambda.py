@@ -476,6 +476,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architecture=ARM64,
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
+            runtime_config=function.runtime_config,
+            build_method=None,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
             accelerator_config=function.accelerator_config,
@@ -484,6 +486,79 @@ class TestLocalLambda_get_invoke_config(TestCase):
 
         resolve_code_path_patch.assert_called_with(self.real_path, function.codeuri)
         self.local_lambda._make_env_vars.assert_called_with(function)
+
+    @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
+    @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
+    @patch("samcli.commands.local.lib.local_lambda.FunctionConfig")
+    def test_must_pass_build_method_from_metadata(self, FunctionConfigMock, is_debugging_mock, resolve_code_path_patch):
+        is_debugging_mock.return_value = False
+
+        env_vars = "envvars"
+        self.local_lambda._make_env_vars = Mock()
+        self.local_lambda._make_env_vars.return_value = env_vars
+
+        codepath = "codepath"
+        resolve_code_path_patch.return_value = codepath
+
+        runtime_config = {
+            "RuntimeArn": "arn:aws:lambda:us-east-1:123456789012:runtime/my-runtime",
+            "RuntimeAlias": "production",
+        }
+        function = Function(
+            stack_path="",
+            function_id="function_name",
+            name="function_name",
+            functionname="function_name",
+            runtime="custom",
+            memory=1234,
+            timeout=12,
+            handler="handler",
+            codeuri="codeuri",
+            environment=None,
+            rolearn=None,
+            layers=[],
+            events=None,
+            metadata={"BuildMethod": "python3.12"},
+            inlinecode=None,
+            imageuri=None,
+            imageconfig=None,
+            packagetype=ZIP,
+            architectures=[X86_64],
+            codesign_config_arn=None,
+            function_url_config=None,
+            runtime_management_config=None,
+            function_build_info=FunctionBuildInfo.BuildableZip,
+            runtime_config=runtime_config,
+        )
+
+        config = "someconfig"
+        FunctionConfigMock.return_value = config
+        actual = self.local_lambda.get_invoke_config(function)
+        self.assertEqual(actual, config)
+
+        # Metadata.BuildMethod is passed on so that debugging a 'custom' runtime can use its debug settings
+        FunctionConfigMock.assert_called_with(
+            imageconfig=function.imageconfig,
+            imageuri=function.imageuri,
+            name=function.functionname,
+            packagetype=function.packagetype,
+            runtime="custom",
+            handler=function.handler,
+            code_abs_path=codepath,
+            layers=[],
+            memory=function.memory,
+            timeout=function.timeout,
+            env_vars=env_vars,
+            architecture=X86_64,
+            full_path=function.full_path,
+            runtime_management_config=function.runtime_management_config,
+            runtime_config=runtime_config,
+            build_method="python3.12",
+            code_real_path=codepath,
+            capacity_provider_configuration=function.capacity_provider_configuration,
+            accelerator_config=function.accelerator_config,
+            durable_config=function.durable_config,
+        )
 
     @patch("samcli.commands.local.lib.local_lambda.resolve_code_path")
     @patch("samcli.commands.local.lib.local_lambda.LocalLambdaRunner.is_debugging")
@@ -547,6 +622,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architecture=ARM64,
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
+            runtime_config=function.runtime_config,
+            build_method=None,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
             accelerator_config=function.accelerator_config,
@@ -620,6 +697,8 @@ class TestLocalLambda_get_invoke_config(TestCase):
             architecture=X86_64,
             full_path=function.full_path,
             runtime_management_config=function.runtime_management_config,
+            runtime_config=function.runtime_config,
+            build_method=None,
             code_real_path=codepath,
             capacity_provider_configuration=function.capacity_provider_configuration,
             accelerator_config=function.accelerator_config,

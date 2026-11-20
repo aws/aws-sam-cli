@@ -39,7 +39,7 @@ from samcli.lib.build.build_strategy import (
     ParallelBuildStrategy,
     WorkspaceAwareBuildStrategy,
 )
-from samcli.lib.build.constants import BUILD_PROPERTIES, DEPRECATED_RUNTIMES
+from samcli.lib.build.constants import BUILD_PROPERTIES, CUSTOM_RUNTIME, DEPRECATED_RUNTIMES
 from samcli.lib.build.dependency_hash_generator import PYTHON_UV_BUILD_METHOD
 from samcli.lib.build.exceptions import (
     BuildError,
@@ -112,6 +112,7 @@ UV_BUILD_PROPERTIES = {
     "UvExtras": "uv_extras",
     "UvAllExtras": "uv_all_extras",
     "UvPrune": "uv_prune",
+    "UvCompileBytecode": "uv_compile_bytecode",
 }
 
 
@@ -978,6 +979,9 @@ class ApplicationBuilder:
             # Determine if there was a build workflow that was specified directly in the template.
             specified_workflow = metadata.get("BuildMethod", None) if metadata else None
             config = get_workflow_config(runtime, code_dir, self._base_dir, specified_workflow=specified_workflow)
+            # 'custom' (customer-managed runtime) names no language, so the code is built for the runtime that
+            # Metadata.BuildMethod names, the same way _build_layer builds a layer.
+            build_runtime = cast(str, specified_workflow) if runtime == CUSTOM_RUNTIME else runtime
 
             if config.language == "provided" and isinstance(metadata, dict) and metadata.get("ProjectRootDirectory"):
                 code_dir = str(pathlib.Path(self._base_dir, metadata.get("ProjectRootDirectory", code_dir)).resolve())
@@ -1016,6 +1020,12 @@ class ApplicationBuilder:
                     # None represents the global build image for all functions/layers
                     global_image = self._build_images.get(None)
                     image = self._build_images.get(function_name, global_image)
+                    # makefile names no runtime, so there is no default build image to pick for 'custom'
+                    if runtime == CUSTOM_RUNTIME and specified_workflow == "makefile" and not image:
+                        raise BuildInsideContainerError(
+                            "Runtime 'custom' with Metadata.BuildMethod makefile has no default build image for "
+                            "--use-container. Supply one with --build-image"
+                        )
                     # pass to container only when specified workflow is supported to overwrite runtime to get image
                     supported_specified_workflow = supports_specified_workflow(specified_workflow)
                     return self._build_function_on_container(
@@ -1023,7 +1033,7 @@ class ApplicationBuilder:
                         code_dir,
                         artifact_dir,
                         manifest_path,
-                        runtime,
+                        build_runtime,
                         architecture,
                         options,
                         container_env_vars,
@@ -1037,7 +1047,7 @@ class ApplicationBuilder:
                     artifact_dir,
                     scratch_dir,
                     manifest_path,
-                    runtime,
+                    build_runtime,
                     architecture,
                     options,
                     dependencies_dir,

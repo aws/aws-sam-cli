@@ -103,7 +103,8 @@ def local_common_options(f):
             "One can also specify for each individual function with "
             "(--invoke-image Function1=public.ecr.aws/sam/build-nodejs20.x:latest). "
             "If a function does not have invoke image specified, the default AWS SAM CLI "
-            "emulation image will be used.",
+            "emulation image will be used. "
+            "For functions with Runtime: 'custom', the image is resolved from RuntimeConfig instead.",
         ),
         click.option(
             "--no-memory-limit",

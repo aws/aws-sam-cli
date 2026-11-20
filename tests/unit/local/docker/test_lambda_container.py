@@ -3,7 +3,7 @@ Unit test for Lambda container management
 """
 
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import ANY, patch, Mock
 
 from parameterized import parameterized, param
 
@@ -130,7 +130,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name, None
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
@@ -210,7 +210,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "arm64", self.function_name, None
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -292,7 +292,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name, None
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -375,7 +375,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name
+            image_builder_mock, self.runtime, IMAGE, self.imageuri, [], "x86_64", self.function_name, None
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -463,7 +463,7 @@ class TestLambdaContainer_init(TestCase):
         self.assertEqual(self.memory_mb, container._memory_limit_mb)
 
         get_image_mock.assert_called_with(
-            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "x86_64", self.function_name
+            image_builder_mock, self.runtime, self.packagetype, self.imageuri, [], "x86_64", self.function_name, None
         )
         get_exposed_ports_mock.assert_called_with(self.debug_options)
         get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
@@ -496,6 +496,398 @@ class TestLambdaContainer_init(TestCase):
             str(context.exception),
             "Unsupported Lambda runtime: foo. For a list of supported runtimes, please visit https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
         )
+
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_must_not_fail_for_custom_runtime(
+        self,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        # 'custom' (customer-managed runtime) is not a Runtime enum value; the invoke image is
+        # supplied via --invoke-image, so it must pass the guard instead of raising.
+        get_image_mock.return_value = IMAGE
+        get_exposed_ports_mock.return_value = {}
+        get_debug_settings_mock.return_value = ([], {})
+        get_additional_options_mock.return_value = {}
+        get_additional_volumes_mock.return_value = {}
+        mock_get_validated_client.return_value = Mock()
+
+        container = LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+        )
+
+        self.assertEqual(IMAGE, container._image)
+
+    @parameterized.expand(
+        [
+            param({"Entrypoint": ["/lambda-entrypoint.sh"]}, ["/lambda-entrypoint.sh"]),
+            param({"Entrypoint": ["/my-entrypoint"], "Cmd": ["ignored"]}, ["/my-entrypoint"]),
+            param({"Entrypoint": None, "Cmd": ["python3"]}, ["/var/runtime/bootstrap"]),
+            param({}, ["/var/runtime/bootstrap"]),
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    def test_must_start_custom_runtime_from_image_entrypoint_with_handler(
+        self, runtime_image_config, expected_entrypoint, get_image_mock, get_config_mock, mock_get_validated_client
+    ):
+        # A CMR runtime starts the way Lambda starts it: the runtime image's ENTRYPOINT, or /var/runtime/bootstrap
+        # when the image sets none, with the handler as its only argument in place of the image's CMD.
+        get_image_mock.return_value = IMAGE
+        get_config_mock.return_value = runtime_image_config
+        mock_get_validated_client.return_value = Mock()
+
+        container = LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            env_vars=self.env_var,
+        )
+
+        self.assertEqual(LambdaContainer._get_default_entry_point() + expected_entrypoint, container._entrypoint)
+        self.assertEqual([self.handler], container._cmd)
+        self.assertEqual("/var/task", container._working_dir)
+        self.assertEqual("/var/task", container._env_vars["LAMBDA_TASK_ROOT"])
+        self.assertEqual("/var/runtime", container._env_vars["LAMBDA_RUNTIME_DIR"])
+        self.assertEqual("value", container._env_vars["var"])
+
+    @parameterized.expand(
+        [
+            param("python3.12", "python3.12"),
+            param("nodejs20.x", "nodejs20.x"),
+            param("java21", "java21"),
+            param("dotnet8", "dotnet8"),
+            param("makefile", "custom"),
+            param(None, "custom"),
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_must_select_debug_settings_by_build_method_for_custom_runtime(
+        self,
+        build_method,
+        expected_debug_runtime,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        # 'custom' names no language, so the debug settings are those of the runtime that Metadata.BuildMethod
+        # names. A BuildMethod that is not a runtime (makefile) or no BuildMethod keeps 'custom'.
+        get_image_mock.return_value = IMAGE
+        get_exposed_ports_mock.return_value = {}
+        get_debug_settings_mock.return_value = ([], {})
+        get_additional_options_mock.return_value = {}
+        get_additional_volumes_mock.return_value = {}
+        mock_get_validated_client.return_value = Mock()
+
+        LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options,
+            build_method=build_method,
+        )
+
+        get_debug_settings_mock.assert_called_with(expected_debug_runtime, self.debug_options)
+        get_additional_options_mock.assert_called_with(expected_debug_runtime, self.debug_options)
+        get_additional_volumes_mock.assert_called_with(expected_debug_runtime, self.debug_options)
+
+    @parameterized.expand(
+        [
+            # (runtime, debugging, debug entry replaces the image ENTRYPOINT, expected flag)
+            param("custom", True, True, True),  # e.g. BuildMethod python3.12, nodejs20.x, dotnet8
+            param("custom", True, False, False),  # e.g. BuildMethod java21: keeps the ENTRYPOINT
+            param("custom", False, False, False),  # not debugging
+            param("python3.12", True, True, False),  # not a customer-managed runtime
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    @patch.object(LambdaContainer, "_get_config", return_value={})
+    def test_must_record_when_debug_replaces_custom_runtime_entrypoint(
+        self,
+        runtime,
+        debugging,
+        replaces_entrypoint,
+        expected,
+        get_config_mock,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        default_entry = LambdaContainer._get_default_entry_point()
+        entry = default_entry + ["/var/lang/bin/python3.12"] if replaces_entrypoint else default_entry
+        get_image_mock.return_value = IMAGE
+        get_exposed_ports_mock.return_value = {}
+        get_debug_settings_mock.return_value = (entry, {})
+        get_additional_options_mock.return_value = {}
+        get_additional_volumes_mock.return_value = {}
+        mock_get_validated_client.return_value = Mock()
+
+        container = LambdaContainer(
+            runtime=runtime,
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options if debugging else None,
+            build_method="python3.12",
+        )
+
+        self.assertEqual(container._debug_replaces_runtime_entrypoint, expected)
+
+    @parameterized.expand(
+        [
+            # (debug replaced the ENTRYPOINT, emulator status, emulator body, expect the warning)
+            param(True, 502, b"", True),  # the runtime never started
+            param(True, 502, b'{"errorType": "Runtime.ImportModuleError"}', False),  # the function's own error
+            param(True, 200, b"", False),
+            param(False, 502, b"", False),  # not a debugged custom runtime
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    @patch.object(LambdaContainer, "_get_config", return_value={})
+    def test_must_warn_when_debugged_custom_runtime_never_starts(
+        self,
+        replaces_entrypoint,
+        status_code,
+        body,
+        expect_warning,
+        get_config_mock,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        default_entry = LambdaContainer._get_default_entry_point()
+        get_image_mock.return_value = IMAGE
+        get_exposed_ports_mock.return_value = {}
+        get_debug_settings_mock.return_value = (
+            default_entry + ["/var/lang/bin/python3.12"] if replaces_entrypoint else default_entry,
+            {},
+        )
+        get_additional_options_mock.return_value = {}
+        get_additional_volumes_mock.return_value = {}
+        mock_get_validated_client.return_value = Mock()
+        container = LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options,
+            build_method="python3.12",
+        )
+
+        container._on_http_response(status_code, body)
+        with (
+            patch("samcli.local.docker.container.Container.wait_for_result") as base_wait_mock,
+            patch("samcli.local.docker.lambda_container.LOG") as log_mock,
+        ):
+            container.wait_for_result("full_path", "{}", Mock(), Mock(), start_timer=None, tenant_id="t1")
+
+        base_wait_mock.assert_called_once_with("full_path", "{}", ANY, ANY, start_timer=None, tenant_id="t1")
+        if expect_warning:
+            log_mock.warning.assert_called_once()
+            self.assertIn("the runtime exited before it started", log_mock.warning.call_args[0][0])
+        else:
+            log_mock.warning.assert_not_called()
+
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    @patch.object(LambdaContainer, "_get_exposed_ports")
+    @patch.object(LambdaContainer, "_get_debug_settings")
+    @patch.object(LambdaContainer, "_get_additional_options")
+    @patch.object(LambdaContainer, "_get_additional_volumes")
+    def test_must_not_use_build_method_for_other_runtimes(
+        self,
+        get_additional_volumes_mock,
+        get_additional_options_mock,
+        get_debug_settings_mock,
+        get_exposed_ports_mock,
+        get_image_mock,
+        mock_get_validated_client,
+    ):
+        get_image_mock.return_value = IMAGE
+        get_exposed_ports_mock.return_value = {}
+        get_debug_settings_mock.return_value = ([], {})
+        get_additional_options_mock.return_value = {}
+        get_additional_volumes_mock.return_value = {}
+        mock_get_validated_client.return_value = Mock()
+
+        LambdaContainer(
+            runtime=self.runtime,
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options,
+            build_method="esbuild",
+        )
+
+        get_debug_settings_mock.assert_called_with(self.runtime, self.debug_options)
+        get_additional_options_mock.assert_called_with(self.runtime, self.debug_options)
+
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    def test_must_debug_custom_runtime_with_build_method_entrypoint(
+        self, get_image_mock, get_config_mock, mock_get_validated_client
+    ):
+        # Debug settings that replace the start command are kept as they are: no image ENTRYPOINT or handler is added.
+        get_image_mock.return_value = IMAGE
+        get_config_mock.return_value = {"Entrypoint": ["/lambda-entrypoint.sh"]}
+        mock_get_validated_client.return_value = Mock()
+
+        container = LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options,
+            build_method="python3.12",
+        )
+
+        self.assertEqual(
+            LambdaContainer._get_default_entry_point()
+            + ["/var/lang/bin/python3.12", "a=b", "c=d", "e=f", "/var/runtime/bootstrap.py"],
+            container._entrypoint,
+        )
+        self.assertEqual([], container._cmd)
+        self.assertEqual("/var/task", container._env_vars["LAMBDA_TASK_ROOT"])
+
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_config")
+    @patch.object(LambdaContainer, "_get_image")
+    def test_must_debug_custom_java_runtime_from_image_entrypoint(
+        self, get_image_mock, get_config_mock, mock_get_validated_client
+    ):
+        # Java's debug settings only set _JAVA_OPTIONS and keep the default start command, so a Java CMR runtime
+        # still starts from the image's ENTRYPOINT with the handler when debugging.
+        get_image_mock.return_value = IMAGE
+        get_config_mock.return_value = {"Entrypoint": ["/lambda-entrypoint.sh"]}
+        mock_get_validated_client.return_value = Mock()
+
+        container = LambdaContainer(
+            runtime="custom",
+            imageuri=self.imageuri,
+            handler=self.handler,
+            packagetype=self.packagetype,
+            image_config=self.image_config,
+            code_dir=self.code_dir,
+            layers=[],
+            lambda_image=Mock(),
+            architecture="x86_64",
+            debug_options=self.debug_options,
+            build_method="java21",
+        )
+
+        self.assertEqual(LambdaContainer._get_default_entry_point() + ["/lambda-entrypoint.sh"], container._entrypoint)
+        self.assertEqual([self.handler], container._cmd)
+        self.assertIn("-agentlib:jdwp", container._env_vars["_JAVA_OPTIONS"])
+        self.assertEqual("/var/task", container._env_vars["LAMBDA_TASK_ROOT"])
+        self.assertEqual("/var/runtime", container._env_vars["LAMBDA_RUNTIME_DIR"])
+
+    @parameterized.expand(
+        [
+            param("makefile", "Debugging is not currently supported for custom"),
+            param(None, "Debugging is not currently supported for custom"),
+            param("ruby3.3", "Debugging is not currently supported for ruby3.3"),
+            param("provided.al2023", "Debugging is not currently supported for provided.al2023"),
+        ]
+    )
+    @patch("samcli.local.docker.utils.get_validated_container_client")
+    @patch.object(LambdaContainer, "_get_image")
+    def test_must_raise_existing_error_when_build_method_has_no_debug_settings(
+        self, build_method, expected_message, get_image_mock, mock_get_validated_client
+    ):
+        get_image_mock.return_value = IMAGE
+        mock_get_validated_client.return_value = Mock()
+
+        with self.assertRaises(DebuggingNotSupported) as context:
+            LambdaContainer(
+                runtime="custom",
+                imageuri=self.imageuri,
+                handler=self.handler,
+                packagetype=self.packagetype,
+                image_config=self.image_config,
+                code_dir=self.code_dir,
+                layers=[],
+                lambda_image=Mock(),
+                architecture="x86_64",
+                debug_options=self.debug_options,
+                build_method=build_method,
+            )
+
+        self.assertEqual(str(context.exception), expected_message)
 
     @patch("samcli.local.docker.utils.get_validated_container_client")
     @patch.object(LambdaContainer, "_get_image")
@@ -640,7 +1032,9 @@ class TestLambdaContainer_get_image(TestCase):
             expected,
         )
 
-        image_builder.build.assert_called_with("foo1.0", ZIP, None, [], "x86_64", function_name=None)
+        image_builder.build.assert_called_with(
+            "foo1.0", ZIP, None, [], "x86_64", function_name=None, runtime_config=None
+        )
 
 
 class TestLambdaContainer_get_debug_settings(TestCase):

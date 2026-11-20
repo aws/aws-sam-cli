@@ -10,6 +10,7 @@ from typing import List, Optional
 from uuid import UUID, uuid4
 
 from samcli.cli.context import Context
+from samcli.lib.build.constants import CUSTOM_RUNTIME
 from samcli.lib.build.workflows import ALL_CONFIGS
 from samcli.lib.config.file_manager import FILE_MANAGER_MAPPER
 from samcli.lib.remote_invoke.remote_invoke_executors import RemoteInvokeEventType
@@ -44,6 +45,7 @@ class UsedFeature(Enum):
     BUILD_IN_SOURCE = "BuildInSource"
     CFN_LANGUAGE_EXTENSIONS = "CFNLanguageExtensions"
     MICROVM_IMAGE_BUILD = "MicrovmImageBuild"
+    CUSTOMER_MANAGED_RUNTIME = "CustomerManagedRuntime"
 
 
 class EventType:
@@ -73,7 +75,8 @@ class EventType:
 
     _event_values = {  # Contains allowable values for Events
         EventName.USED_FEATURE: [event.value for event in UsedFeature],
-        EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES,
+        # 'custom' (customer-managed runtime) can be built but is not a sam init runtime
+        EventName.BUILD_FUNCTION_RUNTIME: INIT_RUNTIMES + [CUSTOM_RUNTIME],
         EventName.SYNC_USED: [
             "Start",
             "End",
