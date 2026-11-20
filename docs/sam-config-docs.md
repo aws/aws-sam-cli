@@ -6,13 +6,13 @@ This doc goes through the different sections of the configuration file and expla
 ```
 version = 0.1
 
-[default.build.paramaters]
+[default.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
 use_container=true
 
-[default.local_start_api.paramaters]
+[default.local_start_api.parameters]
 port=5400
 
 [default.package.parameters]
@@ -77,7 +77,7 @@ Since this configuration file is TOML, the parameters have types built-in.
 ### Specifying a number
 
 ```
-[default.local_start_api.paramaters]
+[default.local_start_api.parameters]
 port=5400
 ```
 
