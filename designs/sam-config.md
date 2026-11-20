@@ -127,7 +127,7 @@ Sample configuration file
 ```
 version = 0.1
 
-[default.build.paramaters]
+[default.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
@@ -146,7 +146,7 @@ region="us-east-1"
 profile="srirammv"
 
 
-[dev.build.paramaters]
+[dev.build.parameters]
 profile="srirammv"
 debug=true
 skip_pull_image=true
