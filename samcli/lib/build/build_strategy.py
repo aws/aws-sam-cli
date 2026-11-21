@@ -94,6 +94,17 @@ def clean_redundant_folders(base_dir: str, uuids: Set[str]) -> None:
             shutil.rmtree(pathlib.Path(base_dir, full_dir_path.name))
 
 
+def _source_hash(code_dir: str, *names: Optional[str]) -> str:
+    """
+    Source hash for the cached build. names are the runtime and BuildMethod values. A dotnet build
+    writes bin/ and obj/ into the source folder, and so does an IDE build.
+    """
+    ignore_list = [".aws-sam"]
+    if any((name or "").startswith("dotnet") for name in names):
+        ignore_list += ["bin", "obj"]
+    return dir_checksum(code_dir, ignore_list=ignore_list, hash_generator=hashlib.sha256())
+
+
 class BuildStrategy(ABC):
     """
     Base class for BuildStrategy
@@ -386,7 +397,7 @@ class CachedBuildStrategy(BuildStrategy):
             return self._delegate_build_strategy.build_single_function_definition(build_definition)
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
-        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
+        source_hash = _source_hash(code_dir, build_definition.runtime, build_definition.metadata.get("BuildMethod"))
         cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
         function_build_results = {}
 
@@ -444,7 +455,7 @@ class CachedBuildStrategy(BuildStrategy):
         """
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
-        source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
+        source_hash = _source_hash(code_dir, layer_definition.build_method)
         cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
         layer_build_result = {}
 
