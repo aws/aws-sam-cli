@@ -406,6 +406,71 @@ class TestDeployer(CustomTestCase):
         with self.assertRaises(ChangeSetError):
             self.deployer.wait_for_changeset("test-id", "test-stack")
 
+    def test_wait_for_changeset_includes_failed_operation_events(self):
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=MockChangesetWaiter(
+                ex=WaiterError(
+                    name="wait_for_changeset",
+                    reason="unit-test",
+                    last_response={"Status": "FAILED", "StatusReason": "The change set failed validation"},
+                )
+            )
+        )
+        self.deployer._client.get_paginator = MagicMock(
+            return_value=MockPaginator(
+                resp=[
+                    {
+                        "OperationEvents": [
+                            {
+                                "ValidationName": "AWS::EarlyValidation::ResourceExistenceCheck",
+                                "ValidationStatus": "FAILED",
+                                "ValidationStatusReason": "The resource does not exist",
+                            },
+                            {
+                                "LogicalResourceId": "Api",
+                                "ResourceStatus": "CREATE_COMPLETE",
+                                "ResourceStatusReason": "Successful",
+                            },
+                        ]
+                    }
+                ]
+            )
+        )
+
+        with self.assertRaises(ChangeSetError) as raised:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        self.deployer._client.get_paginator.assert_called_once_with("describe_events")
+        self.assertIn(
+            "CloudFormation event details:\n"
+            "- AWS::EarlyValidation::ResourceExistenceCheck: The resource does not exist",
+            str(raised.exception),
+        )
+        self.assertNotIn("Successful", str(raised.exception))
+
+    def test_wait_for_changeset_preserves_error_when_describe_events_fails(self):
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=MockChangesetWaiter(
+                ex=WaiterError(
+                    name="wait_for_changeset",
+                    reason="unit-test",
+                    last_response={"Status": "FAILED", "StatusReason": "The change set failed validation"},
+                )
+            )
+        )
+        self.deployer._client.get_paginator = MagicMock(
+            side_effect=ClientError(
+                error_response={"Error": {"Code": "AccessDenied", "Message": "Not authorized"}},
+                operation_name="DescribeEvents",
+            )
+        )
+
+        with self.assertRaises(ChangeSetError) as raised:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        self.assertIn("Reason: The change set failed validation", str(raised.exception))
+        self.assertNotIn("CloudFormation event details", str(raised.exception))
+
     def test_wait_for_changeset_exception_NonChangeSetError(self):
         self.deployer._client.get_waiter = MagicMock(
             return_value=MockChangesetWaiter(

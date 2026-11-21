@@ -409,7 +409,49 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
+            failure_details = self._get_changeset_failure_details(changeset_id, stack_name)
+            msg = f"ex: {ex} Status: {status}. Reason: {reason}"
+            if failure_details:
+                msg += f"\n\nCloudFormation event details:\n{failure_details}"
+
+            raise ChangeSetError(stack_name=stack_name, msg=msg) from ex
+
+    def _get_changeset_failure_details(self, changeset_id: str, stack_name: str) -> str:
+        """
+        Return failed operation event details for a change set.
+
+        DescribeEvents is supplemental diagnostic information. If it fails, the
+        change-set status and reason from the waiter still provide the primary
+        error.
+        """
+        try:
+            paginator = self._client.get_paginator("describe_events")
+            events = []
+            for page in paginator.paginate(ChangeSetName=changeset_id, StackName=stack_name):
+                events.extend(page.get("OperationEvents", []))
+        except (botocore.exceptions.ClientError, botocore.exceptions.BotoCoreError):
+            LOG.debug("Unable to retrieve CloudFormation events for change set %s", changeset_id, exc_info=True)
+            return ""
+
+        details = []
+        for event in events:
+            status = event.get("HookStatus") or event.get("ValidationStatus") or event.get("ResourceStatus")
+            if not status or "FAILED" not in status.upper():
+                continue
+
+            reason = (
+                event.get("HookStatusReason")
+                or event.get("ValidationStatusReason")
+                or event.get("ResourceStatusReason")
+            )
+            if not reason:
+                continue
+
+            source = event.get("ValidationName") or event.get("HookType") or event.get("LogicalResourceId")
+            event_detail = reason if not source else f"{source}: {reason}"
+            details.append(f"- {event_detail}")
+
+        return "\n".join(details)
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback, express=False):
         """
