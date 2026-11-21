@@ -65,9 +65,9 @@ def _parse_path_style_s3_url(
     parsed = urlparse(url)
     result = dict()
     # parsed.path would point to /bucket/key
-    if parsed.path:
-        s3_bucket_key = parsed.path.split("/", 2)[1:]
-
+    # A URL without a bucket or an object key (e.g. https://s3.amazonaws.com/bucket) is not a valid object URL
+    s3_bucket_key = parsed.path.split("/", 2)[1:]
+    if len(s3_bucket_key) > 1 and s3_bucket_key[0]:
         result[bucket_name_property] = s3_bucket_key[0]
         result[object_key_property] = s3_bucket_key[1]
 
