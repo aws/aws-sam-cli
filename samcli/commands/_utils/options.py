@@ -369,12 +369,36 @@ def docker_click_options():
     ]
 
 
+PARAMETER_OVERRIDES_MERGE_KEY = "parameter_overrides_merge"
+
+
+def merge_parameter_overrides_callback(ctx: click.Context, param: click.Parameter, value: Dict) -> Dict:
+    """
+    Opt-in merge of --parameter-overrides with the samconfig value (#2380).
+
+    By default a value given on the command line replaces the samconfig value entirely. When the
+    config file sets `parameter_overrides_merge = true`, the two are merged per key instead, and the
+    command line wins for keys present in both.
+    """
+    default_map = ctx.default_map or {}
+    config_value = default_map.get("parameter_overrides")
+    if (
+        default_map.get(PARAMETER_OVERRIDES_MERGE_KEY) is not True
+        or ctx.get_parameter_source("parameter_overrides") != click.core.ParameterSource.COMMANDLINE
+        or not config_value
+    ):
+        return value
+    config_value = param.type.convert(config_value, param, ctx)
+    return {**config_value, **(value or {})}
+
+
 def parameter_override_click_option():
     return click.option(
         "--parameter-overrides",
         cls=OptionNargs,
         type=CfnParameterOverridesType(),
         default={},
+        callback=merge_parameter_overrides_callback,
         help="String that contains AWS CloudFormation parameter overrides encoded as key=value pairs.",
     )
 
