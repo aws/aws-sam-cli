@@ -48,6 +48,12 @@ from samcli.lib.utils.time import to_datetime, utc_to_timestamp
 
 LOG = logging.getLogger(__name__)
 
+# Upper bound on the failed events read back to explain a failed changeset. A
+# failed changeset normally carries a handful of failures, this only keeps a
+# pathological response from flooding the terminal.
+MAX_CHANGESET_FAILURE_EVENTS = 25
+MAX_CHANGESET_FAILURE_PAGES = 10
+
 DESCRIBE_STACK_EVENTS_FORMAT_STRING = (
     "{ResourceStatus:<{0}} {ResourceType:<{1}} {LogicalResourceId:<{2}} {ResourceStatusReason:<{3}}"
 )
@@ -409,7 +415,84 @@ class Deployer:
             ):
                 raise deploy_exceptions.ChangeEmptyError(stack_name=stack_name)
 
-            raise ChangeSetError(stack_name=stack_name, msg=f"ex: {ex} Status: {status}. Reason: {reason}") from ex
+            msg = f"ex: {ex} Status: {status}. Reason: {reason}"
+            if status == "FAILED":
+                failure_details = self._get_changeset_failure_details(changeset_id, stack_name)
+                if failure_details:
+                    details = "\n".join(failure_details)
+                    msg += f"\nFailure details from CloudFormation:\n{details}"
+
+            raise ChangeSetError(stack_name=stack_name, msg=msg) from ex
+
+    def _get_changeset_failure_details(self, changeset_id: str, stack_name: str) -> List[str]:
+        """
+        Reads the failed events of a change set that could not be created, so the reason
+        CloudFormation only summarises in the change set status (for example
+        "[AWS::EarlyValidation::ResourceExistenceCheck]") is shown to the user instead of
+        having to be looked up with the DescribeEvents API by hand.
+
+        This only adds detail to an error that is being raised anyway, so it never raises:
+        a missing cloudformation:DescribeEvents permission, an older botocore without the
+        API or any other failure is logged and an empty list is returned.
+
+        :param changeset_id: ID or name of the change set that failed
+        :param stack_name: Stack name
+        :return: One formatted line per failed event, empty if none could be read
+        """
+        lines: List[str] = []
+        try:
+            kwargs = {"StackName": stack_name, "ChangeSetName": changeset_id, "Filters": {"FailedEvents": True}}
+            for _ in range(MAX_CHANGESET_FAILURE_PAGES):
+                if len(lines) >= MAX_CHANGESET_FAILURE_EVENTS:
+                    break
+                response = self._client.describe_events(**kwargs)
+                for event in response.get("OperationEvents", []):
+                    line = self._format_changeset_failure_event(event)
+                    if line and line not in lines:
+                        lines.append(line)
+                next_token = response.get("NextToken")
+                if not isinstance(next_token, str) or not next_token:
+                    break
+                kwargs["NextToken"] = next_token
+        except Exception as ex:  # pylint: disable=broad-except
+            LOG.debug("Could not read the failure details of changeset %s: %s", changeset_id, ex)
+            return []
+
+        return lines[:MAX_CHANGESET_FAILURE_EVENTS]
+
+    @staticmethod
+    def _format_changeset_failure_event(event: dict) -> str:
+        """
+        Formats one DescribeEvents operation event as a single line, naming the failing check
+        or hook, the resource and the reason CloudFormation gave. Returns an empty string when
+        the event carries no reason, since there is nothing useful to show for it.
+        """
+        reason = (
+            event.get("ValidationStatusReason") or event.get("HookStatusReason") or event.get("ResourceStatusReason")
+        )
+        if not reason:
+            return ""
+
+        source = event.get("ValidationName") or event.get("HookType")
+        resource = event.get("LogicalResourceId")
+        resource_type = event.get("ResourceType")
+        path = event.get("ValidationPath")
+
+        subject = ""
+        if resource:
+            subject = f"{resource} ({resource_type})" if resource_type else resource
+        elif resource_type:
+            subject = resource_type
+
+        line: str = "  - "
+        if source:
+            line += f"[{source}] "
+        if subject:
+            line += f"{subject}: "
+        line += str(reason)
+        if path:
+            line += f" (path: {path})"
+        return line
 
     def execute_changeset(self, changeset_id, stack_name, disable_rollback, express=False):
         """

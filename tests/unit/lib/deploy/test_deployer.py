@@ -10,11 +10,14 @@ from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, ANY, call
 
+import boto3
 from botocore.exceptions import ClientError, WaiterError, BotoCoreError
+from botocore.stub import Stubber
 
 from samcli.commands.deploy.exceptions import (
     DeployFailedError,
     ChangeSetError,
+    ChangeEmptyError,
     DeployStackOutPutFailedError,
     DeployBucketInDifferentRegionError,
     DeployStackStatusMissingError,
@@ -424,6 +427,218 @@ class TestDeployer(CustomTestCase):
         )
         with self.assertRaises(WaiterError):
             self.deployer.wait_for_changeset("test-id", "test-stack")
+
+    def _failed_changeset_waiter(
+        self, reason="The following hook(s)/validation failed: [AWS::EarlyValidation::ResourceExistenceCheck]"
+    ):
+        return MockChangesetWaiter(
+            ex=WaiterError(
+                name="wait_for_changeset",
+                reason="unit-test",
+                last_response={"Status": "FAILED", "StatusReason": reason},
+            )
+        )
+
+    def test_wait_for_changeset_failure_includes_validation_details(self):
+        self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter())
+        self.deployer._client.describe_events = MagicMock(
+            return_value={
+                "OperationEvents": [
+                    {
+                        "LogicalResourceId": "MyBucket",
+                        "ResourceType": "AWS::S3::Bucket",
+                        "ValidationName": "AWS::EarlyValidation::ResourceExistenceCheck",
+                        "ValidationStatusReason": (
+                            "Resource of type 'AWS::S3::Bucket' with identifier 'my-bucket' already exists."
+                        ),
+                        "ValidationPath": "/Resources/MyBucket/Properties/BucketName",
+                    }
+                ]
+            }
+        )
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        message = str(ctx.exception)
+        # the existing message is kept in full
+        self.assertIn("Failed to create changeset for the stack: test-stack", message)
+        self.assertIn("[AWS::EarlyValidation::ResourceExistenceCheck]", message)
+        # and the failing detail is added below it
+        self.assertIn("Failure details from CloudFormation:", message)
+        self.assertIn(
+            "  - [AWS::EarlyValidation::ResourceExistenceCheck] MyBucket (AWS::S3::Bucket): "
+            "Resource of type 'AWS::S3::Bucket' with identifier 'my-bucket' already exists. "
+            "(path: /Resources/MyBucket/Properties/BucketName)",
+            message,
+        )
+        self.deployer._client.describe_events.assert_called_once_with(
+            StackName="test-stack", ChangeSetName="test-id", Filters={"FailedEvents": True}
+        )
+
+    def test_wait_for_changeset_failure_includes_hook_and_resource_reasons(self):
+        self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter())
+        self.deployer._client.describe_events = MagicMock(
+            return_value={
+                "OperationEvents": [
+                    {
+                        "LogicalResourceId": "Fn",
+                        "ResourceType": "AWS::Lambda::Function",
+                        "HookType": "My::Org::Guard",
+                        "HookStatusReason": "Function must set a reserved concurrency.",
+                    },
+                    {"LogicalResourceId": "Table", "ResourceStatusReason": "Table name is invalid."},
+                    {"ResourceType": "AWS::SQS::Queue", "ResourceStatusReason": "Queue limit reached."},
+                    # no reason at all, nothing useful to print
+                    {"LogicalResourceId": "Quiet", "ResourceType": "AWS::SNS::Topic"},
+                ]
+            }
+        )
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        message = str(ctx.exception)
+        self.assertIn(
+            "  - [My::Org::Guard] Fn (AWS::Lambda::Function): Function must set a reserved concurrency.", message
+        )
+        self.assertIn("  - Table: Table name is invalid.", message)
+        self.assertIn("  - AWS::SQS::Queue: Queue limit reached.", message)
+        self.assertNotIn("Quiet", message)
+
+    def test_wait_for_changeset_failure_follows_pagination_and_drops_duplicates(self):
+        self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter())
+        event = {"LogicalResourceId": "A", "ResourceStatusReason": "bad A"}
+        self.deployer._client.describe_events = MagicMock(
+            side_effect=[
+                {"OperationEvents": [event], "NextToken": "page-2"},
+                {"OperationEvents": [event, {"LogicalResourceId": "B", "ResourceStatusReason": "bad B"}]},
+            ]
+        )
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        message = str(ctx.exception)
+        self.assertEqual(message.count("bad A"), 1)
+        self.assertIn("bad B", message)
+        self.assertEqual(
+            self.deployer._client.describe_events.call_args_list[1],
+            call(StackName="test-stack", ChangeSetName="test-id", Filters={"FailedEvents": True}, NextToken="page-2"),
+        )
+
+    def test_wait_for_changeset_failure_details_are_capped(self):
+        self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter())
+        self.deployer._client.describe_events = MagicMock(
+            return_value={
+                "OperationEvents": [
+                    {"LogicalResourceId": f"R{i}", "ResourceStatusReason": f"reason {i}"} for i in range(100)
+                ],
+                "NextToken": "more",
+            }
+        )
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        message = str(ctx.exception)
+        self.assertEqual(message.count("\n  - "), 25)
+        # a reply that never stops paging cannot keep the deploy waiting forever
+        self.assertLessEqual(self.deployer._client.describe_events.call_count, 10)
+
+    def test_wait_for_changeset_failure_without_events_keeps_original_message(self):
+        self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter("Some reason"))
+        self.deployer._client.describe_events = MagicMock(return_value={"OperationEvents": []})
+
+        with self.assertRaises(ChangeSetError) as ctx:
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        message = str(ctx.exception)
+        self.assertIn("Reason: Some reason", message)
+        self.assertNotIn("Failure details from CloudFormation", message)
+
+    def test_wait_for_changeset_failure_survives_describe_events_errors(self):
+        errors = [
+            ClientError(
+                error_response={
+                    "Error": {
+                        "Code": "AccessDenied",
+                        "Message": "not authorized to perform: cloudformation:DescribeEvents",
+                    }
+                },
+                operation_name="DescribeEvents",
+            ),
+            AttributeError("'CloudFormation' object has no attribute 'describe_events'"),
+            BotoCoreError(),
+        ]
+        for error in errors:
+            with self.subTest(error=type(error).__name__):
+                self.deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter("Some reason"))
+                self.deployer._client.describe_events = MagicMock(side_effect=error)
+
+                # the original error is still the one raised, not the lookup failure
+                with self.assertRaises(ChangeSetError) as ctx:
+                    self.deployer.wait_for_changeset("test-id", "test-stack")
+
+                self.assertIn("Reason: Some reason", str(ctx.exception))
+                self.assertNotIn("Failure details from CloudFormation", str(ctx.exception))
+
+    def test_wait_for_changeset_no_changes_does_not_look_up_events(self):
+        self.deployer._client.get_waiter = MagicMock(
+            return_value=self._failed_changeset_waiter("The submitted information didn't contain changes.")
+        )
+        self.deployer._client.describe_events = MagicMock()
+
+        with self.assertRaises(ChangeEmptyError):
+            self.deployer.wait_for_changeset("test-id", "test-stack")
+
+        self.deployer._client.describe_events.assert_not_called()
+
+    def test_wait_for_changeset_failure_details_match_the_real_cloudformation_model(self):
+        """Run against a real boto3 client with a stubbed reply: botocore checks both the request
+        and the reply against the CloudFormation service model, so a wrong parameter name or
+        event field would fail here instead of only against AWS."""
+        client = boto3.client(
+            "cloudformation",
+            region_name="us-east-1",
+            aws_access_key_id="testing",
+            aws_secret_access_key="testing",
+        )
+        deployer = Deployer(client)
+        deployer._client.get_waiter = MagicMock(return_value=self._failed_changeset_waiter())
+
+        with Stubber(client) as stubber:
+            stubber.add_response(
+                "describe_events",
+                {
+                    "OperationEvents": [
+                        {
+                            "EventId": "evt-1",
+                            "OperationId": "op-1",
+                            "LogicalResourceId": "MyBucket",
+                            "ResourceType": "AWS::S3::Bucket",
+                            "ValidationName": "AWS::EarlyValidation::ResourceExistenceCheck",
+                            "ValidationStatus": "FAILED",
+                            "ValidationStatusReason": "Bucket already exists.",
+                            "ValidationPath": "/Resources/MyBucket/Properties/BucketName",
+                        }
+                    ]
+                },
+                expected_params={
+                    "StackName": "test-stack",
+                    "ChangeSetName": "test-id",
+                    "Filters": {"FailedEvents": True},
+                },
+            )
+            with self.assertRaises(ChangeSetError) as ctx:
+                deployer.wait_for_changeset("test-id", "test-stack")
+            stubber.assert_no_pending_responses()
+
+        self.assertIn(
+            "  - [AWS::EarlyValidation::ResourceExistenceCheck] MyBucket (AWS::S3::Bucket): Bucket already exists. "
+            "(path: /Resources/MyBucket/Properties/BucketName)",
+            str(ctx.exception),
+        )
 
     def test_execute_changeset(self):
         self.deployer.execute_changeset("id", "test", True)
