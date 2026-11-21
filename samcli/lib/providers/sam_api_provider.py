@@ -1,6 +1,7 @@
 """Parses SAM given the template"""
 
 import logging
+import re
 from typing import Dict, List, Optional, Tuple, Union, cast
 
 from samcli.commands.local.lib.swagger.integration_uri import LambdaUri
@@ -15,6 +16,11 @@ from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 
 LOG = logging.getLogger(__name__)
+
+# API Gateway REST API resource path parts are either literals made of these characters, or a path variable
+# ({name} or greedy {name+}) that spans the whole path part. Per "Amazon API Gateway important notes for REST APIs",
+# path segments may only contain alphanumeric characters, underscores, hyphens, periods, commas, colons and braces.
+_REST_API_PATH_PART_PATTERN = re.compile(r"[a-zA-Z0-9._,:-]+|\{[a-zA-Z0-9._,:-]+\+?\}")
 
 
 class SamApiProvider(CfnBaseApiProvider):
@@ -503,6 +509,9 @@ class SamApiProvider(CfnBaseApiProvider):
         path = cast(str, event_properties.get(SamApiProvider._EVENT_PATH))
         method = cast(str, event_properties.get(SamApiProvider._EVENT_METHOD))
 
+        if event_type == SamApiProvider._EVENT_TYPE_API and isinstance(path, str):
+            SamApiProvider._validate_rest_api_path(path, lambda_logical_id)
+
         # An RESTAPI (HTTPAPI) Event, can have RestApiId (ApiId) property which designates the resource that owns this
         # API. If omitted, the API is owned by Implicit API resource. This could either be a direct resource logical ID
         # or a "Ref" of the logicalID
@@ -549,6 +558,30 @@ class SamApiProvider(CfnBaseApiProvider):
                 use_default_authorizer=use_default_authorizer,
             ),
         )
+
+    @staticmethod
+    def _validate_rest_api_path(path: str, lambda_logical_id: str) -> None:
+        """
+        Validates the Path of an Api event against the resource path rules of API Gateway REST APIs,
+        so that paths which would fail on deployment are not served locally.
+
+        :param str path: Path of the Api event
+        :param str lambda_logical_id: Logical Id of the AWS::Serverless::Function
+        :raises InvalidSamDocumentException: if the path is not a valid API Gateway REST API path
+        """
+        path_parts = [part for part in path.split("/") if part]
+        for index, part in enumerate(path_parts):
+            if not _REST_API_PATH_PART_PATTERN.fullmatch(part):
+                raise InvalidSamDocumentException(
+                    f"Invalid Path '{path}' in Api event of function '{lambda_logical_id}': "
+                    f"Resource's path part '{part}' only allows a-zA-Z0-9._,:- or a path variable "
+                    "with curly braces at the beginning and the end and an optional plus sign before the closing brace."
+                )
+            if part.endswith("+}") and index != len(path_parts) - 1:
+                raise InvalidSamDocumentException(
+                    f"Invalid Path '{path}' in Api event of function '{lambda_logical_id}': "
+                    f"greedy path variable '{part}' must be the last part of the path."
+                )
 
     @staticmethod
     def merge_routes(collector: ApiCollector) -> List[Route]:
