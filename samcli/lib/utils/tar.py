@@ -106,7 +106,7 @@ def _is_within_directory(directory: Union[str, os.PathLike], target: Union[str, 
     abs_directory = os.path.abspath(directory)
     abs_target = os.path.abspath(target)
 
-    prefix = os.path.commonprefix([abs_directory, abs_target])
+    prefix = os.path.commonpath([abs_directory, abs_target])
 
     return bool(prefix == abs_directory)
 
