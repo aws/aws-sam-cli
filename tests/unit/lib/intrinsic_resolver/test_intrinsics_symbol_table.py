@@ -167,6 +167,45 @@ class TestSymbolResolution(TestCase):
         res = IntrinsicsSymbolTable(template=template).arn_resolver("LambdaFunction", service_name="lambda")
         self.assertEqual(res, "arn:aws:lambda:us-east-1:123456789012:function:function-name-override")
 
+    @parameterized.expand(
+        [
+            ("AWS::Serverless::StateMachine", {}, "MyStateMachine"),
+            ("AWS::StepFunctions::StateMachine", {}, "MyStateMachine"),
+            ("AWS::Serverless::StateMachine", {"Name": "workflow-name"}, "workflow-name"),
+            ("AWS::StepFunctions::StateMachine", {"StateMachineName": "workflow-name"}, "workflow-name"),
+            ("AWS::Serverless::StateMachine", {"Name": {"Fn::Sub": "${AWS::StackName}-workflow"}}, "MyStateMachine"),
+        ]
+    )
+    @patch.dict("os.environ", {"AWS_REGION": "eu-west-1"}, clear=False)
+    def test_state_machine_arn(self, resource_type, properties, expected_name):
+        template = {"Resources": {"MyStateMachine": {"Type": resource_type, "Properties": properties}}}
+        resolver = IntrinsicsSymbolTable(template=template)
+
+        self.assertEqual(
+            resolver.resolve_symbols("MyStateMachine", "Arn"),
+            f"arn:aws:states:eu-west-1:123456789012:stateMachine:{expected_name}",
+        )
+
+    @parameterized.expand([("cn-north-1", "aws-cn"), ("us-gov-west-1", "aws-us-gov")])
+    def test_state_machine_arn_region_and_account_overrides(self, region, partition):
+        template = {"Resources": {"MyStateMachine": {"Type": "AWS::Serverless::StateMachine"}}}
+        resolver = IntrinsicsSymbolTable(
+            template=template,
+            logical_id_translator={"AWS::Region": region, "AWS::AccountId": "111122223333"},
+        )
+
+        self.assertEqual(
+            resolver.resolve_symbols("MyStateMachine", "Arn"),
+            f"arn:{partition}:states:{region}:111122223333:stateMachine:MyStateMachine",
+        )
+
+    def test_state_machine_explicit_arn_translation(self):
+        template = {"Resources": {"MyStateMachine": {"Type": "AWS::Serverless::StateMachine"}}}
+        arn = "arn:aws:states:eu-west-1:111122223333:stateMachine:deployed-workflow"
+        resolver = IntrinsicsSymbolTable(template=template, logical_id_translator={"MyStateMachine": {"Arn": arn}})
+
+        self.assertEqual(resolver.resolve_symbols("MyStateMachine", "Arn"), arn)
+
     def test_resolver_ignore_errors(self):
         resolver = IntrinsicsSymbolTable()
         res = resolver.resolve_symbols("UNKNOWN", "SOME UNKNOWN RESOURCE PROPERTY", ignore_errors=True)
