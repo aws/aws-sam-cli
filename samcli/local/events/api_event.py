@@ -76,7 +76,7 @@ class RequestContext:
         api_id="1234567890",
         resource_path=None,
         http_method=None,
-        request_id=str(uuid.uuid4()),
+        request_id=None,
         account_id="123456789012",
         stage=None,
         identity=None,
@@ -84,8 +84,8 @@ class RequestContext:
         path=None,
         protocol=None,
         domain_name=None,
-        request_time_epoch=int(time_ns() // 1_000_000),
-        request_time=datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000"),
+        request_time_epoch=None,
+        request_time=None,
         operation_name=None,
     ):
         """
@@ -107,6 +107,13 @@ class RequestContext:
         :param int request_time_epoch: Optional, an epoch timestamp to override the request time
         :param datetime request_time: Optional, a datetime object to override the request time
         """
+
+        if request_id is None:
+            request_id = str(uuid.uuid4())
+        if request_time_epoch is None:
+            request_time_epoch = int(time_ns() // 1_000_000)
+        if request_time is None:
+            request_time = datetime.now(timezone.utc).strftime("%d/%b/%Y:%H:%M:%S +0000")
 
         self.resource_id = resource_id
         self.api_id = api_id
@@ -304,7 +311,7 @@ class RequestContextV2:
         account_id="123456789012",
         api_id="1234567890",
         http=None,
-        request_id=str(uuid.uuid4()),
+        request_id=None,
         route_key=None,
         stage=None,
         request_time_epoch=None,
@@ -326,6 +333,9 @@ class RequestContextV2:
         :param str domain_name: Optional, the name of the domain (Default: localhost)
         :param str domain_prefix: Optional, the prefix of the domain (Default: localhost)
         """
+
+        if request_id is None:
+            request_id = str(uuid.uuid4())
 
         self.account_id = account_id
         self.api_id = api_id
