@@ -85,7 +85,7 @@ def construct_v1_event(
         multi_value_query_string_params=multi_value_query_string_dict,
         headers=headers_dict,
         multi_value_headers=multi_value_headers_dict,
-        path_parameters=flask_request.view_args,
+        path_parameters=PathConverter.convert_path_params_to_api_gateway(flask_request.view_args),
         path=flask_request.path,
         is_base_64_encoded=is_base_64,
         stage_variables=stage_variables,
@@ -158,7 +158,7 @@ def construct_v2_event_http(
         query_string_params=query_string_dict,
         request_context=context,
         body=request_data,
-        path_parameters=flask_request.view_args,
+        path_parameters=PathConverter.convert_path_params_to_api_gateway(flask_request.view_args),
         is_base_64_encoded=is_base_64,
         stage_variables=stage_variables,
     )

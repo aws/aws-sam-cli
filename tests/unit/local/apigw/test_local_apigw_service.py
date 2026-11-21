@@ -387,6 +387,35 @@ class TestApiGatewayService(TestCase):
         self.assertEqual(service._dict_of_routes["/<path:any_path>:OPTIONS"].function_name, function_name_3)
         self.assertEqual(service._dict_of_routes["/<path:any_path>:PATCH"].function_name, function_name_3)
 
+    def test_create_accepts_path_param_names_that_are_not_identifiers(self):
+        route = Route(methods=["GET"], function_name="Function", path="/users/{user-id}/files/{file.name}")
+        service = LocalApigwService(Api(routes=[route]), Mock())
+        service.create()
+
+        invoke_mock = Mock(return_value=json.dumps({"statusCode": 200, "body": "ok"}))
+        with patch.object(service, "_invoke_lambda_function", invoke_mock):
+            response = service._app.test_client().get("/users/u1/files/a.txt")
+
+        self.assertEqual(response.status_code, 200)
+        event = invoke_mock.call_args[0][1]
+        self.assertEqual(event["pathParameters"], {"user-id": "u1", "file.name": "a.txt"})
+        self.assertEqual(event["resource"], "/users/{user-id}/files/{file.name}")
+        self.assertEqual(event["requestContext"]["resourcePath"], "/users/{user-id}/files/{file.name}")
+
+    def test_create_accepts_path_param_names_that_are_not_identifiers_for_http_api(self):
+        route = Route(methods=["GET"], function_name="Function", path="/users/{user-id}", event_type=Route.HTTP)
+        service = LocalApigwService(Api(routes=[route]), Mock())
+        service.create()
+
+        invoke_mock = Mock(return_value=json.dumps({"statusCode": 200, "body": "ok"}))
+        with patch.object(service, "_invoke_lambda_function", invoke_mock):
+            response = service._app.test_client().get("/users/u1")
+
+        self.assertEqual(response.status_code, 200)
+        event = invoke_mock.call_args[0][1]
+        self.assertEqual(event["pathParameters"], {"user-id": "u1"})
+        self.assertEqual(event["routeKey"], "GET /users/{user-id}")
+
     @patch("samcli.local.apigw.local_apigw_service.Flask")
     def test_create_creates_flask_app_with_url_rules(self, flask):
         app_mock = MagicMock()
