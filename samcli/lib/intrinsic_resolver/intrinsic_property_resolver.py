@@ -700,11 +700,13 @@ class IntrinsicResolver:
         )
 
         subable_props = re.findall(string=sub_str, pattern=IntrinsicResolver._REGEX_SUB_FUNCTION)
+        # ${!Literal} is written out as ${Literal}. Substitute around it so substituted values are kept as they are.
+        parts = re.split(r"\$\{!(?=[^}]*\})", sub_str)
         for sub_item in subable_props:
             sanitized_item = sanitized_variables[sub_item] if sub_item in sanitized_variables else sub_item
             result = resolve_sub_attribute(sanitized_item, self._symbol_resolver)
-            sub_str = sub_str.replace("${" + sub_item + "}", str(result))
-        return sub_str
+            parts = [part.replace("${" + sub_item + "}", str(result)) for part in parts]
+        return "${".join(parts)
 
     def handle_fn_if(self, intrinsic_value, ignore_errors):
         """
