@@ -143,20 +143,26 @@ jobs:
     steps:
       - name: Determine test type
         shell: bash
+        # Use env vars (not inline ${{ }}) in run scripts to avoid script injection
+        env:
+          INSTALL_MODE: ${{ inputs.install_mode }}
+          EVENT_ACTION: ${{ github.event.action }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          CONTAINER_RUNTIME_VALUE: ${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}
         run: |
-          echo "CONTAINER_RUNTIME=${{ matrix.test_suite == 'tier1-finch' && 'finch' || 'docker' }}" >> $GITHUB_ENV
-          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
-             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
-            echo "TEST_TYPE=nightly-release" >> $GITHUB_ENV
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
-               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
-            echo "TEST_TYPE=latest-release" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            echo "TEST_TYPE=master" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
-            echo "TEST_TYPE=develop" >> $GITHUB_ENV
+          echo "CONTAINER_RUNTIME=$CONTAINER_RUNTIME_VALUE" >> "$GITHUB_ENV"
+          if [[ "$INSTALL_MODE" == "nightly-release" ]] || \
+             [[ "$EVENT_ACTION" == "published" && "$RELEASE_PRERELEASE" == "true" ]]; then
+            echo "TEST_TYPE=nightly-release" >> "$GITHUB_ENV"
+          elif [[ "$INSTALL_MODE" == "latest-release" ]] || \
+               [[ "$EVENT_ACTION" == "published" && "$RELEASE_PRERELEASE" != "true" ]]; then
+            echo "TEST_TYPE=latest-release" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
+            echo "TEST_TYPE=master" >> "$GITHUB_ENV"
+          elif [[ "$GITHUB_EVENT_NAME" == "schedule" ]] || [[ "$GITHUB_REF" == "refs/heads/develop" ]]; then
+            echo "TEST_TYPE=develop" >> "$GITHUB_ENV"
           else
-            echo "TEST_TYPE=other" >> $GITHUB_ENV
+            echo "TEST_TYPE=other" >> "$GITHUB_ENV"
           fi
 
       - name: Checkout code
@@ -534,16 +540,20 @@ jobs:
       # Same as "Determine test type" of the integration-tests job
       - name: Determine test type
         shell: bash
+        env:
+          INSTALL_MODE: ${{ inputs.install_mode }}
+          EVENT_ACTION: ${{ github.event.action }}
+          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
         run: |
-          if [[ "${{ inputs.install_mode }}" == "nightly-release" ]] || \
-             [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" == "true" ]]; then
+          if [[ "$INSTALL_MODE" == "nightly-release" ]] || \
+             [[ "$EVENT_ACTION" == "published" && "$RELEASE_PRERELEASE" == "true" ]]; then
             echo "TEST_TYPE=nightly-release" >> "$GITHUB_ENV"
-          elif [[ "${{ inputs.install_mode }}" == "latest-release" ]] || \
-               [[ "${{ github.event.action }}" == "published" && "${{ github.event.release.prerelease }}" != "true" ]]; then
+          elif [[ "$INSTALL_MODE" == "latest-release" ]] || \
+               [[ "$EVENT_ACTION" == "published" && "$RELEASE_PRERELEASE" != "true" ]]; then
             echo "TEST_TYPE=latest-release" >> "$GITHUB_ENV"
-          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+          elif [[ "$GITHUB_REF" == "refs/heads/master" ]]; then
             echo "TEST_TYPE=master" >> "$GITHUB_ENV"
-          elif [[ "${{ github.event_name }}" == "schedule" ]] || [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+          elif [[ "$GITHUB_EVENT_NAME" == "schedule" ]] || [[ "$GITHUB_REF" == "refs/heads/develop" ]]; then
             echo "TEST_TYPE=develop" >> "$GITHUB_ENV"
           else
             echo "TEST_TYPE=other" >> "$GITHUB_ENV"
