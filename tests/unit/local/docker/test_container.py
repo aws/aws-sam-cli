@@ -65,6 +65,8 @@ class TestContainer_init(TestCase):
         self.assertEqual(None, container.id)
         self.assertIsNone(container._concurrency_semaphore)
         self.assertEqual(self.mock_docker_client, container.docker_client)
+        # Docker assigns the host port at start; none is picked up front
+        self.assertIsNone(container.rapid_port_host)
 
 
 class TestContainer_create(TestCase):
@@ -130,6 +132,23 @@ class TestContainer_create(TestCase):
         )
         self.mock_docker_client.networks.get.assert_not_called()
         mock_resolve_symlinks.assert_called_with()  # When context is INVOKE
+
+    @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
+    def test_must_publish_rapid_port_without_host_port(self, mock_resolve_symlinks):
+        self.mock_docker_client.containers.create.return_value = Mock(id="fooobar")
+        container = Container(
+            self.image,
+            self.cmd,
+            self.working_dir,
+            self.host_dir,
+            docker_client=self.mock_docker_client,
+            container_host_interface=self.container_host_interface,
+        )
+
+        container.create(ContainerContext.INVOKE)
+
+        ports = self.mock_docker_client.containers.create.call_args.kwargs["ports"]
+        self.assertEqual(ports[Container.RAPID_PORT_CONTAINER], (self.container_host_interface, None))
 
     @patch("samcli.local.docker.container.Container._create_mapped_symlink_files")
     def test_must_create_container_including_all_optional_values(self, mock_resolve_symlinks):
@@ -731,7 +750,7 @@ class TestContainer_start(TestCase):
     def test_must_start_container(self):
         self.container.is_created.return_value = True
 
-        container_mock = Mock()
+        container_mock = Mock(ports={})
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
@@ -739,6 +758,50 @@ class TestContainer_start(TestCase):
 
         self.mock_docker_client.containers.get.assert_called_with(self.container.id)
         container_mock.start.assert_called_with()
+
+    def test_must_read_rapid_host_port_assigned_by_docker(self):
+        self.container.is_created.return_value = True
+        container_mock = Mock()
+        container_mock.ports = {"8080/tcp": [{"HostIp": "127.0.0.1", "HostPort": "50724"}]}
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        self.container.start()
+
+        container_mock.reload.assert_called_once_with()
+        self.assertEqual(self.container.rapid_port_host, 50724)
+
+    def test_must_keep_previous_rapid_host_port_while_reading_new_one(self):
+        # Concurrent invokes on a warm container read the port while start() talks to Docker
+        self.container.is_created.return_value = True
+        self.container.rapid_port_host = 50724
+        container_mock = Mock(ports={"8080/tcp": [{"HostIp": "127.0.0.1", "HostPort": "50725"}]})
+        ports_seen_during_reload = []
+        container_mock.reload.side_effect = lambda: ports_seen_during_reload.append(self.container.rapid_port_host)
+        self.mock_docker_client.containers.get.return_value = container_mock
+
+        self.container.start()
+
+        self.assertEqual(ports_seen_during_reload, [50724])
+        self.assertEqual(self.container.rapid_port_host, 50725)
+
+    def test_must_prefer_rapid_binding_on_requested_interface(self):
+        self.container.is_created.return_value = True
+        bindings = [{"HostIp": "::", "HostPort": "50724"}, {"HostIp": "127.0.0.1", "HostPort": "50725"}]
+        self.mock_docker_client.containers.get.return_value = Mock(ports={"8080/tcp": bindings})
+
+        self.container.start()
+
+        self.assertEqual(self.container.rapid_port_host, 50725)
+
+    def test_must_not_keep_previous_rapid_host_port_on_restart(self):
+        # Docker assigns a new host port on each start; an exited container has none
+        self.container.is_created.return_value = True
+        self.container.rapid_port_host = 50724
+        self.mock_docker_client.containers.get.return_value = Mock(ports={})
+
+        self.container.start()
+
+        self.assertIsNone(self.container.rapid_port_host)
 
     def test_must_not_start_if_container_is_not_created(self):
         self.container.is_created.return_value = False
@@ -881,7 +944,7 @@ class TestContainer_start(TestCase):
         self.container._host_tmp_dir = "host_tmp_dir"
         mock_path.exists.return_value = False  # Directory doesn't exist
 
-        container_mock = Mock()
+        container_mock = Mock(ports={})
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
@@ -902,7 +965,7 @@ class TestContainer_start(TestCase):
         self.container._host_tmp_dir = "host_tmp_dir"
         mock_path.exists.return_value = True  # Directory exists
 
-        container_mock = Mock()
+        container_mock = Mock(ports={})
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
@@ -919,7 +982,7 @@ class TestContainer_start(TestCase):
         self.container._mount_with_write = False
         self.container._host_tmp_dir = "host_tmp_dir"
 
-        container_mock = Mock()
+        container_mock = Mock(ports={})
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
@@ -939,7 +1002,7 @@ class TestContainer_start(TestCase):
         self.container._mount_with_write = True
         self.container._host_tmp_dir = None
 
-        container_mock = Mock()
+        container_mock = Mock(ports={})
         self.mock_docker_client.containers.get.return_value = container_mock
         container_mock.start = Mock()
 
@@ -975,6 +1038,7 @@ class TestContainer_wait_for_result(TestCase):
             container_host=self.container_host,
         )
         self.container.id = "someid"
+        self.container.rapid_port_host = 7077  # assigned by Docker at start
         self.container._initialize_concurrency_control()
 
         self.container.is_created = Mock()
@@ -1414,6 +1478,7 @@ class TestContainer_wait_for_socket_connection(TestCase):
             self.image, self.cmd, self.working_dir, self.host_dir, docker_client=self.mock_docker_client
         )
         self.container.id = "someid"
+        self.container.rapid_port_host = 7077  # assigned by Docker at start
 
     @patch("samcli.local.docker.container.CONTAINER_CONNECTION_TIMEOUT", 0)
     @patch("socket.socket")
@@ -1431,6 +1496,13 @@ class TestContainer_wait_for_socket_connection(TestCase):
             ),
         ):
             self.container._wait_for_socket_connection()
+
+    @patch("socket.socket")
+    def test_cannot_connect_without_rapid_host_port(self, patched_socket):
+        self.container.rapid_port_host = None
+
+        self.assertFalse(self.container._can_connect_to_socket())
+        patched_socket.assert_not_called()
 
     @patch("socket.socket")
     def test_does_not_time_out_if_able_to_connect(self, patched_socket):
