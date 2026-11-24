@@ -692,16 +692,18 @@ class LocalApigwService(BaseLocalService):
 
         lambda_authorizer_exception = None
         try:
-            auth_service_error = None
-
             if lambda_authorizer:
                 self._invoke_parse_lambda_authorizer(lambda_authorizer, auth_lambda_event, route_lambda_event, route)
         except AuthorizerUnauthorizedRequest as ex:
-            auth_service_error = ServiceErrorResponses.lambda_authorizer_unauthorized()
             lambda_authorizer_exception = ex
+            # Return the Flask service error if there is one, since these are the only exceptions
+            # we are anticipating from the authorizer, anything else indicates a local issue.
+            return ServiceErrorResponses.lambda_authorizer_unauthorized()
         except InvalidLambdaAuthorizerResponse as ex:
-            auth_service_error = ServiceErrorResponses.lambda_failure_response()
             lambda_authorizer_exception = ex
+            # Return the Flask service error if there is one, since these are the only exceptions
+            # we are anticipating from the authorizer, anything else indicates a local issue.
+            return ServiceErrorResponses.lambda_failure_response()
         except FunctionNotFound as ex:
             lambda_authorizer_exception = ex
 
@@ -725,14 +727,6 @@ class LocalApigwService(BaseLocalService):
 
             if lambda_authorizer_exception:
                 LOG.error("Lambda authorizer failed to invoke successfully: %s", str(lambda_authorizer_exception))
-
-            if auth_service_error:
-                # Return the Flask service error if there is one, since these are the only exceptions
-                # we are anticipating from the authorizer, anything else indicates a local issue.
-                #
-                # Note that returning within a finally block will have the effect of swallowing
-                # any reraised exceptions.
-                return auth_service_error
 
         endpoint_service_error = None
         try:
