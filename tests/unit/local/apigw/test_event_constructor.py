@@ -242,7 +242,6 @@ class TestService_construct_event_http(TestCase):
             }},
             "body": "DATA!!!!",
             "pathParameters": {{"path": "params"}},
-            "stageVariables": null,
             "isBase64Encoded": false
         }}
         """

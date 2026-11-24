@@ -2106,6 +2106,7 @@ class TestCFNTemplateQuickCreatedHttpApiWithOneRoute(StartApiIntegBaseClass):
         self.assertEqual(response.status_code, 200)
         response_data = response.json()
         self.assertEqual(response_data.get("requestContext", {}).get("stage"), "$default")
+        self.assertNotIn("stageVariables", response_data)
 
 
 class TestServerlessTemplateWithRestApiAndHttpApiGateways(StartApiIntegBaseClass):
