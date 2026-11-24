@@ -463,9 +463,11 @@ class ApiGatewayV2LambdaEvent:
             "requestContext": request_context_dict,
             "body": self.body,
             "pathParameters": self.path_parameters,
-            "stageVariables": self.stage_variables,
             "isBase64Encoded": self.is_base_64_encoded,
         }
+
+        if self.stage_variables is not None:
+            json_dict["stageVariables"] = self.stage_variables
 
         if self.query_string_params:
             json_dict["queryStringParameters"] = self.query_string_params

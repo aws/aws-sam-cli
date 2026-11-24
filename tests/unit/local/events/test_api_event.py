@@ -573,11 +573,14 @@ class TestApiGatewayV2LambdaEvent(TestCase):
             "requestContext": {},
             "body": None,
             "pathParameters": None,
-            "stageVariables": None,
             "isBase64Encoded": False,
         }
 
         self.assertEqual(event.to_dict(), expected)
+
+    def test_to_dict_with_empty_stage_variables(self) -> None:
+        event = ApiGatewayV2LambdaEvent(stage_variables={})
+        self.assertEqual(event.to_dict()["stageVariables"], {})
 
     def test_init_with_invalid_cookies(self):
         with self.assertRaises(TypeError):
