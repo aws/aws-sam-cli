@@ -1,7 +1,9 @@
 import copy
 import os
+import pathlib
+import platform
 import tempfile
-from unittest import TestCase
+from unittest import TestCase, skipIf
 from unittest.mock import patch, mock_open, MagicMock
 import shutil
 
@@ -802,6 +804,34 @@ class Test_resolve_relative_to(TestCase):
         expected_result = os.path.join("..", "..", "some", "src", self.curpath)
 
         self.assertEqual(result, expected_result)
+
+    @skipIf(platform.system() != "Windows", "Different drives only exist on Windows")
+    def test_must_resolve_relative_to_across_different_drives(self):
+        # os.path.relpath raises ValueError when the two paths are on different drives,
+        # so a template on one drive and a --build-dir on another cannot be expressed
+        # relatively. Fall back to the absolute path rather than crashing.
+        original_root = os.path.join("C:" + os.sep, "src")
+        new_root = os.path.join("D:" + os.sep, "destination")
+        expected_result = os.path.normpath(os.path.join(pathlib.Path(original_root).resolve(), self.curpath))
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root)
+
+        self.assertEqual(result, expected_result)
+
+    @patch("samcli.commands._utils.template.os.path.relpath")
+    def test_must_fall_back_to_absolute_path_when_relpath_raises_value_error(self, relpath_mock):
+        # os.path.relpath raises ValueError on Windows when the paths are on different drives.
+        # Simulate that here so the fallback is covered on every platform.
+        relpath_mock.side_effect = ValueError("path is on mount 'C:', start on mount 'D:'")
+        original_root = os.path.abspath(os.path.join(self.scratchdir, "src"))
+        new_root = os.path.abspath(os.path.join(self.scratchdir, "destination"))
+        expected_result = os.path.normpath(os.path.join(pathlib.Path(original_root).resolve(), self.curpath))
+
+        result = _resolve_relative_to(self.curpath, original_root, new_root)
+
+        self.assertEqual(result, expected_result)
+        self.assertTrue(os.path.isabs(result))
+        relpath_mock.assert_called_once()
 
     def create_symlink(self, src, dest):
         os.makedirs(src)
