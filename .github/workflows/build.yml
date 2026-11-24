@@ -99,9 +99,26 @@ jobs:
         name: Generate and compare the schema
         shell: bash
 
+  # The images the durable-functions lane pulls: the emulator (DurableFunctionsEmulatorContainer,
+  # default tag) and the python3.13 x86_64 base image its functions run on.
+  durable-test-images:
+    if: github.repository_owner == 'aws'
+    uses: ./.github/workflows/fetch-public-ecr-images.yml
+    permissions:
+      id-token: write
+    with:
+      images: >-
+        public.ecr.aws/durable-functions/aws-durable-execution-emulator:latest
+        public.ecr.aws/lambda/python:3.13-x86_64
+      artifact-name: durable-test-images
+    secrets:
+      ECR_PUBLIC_PULL_ROLE_ARN: ${{ secrets.ECR_PUBLIC_PULL_ROLE_ARN }}
+
   integration-tests:
     name: Integ / ${{ matrix.os }} / ${{ matrix.python }} / ${{ matrix.tests_config.name }}
-    if: github.repository_owner == 'aws'
+    needs: durable-test-images
+    # Run even if the images could not be fetched; the durable lane then pulls them itself.
+    if: github.repository_owner == 'aws' && !cancelled()
     runs-on: ${{ matrix.os }}
     env:
       AWS_DEFAULT_REGION: us-east-1
@@ -192,6 +209,19 @@ jobs:
         run: make init
       - name: uv install setuptools in Python3.12
         run: uv pip install --break-system-packages --python "$(uv python find 3.12)" --upgrade pip setuptools
+      - uses: actions/download-artifact@v8
+        id: durable-test-images
+        if: matrix.tests_config.name == 'durable-functions'
+        continue-on-error: true
+        with:
+          name: durable-test-images
+      # SAM_SKIP_PULL_IMAGE keeps SAM CLI from contacting Public ECR to refresh the loaded images
+      - name: Load the durable test images
+        if: steps.durable-test-images.outcome == 'success'
+        run: |
+          gunzip -c images.tar.gz | docker load
+          rm images.tar.gz
+          echo "SAM_SKIP_PULL_IMAGE=1" >> "$GITHUB_ENV"
       - name: Run integration tests for ${{ matrix.tests_config.name }}
         run: pytest -vv ${{ matrix.tests_config.params }}
         env:
