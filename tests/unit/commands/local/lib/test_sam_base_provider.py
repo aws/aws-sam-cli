@@ -6,6 +6,33 @@ from samcli.lib.intrinsic_resolver.intrinsics_symbol_table import IntrinsicsSymb
 
 
 class TestSamBaseProvider_get_template(TestCase):
+    def test_environment_sub_map_domain(self):
+        template = {
+            "Transform": "AWS::Serverless-2016-10-31",
+            "Resources": {
+                "ExampleFunction": {
+                    "Type": "AWS::Serverless::Function",
+                    "Properties": {
+                        "Runtime": "python3.12",
+                        "Handler": "index.handler",
+                        "InlineCode": 'def handler(event, context): return "ok"',
+                        "Environment": {
+                            "Variables": {
+                                "ENDPOINT": {"Fn::Sub": ["https://${Domain}/", {"Domain": "api.example.com"}]}
+                            }
+                        },
+                    },
+                }
+            },
+        }
+
+        result = SamBaseProvider.get_template(template, {})
+
+        self.assertEqual(
+            result["Resources"]["ExampleFunction"]["Properties"]["Environment"]["Variables"]["ENDPOINT"],
+            "https://api.example.com/",
+        )
+
     def test_environment_sub_preserves_backslashes(self):
         template = {
             "Transform": "AWS::Serverless-2016-10-31",
