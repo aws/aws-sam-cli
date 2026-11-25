@@ -35,6 +35,8 @@ class TestS3Utils(TestCase):
             "s3://foo",
             "https://www.amazon.com",
             "https://s3.us-east-1.amazonaws.com",
+            "https://s3.us-east-1.amazonaws.com/",
+            "https://s3.us-east-1.amazonaws.com/bucket",
         ]
 
         for config in valid:
