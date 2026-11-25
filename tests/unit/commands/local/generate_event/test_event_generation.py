@@ -1,8 +1,11 @@
+import hashlib
 import json
 import os
 
 from unittest import TestCase
 from unittest.mock import Mock, patch
+
+from parameterized import parameterized
 
 from samcli.lib.generated_sample_events import events
 from samcli.commands.local.generate_event.event_generation import ServiceCommand
@@ -145,6 +148,44 @@ class TestEvents(TestCase):
         self.assertIsInstance(result_json["queryStringParameters"], dict)
         self.assertEqual(result_json["queryStringParameters"]["outer"]["inner"], "x")
         self.assertEqual(result_json["queryStringParameters"]["items"], ["a", "b"])
+
+    @parameterized.expand(
+        [
+            ('This message is "plain text".\nIt is most certainly not JSON-formatted!',),
+            ("line one\r\nline two\tend",),
+            (r"C:\new\test\file.txt",),
+            (r"literal \n and \" escapes",),
+            ('{"bucket": "my-bucket", "key": "my-key"}',),
+            ("<message>café & 日本語</message>",),
+        ]
+    )
+    def test_generate_sqs_event_preserves_body(self, body: str) -> None:
+        result = json.loads(events.Events().generate_event("sqs", "receive-message", {"body": body}))
+
+        self.assertEqual(result["Records"][0]["body"], body)
+        self.assertEqual(result["Records"][0]["md5OfBody"], hashlib.md5(body.encode("utf-8")).hexdigest())
+
+    def test_generate_event_escapes_values_within_strings(self) -> None:
+        queue_name = 'queue"\\name'
+        result = json.loads(
+            events.Events().generate_event(
+                "sqs", "receive-message", {"queue_name": queue_name, "account_id": "123456789012"}
+            )
+        )
+
+        self.assertEqual(result["Records"][0]["eventSourceARN"], f"arn:aws:sqs:us-east-1:123456789012:{queue_name}")
+
+    def test_generate_event_uses_json_escaping_in_sagemaker_role_arn(self) -> None:
+        account_id = 'account"<&'
+        result = json.loads(
+            events.Events().generate_event(
+                "sagemaker",
+                "ground-truth-annotation-consolidation",
+                {"account_id": account_id, "execution_role": "ExecutionRole"},
+            )
+        )
+
+        self.assertEqual(result["roleArn"], f"aws:aws:iam::{account_id}:role/ExecutionRole")
 
 
 class TestServiceCommand(TestCase):
