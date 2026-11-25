@@ -221,7 +221,7 @@ On Windows:
 
 #### (Option 2) Integrating Black directly in your favorite IDE
 
-Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/editor_integration.html), `which black` might give you this
+Since black is installed in virtualenv, when you follow [this instruction](https://black.readthedocs.io/en/stable/integrations/editors.html), `which black` might give you this
 
 ```
 /Users/<username>/.pyenv/shims/black
