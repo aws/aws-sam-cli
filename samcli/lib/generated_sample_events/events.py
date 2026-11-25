@@ -172,7 +172,8 @@ class Events:
         """
 
         # set variables for easy calling
-        tags = self.event_mapping[service_name][event_type]["tags"]
+        event_definition = self.event_mapping[service_name][event_type]
+        tags = event_definition["tags"]
 
         # Store original dict-type values before transformation
         dict_type_values = {}
@@ -214,6 +215,14 @@ class Events:
                     except (json.JSONDecodeError, TypeError):
                         # If parsing fails, keep the original string value
                         rendered_json[original_key] = original_value
+
+        body_event = event_definition.get("body-event")
+        if body_event:
+            # Serialize the source event before assigning it to the SQS body so its JSON is escaped once.
+            body = self.generate_event(body_event["service"], body_event["event"], values_to_sub.copy())
+            for record in rendered_json["Records"]:
+                record["body"] = body
+                record["md5OfBody"] = self.hash("md5", body)
 
         # Return the final JSON with proper dictionary values
         return json.dumps(rendered_json, indent=2)

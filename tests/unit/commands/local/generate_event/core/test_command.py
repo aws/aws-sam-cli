@@ -27,6 +27,12 @@ class TestLocalGenerateEventCommand(unittest.TestCase):
         expected_output = {
             "Description": [(cmd.description + cmd.description_addendum, "")],
             "Examples": [],
+            "Generate an S3 notification delivered through SQS": [
+                (
+                    "$ sam local generate-event sqs receive-message-from-s3 --bucket <bucket> --key <key>\x1b[0m",
+                    "",
+                ),
+            ],
             "Generate event S3 sends to local Lambda function": [
                 ("$ sam local " "generate-event s3 " "[put/delete]\x1b[0m", ""),
             ],
