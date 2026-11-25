@@ -44,7 +44,7 @@ def get_build_definition_dir(parent_dir: str, definition_uuid: str) -> str:
     if not is_valid_build_definition_uuid(definition_uuid):
         raise InvalidBuildGraphException(f"Invalid build definition id {definition_uuid!r}")
     definition_dir = os.path.join(parent_dir, definition_uuid)
-    if Path(definition_dir).resolve().parent != Path(parent_dir).resolve():
+    if os.path.dirname(os.path.realpath(definition_dir)) != os.path.realpath(parent_dir):
         raise InvalidBuildGraphException(f"Build definition directory {definition_dir} is not inside {parent_dir}")
     return definition_dir
 
