@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from parameterized import parameterized
+from werkzeug.routing import Map, Rule
 
 from samcli.local.apigw.path_converter import PathConverter
 
@@ -105,3 +106,20 @@ class TestPathConverter_toApiGateway(TestCase):
         flask_path = PathConverter.convert_path_to_api_gateway(path)
 
         self.assertEqual(flask_path, "/id/user")
+
+
+class TestPathConverter_paramNamesThatAreNotIdentifiers(TestCase):
+    @parameterized.expand(
+        [
+            ("/users/{user-id}",),
+            ("/files/{file.name}",),
+            ("/users/{user-id}/{proxy-path+}",),
+            ("/a/{id}/b/{1st}",),
+            ("/items/{a,b:c}",),
+        ]
+    )
+    def test_round_trip_through_valid_flask_rule(self, path):
+        flask_path = PathConverter.convert_path_to_flask(path)
+
+        Map([Rule(flask_path)])  # raises ValueError for variable names Flask does not accept
+        self.assertEqual(PathConverter.convert_path_to_api_gateway(flask_path), path)
