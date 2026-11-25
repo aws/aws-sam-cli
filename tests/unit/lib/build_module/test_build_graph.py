@@ -294,7 +294,7 @@ class TestBuildGraph(TestCase):
     LAYER_RUNTIME = "nodejs20.x"
     METADATA = {"Test": "hello", "Test2": "world"}
     UUID = "3c1c254e-cd4b-4d94-8c74-7ab870b36063"
-    LAYER_UUID = "7dnc257e-cd4b-4d94-8c74-7ab870b3abc3"
+    LAYER_UUID = "7d0c257e-cd4b-4d94-8c74-7ab870b3abc3"
     SOURCE_HASH = "cae49aa393d669e850bd49869905099d"
     MANIFEST_HASH = "rty87gh393d669e850bd49869905099e"
     ENV_VARS = {"env_vars": "value"}

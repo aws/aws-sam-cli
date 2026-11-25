@@ -20,6 +20,7 @@ from samcli.lib.build.build_graph import (
     FunctionBuildDefinition,
     LayerBuildDefinition,
     MicrovmImageBuildDefinition,
+    get_build_definition_dir,
 )
 from samcli.lib.build.dependency_hash_generator import PYTHON_UV_BUILD_METHOD, DependencyHashGenerator
 from samcli.lib.build.exceptions import (
@@ -387,7 +388,7 @@ class CachedBuildStrategy(BuildStrategy):
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, build_definition.codeuri)).resolve())
         source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
-        cache_function_dir = pathlib.Path(self._cache_dir, build_definition.uuid)
+        cache_function_dir = pathlib.Path(get_build_definition_dir(self._cache_dir, build_definition.uuid))
         function_build_results = {}
 
         if not cache_function_dir.exists() or build_definition.source_hash != source_hash:
@@ -445,7 +446,7 @@ class CachedBuildStrategy(BuildStrategy):
 
         code_dir = str(pathlib.Path(self._base_dir, cast(str, layer_definition.codeuri)).resolve())
         source_hash = dir_checksum(code_dir, ignore_list=[".aws-sam"], hash_generator=hashlib.sha256())
-        cache_function_dir = pathlib.Path(self._cache_dir, layer_definition.uuid)
+        cache_function_dir = pathlib.Path(get_build_definition_dir(self._cache_dir, layer_definition.uuid))
         layer_build_result = {}
 
         if not cache_function_dir.exists() or layer_definition.source_hash != source_hash:

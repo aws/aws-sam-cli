@@ -10,7 +10,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, NamedTuple, Optional, Sequence, Tuple, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import tomlkit
 from tomlkit.toml_document import TOMLDocument
@@ -27,6 +27,27 @@ from samcli.lib.utils.packagetype import ZIP
 from samcli.lib.utils.resources import AWS_SERVERLESS_FUNCTION
 
 LOG = logging.getLogger(__name__)
+
+
+def is_valid_build_definition_uuid(value: Any) -> bool:
+    """Returns True if value is a canonical UUID string."""
+    if not isinstance(value, str):
+        return False
+    try:
+        return str(UUID(value)) == value
+    except ValueError:
+        return False
+
+
+def get_build_definition_dir(parent_dir: str, definition_uuid: str) -> str:
+    """Returns the directory of a build definition under parent_dir."""
+    if not is_valid_build_definition_uuid(definition_uuid):
+        raise InvalidBuildGraphException(f"Invalid build definition id {definition_uuid!r}")
+    definition_dir = os.path.join(parent_dir, definition_uuid)
+    if Path(definition_dir).resolve().parent != Path(parent_dir).resolve():
+        raise InvalidBuildGraphException(f"Build definition directory {definition_dir} is not inside {parent_dir}")
+    return definition_dir
+
 
 DEFAULT_BUILD_GRAPH_FILE_NAME = "build.toml"
 
@@ -454,6 +475,13 @@ class BuildGraph:
             LOG.debug("No previous build graph found, generating new one")
         function_build_definitions_table = document.get(BuildGraph.FUNCTION_BUILD_DEFINITIONS, {})
         for function_build_definition_key in function_build_definitions_table:
+            if not is_valid_build_definition_uuid(function_build_definition_key):
+                LOG.warning(
+                    "Ignoring function build definition with invalid key %r in %s; it will be rebuilt",
+                    function_build_definition_key,
+                    self._filepath,
+                )
+                continue
             function_build_definition = _toml_table_to_function_build_definition(
                 function_build_definition_key, function_build_definitions_table[function_build_definition_key]
             )
@@ -461,6 +489,13 @@ class BuildGraph:
 
         layer_build_definitions_table = document.get(BuildGraph.LAYER_BUILD_DEFINITIONS, {})
         for layer_build_definition_key in layer_build_definitions_table:
+            if not is_valid_build_definition_uuid(layer_build_definition_key):
+                LOG.warning(
+                    "Ignoring layer build definition with invalid key %r in %s; it will be rebuilt",
+                    layer_build_definition_key,
+                    self._filepath,
+                )
+                continue
             layer_build_definition = _toml_table_to_layer_build_definition(
                 layer_build_definition_key, layer_build_definitions_table[layer_build_definition_key]
             )
@@ -534,7 +569,7 @@ class AbstractBuildDefinition:
 
     @property
     def dependencies_dir(self) -> str:
-        return str(os.path.join(DEFAULT_DEPENDENCIES_DIR, self.uuid))
+        return get_build_definition_dir(DEFAULT_DEPENDENCIES_DIR, self.uuid)
 
     @property
     def env_vars(self) -> Dict:
