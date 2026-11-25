@@ -1,6 +1,6 @@
 import itertools
 from copy import deepcopy
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from unittest import TestCase
 from unittest.mock import Mock, patch, MagicMock, call, ANY
 
@@ -582,6 +582,63 @@ class CachedBuildStrategyTest(BuildStrategyBaseTest):
             cached_build_strategy = CachedBuildStrategy(build_graph, Mock(), temp_base_dir, build_dir, cache_dir)
             cached_build_strategy._clean_redundant_cached()
             self.assertTrue(not redundant_cache_folder.exists())
+
+    @parameterized.expand(
+        [
+            ("dotnet10", {}, 1),
+            ("provided.al2", {"BuildMethod": "dotnet7"}, 1),
+            ("python3.13", {}, 2),
+        ]
+    )
+    def test_function_cache_with_bin_and_obj_folders(self, runtime, metadata, build_count):
+        with osutils.mkdir_temp() as temp_base_dir:
+            code_dir, built_dir = self._make_source_and_built_dirs(temp_base_dir)
+            build_definition = FunctionBuildDefinition(runtime, "src", None, ZIP, X86_64, metadata, "Function::Handler")
+            delegate_build_strategy = Mock()
+            delegate_build_strategy.build_single_function_definition.return_value = {"Function": built_dir}
+            cached_build_strategy = CachedBuildStrategy(
+                Mock(), delegate_build_strategy, temp_base_dir, "build_dir", str(Path(temp_base_dir, "cache"))
+            )
+
+            cached_build_strategy.build_single_function_definition(build_definition)
+            self._add_bin_and_obj(code_dir)
+            cached_build_strategy.build_single_function_definition(build_definition)
+
+            self.assertEqual(delegate_build_strategy.build_single_function_definition.call_count, build_count)
+
+    def test_dotnet_layer_cache_with_bin_and_obj_folders(self):
+        with osutils.mkdir_temp() as temp_base_dir:
+            code_dir, built_dir = self._make_source_and_built_dirs(temp_base_dir)
+            layer_definition = LayerBuildDefinition("Layer", "src", "dotnet8", ["dotnet8"], X86_64)
+            layer_definition.layer = Mock()
+            layer_definition.layer.get_build_dir.return_value = str(Path(temp_base_dir, "build_dir", "Layer"))
+            delegate_build_strategy = Mock()
+            delegate_build_strategy.build_single_layer_definition.return_value = {"Layer": built_dir}
+            cached_build_strategy = CachedBuildStrategy(
+                Mock(), delegate_build_strategy, temp_base_dir, "build_dir", str(Path(temp_base_dir, "cache"))
+            )
+
+            cached_build_strategy.build_single_layer_definition(layer_definition)
+            self._add_bin_and_obj(code_dir)
+            cached_build_strategy.build_single_layer_definition(layer_definition)
+
+            self.assertEqual(delegate_build_strategy.build_single_layer_definition.call_count, 1)
+
+    @staticmethod
+    def _make_source_and_built_dirs(temp_base_dir: str) -> Tuple[Path, str]:
+        code_dir = Path(temp_base_dir, "src")
+        code_dir.mkdir()
+        Path(code_dir, "Function.cs").write_text("class Function {}")
+        built_dir = Path(temp_base_dir, "built")
+        built_dir.mkdir()
+        Path(built_dir, "bootstrap").write_text("built")
+        return code_dir, str(built_dir)
+
+    @staticmethod
+    def _add_bin_and_obj(code_dir: Path) -> None:
+        for folder in ("bin", "obj"):
+            Path(code_dir, folder).mkdir()
+            Path(code_dir, folder, "output").write_text(folder)
 
 
 class ParallelBuildStrategyTest(BuildStrategyBaseTest):
