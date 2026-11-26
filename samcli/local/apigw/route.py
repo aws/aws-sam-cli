@@ -89,5 +89,5 @@ class Route:
         """
         methods = [method.upper() for method in methods]
         if "ANY" in methods:
-            return self.ANY_HTTP_METHODS
+            return list(self.ANY_HTTP_METHODS)
         return methods

@@ -251,15 +251,21 @@ Testing application behaviour against authorizers deployed on AWS can be done us
         -------
         A list of routes without duplicate routes with the same stack_path, function_name and method
         """
-        grouped_routes: Dict[str, Route] = {}
+        grouped_routes: Dict[Tuple[str, Optional[str], str, str, str], Route] = {}
 
         for route in routes:
-            key = "{}-{}-{}-{}".format(route.stack_path, route.function_name, route.path, route.operation_name or "")
+            key = (
+                route.stack_path,
+                route.function_name,
+                route.path,
+                route.operation_name or "",
+                route.authorizer_name or "",
+            )
             config = grouped_routes.get(key, None)
-            methods = route.methods
+            methods = list(route.methods)
             if config:
                 methods += config.methods
-            sorted_methods = sorted(methods)
+            sorted_methods = sorted(set(methods))
             # Prefer route-specific CORS over None
             cors = route.cors if route.cors is not None else (config.cors if config else None)
             grouped_routes[key] = Route(
@@ -272,6 +278,7 @@ Testing application behaviour against authorizers deployed on AWS can be done us
                 stack_path=route.stack_path,
                 authorizer_name=route.authorizer_name,
                 authorizer_object=route.authorizer_object,
+                use_default_authorizer=route.use_default_authorizer,
                 cors=cors,
             )
         return list(grouped_routes.values())

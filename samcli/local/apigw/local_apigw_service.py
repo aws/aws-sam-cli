@@ -142,7 +142,15 @@ class LocalApigwService(BaseLocalService):
                 default_route = api_gateway_route
                 continue
             path = PathConverter.convert_path_to_flask(api_gateway_route.path)
+            is_any_route = set(api_gateway_route.methods) == set(Route.ANY_HTTP_METHODS)
             for route_key in self._generate_route_keys(api_gateway_route.methods, path):
+                existing_route = self._dict_of_routes.get(route_key)
+                if (
+                    existing_route is not None
+                    and is_any_route
+                    and set(existing_route.methods) != set(Route.ANY_HTTP_METHODS)
+                ):
+                    continue
                 self._dict_of_routes[route_key] = api_gateway_route
             self._app.add_url_rule(
                 path,
