@@ -12,6 +12,7 @@ from samcli.lib.providers.exceptions import MissingFunctionNameException
 from samcli.lib.providers.provider import Api
 from samcli.lib.providers.provider import Cors
 from samcli.lib.telemetry.event import EventName, EventTracker, UsedFeature
+from samcli.local.apigw.authorizers.authorizer import Authorizer
 from samcli.local.apigw.authorizers.lambda_authorizer import LambdaAuthorizer
 from samcli.local.apigw.route import Route
 from samcli.local.apigw.local_apigw_service import (
@@ -2209,3 +2210,38 @@ class TestPathConverter(TestCase):
         path_converter = CatchAllPathConverter(map)
         path = "/path/test/sub_path"
         self.assertRegex(path, path_converter.regex)
+
+
+class TestLocalApigwService_any_and_explicit_options(TestCase):
+    @parameterized.expand(
+        [
+            ("any_then_options", False),
+            ("options_then_any", True),
+        ]
+    )
+    def test_explicit_options_without_authorizer_does_not_drop_any_authorizer(self, _name, options_first):
+        auth = Authorizer(authorizer_name="MyAuthorizer", type="request", payload_version="1.0")
+        any_route = Route(
+            function_name="AuthorizedFunction",
+            path="/{proxy+}",
+            methods=["ANY"],
+            authorizer_name="MyAuthorizer",
+            authorizer_object=auth,
+        )
+        options_route = Route(
+            function_name="AuthorizedFunction",
+            path="/{proxy+}",
+            methods=["OPTIONS"],
+            authorizer_name=None,
+            authorizer_object=None,
+        )
+        api = Api()
+        api.routes = [options_route, any_route] if options_first else [any_route, options_route]
+
+        service = LocalApigwService(api=api, lambda_runner=Mock())
+        service.create()
+
+        flask_path = "/<path:proxy>"
+        self.assertEqual(service._dict_of_routes[f"{flask_path}:GET"].authorizer_name, "MyAuthorizer")
+        self.assertEqual(service._dict_of_routes[f"{flask_path}:POST"].authorizer_name, "MyAuthorizer")
+        self.assertIsNone(service._dict_of_routes[f"{flask_path}:OPTIONS"].authorizer_name)
