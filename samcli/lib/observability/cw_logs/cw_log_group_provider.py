@@ -10,6 +10,7 @@ from samcli.lib.utils.resources import (
     AWS_APIGATEWAY_RESTAPI,
     AWS_APIGATEWAY_V2_API,
     AWS_LAMBDA_FUNCTION,
+    AWS_LAMBDA_WEBFUNCTION,
     AWS_STEPFUNCTIONS_STATEMACHINE,
 )
 
@@ -26,6 +27,8 @@ class LogGroupProvider:
         log_group = None
         if resource_type == AWS_LAMBDA_FUNCTION:
             log_group = LogGroupProvider.for_lambda_function(boto_client_provider, name)
+        elif resource_type == AWS_LAMBDA_WEBFUNCTION:
+            log_group = LogGroupProvider.for_lambda_web_function(name)
         elif resource_type == AWS_APIGATEWAY_RESTAPI:
             log_group = LogGroupProvider.for_apigw_rest_api(name)
         elif resource_type == AWS_APIGATEWAY_V2_API:
@@ -64,6 +67,33 @@ class LogGroupProvider:
             LOG.debug("Could not retrive function configuration for function (%s):  (%s)", function_name, str(ex))
 
         return log_group_name if bool(log_group_name) else f"/aws/lambda/{function_name}"
+
+    @staticmethod
+    def for_lambda_web_function(function_arn: str) -> Optional[str]:
+        """
+        Returns the CloudWatch Log Group Name created by default for the Lambda Web Function with the given ARN
+
+        Lambda centralizes a Web Function's logs from every Region it serves in into this log group in its home
+        Region. A Web Function whose revision sets LoggingConfig.LogGroup sends them there instead; there's no API
+        in the SDK yet to read that, so use --cw-log-group for it.
+
+        Parameters
+        ----------
+        function_arn : str
+            ARN of the Web Function (its CloudFormation physical ID), like
+            arn:aws:lambda:us-east-1:123456789012:web-function/my-function
+
+        Returns
+        -------
+        Optional[str]
+            Default Log Group name used by this Web Function, or None if the ARN can't be parsed
+        """
+        _, separator, function_name = function_arn.partition(":web-function/")
+        function_name = function_name.split("/")[0]
+        if not separator or not function_name:
+            LOG.debug("Could not get the Web Function name from (%s)", function_arn)
+            return None
+        return f"/aws/lambda/web/{function_name}"
 
     @staticmethod
     def for_apigw_rest_api(rest_api_id: str, stage: str = "Prod") -> str:
