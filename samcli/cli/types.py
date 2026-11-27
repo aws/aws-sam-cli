@@ -264,6 +264,10 @@ class CfnMetadataType(click.ParamType):
         fail = False
         if not value:
             return result
+        if isinstance(value, dict):
+            # Value comes from a configuration file (e.g. samconfig.toml), where it is already parsed
+            # into a dict-like object. Normalize it back to JSON so it is validated like the string form.
+            value = json.dumps(dict(value))
         try:
             # Look to load the value into json if we can.
             result = json.loads(value)
