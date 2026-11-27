@@ -198,14 +198,16 @@ When there is no collision the base name (e.g., `SAMDefinitionUriServices`) is u
 
 When the `Fn::ForEach` collection is a parameter reference (`!Ref ServiceNames`), the collection values are resolved at package time from:
 
-1. `--parameter-overrides` passed to `sam build` or `sam package`
+1. `--parameter-overrides` passed to `sam build`, `sam deploy` or `sam sync`
 2. The parameter's `Default` value in the template
+
+`sam package` has no `--parameter-overrides` option, so it always uses the `Default`.
 
 **Important:** If you change the parameter value at deploy time (e.g., adding a new service), you must re-package first so the Mappings include entries for the new values.
 
 ```bash
-# Package with the values you intend to deploy with
-sam package --parameter-overrides ServiceNames="Users,Orders,Products"
+# Build with the values you intend to deploy with
+sam build --parameter-overrides ServiceNames="Users,Orders,Products"
 
 # Deploy with the same values
 sam deploy --parameter-overrides ServiceNames="Users,Orders,Products"
