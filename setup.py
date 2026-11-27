@@ -5,7 +5,7 @@ from setuptools import setup
 
 # When SAM_CLI_DEV is set, register "samdev" as the console script instead of "sam".
 # All other metadata (name, version, dependencies, etc.) is defined in pyproject.toml.
-cmd_name = "samdev" if os.getenv("SAM_CLI_DEV") else "sam"
+cmd_name = "samdev" if os.getenv("SAM_CLI_DEV") else "sam-nightly"
 
 setup(
     entry_points={
