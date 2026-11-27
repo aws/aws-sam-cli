@@ -362,6 +362,16 @@ class TestCfnMetadataType(TestCase):
         result = self.param_type.convert(input, None, None)
         self.assertEqual(result, expected, msg="Failed with Input = " + input)
 
+    def test_dict_from_config_file_is_parsed(self):
+        # samconfig.toml parses an inline table into a dict before it reaches the type converter
+        self.assertEqual(self.param_type.convert({"a": "b"}, None, None), {"a": "b"})
+
+    def test_dict_from_config_file_with_nested_value_fails(self):
+        self.param_type.fail = Mock()
+        self.param_type.convert({"a": {"b": "c"}}, "param", "ctx")
+
+        self.param_type.fail.assert_called_with(ANY, "param", "ctx")
+
 
 class TestCfnTags(TestCase):
     def setUp(self):
